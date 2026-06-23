@@ -3,3 +3,5 @@ library/assets.json
 library/domains.json
 library/users.json
 library/tasks.json
+classes/*
+
