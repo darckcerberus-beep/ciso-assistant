@@ -42,6 +42,11 @@ class UserDict:
             if u.getID() == id:
                 return u.getFullName()
         return None
+    def getNamefromEmail(self, email):
+        for u in self.users:
+            if u.getEmail() == email:
+                return u.getFullName()
+        return None
     def upsertUser(self, first_name, last_name, email,group):
         # Check if the user already exists
         for u in self.users:
@@ -208,4 +213,38 @@ class TeamDict:
             print(f"User '{user_email}' does not exist.")
             return False
         team = Team(utils.get_return(f"/api/teams/{team_id}"))
-        return team.RemoveUser(user_id)    
+        return team.RemoveUser(user_id)   
+
+class Actor:
+    def __init__(self, json_actor):
+        self.json_object = json_actor
+    def getName(self):
+        return self.json_object.get('str', '')
+    def getID(self):
+        return self.json_object.get('id', '')
+
+class ActorDict:
+    def __init__(self):
+        self.reload()
+
+    def reload(self):
+        self.actors = [Actor(a) for a in utils.get_all_results("/api/actors/")]
+
+    def getActors(self):
+        return self.actors
+    def printActors(self):
+        print("Actors:")
+        for a in self.actors:
+            print(f"Name: {a.getName()}")
+            print(f"ID: {a.getID()}")
+    def getIDfromName(self, name):
+        print(f"Searching for actor with name '{name}'")
+        for a in self.actors:
+            if a.getName() == name:
+                return a.getID()
+        return None
+    def getNamefromID(self, id):
+        for a in self.actors:
+            if a.getID() == id:
+                return a.getName()
+        return None

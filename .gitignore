@@ -3,11 +3,11 @@ library/assets.json
 library/domains.json
 library/users.json
 library/tasks.json
-classes/*
-
 __pycache__/audit.cpython-310.pyc
 __pycache__/control.cpython-310.pyc
 __pycache__/keys.cpython-310.pyc
 __pycache__/organization.cpython-310.pyc
 __pycache__/risk.cpython-310.pyc
 __pycache__/utils.cpython-310.pyc
+classes/__pycache__/organization.cpython-310.pyc
+classes/__pycache__/user.cpython-310.pyc

@@ -55,7 +55,7 @@ class DomainDict:
                 print(f"Folder '{name}' already exists.")
                 return d
         # If the folder does not exist, create it
-        payload = {'name': name}
+        payload = {'name': name, "create_iam_groups": True}
         result = utils.get_return("/api/folders/", method="POST", payload=payload)
         print(f"Result: {result}")
         if result and not isinstance(result, dict) or not result.get("error"):
@@ -65,6 +65,16 @@ class DomainDict:
         else:
             print(f"Failed to create folder '{name}': {result}")
             return None
+    def UpsertFolderFromJSON(self, folder_dict):
+        folders = folder_dict.get('domains', [])
+        print(f"Upserting folders from JSON: {folders}")
+        for folder in folders:
+            folder_name = folder.get('name')
+            if folder_name:
+                self.UpsertFolder(folder_name)
+            else:
+                print("Folder name is missing in the provided JSON.")
+
 
 class Perimeter:
     def __init__(self, json_perimeter):
@@ -76,7 +86,7 @@ class Perimeter:
     def getDefaultAssigneeID(self):
         return self.json_object.get('default_assignee', '')[0].get('id', '')
     def getDefaultAssignee(self):
-        return self.json_object.get('default_assignee', '')[0].get('str', '')
+        return self.json_object.get('default_assignee', [])
     def getFolder(self):
         return self.json_object.get('folder', '')
     def getFolderUUID(self):
@@ -105,6 +115,9 @@ class PerimeterDict:
             p.printID()
             p.printDefaultAssignee()
             p.printFolder()
+    def printPerimeterJSON(self):
+        for p in self.perimeters:
+            print(p.json_object)       
     def getIDfromName(self, name):
         for p in self.perimeters:
             if p.getName() == name:
@@ -125,6 +138,39 @@ class PerimeterDict:
             if p.getID() == perimeter_id:
                 return p.getFolderUUID()
         return None
+    def CreatePerimeter(self, name, default_assignee_id, folder_uuid):
+        # Check if the perimeter already exists
+        for p in self.perimeters:
+            if p.getName() == name:
+                print(f"Perimeter '{name}' already exists.")
+                return p
+        # If the perimeter does not exist, create it
+        payload = {
+            'name': name,            
+            'folder': folder_uuid,
+            'default_assignee':  [default_assignee_id]
+        }
+        result = utils.get_return("/api/perimeters/", method="POST", payload=payload)
+        print(f"Result: {result}")
+        if result and not isinstance(result, dict) or not result.get("error"):
+            print(f"Perimeter '{name}' created successfully.")
+            self.reload()
+            return result
+        else:
+            print(f"Failed to create perimeter '{name}': {result}")
+            return None
+    def CreatePerimetersFromDict(self,domain_dict, perimeter_dict_from_file,actor_dict,user_dict):
+        perimeters = perimeter_dict_from_file.get('assets', [])
+        print(f"Creating perimeters from asset dict: {perimeters}")
+        for perimeter in perimeters:
+            perimeter_name = perimeter.get('name')
+            # get assignee id from name
+            default_assignee_id = actor_dict.getIDfromName(user_dict.getNamefromEmail(perimeter.get('it contact')))
+            print(f"Creating perimeter '{perimeter_name}' with default assignee ID '{default_assignee_id}'")
+            # get folder uuid from name            
+            folder_uuid = domain_dict.getIDfromName(perimeter.get('domain'))
+            if perimeter_name and default_assignee_id and folder_uuid:
+                self.CreatePerimeter(perimeter_name, default_assignee_id, folder_uuid)
 
 class Asset:
     def __init__(self, json_asset):

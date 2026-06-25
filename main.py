@@ -23,23 +23,14 @@ def main():
     """
 
     DomainDict = organization.DomainDict()
-    DomainDict.UpsertFolder("TestFolder")
-
-    DomainDict.printDomains()
     UserDict = user.UserDict()
     UserDict.printUsers()
-
-    TaskDict = task.TaskDict()
-    TaskDict.printTasks()
-    TaskTemplateDict = task.TaskTemplateDict()
-    TaskTemplateDict.printTaskTemplates()
-    UserDict.upsertUser("John", "Doe", "john.doe@example.com","Finance")
-    UserDict.deleteUser("john.doe@example.com")
-    TeamDict = user.TeamDict()
-    TeamDict.printTeams()
-    TeamDict.AddUserToTeam("Finance", "athiriez@redoute.fr")
-    TeamDict.RemoveUserFromTeam("Finance", "elegendre-prest@redoute.fr")
-
+    ActorDict = user.ActorDict()
+    ActorDict.printActors()
+    PerimeterDict = organization.PerimeterDict()
+    #PerimeterDict.printPerimeters()
+    PerimeterDict.CreatePerimetersFromDict(DomainDict, json.load(open("library/assets.json")), ActorDict, UserDict)
+    PerimeterDict.printPerimeters()
     #ComplianceAssessmentDict.CreateMissingComplianceAssessments(FrameworkDict, PerimeterDict, AssetDict)
     #ComplianceAssessmentDict.assignRequirementsToPerimeterOwner(PerimeterDict)
     #ComplianceAssessmentDict.CreateAppliedControls(PerimeterDict, ReferenceControlDict) 
