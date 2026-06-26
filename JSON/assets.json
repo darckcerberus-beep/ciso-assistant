@@ -1,0 +1,16 @@
+{
+  "assets": [
+    {
+      "name": "SAP Successfactors",
+      "domain": "HR",
+      "it contact": "elegendre-prest@redoute.fr",
+      "business contact": "athiriez@redoute.fr"
+    },
+    {
+      "name": "Hermes",
+      "domain": "Customer service",
+      "it contact": "mlucon-prest@redoute.fr",
+      "business contact": "sksiazyk@redoute.fr"
+    }
+  ]
+}

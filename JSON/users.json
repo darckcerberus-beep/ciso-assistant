@@ -1,0 +1,34 @@
+{
+  "Users": [
+    {
+      "first_name": "Emilie",
+      "last_name": "Legendre",
+      "email": "elegendre-prest@redoute.fr",
+      "team": "IT"
+    },
+    {
+      "first_name": "Romain",
+      "last_name": "Pignard",
+      "email": "rpignard@redoute.fr",
+      "team": "IT"
+    },
+    {
+      "first_name": "Marie-Caroline",
+      "last_name": "Luçon",
+      "email": "mlucon-prest@redoute.fr",
+      "team": "IT"
+    },
+    {
+      "first_name": "Astrid",
+      "last_name": "Thiriez",
+      "email": "athiriez@redoute.fr",
+      "team": "HR"
+    },
+    {
+      "first_name": "Séverine",
+      "last_name": "Ksiazyk",
+      "email": "sksiazyk@redoute.fr",
+      "team": "Customer Service"
+    }
+  ]
+}

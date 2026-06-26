@@ -29,7 +29,7 @@ def main():
     ActorDict.printActors()
     PerimeterDict = organization.PerimeterDict()
     #PerimeterDict.printPerimeters()
-    PerimeterDict.CreatePerimetersFromDict(DomainDict, json.load(open("library/assets.json")), ActorDict, UserDict)
+    PerimeterDict.CreatePerimetersFromDict(DomainDict, json.load(open("JSON/assets.json")), ActorDict, UserDict)
     PerimeterDict.printPerimeters()
     #ComplianceAssessmentDict.CreateMissingComplianceAssessments(FrameworkDict, PerimeterDict, AssetDict)
     #ComplianceAssessmentDict.assignRequirementsToPerimeterOwner(PerimeterDict)

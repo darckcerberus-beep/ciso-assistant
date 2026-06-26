@@ -1,0 +1,20 @@
+{
+  "domains": [
+    {
+      "name": "Finance",
+      "description": "Finance domain"
+    },
+    {
+      "name": "Logistics",
+      "description": "Logistics domain"
+    },
+    {
+      "name": "HR",
+      "description": "HR domain"
+    },
+    {
+      "name": "Customer service",
+      "description": "Customer service domain"
+    }
+  ]
+}
