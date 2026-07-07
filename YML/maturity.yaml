@@ -1,0 +1,60 @@
+urn: urn:intuitem:risk:library:example-dynamic-questionnairev2
+locale: fr
+ref_id: "example-dynamic-questionnairev2"
+name: "Exemple de questionnaire dynamique avec score, résultat et dépendances"
+description: test
+copyright: Intuitem
+version: 3
+publication_date: 2026-07-06
+provider: Intuitem
+packager: Intuitem
+objects:
+  framework:
+    urn: urn:intuitem:risk:framework:example-dynamic-questionnairev2
+    ref_id: "example-dynamic-questionnairev2"
+    name: "Exemple de questionnaire dynamique"
+    description: >
+      Exemple simplifié d'un framework illustrant toutes les fonctions récentes des questionnaires dynamiques,
+      y compris le calcul automatique des scores, la logique de dépendance, et la sélection dynamique
+      des Implementation Groups.
+
+    min_score: 1
+    max_score: 4
+    scores_definition:
+    - score: 1
+      name: Partial
+      description: 'Level 1' 
+    - score: 2
+      name: Risk informed
+      description: 'Level 2'
+    - score: 3
+      name: Repeatable
+      description: "Level 3"
+    - score: 4
+      name: Adaptive
+      description: 'Level 4'
+    requirement_nodes:
+      # === CATEGORY 1: Fondamentaux ===
+      - urn: urn:intuitem:risk:req_node:example-dynamic-questionnairev2:0_fondamentaux
+        assessable: false
+        depth: 1
+        ref_id: 0_Fondamentaux
+        name: Exigences fondamentales
+        description: >
+          Ce chapitre regroupe les exigences de base applicables à toutes les organisations.
+        annotation: >
+          Ces exigences constituent le socle minimal de conformité.
+      # === REQUIREMENT 1 ===
+      - urn: urn:intuitem:risk:req_node:example-dynamic-questionnairev2:1_gouvernance-1
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:example-dynamic-questionnairev2:0_fondamentaux
+        ref_id: 1_Gouvernance-1
+        name: CMDB
+        description: >
+          L'entité liste l'ensemble de ses activités et services, y compris les activités et services qui ne correspondent pas aux critères pour lesquels l'entité constitue une entité importante ou essentielle (par exemple : une entité essentielle au titre d'une activité exploitation d'un oléoduc doit lister, en plus des activités et services participant à l'exploitation de l'oléoduc, tous les services et les autres activités qu'elle fournit). Pour chaque entrée de cette liste, l'entité : o identifie un responsable de l'activité ou du service (par exemple le chef de service auquel est rattachée l'activité ou le service, un directeur métier, la direction générale) ; o liste les systèmes d'information les supportant.
+        annotation: >
+          Le CMDB permet de maintenir à jour les informations sur les ressources informatiques et leurs relations.
+        typical_evidence: >
+          Copie du CMDB, description des rôles et responsabilités.
+

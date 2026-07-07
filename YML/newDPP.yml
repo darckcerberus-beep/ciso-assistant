@@ -1,0 +1,580 @@
+urn: urn:intuitem:risk:library:mls
+locale: en
+ref_id: "mls"
+name: "Multi-level DPP"
+description: >
+  CISO Assistant implementation of the Multi-level DPP of ACME Corp.
+copyright: ACME Corp
+version: 3
+publication_date: 2026-03-29
+provider: ACME Corp
+packager: ACME Corp
+
+objects:
+  # === THREATS ===
+  threats:
+    - urn: urn:intuitem:risk:threat:mls:data_exfiltration
+      ref_id: data_exfiltration
+      name: "Data exfiltration"
+      description: "Unauthorized transfer of data to an external environment."
+    - urn: urn:intuitem:risk:threat:mls:data_loss
+      ref_id: data_loss
+      name: "Data loss"
+      description: "Accidental or malicious destruction or loss of access to data."
+    - urn: urn:intuitem:risk:threat:mls:unauthorized_access
+      ref_id: unauthorized_access
+      name: "Unauthorized access"
+      description: "Access to sensitive data by an unauthorized person."
+
+  # === VULNERABILITIES ===
+  vulnerabilities:
+    - urn: urn:intuitem:risk:vulnerability:mls:lack_of_encryption
+      ref_id: lack_of_encryption
+      name: "Lack of encryption"
+      description: "Data stored or transmitted without cryptographic protection."
+    - urn: urn:intuitem:risk:vulnerability:mls:unclear_accountability
+      ref_id: unclear_accountability
+      name: "Unclear responsibilities"
+      description: "Absence of identified points of contact for data governance."
+    - urn: urn:intuitem:risk:vulnerability:mls:unprotected_non_prod
+      ref_id: unprotected_non_prod
+      name: "Vulnerable non-production environment"
+      description: "Use of real data in unsecured test environments."
+    - urn: urn:intuitem:risk:vulnerability:mls:contractual_gap
+      ref_id: contractual_gap
+      name: "Contractual gap"
+      description: "Absence of binding security clauses with a third-party provider."
+
+  # === REFERENCE CONTROLS ===
+  reference_controls:
+    - urn: urn:intuitem:risk:framework:mls:stakeholder_designation
+      ref_id: stakeholder_designation
+      name: "Designate stakeholders"
+      description: "Designate stakeholders to ensure proper accountability and update LeanIX with the information"
+    - urn: urn:intuitem:risk:framework:mls:encrypt_data_in_transit
+      ref_id: data_in_transit_encryption
+      name: "Encrypt data in transit"
+      description: "Encrypt data in transit"
+    - urn: urn:intuitem:risk:framework:mls:encrypt_data_at_rest
+      ref_id: data_at_rest_encryption
+      name: "Encrypt data at rest"
+      description: "Encrypt data at rest"
+    - urn: urn:intuitem:risk:framework:mls:identify_data_classification
+      ref_id: data_classification
+      name: "Identify the data classification level"
+      description: "Identify the classification level of the data the application is handling"
+    - urn: urn:intuitem:risk:framework:mls:secure_storage_device
+      ref_id: secure_physical_device
+      name: "Properly secure storage devices"
+      description: "Protecting storage devices containing data either by encryption or physical protection (safe) limit data loss/theft"
+    - urn: urn:intuitem:risk:framework:mls:saas_contract
+      ref_id: saas_contract
+      name: "Sign a contract with the SaaS provider with all the adequate clauses"
+      description: "Having a contract is better"
+    - urn: urn:intuitem:risk:framework:mls:protect_prod_data_in_non_prod
+      ref_id: protect_prod_data_in_non_prod
+      name: "Use hashing, encryption, anonymisation or pseudonymisation of prod data in non-production environment"
+      description: "Ensure non-production environments do not contain sensitive data"
+    - urn: urn:intuitem:risk:framework:mls:information_exchange_contract
+      ref_id: information_exchange_contract
+      name: "Sign a contract regarding the exchange of information with all the adequate clauses"
+      description: "Having a contract is better"
+    - urn: urn:intuitem:risk:framework:mls:data_destruction_process
+      ref_id: data_destruction_process
+      name: "Write and implement a compliant data destruction process"
+      description: "Data destruction process must include clear responsibilities, approved methods and reporting upon completion"
+
+  framework:
+    urn: urn:intuitem:risk:framework:mls
+    ref_id: "mls"
+    name: "Data protection policy of ACME Corp"
+    description: "Data protection policy of ACME Corp"
+    implementation_groups_definition:
+      - name: "Application information"
+        ref_id: "info"
+        description: "Basic information about the application"
+        default_selected: true
+      - name: "Confidential"
+        ref_id: "confidential_app"
+        description: "Requirements for applications handling Confidential information"
+      - name: "Secret"
+        ref_id: "secret_app"
+        description: "Requirements for applications handling Secret information"
+      - name: "SaaS application"
+        ref_id: "saas_app"
+        description: "Requirements for SaaS applications"
+
+    requirement_nodes:
+      # === CHAPTER 1: BASIC INFO ===
+      - urn: urn:intuitem:risk:req_node:mls:info
+        assessable: false
+        depth: 1
+        ref_id: info
+        name: Application info
+        description: "Basic context questions"
+        implementation_groups: ["info"]
+
+      - urn: urn:intuitem:risk:req_node:mls:stakeholder_identification
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:mls:info
+        ref_id: stakeholder_identification
+        name: Stakeholder identification
+        description: "Stakeholders have been identified for the application"
+        vulnerabilities: ["urn:intuitem:risk:vulnerability:mls:unclear_accountability"]
+        implementation_groups: ["info"]
+        reference_controls:
+          - urn:intuitem:risk:framework:mls:stakeholder_designation
+        questions:
+          urn:intuitem:risk:req_node:mls:stakeholder_identification:question:1:
+            type: unique_choice
+            text: "Is there a designated business contact?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:mls:stakeholder_identification:question:1:choice:1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:mls:stakeholder_identification:question:1:choice:2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:mls:stakeholder_identification:question:2:
+            type: unique_choice
+            text: "Is there a designated IT contact?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:mls:stakeholder_identification:question:2:choice:1
+                value: "Yes"
+                add_score: 25
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:mls:stakeholder_identification:question:2:choice:2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:mls:stakeholder_identification:question:3:
+            type: unique_choice
+            text: "Is there a designated data owner?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:mls:stakeholder_identification:question:3:choice:1
+                value: "Yes"
+                add_score: 25
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:mls:stakeholder_identification:question:3:choice:2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:mls:stakeholder_identification:question:4:
+            type: unique_choice
+            text: "Is the information about stakeholders updated in LeanIX?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:mls:stakeholder_identification:question:4:choice:1
+                value: "Yes"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:mls:stakeholder_identification:question:4:choice:2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      - urn: urn:intuitem:risk:req_node:mls:data_classification
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:mls:info
+        ref_id: data_classification
+        name: Data classification
+        reference_controls: ["urn:intuitem:risk:framework:mls:identify_data_classification"]
+        implementation_groups: ["info"]
+        questions:
+          urn:intuitem:risk:req_node:mls:data_classification:q1:
+            type: unique_choice
+            text: "What is the maximum classification level handled?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:mls:data_classification:q1:c1
+                value: "Public"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:mls:data_classification:q1:c2
+                value: "Internal"
+                add_score: 100
+                compute_result: true
+                color: "#fd7e14"
+              - urn: urn:intuitem:risk:req_node:mls:data_classification:q1:c3
+                value: "Confidential"
+                add_score: 100
+                compute_result: true
+                select_implementation_groups: ["confidential_app"]
+                color: "#fd7e14"
+              - urn: urn:intuitem:risk:req_node:mls:data_classification:q1:c4
+                value: "Secret"
+                add_score: 100
+                compute_result: true
+                select_implementation_groups: ["secret_app"]
+                color: "#dc3545"
+
+      - urn: urn:intuitem:risk:req_node:mls:hosting
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:mls:info
+        ref_id: hosting
+        name: App hosting
+        implementation_groups: ["info"]
+        questions:
+          urn:intuitem:risk:req_node:mls:hosting:q1:
+            type: unique_choice
+            text: "What is the hosting model?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:mls:hosting:q1:c1
+                value: "In-house"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:mls:hosting:q1:c2
+                value: "SaaS"
+                add_score: 100
+                compute_result: true
+                select_implementation_groups: ["saas_app"]
+                color: "#33a745"
+
+      # === CHAPTER 2: ADVANCED REQUIREMENTS ===
+      - urn: urn:intuitem:risk:req_node:mls:advanced
+        assessable: false
+        depth: 1
+        ref_id: advanced_reqs
+        name: Advanced requirements
+        implementation_groups: ["confidential_app", "secret_app"]
+
+      - urn: urn:intuitem:risk:req_node:mls:data_in_transit
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:mls:advanced
+        ref_id: data_in_transit
+        name: Encryption in Transit
+        vulnerabilities: ["urn:intuitem:risk:vulnerability:mls:lack_of_encryption"]
+        implementation_groups: ["confidential_app", "secret_app"]
+        reference_controls: ["urn:intuitem:risk:framework:mls:encrypt_data_in_transit"]
+        questions:
+          urn:intuitem:risk:req_node:mls:data_in_transit:q1:
+            type: unique_choice
+            text: "Is data encrypted during transit?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:mls:data_in_transit:q1:c1
+                value: "Yes"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:mls:data_in_transit:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      - urn: urn:intuitem:risk:req_node:mls:data_at_rest
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:mls:advanced
+        ref_id: data_at_rest
+        name: Encryption at Rest
+        vulnerabilities: ["urn:intuitem:risk:vulnerability:mls:lack_of_encryption"]
+        implementation_groups: ["confidential_app", "secret_app"]
+        reference_controls: ["urn:intuitem:risk:framework:mls:encrypt_data_at_rest"]
+        questions:
+          urn:intuitem:risk:req_node:mls:data_at_rest:q1:
+            type: unique_choice
+            text: "Is data encrypted at rest?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:mls:data_at_rest:q1:c1
+                value: "Yes"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:mls:data_at_rest:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      - urn: urn:intuitem:risk:req_node:mls:non_prod_data
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:mls:advanced
+        ref_id: non_prod_data
+        name: App non_prod_data
+        description: "Non prod data is adequately protected"
+        vulnerabilities: ["urn:intuitem:risk:vulnerability:mls:unprotected_non_prod"]
+        implementation_groups: ["secret_app", "confidential_app"]
+        reference_controls: ["urn:intuitem:risk:framework:mls:protect_prod_data_in_non_prod"]
+        questions:
+          urn:intuitem:risk:req_node:mls:non_prod_data:question:0:
+            type: unique_choice
+            text: "Do you have a dedicated non-production environment?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:mls:non_prod_data:question:0:choice:1
+                value: "No"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:mls:non_prod_data:question:0:choice:2
+                value: "Yes"
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:mls:non_prod_data:question:1:
+            type: unique_choice
+            text: "Do you use prod data in a non-prod environment?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:mls:non_prod_data:question:0
+              answers: ["urn:intuitem:risk:req_node:mls:non_prod_data:question:0:choice:2"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:mls:non_prod_data:question:1:choice:1
+                value: "No"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:mls:non_prod_data:question:1:choice:2
+                value: "Yes"
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:mls:non_prod_data:question:2:
+            type: unique_choice
+            text: "How do you protect them?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:mls:non_prod_data:question:1
+              answers: ["urn:intuitem:risk:req_node:mls:non_prod_data:question:1:choice:2"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:mls:non_prod_data:question:2:choice:1
+                value: "No, no protection"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:mls:non_prod_data:question:2:choice:2
+                value: "Hashing"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:mls:non_prod_data:question:2:choice:3
+                value: "Pseudonymisation"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:mls:non_prod_data:question:2:choice:4
+                value: "Encryption"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+          urn:intuitem:risk:req_node:mls:non_prod_data:question:3:
+            type: unique_choice
+            text: "Do you clean the prod data after use in non-prod?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:mls:non_prod_data:question:2
+              answers: ["urn:intuitem:risk:req_node:mls:non_prod_data:question:2:choice:1"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:mls:non_prod_data:question:3:choice:1
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:mls:non_prod_data:question:3:choice:2
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+
+      - urn: urn:intuitem:risk:req_node:mls:data_exchange
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:mls:advanced
+        ref_id: data_exchange
+        name: data_exchange
+        description: "Data exchange beyond the group is controlled"
+        vulnerabilities: ["urn:intuitem:risk:vulnerability:mls:contractual_gap"]
+        reference_controls:
+          - urn:intuitem:risk:framework:mls:information_exchange_contract
+        implementation_groups: ["confidential_app", "secret_app"]
+        questions:
+          urn:intuitem:risk:req_node:mls:data_exchange:question:1:
+            type: unique_choice
+            text: "Are there data exchanges beyond the group?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:mls:data_exchange:question:1:choice:1
+                value: "No"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:mls:data_exchange:question:1:choice:2
+                value: "Yes"
+                color: "#33a745"
+          urn:intuitem:risk:req_node:mls:data_exchange:question:2:
+            type: unique_choice
+            text: "Is there a data exchange contract with the appropriate confidentiality clauses?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:mls:data_exchange:question:1
+              answers: ["urn:intuitem:risk:req_node:mls:data_exchange:question:1:choice:2"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:mls:data_exchange:question:2:choice:1
+                value: "No contract"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:mls:data_exchange:question:2:choice:2
+                value: "Contract!"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+
+      - urn: urn:intuitem:risk:req_node:mls:data_destruction
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:mls:advanced
+        ref_id: data_destruction
+        name: data_destruction
+        description: "There is a compliant data destruction process for this application"
+        reference_controls:
+          - urn:intuitem:risk:framework:mls:data_destruction_process
+        implementation_groups: ["confidential_app", "secret_app"]
+        questions:
+          urn:intuitem:risk:req_node:mls:data_destruction:question:1:
+            type: unique_choice
+            text: "Is there a data destruction process for this application?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:mls:data_destruction:question:1:choice:1
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:mls:data_destruction:question:1:choice:2
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+          urn:intuitem:risk:req_node:mls:data_destruction:question:2:
+            type: unique_choice
+            text: "Is the process compliant with the policy (responsibilities, methods, reporting)?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:mls:data_destruction:question:1
+              answers: ["urn:intuitem:risk:req_node:mls:data_destruction:question:1:choice:2"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:mls:data_destruction:question:2:choice:1
+                value: "No, not compliant"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:mls:data_destruction:question:2:choice:2
+                value: "Yes, compliant!"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+
+      # === CHAPTER 3: SAAS REQUIREMENTS ===
+      - urn: urn:intuitem:risk:req_node:mls:saas_chapter
+        assessable: false
+        depth: 1
+        ref_id: saas_chapter
+        name: SaaS Requirements
+        implementation_groups: ["saas_app"]
+
+      - urn: urn:intuitem:risk:req_node:mls:saas_contract
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:mls:saas_chapter
+        ref_id: saas_contract_compliance
+        name: SaaS Contractual Compliance
+        vulnerabilities: ["urn:intuitem:risk:vulnerability:mls:contractual_gap"]
+        implementation_groups: ["saas_app"]
+        reference_controls: ["urn:intuitem:risk:framework:mls:saas_contract"]
+        questions:
+          urn:intuitem:risk:req_node:mls:saas_contract:question:1:
+            type: unique_choice
+            text: "Is there a signed SaaS contract?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:mls:saas_contract:question:1:choice:2
+                value: "Yes"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:mls:saas_contract:question:1:choice:1
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:mls:saas_contract:question:2:
+            type: unique_choice
+            text: "Does the contract include an Audit clause?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:mls:saas_contract:question:1
+              answers: ["urn:intuitem:risk:req_node:mls:saas_contract:question:1:choice:2"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:mls:saas_contract:question:2:choice:1
+                value: "Yes"
+                add_score: 20
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:mls:saas_contract:question:2:choice:2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:mls:saas_contract:question:3:
+            type: unique_choice
+            text: "Does the contract include an Incident Notification process?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:mls:saas_contract:question:1
+              answers: ["urn:intuitem:risk:req_node:mls:saas_contract:question:1:choice:2"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:mls:saas_contract:question:3:choice:1
+                value: "Yes"
+                add_score: 20
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:mls:saas_contract:question:3:choice:2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:mls:saas_contract:question:4:
+            type: unique_choice
+            text: "Does the contract include Strong IAM requirements?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:mls:saas_contract:question:1
+              answers: ["urn:intuitem:risk:req_node:mls:saas_contract:question:1:choice:2"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:mls:saas_contract:question:4:choice:1
+                value: "Yes"
+                add_score: 20
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:mls:saas_contract:question:4:choice:2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:mls:saas_contract:question:5:
+            type: unique_choice
+            text: "Does the contract include a Confidentiality agreement (NDA)?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:mls:saas_contract:question:1
+              answers: ["urn:intuitem:risk:req_node:mls:saas_contract:question:1:choice:2"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:mls:saas_contract:question:5:choice:1
+                value: "Yes"
+                add_score: 20
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:mls:saas_contract:question:5:choice:2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"

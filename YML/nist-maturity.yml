@@ -1,0 +1,114 @@
+convert_library_version: 'v2 ; Compat Mode: [0] {[v2.1] (DEFAULT) Don''t use any Compatibility
+  Mode}'
+urn: urn:intuitem:risk:library:nist-csf-v2.1
+locale: en
+ref_id: nist-csf-v2.1
+name: NIST CSF version 2.1
+description: National Institute of Standards and Technology - Cybersecurity Framework
+  (CSF 2.1)
+copyright: With the exception of material marked as copyrighted, information presented
+  on NIST sites are considered public information and may be distributed or copied.
+version: 6
+publication_date: 2025-07-09
+provider: NIST
+packager: intuitem
+objects:
+  framework:
+    urn: urn:intuitem:risk:framework:nist-csf-v2.1
+    ref_id: nist-csf-v2.1
+    name: NIST CSF v2.1
+    description: NIST Cybersecurity Framework
+    min_score: 1
+    max_score: 4
+    scores_definition:
+    - score: 1
+      name: Partial
+    - score: 2
+      name: Risk informed
+    - score: 3
+      name: Repeatable
+    - score: 4
+      name: Adaptive
+    requirement_nodes:
+    - urn: urn:intuitem:risk:req_node:nist-csf-v2.1:gv
+      assessable: false
+      depth: 1
+      ref_id: GV
+      name: GOVERN
+      description: The organization's cybersecurity risk management strategy, expectations,
+        and policy are established, communicated, and monitored 
+    - urn: urn:intuitem:risk:req_node:nist-csf-v2.1:gv.oc
+      assessable: false
+      depth: 2
+      parent_urn: urn:intuitem:risk:req_node:nist-csf-v2.1:gv
+      ref_id: GV.OC
+      name: Organizational Context
+      description: The circumstances - mission, stakeholder expectations, dependencies,
+        and legal, regulatory, and contractual requirements - surrounding the organization's
+        cybersecurity risk management decisions are understood
+    - urn: urn:intuitem:risk:req_node:nist-csf-v2.1:gv.oc-01  
+      assessable: true
+      depth: 3
+      parent_urn: urn:intuitem:risk:req_node:nist-csf-v2.1:gv.oc
+      ref_id: GV.OC-01
+      description: The organizational mission is understood and informs cybersecurity
+        risk management
+      annotation: 'Level 1 - The organizational mission is understood and informs cybersecurity risk management
+        decisions
+
+        Level 2 - The organizational mission is understood and informs cybersecurity
+        risk management decisions, and the organization has a process to review and
+        update the mission as needed
+
+        Level 3 - The organizational mission is understood and informs cybersecurity
+        risk management decisions, the organization has a process to review and update
+        the mission as needed, and the organization has a process to communicate
+        the mission to relevant stakeholders
+
+        Level 4 - The organizational mission is understood and informs cybersecurity
+        risk management decisions, the organization has a process to review and update
+        the mission as needed, the organization has a process to communicate the
+        mission to relevant stakeholders, and the organization has a process to
+        evaluate the effectiveness of its communication of the mission'      
+      reference_controls:
+      - urn:intuitem:risk:function:doc-pol:doc.context
+      - urn:intuitem:risk:function:doc-pol:doc.overview
+      - urn:intuitem:risk:function:doc-pol:pol.main      
+    - urn: urn:intuitem:risk:req_node:nist-csf-v2.1:gv.oc-02
+      assessable: true
+      depth: 3
+      parent_urn: urn:intuitem:risk:req_node:nist-csf-v2.1:gv.oc
+      ref_id: GV.OC-02
+      description: Internal and external stakeholders are understood, and their needs
+        and expectations regarding cybersecurity risk management are understood and
+        considered
+      annotation: '1st: 1st Party Risk
+
+        3rd: 3rd Party Risk
+
+        Ex1: Identify relevant internal stakeholders and their cybersecurity-related
+        expectations (e.g., performance and risk expectations of officers, directors,
+        and advisors; cultural expectations of employees)
+
+        Ex2: Identify relevant external stakeholders and their cybersecurity-related
+        expectations (e.g., privacy expectations of customers, business expectations
+        of partnerships, compliance expectations of regulators, ethics expectations
+        of society)'
+      reference_controls:
+      - urn:intuitem:risk:function:doc-pol:doc.context
+      - urn:intuitem:risk:function:doc-pol:doc.com
+      scores_definition:
+      - score: 1
+        name: Partial
+        description: 'Level 1 for GV.OC-02'
+      - score: 2
+        name: Risk informed
+        description: 'Level 2 for GV.OC-02'
+      - score: 3
+        name: Repeatable
+        description: 'Level 3 for GV.OC-02'
+      - score: 4
+        name: Adaptive
+        description: 'Level 4 for GV.OC-02'
+dependencies:
+- urn:intuitem:risk:library:doc-pol
