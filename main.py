@@ -36,6 +36,7 @@ def main():
     ComplianceAssessmentDict.assignRequirementsToPerimeterOwner(PerimeterDict,ComplianceAssessmentDict,RequirementAssessmentDict,RequirementAssignmentDict)
     #ComplianceAssessmentDict.CreateAppliedControls(PerimeterDict, ReferenceControlDict) 
     ComplianceAssessmentDict.CreateMissingAppliedControls(AppliedControlDict,PerimeterDict,ReferenceControlDict)
+    ComplianceAssessmentDict.UpdateAssetCriticality(organization.CRITICALITY_MAPPING, AssetDict)
     #AppliedControlDict.printJSON()
 
     #RiskAssessmentDict = risk.RiskAssessmentDict()

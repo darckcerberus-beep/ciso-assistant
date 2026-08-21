@@ -161,9 +161,27 @@ class ComplianceAssessmentDict:
 
 
 
-    def UpdateAssetCriticality(self,AssetDict):
+    def UpdateAssetCriticality(self,CRITICALITY_MAPPING,AssetDict):
         self.reload()
-        self.requirement_assessments.UpdateAssetCriticality()
+        for ca  in self.compliance_assessments.values():
+            requirement_assessment_ids = self.requirement_assessments.getRequirementAssessmentIDListfromComplianceAssessmentID(ca.getID())
+            for ra_id in requirement_assessment_ids:
+                ra = self.requirement_assessments.getRequirementAssessments().get(ra_id)
+                if ra and ra.getAssessmentResults() not in ['', 'not_assessed']:
+                    for question, answer in ra.getRequirementJSON().get('answers', {}).items():
+                        for criteria_question, criteria_mapping in CRITICALITY_MAPPING.items():
+                            if answer in criteria_mapping:
+                                print(f"Updating asset criticality for criteria question: {criteria_question} in requirement assessment ID: {ra.getID()}")
+                                print(f"Question: {question}, Answer: {answer}, Mapped Criticality: {criteria_mapping[answer]}")
+                                # Get associated assets
+                                asset_ids = ca.getAssetsIDList()
+                                print(f"Associated asset IDs: {asset_ids}")
+                                for asset_id in asset_ids:
+                                    print(f"Updating criticality for asset ID: {asset_id}")
+                                    # Update the asset's criticality based on the mapping
+
+                                    AssetDict.UpdateAssetCriticality(asset_id, criteria_question, criteria_mapping[answer])
+    
 
 
 
@@ -361,12 +379,28 @@ class RequirementAssessmentDict:
         AppliedControlDict.reload()
         AppliedControlDict.CreateMissingAppliedControls(PerimeterDict,self,ReferenceControlDict,ComplianceAssessmentDict)
 
-    def UpdateAssetCriticality(self):
+    def UpdateAssetCriticality(self, CRITICALITY_MAPPING,AssetDict):
         self.reload()
         for ra in self.requirement_assessments.values():
-            if  ra.getAssessmentResults() != '' and ra.getAssessmentResults() != "not_assessed":   
-                print(type(ra.getRequirementJSON().get('answers')))
-                print(ra.getRequirementJSON().get('answers'))
+            if  ra.getAssessmentResults() != '' and ra.getAssessmentResults() != "not_assessed":
+                for question, answer in ra.getRequirementJSON().get('answers', {}).items():
+                    for criteria_question, criteria_mapping in CRITICALITY_MAPPING.items():
+                        if answer in criteria_mapping:
+                            print(f"Updating asset criticality for criteria question: {criteria_question} in requirement assessment ID: {ra.getID()}")
+                            print(f"Question: {question}, Answer: {answer}, Mapped Criticality: {criteria_mapping[answer]}")
+                            # Get associated assets
+                            asset_ids = ra.getAssetsIDList()
+                            print(f"Associated asset IDs: {asset_ids}")
+                            for asset_id in asset_ids:
+                                print(f"Updating criticality for asset ID: {asset_id}")
+                                # Update the asset's criticality based on the mapping
+                                payload = {
+                                    "criticality": criteria_mapping[answer]
+                                }
+                                AssetDict.updateAssetCriticality(asset_id, payload)
+
+
+
 
             
         
@@ -397,20 +431,6 @@ class RequirementAssessmentDict:
         else:
             print("No new applied controls created.")
 
-
-                
-
-
-
-
-
-    
-
-
-            
-
-
-        
 
 
 class RequirementAssignment:

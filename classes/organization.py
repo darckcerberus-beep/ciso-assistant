@@ -1,7 +1,7 @@
 from . import utils
 
 
-MAPPINGS = {
+CRITICALITY_MAPPING = {
     "confidentiality": {
         "urn:intuitem:risk:req_node:mls:data_classification:q1:c1": 0,  # Public
         "urn:intuitem:risk:req_node:mls:data_classification:q1:c2": 1,  # Internal
