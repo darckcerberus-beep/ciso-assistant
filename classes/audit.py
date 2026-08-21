@@ -127,8 +127,36 @@ class ComplianceAssessmentDict:
                 return ca.getAssetsIDList()
                 
         return []
-    def assignRequirementsToPerimeterOwner(self,PerimeterDict):
-        self.requirement_assessments.assignRequirementsToPerimeterOwner(PerimeterDict,self,self.requirement_assignments)
+    def assignRequirementsToPerimeterOwner(self,PerimeterDict,ComplianceAssessmentDict,RequirementAssessmentDict,RequirementAssignmentDict):
+        # Assign requirements to perimeter owners for all compliance assessments only if no assigned requirements exist for that assessment
+        self.reload()
+        for ca in self.compliance_assessments.values():
+            # Get the list of requirement assessment IDs for this compliance assessment
+            requirement_assessment_ids = RequirementAssessmentDict.getRequirementAssessmentIDListfromComplianceAssessmentID(ca.getID())
+            print("Requirement assessment IDs for compliance assessment " + ca.getName() + ": " + str(requirement_assessment_ids))
+            # Get the list of requirement assignment IDs for this compliance assessment
+            requirement_assignment_ids = RequirementAssignmentDict.getRequirementAssignmentIDListfromComplianceassessmentID(ca.getID())
+            print("Requirement assignment IDs for compliance assessment " + ca.getName() + ": " + str(requirement_assignment_ids))
+            # If there are requirement assessments but no assignments, create assignments
+            if requirement_assessment_ids and not requirement_assignment_ids:
+                print("Creating assignments for compliance assessment: " + ca.getName())
+                payload = {
+                    "requirement_assessments": requirement_assessment_ids,
+                    "compliance_assessment": ca.getID(),
+                    "folder": PerimeterDict.getFolderUUIDfromPerimeterID(ca.getPerimeterID()),
+                    "actor": [PerimeterDict.getOwnerIDfromPerimeterID(ca.getPerimeterID())]
+                }
+                # Create the assignment
+                req_assign_json = utils.get_return("/api/requirement-assignments/", method="POST", payload=payload)
+                # Update the status of the newly created assignment to 'in_progress'
+                utils.get_return(f"/api/requirement-assignments/{req_assign_json.get('id')}/set_status/", method="POST", payload={"status": "in_progress"})
+            else:
+                print("Requirement assignments already exist for compliance assessment: " + ca.getName())
+                print("Requirement assessment IDs: " + str(requirement_assessment_ids))
+                print("Requirement assignment IDs: " + str(requirement_assignment_ids))
+
+
+
 
     def UpdateAssetCriticality(self,AssetDict):
         self.reload()
@@ -264,7 +292,7 @@ class RequirementAssessmentDict:
             ra.printAssets()
 
 
-    def getRequirementAssessmentIDListfromComplianceassessmentID(self, compliance_assessment_id):
+    def getRequirementAssessmentIDListfromComplianceAssessmentID(self, compliance_assessment_id):
         """Filter and return a list of IDs for requirements belonging to a specific compliance assessment."""
         self.reload()
         requirement_assessment_ids = []
@@ -273,23 +301,30 @@ class RequirementAssessmentDict:
                 requirement_assessment_ids.append(ra.getID())
         return requirement_assessment_ids
 
-    def assignRequirementsToPerimeterOwner(self, PerimeterDict, ComplianceAssessmentDict,RequirementAssignmentDict):
+
+
+    def assignRequirementsToPerimeterOwner(self, PerimeterDict, ComplianceAssessmentDict,RequirementAssessmentDict,RequirementAssignmentDict):
         """Create assignments for all non-already assigned requirements in an assessment, assigning them to the perimeter owner."""
         # Extract already-assigned assessments
         assigned_assessments = RequirementAssignmentDict.getRequirementAssignmentIDList()
         created = False
         for ca in ComplianceAssessmentDict.getComplianceAssessments().values():
             # Gather all requirements for this specific assessment
-            ra_ids = self.getRequirementAssessmentIDListfromComplianceassessmentID(ca.getID())
+            req_assigned_ids = RequirementAssignmentDict.getRequirementAssignmentIDListfromComplianceAssessmentID(ca.getID())
+            req_assessment_ids = self.getRequirementAssessmentIDListfromComplianceAssessmentID(ca.getID())
             # determine if some assessments are not assigned
-            unassigned_assessments = list(set(assigned_assessments) ^ set(ra_ids))
-            if unassigned_assessments != []:                
+            unassigned_assessments = list(set(assigned_assessments) ^ set(req_assessment_ids))
+            if req_assigned_ids == []:
+                print("Creating assignment for unassigned requirement assessments: " + str(unassigned_assessments) + " in compliance assessment: " + ca.getName())                
                 payload = {"requirement_assessments":unassigned_assessments ,"compliance_assessment" : ca.getID(), "folder": PerimeterDict.getFolderUUIDfromPerimeterID(ca.getPerimeterID()),"actor" : [PerimeterDict.getOwnerIDfromPerimeterID(ca.getPerimeterID())]}            
                 # Create the assignment
                 req_assing_json = utils.get_return(f"/api/requirement-assignments/", method="POST", payload=payload)                       
                 # Update the status of the newly created assignment to 'in_progress'
                 utils.get_return(f"/api/requirement-assignments/"+req_assing_json.get('id')+"/set_status/", method="POST", payload={"status": "in_progress"})
                 created = True
+            else:
+                print("Requirement assessments are already assigned for compliance assessment: " + ca.getName())
+                print("Requirement assessments: " + str(req_assessment_ids))    
 
         if created:
             self.reload()
@@ -388,6 +423,10 @@ class RequirementAssignment:
     def getID(self):
         """Get the unique identifier (UUID) of the assignment."""
         return self.json_object.get('id', '')
+    def getComplianceAssessmentID(self):
+        """Get the ID of the associated compliance assessment."""
+        print(self.json_object.get('compliance_assessment', ''))
+        return self.json_object.get('compliance_assessment', '').get('id', '')
 
     def getRequirementAssessmentIDList(self):
         """Extract the list of requirement assessment IDs included in this assignment."""
@@ -422,20 +461,32 @@ class RequirementAssignmentDict:
         for ra in self.requirement_assignments:
             ra.printID()
             ra.printName()
-            print(ra.getRequirementAssessmentList())
+            print(ra.getRequirementAssessmentIDList())
 
     def printRequirementAssignmentIDList(self):
         """Print the list of requirement IDs for every assignment."""
         for ra in self.requirement_assignments:
             print("Requirement Assignment ID List:")
             print(ra.getRequirementAssessmentIDList())
-
+    def printRequirementAssignmentJSON(self):
+        """Print the raw JSON data for all assignments."""
+        for ra in self.requirement_assignments:
+            ra.printJSON()
     def getRequirementAssignmentIDList(self):
         """Return a list of all requirement assignment IDs."""
         requirement_assignment_ids = []
         for ra in self.requirement_assignments:
             requirement_assignment_ids = requirement_assignment_ids + ra.getRequirementAssessmentIDList()
         return requirement_assignment_ids
+
+    def getRequirementAssignmentIDListfromComplianceassessmentID(self, compliance_assessment_id):
+        """Filter and return a list of requirement assignment IDs for a specific compliance assessment."""
+        self.reload()
+        requirement_assignment_ids = []
+        for ra in self.requirement_assignments:
+            if ra.getComplianceAssessmentID() == compliance_assessment_id:
+                requirement_assignment_ids.append(ra.getID())
+        return requirement_assignment_ids    
     
 
              

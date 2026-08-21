@@ -20,22 +20,20 @@ def main():
     FrameworkDict = framework.FrameworkDict()
     ReferenceControlDict = control.ReferenceControlDict()
     AppliedControlDict = control.AppliedControlDict()
-    
-
+    RequirementAssessmentDict = audit.RequirementAssessmentDict()
+    RequirementAssignmentDict = audit.RequirementAssignmentDict()
+    #RequirementAssignmentDict.printRequirementAssignmentJSON()
     DomainDict = organization.DomainDict()
     UserDict = user.UserDict()
-    UserDict.printUsers()
+
     ActorDict = user.ActorDict()
-    ActorDict.printActors()
+
     PerimeterDict = organization.PerimeterDict()
-    PerimeterDict.printPerimeters()
-    """PerimeterDict.CreatePerimetersFromDict(DomainDict, json.load(open("JSON/assets.json")), ActorDict, UserDict)
-    """
-    PerimeterDict.printPerimeters()
+
     ComplianceAssessmentDict.CreateMissingComplianceAssessments(FrameworkDict, PerimeterDict, AssetDict)
-    ComplianceAssessmentDict.assignRequirementsToPerimeterOwner(PerimeterDict)
+    ComplianceAssessmentDict.assignRequirementsToPerimeterOwner(PerimeterDict,ComplianceAssessmentDict,RequirementAssessmentDict,RequirementAssignmentDict)
     #ComplianceAssessmentDict.CreateAppliedControls(PerimeterDict, ReferenceControlDict) 
-    #ComplianceAssessmentDict.CreateMissingAppliedControls(AppliedControlDict,PerimeterDict,ReferenceControlDict)
+    ComplianceAssessmentDict.CreateMissingAppliedControls(AppliedControlDict,PerimeterDict,ReferenceControlDict)
     #ComplianceAssessmentDict.UpdateAssetCriticality(AssetDict)
 
 

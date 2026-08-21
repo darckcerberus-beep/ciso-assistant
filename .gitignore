@@ -20,3 +20,5 @@ classes/__pycache__/__init__.cpython-310.pyc
 classes/__pycache__/__init__.cpython-310.pyc
 classes/__pycache__/__init__.cpython-310.pyc
 classes/__pycache__/framework.cpython-310.pyc
+__pycache__/
+*.pyc
