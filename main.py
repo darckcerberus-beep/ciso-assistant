@@ -23,18 +23,20 @@ def main():
     RequirementAssessmentDict = audit.RequirementAssessmentDict()
     RequirementAssignmentDict = audit.RequirementAssignmentDict()
     #RequirementAssignmentDict.printRequirementAssignmentJSON()
-    DomainDict = organization.DomainDict()
+    #DomainDict = organization.DomainDict()
     UserDict = user.UserDict()
 
     ActorDict = user.ActorDict()
 
     PerimeterDict = organization.PerimeterDict()
 
+    AssetDict.createMissingAssets(PerimeterDict)
+    AssetDict.reload()
     ComplianceAssessmentDict.CreateMissingComplianceAssessments(FrameworkDict, PerimeterDict, AssetDict)
     ComplianceAssessmentDict.assignRequirementsToPerimeterOwner(PerimeterDict,ComplianceAssessmentDict,RequirementAssessmentDict,RequirementAssignmentDict)
     #ComplianceAssessmentDict.CreateAppliedControls(PerimeterDict, ReferenceControlDict) 
     ComplianceAssessmentDict.CreateMissingAppliedControls(AppliedControlDict,PerimeterDict,ReferenceControlDict)
-    AppliedControlDict.printJSON()
+    #AppliedControlDict.printJSON()
 
     #RiskAssessmentDict = risk.RiskAssessmentDict()
     #RiskAssessmentDict.printRiskAssessments()

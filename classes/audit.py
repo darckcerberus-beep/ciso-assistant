@@ -36,6 +36,8 @@ class ComplianceAssessment:
         """Get the ID of the associated perimeter by accessing the nested 'id' field."""
         return self.compliance_assessment_json.get('perimeter', '').get('id', '')
     def getAssetsIDList(self):
+        print("Getting asset ID list for compliance assessment ID: " + self.getID())
+        print("Compliance Assessment JSON: " + str(self.compliance_assessment_json))
         return [asset_id.get('id', '') for asset_id in self.compliance_assessment_json.get('assets', [])]
    
     def printName(self):        
@@ -122,7 +124,8 @@ class ComplianceAssessmentDict:
     def getAssetIDListfromComplianceassessmentID(self, compliance_assessment_id):
         for ca in self.compliance_assessments.values():
             if ca.getID() == compliance_assessment_id:
-                print("Compliance Assessment ID: " + ca.getID())
+                print("Getting asset ID list for compliance assessment ID: " + compliance_assessment_id)
+                print("Compliance Assessment Name: " + ca.getName())
                 print("Compliance Assessment Assets: " + str(ca.getAssetsIDList()))
                 return ca.getAssetsIDList()
                 
