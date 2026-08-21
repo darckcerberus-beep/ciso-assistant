@@ -13,7 +13,7 @@ class AppliedControl:
         print(f"Name: {self.getName()}")
     def printID(self):
         print(f"ID: {self.getID()}")
-    # create applied control based on attribute of requirement assessment and associated reference control
+    # create applied control based on attribute of requirement assessment, asset and associated reference control
     @classmethod
     def createAppliedControl(cls, name, control, requirement_assessment, status):
         payload = {
