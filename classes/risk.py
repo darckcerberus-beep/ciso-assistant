@@ -85,17 +85,16 @@ class RiskScenarioDict:
         for rs in self.risk_scenarios.values():
             print("Risk Scenario JSON:")
             print(rs.getJSON())
-    def CreateRiskScenario(self,name,description,risk_assessment_id=None):
+    def createRiskScenario(self, name, description, risk_assessment_id, current_proba, current_impact, residual_proba, residual_impact, existing_applied_controls=[]):
         payload = {
             "name": name,
             "description": description,
             "risk_assessment": risk_assessment_id,
-            "inherent_proba" : 4,
-            "inherent_impact" : 4,
-            "current_proba" : 4,
-            "current_impact" : 4,
-            "residual_proba" : 4,
-            "residual_impact" : 4
+            "current_proba": current_proba-1,
+            "current_impact": current_impact-1,
+            "residual_proba": residual_proba-1,
+            "residual_impact": residual_impact-1,
+            "existing_applied_controls": existing_applied_controls,
         }
         return utils.get_return("/api/risk-scenarios/", method="POST", payload=payload)
 
