@@ -195,7 +195,13 @@ class ComplianceAssessmentDict:
     def getJSON(self):
         self.reload()
         """Return the raw JSON data for all compliance assessments."""
-        return [ca.getJSON() for ca in self.compliance_assessments]
+        return [ca.getJSON() for ca in self.compliance_assessments.values()]
+    def printJSON(self):
+        """Print the raw JSON data for all compliance assessments."""
+        self.reload()
+        for ca in self.compliance_assessments.values():
+            print("Printing JSON for compliance assessment: " + ca.getName())
+            print(ca.getJSON())
 
 
 

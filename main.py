@@ -41,7 +41,7 @@ def main():
     #AppliedControlDict.printJSON()
     """
 
-    ComplianceAssessmentDict.getJSON()
+    ComplianceAssessmentDict.printJSON()
     """
     RiskAssessmentDict = risk.RiskAssessmentDict()
     RiskAssessmentDict.printRiskAssessments()
