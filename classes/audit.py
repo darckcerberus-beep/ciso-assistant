@@ -53,6 +53,10 @@ class ComplianceAssessment:
         """Print the perimeter ID to console."""
         print(f"Perimeter ID: {self.getPerimeterID()}")
 
+    def getStatus(self):
+        """Get the current status of the compliance assessment."""
+        return self.compliance_assessment_json.get('status', '')    
+
 class ComplianceAssessmentDict:
     """Handles a collection of ComplianceAssessments and API interactions."""
     def __init__(self):
@@ -188,7 +192,10 @@ class ComplianceAssessmentDict:
     def CreateMissingAppliedControls(self,AppliedControlDict,PerimeterDict,ReferenceControlDict):
         self.requirement_assessments.CreateorUpdateAppliedControls(AppliedControlDict,PerimeterDict,ReferenceControlDict,self)    
 
-
+    def getJSON(self):
+        self.reload()
+        """Return the raw JSON data for all compliance assessments."""
+        return [ca.getJSON() for ca in self.compliance_assessments]
 
 
 
@@ -278,9 +285,6 @@ class RequirementAssessment:
                 # Placeholder for logic to create applied controls based on assessment results and associated reference controls.
                 pass
            
-
-
-
 
 
 

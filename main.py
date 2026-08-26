@@ -29,7 +29,7 @@ def main():
     ActorDict = user.ActorDict()
 
     PerimeterDict = organization.PerimeterDict()
-
+    """
     AssetDict.createMissingAssets(PerimeterDict)
     AssetDict.reload()
 
@@ -39,8 +39,11 @@ def main():
     ComplianceAssessmentDict.CreateMissingAppliedControls(AppliedControlDict,PerimeterDict,ReferenceControlDict)
     ComplianceAssessmentDict.UpdateAssetCriticality(organization.CRITICALITY_MAPPING, AssetDict)
     #AppliedControlDict.printJSON()
-    
-    """RiskAssessmentDict = risk.RiskAssessmentDict()
+    """
+
+    ComplianceAssessmentDict.getJSON()
+    """
+    RiskAssessmentDict = risk.RiskAssessmentDict()
     RiskAssessmentDict.printRiskAssessments()
 
     RiskScenarioDict = risk.RiskScenarioDict()
