@@ -11,14 +11,16 @@ import json
 
 
 def main():
-
-    
+    Framework = framework.FrameworkFile("YML/newDPP.yml")
+    Framework.printRiskScenario()
+    """    
     PerimeterDict = organization.PerimeterDict()
     AssetDict = organization.AssetDict()
     FrameworkDict = framework.FrameworkDict()
     ComplianceAssessmentDict = audit.ComplianceAssessmentDict()
     FrameworkDict = framework.FrameworkDict()
     FrameworkDict.printFrameworkJSON()
+    Framework = framework.FrameworkFile("YML/newDPP.yml")
     ReferenceControlDict = control.ReferenceControlDict()
     AppliedControlDict = control.AppliedControlDict()
     RequirementAssessmentDict = audit.RequirementAssessmentDict()
@@ -43,7 +45,7 @@ def main():
 
    
     ComplianceAssessmentDict.printJSON()
-    """
+
     RiskAssessmentDict = risk.RiskAssessmentDict()
     RiskAssessmentDict.printRiskAssessments()
 

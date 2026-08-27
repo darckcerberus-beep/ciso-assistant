@@ -2,6 +2,9 @@
 import requests
 import urllib3
 import json
+import yaml as pyml
+
+
 from typing import Optional, Dict, Any, List, Set
 from keys import API_TOKEN, BASE_URL
 
@@ -10,7 +13,9 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 HEADERS = {"Authorization": f"Token {API_TOKEN}", "Content-Type": "application/json"}
 
-
+def load_yaml_file(yaml_file: str) -> dict:
+    with open(yaml_file, 'r') as f:
+        return pyml.safe_load(f)
 
 def get_return(endpoint: str, method: str = "GET", payload: Optional[Dict] = None, params: Optional[Dict] = None) -> Any:
     """Effectue un appel API et retourne la réponse."""

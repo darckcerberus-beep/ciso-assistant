@@ -22,67 +22,53 @@ objects:
 
   # ========================================================================
   # RISK SCENARIOS - Define specific threat scenarios related to data
+  # Impact and likelihood are mapped to questions in the framework to calculate risk levels.
   # ========================================================================
   risk_scenario:
-    - urn: urn:intuitem:risk:scenario:mls:unauthorized_data_access
-      ref_id: unauthorized_data_access
-      name: "Unauthorized access to sensitive data"
-      description: >
-        Sensitive information is accessed by individuals or systems that do not have
-        a legitimate business need to access it.
-      vulnerabilities:
-        - urn:intuitem:risk:vulnerability:mls:unclear_accountability
-      impact_type: "Confidentiality"
-
+    # Sensitive data is exposed when encryption is missing in transit or at rest.
     - urn: urn:intuitem:risk:scenario:mls:unencrypted_data_exposure
       ref_id: unencrypted_data_exposure
       name: "Exposure of unencrypted data"
       description: >
         Sensitive information is exposed during storage or transmission due to
         missing encryption controls.
-      vulnerabilities:
-        - urn:intuitem:risk:vulnerability:mls:lack_of_encryption
-      impact_type: "Confidentiality"
+      likelihood:
+        - urn:intuitem:risk:req_node:mls:data_in_transit
+        - urn:intuitem:risk:req_node:mls:data_at_rest
+      impact: urn:intuitem:risk:req_node:mls:data_classification
 
+    # Production data is exposed when used in non-production environments.
     - urn: urn:intuitem:risk:scenario:mls:nonprod_data_disclosure
       ref_id: nonprod_data_disclosure
       name: "Disclosure of production data in non-production environments"
       description: >
         Production data used in development, test or pre-production environments
         is exposed because adequate protection measures are not implemented.
-      vulnerabilities:
-        - urn:intuitem:risk:vulnerability:mls:unprotected_non_prod
-      impact_type: "Confidentiality"
+      likelihood:
+        - urn:intuitem:risk:req_node:mls:non_prod_data
+      impact: urn:intuitem:risk:req_node:mls:data_classification
 
+    # An external organization leaks or misuses sensitive exchanged data.
     - urn: urn:intuitem:risk:scenario:mls:third_party_data_leakage
       ref_id: third_party_data_leakage
       name: "Third-party data leakage"
       description: >
         Sensitive information is disclosed or misused by an external organization
         due to inadequate contractual and security requirements.
-      vulnerabilities:
-        - urn:intuitem:risk:vulnerability:mls:contractual_gap
-      impact_type: "Confidentiality"
+      likelihood:
+        - urn:intuitem:risk:req_node:mls:data_exchange
+      impact: urn:intuitem:risk:req_node:mls:data_classification
 
-    - urn: urn:intuitem:risk:scenario:mls:misclassified_sensitive_data
-      ref_id: misclassified_sensitive_data
-      name: "Inadequate protection due to incorrect data classification"
-      description: >
-        Information is insufficiently protected because its sensitivity has not
-        been identified and appropriate safeguards have not been applied.
-      vulnerabilities:
-        - urn:intuitem:risk:vulnerability:mls:lack_of_data_classification
-      impact_type: "Confidentiality"
-
+    # Sensitive data is retained beyond business or regulatory requirements.
     - urn: urn:intuitem:risk:scenario:mls:improper_data_retention
       ref_id: improper_data_retention
       name: "Excessive retention of sensitive data"
       description: >
         Sensitive information is retained beyond business or regulatory
         requirements because a compliant destruction process is not implemented.
-      vulnerabilities:
-        - urn:intuitem:risk:vulnerability:mls:lack_of_data_destruction
-      impact_type: "Confidentiality"
+      likelihood:
+        - urn:intuitem:risk:req_node:mls:data_destruction
+      impact: urn:intuitem:risk:req_node:mls:data_classification
 
   # ========================================================================
   # RISK MATRIX - 4x4 probability/impact matrix with risk levels

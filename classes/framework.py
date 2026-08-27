@@ -41,3 +41,29 @@ class FrameworkDict:
             if f.getID() == id:
                 return f.getName()
         return None
+
+
+class FrameworkFile:
+    def __init__(self, filepath):
+        with open(filepath, 'r') as f:
+            self.json_object = utils.load_yaml_file(filepath)
+    def getName(self):
+        return self.json_object.get('name', '')
+    def getID(self):
+        return self.json_object.get('id', '')
+    def printName(self):
+        print(f"Name: {self.getName()}")
+    def printID(self):
+        print(f"ID: {self.getID()}")
+    def printJSON(self):
+        print(self.json_object)
+    def read(self):
+        self.json_object = utils.load_json_file(self.json_file)
+    def loadFromYAMLFile(self, yaml_file):
+        with open(yaml_file, 'r') as f:
+            return utils.load_yaml_file(yaml_file)
+    def printRiskScenario(self):
+        risk_scenarios = self.json_object.get('objects', {}).get('risk_scenario', [])
+        for rs in risk_scenarios:
+            print(f"Risk Scenario: {rs.get('name', '')}\nDescription: {rs.get('description', '')}")
+            print(f"Likelihood: {rs.get('likelihood', '')}\nImpact: {rs.get('impact', '')}\n")
