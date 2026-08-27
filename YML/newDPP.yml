@@ -1,3 +1,11 @@
+# ============================================================================
+# Multi-level Data Protection Policy (DPP) - CISO Assistant Library
+# ============================================================================
+# This YAML file defines a comprehensive risk management framework for 
+# data protection across applications with varying classification levels.
+# It includes risk scenarios, vulnerabilities, controls, and assessment requirements.
+# ============================================================================
+
 urn: urn:intuitem:risk:library:mls
 locale: en
 ref_id: "mls"
@@ -11,91 +19,164 @@ provider: ACME Corp
 packager: ACME Corp
 
 objects:
-#
-  risk_matrix:
-  - urn: urn:intuitem:risk:matrix:mls
-    ref_id: risk-matrix-5x5-mls
-    name: Multi-level DPP
-    description: Multi-level DPP risk matrix
-    probability:
-    - id: 0
-      abbreviation: '1'
-      name: 1 - unlikely
-      description: The likelihood of the risk scenario is very low
-    - id: 1
-      abbreviation: '2'
-      name: 2 - rather unlikely
-      description: The likelihood of the risk scenario is low
-    - id: 2
-      abbreviation: '3'
-      name: 3 - likely
-      description: The likelihood of the risk scenario is significant
-    - id: 3
-      abbreviation: '4'
-      name: 4 - very likely
-      description: The likelihood of the risk scenario is high
-    impact:
-    - id: 0
-      abbreviation: '1'
-      name: 1 - minor
-      description: Negligible consequences for the organization
-    - id: 1
-      abbreviation: '2'
-      name: 2 - significant
-      description: Significant but limited consequences for the organization
-    - id: 2
-      abbreviation: '3'
-      name: 3 - serious
-      description: Substantial consequences for the organization
-    - id: 3
-      abbreviation: '4'
-      name: 4 - critical
-      description: Disastrous consequences for the organization
-    risk:
-    - id: 0
-      abbreviation: '1'
-      name: 1 - very low
-      description: very low - acceptable risk
-      hexcolor: '#D3FF4E'
-    - id: 1
-      abbreviation: '2'
-      name: 2 - low
-      description: low - acceptable risk
-      hexcolor: '#02A45A'
-    - id: 2
-      abbreviation: '3'
-      name: 3 - medium
-      description: medium - tolerable risk
-      hexcolor: '#FFA600'
-    - id: 3
-      abbreviation: '4'
-      name: 4 - high
-      description: high - unacceptable risk
-      hexcolor: '#FF1A00'
-    - id: 4
-      abbreviation: '5'
-      name: 5 - very high
-      description: very high - unacceptable risk
-      hexcolor: '#C00000'
-    grid:
-    - - 0
-      - 0
-      - 1
-      - 1
-    - - 0
-      - 1
-      - 1
-      - 2
-    - - 1
-      - 1
-      - 2
-      - 3
-    - - 1
-      - 2
-      - 3
-      - 3
 
-  # === THREATS ===
+  # ========================================================================
+  # RISK SCENARIOS - Define specific threat scenarios related to data
+  # ========================================================================
+  risk_scenario:
+    - urn: urn:intuitem:risk:scenario:mls:unauthorized_data_access
+      ref_id: unauthorized_data_access
+      name: "Unauthorized access to sensitive data"
+      description: >
+        Sensitive information is accessed by individuals or systems that do not have
+        a legitimate business need to access it.
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:mls:unclear_accountability
+      impact_type: "Confidentiality"
+
+    - urn: urn:intuitem:risk:scenario:mls:unencrypted_data_exposure
+      ref_id: unencrypted_data_exposure
+      name: "Exposure of unencrypted data"
+      description: >
+        Sensitive information is exposed during storage or transmission due to
+        missing encryption controls.
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:mls:lack_of_encryption
+      impact_type: "Confidentiality"
+
+    - urn: urn:intuitem:risk:scenario:mls:nonprod_data_disclosure
+      ref_id: nonprod_data_disclosure
+      name: "Disclosure of production data in non-production environments"
+      description: >
+        Production data used in development, test or pre-production environments
+        is exposed because adequate protection measures are not implemented.
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:mls:unprotected_non_prod
+      impact_type: "Confidentiality"
+
+    - urn: urn:intuitem:risk:scenario:mls:third_party_data_leakage
+      ref_id: third_party_data_leakage
+      name: "Third-party data leakage"
+      description: >
+        Sensitive information is disclosed or misused by an external organization
+        due to inadequate contractual and security requirements.
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:mls:contractual_gap
+      impact_type: "Confidentiality"
+
+    - urn: urn:intuitem:risk:scenario:mls:misclassified_sensitive_data
+      ref_id: misclassified_sensitive_data
+      name: "Inadequate protection due to incorrect data classification"
+      description: >
+        Information is insufficiently protected because its sensitivity has not
+        been identified and appropriate safeguards have not been applied.
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:mls:lack_of_data_classification
+      impact_type: "Confidentiality"
+
+    - urn: urn:intuitem:risk:scenario:mls:improper_data_retention
+      ref_id: improper_data_retention
+      name: "Excessive retention of sensitive data"
+      description: >
+        Sensitive information is retained beyond business or regulatory
+        requirements because a compliant destruction process is not implemented.
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:mls:lack_of_data_destruction
+      impact_type: "Confidentiality"
+
+  # ========================================================================
+  # RISK MATRIX - 4x4 probability/impact matrix with risk levels
+  # ========================================================================
+  risk_matrix:
+    - urn: urn:intuitem:risk:matrix:mls
+      ref_id: risk-matrix-4x4-mls
+      name: Multi-level DPP
+      description: Multi-level DPP risk matrix
+      # Probability levels (4 levels: unlikely to very likely)
+      probability:
+      - id: 0
+        abbreviation: '1'
+        name: 1 - unlikely
+        description: The likelihood of the risk scenario is very low
+      - id: 1
+        abbreviation: '2'
+        name: 2 - rather unlikely
+        description: The likelihood of the risk scenario is low
+      - id: 2
+        abbreviation: '3'
+        name: 3 - likely
+        description: The likelihood of the risk scenario is significant
+      - id: 3
+        abbreviation: '4'
+        name: 4 - very likely
+        description: The likelihood of the risk scenario is high
+      # Impact levels (4 levels: minor to critical)
+      impact:
+      - id: 0
+        abbreviation: '1'
+        name: 1 - minor
+        description: Negligible consequences for the organization
+      - id: 1
+        abbreviation: '2'
+        name: 2 - significant
+        description: Significant but limited consequences for the organization
+      - id: 2
+        abbreviation: '3'
+        name: 3 - serious
+        description: Substantial consequences for the organization
+      - id: 3
+        abbreviation: '4'
+        name: 4 - critical
+        description: Disastrous consequences for the organization
+      # Risk levels (5 levels: very low to very high)
+      risk:
+      - id: 0
+        abbreviation: '1'
+        name: 1 - very low
+        description: very low - acceptable risk
+        hexcolor: '#D3FF4E'
+      - id: 1
+        abbreviation: '2'
+        name: 2 - low
+        description: low - acceptable risk
+        hexcolor: '#02A45A'
+      - id: 2
+        abbreviation: '3'
+        name: 3 - medium
+        description: medium - tolerable risk
+        hexcolor: '#FFA600'
+      - id: 3
+        abbreviation: '4'
+        name: 4 - high
+        description: high - unacceptable risk
+        hexcolor: '#FF1A00'
+      - id: 4
+        abbreviation: '5'
+        name: 5 - very high
+        description: very high - unacceptable risk
+        hexcolor: '#C00000'
+      # Risk calculation grid: maps probability x impact to risk level
+      grid:
+      - - 0
+        - 0
+        - 1
+        - 1
+      - - 0
+        - 1
+        - 1
+        - 2
+      - - 1
+        - 1
+        - 2
+        - 3
+      - - 1
+        - 2
+        - 3
+        - 4
+
+  # ========================================================================
+  # THREATS - External and internal threats to data
+  # ========================================================================
   threats:
     - urn: urn:intuitem:risk:threat:mls:data_exfiltration
       ref_id: data_exfiltration
@@ -110,69 +191,89 @@ objects:
       name: "Unauthorized access"
       description: "Access to sensitive data by an unauthorized person."
 
-  # === VULNERABILITIES ===
+  # ========================================================================
+  # VULNERABILITIES - Weaknesses that can be exploited by threats
+  # ========================================================================
   vulnerabilities:
+    - urn: urn:intuitem:risk:vulnerability:mls:lack_of_data_classification
+      ref_id: lack_of_data_classification
+      name: "Lack of data classification"
+      description: "Absence of a defined data classification level for the application."
+      associated_controls:
+        - urn:intuitem:risk:control:mls:identify_data_classification
     - urn: urn:intuitem:risk:vulnerability:mls:lack_of_encryption
       ref_id: lack_of_encryption
       name: "Lack of encryption"
       description: "Data stored or transmitted without cryptographic protection."
+      associated_controls:
+        - urn:intuitem:risk:control:mls:encrypt_data_in_transit
+        - urn:intuitem:risk:control:mls:encrypt_data_at_rest
     - urn: urn:intuitem:risk:vulnerability:mls:unclear_accountability
       ref_id: unclear_accountability
       name: "Unclear responsibilities"
       description: "Absence of identified points of contact for data governance."
+      associated_controls:
+        - urn:intuitem:risk:control:mls:stakeholder_designation
     - urn: urn:intuitem:risk:vulnerability:mls:unprotected_non_prod
       ref_id: unprotected_non_prod
       name: "Vulnerable non-production environment"
       description: "Use of real data in unsecured test environments."
+      associated_controls:
+        - urn:intuitem:risk:control:mls:protect_prod_data_in_non_prod
     - urn: urn:intuitem:risk:vulnerability:mls:contractual_gap
       ref_id: contractual_gap
       name: "Contractual gap"
       description: "Absence of binding security clauses with a third-party provider."
+      associated_controls:
+        - urn:intuitem:risk:control:mls:saas_contract
+        - urn:intuitem:risk:control:mls:information_exchange_contract
 
-  # === REFERENCE CONTROLS ===
+  # ========================================================================
+  # REFERENCE CONTROLS - Mitigation measures and controls
+  # ========================================================================
   reference_controls:
-    - urn: urn:intuitem:risk:framework:mls:stakeholder_designation
+    - urn: urn:intuitem:risk:control:mls:stakeholder_designation
       ref_id: stakeholder_designation
       name: "Designate stakeholders"
       description: "Designate stakeholders to ensure proper accountability and update LeanIX with the information"
-    - urn: urn:intuitem:risk:framework:mls:encrypt_data_in_transit
+    - urn: urn:intuitem:risk:control:mls:encrypt_data_in_transit
       ref_id: data_in_transit_encryption
       name: "Encrypt data in transit"
       description: "Encrypt data in transit"
-    - urn: urn:intuitem:risk:framework:mls:encrypt_data_at_rest
+    - urn: urn:intuitem:risk:control:mls:encrypt_data_at_rest
       ref_id: data_at_rest_encryption
       name: "Encrypt data at rest"
       description: "Encrypt data at rest"
-    - urn: urn:intuitem:risk:framework:mls:identify_data_classification
+    - urn: urn:intuitem:risk:control:mls:identify_data_classification
       ref_id: data_classification
       name: "Identify the data classification level"
       description: "Identify the classification level of the data the application is handling"
-    - urn: urn:intuitem:risk:framework:mls:secure_storage_device
-      ref_id: secure_physical_device
-      name: "Properly secure storage devices"
-      description: "Protecting storage devices containing data either by encryption or physical protection (safe) limit data loss/theft"
-    - urn: urn:intuitem:risk:framework:mls:saas_contract
+    - urn: urn:intuitem:risk:control:mls:saas_contract
       ref_id: saas_contract
       name: "Sign a contract with the SaaS provider with all the adequate clauses"
       description: "Having a contract is better"
-    - urn: urn:intuitem:risk:framework:mls:protect_prod_data_in_non_prod
+    - urn: urn:intuitem:risk:control:mls:protect_prod_data_in_non_prod
       ref_id: protect_prod_data_in_non_prod
       name: "Use hashing, encryption, anonymisation or pseudonymisation of prod data in non-production environment"
       description: "Ensure non-production environments do not contain sensitive data"
-    - urn: urn:intuitem:risk:framework:mls:information_exchange_contract
+    - urn: urn:intuitem:risk:control:mls:information_exchange_contract
       ref_id: information_exchange_contract
       name: "Sign a contract regarding the exchange of information with all the adequate clauses"
       description: "Having a contract is better"
-    - urn: urn:intuitem:risk:framework:mls:data_destruction_process
+    - urn: urn:intuitem:risk:control:mls:data_destruction_process
       ref_id: data_destruction_process
       name: "Write and implement a compliant data destruction process"
       description: "Data destruction process must include clear responsibilities, approved methods and reporting upon completion"
 
+  # ========================================================================
+  # FRAMEWORK - Assessment framework with requirements and questions
+  # ========================================================================
   framework:
     urn: urn:intuitem:risk:framework:mls
     ref_id: "mls"
     name: "Data protection policy of ACME Corp"
     description: "Data protection policy of ACME Corp"
+    # Implementation groups define assessment tracks/profiles
     implementation_groups_definition:
       - name: "Application information"
         ref_id: "info"
@@ -188,8 +289,11 @@ objects:
         ref_id: "saas_app"
         description: "Requirements for SaaS applications"
 
+    # ====================================================================
+    # REQUIREMENT NODES - Hierarchical assessment structure
+    # ====================================================================
     requirement_nodes:
-      # === CHAPTER 1: BASIC INFO ===
+      # === CHAPTER 1: BASIC APPLICATION INFO ===
       - urn: urn:intuitem:risk:req_node:mls:info
         assessable: false
         depth: 1
@@ -198,6 +302,7 @@ objects:
         description: "Basic context questions"
         implementation_groups: ["info"]
 
+      # Requirement: Identify stakeholders for the application
       - urn: urn:intuitem:risk:req_node:mls:stakeholder_identification
         assessable: true
         depth: 2
@@ -208,7 +313,8 @@ objects:
         vulnerabilities: ["urn:intuitem:risk:vulnerability:mls:unclear_accountability"]
         implementation_groups: ["info"]
         reference_controls:
-          - urn:intuitem:risk:framework:mls:stakeholder_designation
+          - urn:intuitem:risk:control:mls:stakeholder_designation
+        # Assessment questions with scoring
         questions:
           urn:intuitem:risk:req_node:mls:stakeholder_identification:question:1:
             type: unique_choice
@@ -216,7 +322,7 @@ objects:
             choices:
               - urn: urn:intuitem:risk:req_node:mls:stakeholder_identification:question:1:choice:1
                 value: "Yes"
-                add_score: 50
+                add_score: 25
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:mls:stakeholder_identification:question:1:choice:2
@@ -258,7 +364,7 @@ objects:
             choices:
               - urn: urn:intuitem:risk:req_node:mls:stakeholder_identification:question:4:choice:1
                 value: "Yes"
-                add_score: 100
+                add_score: 25
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:mls:stakeholder_identification:question:4:choice:2
@@ -267,42 +373,62 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
+      # Requirement: Classify data handled by application
       - urn: urn:intuitem:risk:req_node:mls:data_classification
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:mls:info
         ref_id: data_classification
         name: Data classification
-        reference_controls: ["urn:intuitem:risk:framework:mls:identify_data_classification"]
+        reference_controls: ["urn:intuitem:risk:control:mls:identify_data_classification"]
         implementation_groups: ["info"]
         questions:
           urn:intuitem:risk:req_node:mls:data_classification:q1:
             type: unique_choice
-            text: "What is the maximum classification level handled?"
+            text: "Is there a defined data classification level for the application?"
             choices:
               - urn: urn:intuitem:risk:req_node:mls:data_classification:q1:c1
-                value: "Public"
+                value: "Yes"
                 add_score: 100
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:mls:data_classification:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:mls:data_classification:q2:
+            type: unique_choice
+            text: "What is the maximum classification level handled?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:mls:data_classification:q1
+              answers: ["urn:intuitem:risk:req_node:mls:data_classification:q1:c1"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:mls:data_classification:q2:c1
+                value: "Public"
+                add_score: 25
+                compute_result: false
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:mls:data_classification:q2:c2
                 value: "Internal"
-                add_score: 100
-                compute_result: true
+                add_score: 50
+                compute_result: false
                 color: "#fd7e14"
-              - urn: urn:intuitem:risk:req_node:mls:data_classification:q1:c3
+              - urn: urn:intuitem:risk:req_node:mls:data_classification:q2:c3
                 value: "Confidential"
-                add_score: 100
-                compute_result: true
+                add_score: 75
+                compute_result: false
                 select_implementation_groups: ["confidential_app"]
                 color: "#fd7e14"
-              - urn: urn:intuitem:risk:req_node:mls:data_classification:q1:c4
+              - urn: urn:intuitem:risk:req_node:mls:data_classification:q2:c4
                 value: "Secret"
                 add_score: 100
-                compute_result: true
+                compute_result: false
                 select_implementation_groups: ["secret_app"]
                 color: "#dc3545"
 
+      # Requirement: Determine hosting model
       - urn: urn:intuitem:risk:req_node:mls:hosting
         assessable: true
         depth: 2
@@ -317,17 +443,14 @@ objects:
             choices:
               - urn: urn:intuitem:risk:req_node:mls:hosting:q1:c1
                 value: "In-house"
-                add_score: 100
-                compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:mls:hosting:q1:c2
                 value: "SaaS"
-                add_score: 100
-                compute_result: true
                 select_implementation_groups: ["saas_app"]
                 color: "#33a745"
 
       # === CHAPTER 2: ADVANCED REQUIREMENTS ===
+      # Parent node for encryption and data protection requirements
       - urn: urn:intuitem:risk:req_node:mls:advanced
         assessable: false
         depth: 1
@@ -335,6 +458,7 @@ objects:
         name: Advanced requirements
         implementation_groups: ["confidential_app", "secret_app"]
 
+      # Requirement: Encrypt data during transmission
       - urn: urn:intuitem:risk:req_node:mls:data_in_transit
         assessable: true
         depth: 2
@@ -343,7 +467,7 @@ objects:
         name: Encryption in Transit
         vulnerabilities: ["urn:intuitem:risk:vulnerability:mls:lack_of_encryption"]
         implementation_groups: ["confidential_app", "secret_app"]
-        reference_controls: ["urn:intuitem:risk:framework:mls:encrypt_data_in_transit"]
+        reference_controls: ["urn:intuitem:risk:control:mls:encrypt_data_in_transit"]
         questions:
           urn:intuitem:risk:req_node:mls:data_in_transit:q1:
             type: unique_choice
@@ -360,6 +484,7 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
+      # Requirement: Encrypt data at rest
       - urn: urn:intuitem:risk:req_node:mls:data_at_rest
         assessable: true
         depth: 2
@@ -368,7 +493,7 @@ objects:
         name: Encryption at Rest
         vulnerabilities: ["urn:intuitem:risk:vulnerability:mls:lack_of_encryption"]
         implementation_groups: ["confidential_app", "secret_app"]
-        reference_controls: ["urn:intuitem:risk:framework:mls:encrypt_data_at_rest"]
+        reference_controls: ["urn:intuitem:risk:control:mls:encrypt_data_at_rest"]
         questions:
           urn:intuitem:risk:req_node:mls:data_at_rest:q1:
             type: unique_choice
@@ -385,6 +510,7 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
+      # Requirement: Protect production data in non-production environments
       - urn: urn:intuitem:risk:req_node:mls:non_prod_data
         assessable: true
         depth: 2
@@ -394,7 +520,7 @@ objects:
         description: "Non prod data is adequately protected"
         vulnerabilities: ["urn:intuitem:risk:vulnerability:mls:unprotected_non_prod"]
         implementation_groups: ["secret_app", "confidential_app"]
-        reference_controls: ["urn:intuitem:risk:framework:mls:protect_prod_data_in_non_prod"]
+        reference_controls: ["urn:intuitem:risk:control:mls:protect_prod_data_in_non_prod"]
         questions:
           urn:intuitem:risk:req_node:mls:non_prod_data:question:0:
             type: unique_choice
@@ -439,25 +565,25 @@ objects:
                 color: "#dc3545"
               - urn: urn:intuitem:risk:req_node:mls:non_prod_data:question:2:choice:2
                 value: "Hashing"
-                add_score: 100
+                add_score: 90
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:mls:non_prod_data:question:2:choice:3
                 value: "Pseudonymisation"
-                add_score: 100
+                add_score: 90
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:mls:non_prod_data:question:2:choice:4
                 value: "Encryption"
-                add_score: 100
+                add_score: 90
                 compute_result: true
                 color: "#33a745"
           urn:intuitem:risk:req_node:mls:non_prod_data:question:3:
             type: unique_choice
             text: "Do you clean the prod data after use in non-prod?"
             depends_on:
-              question: urn:intuitem:risk:req_node:mls:non_prod_data:question:2
-              answers: ["urn:intuitem:risk:req_node:mls:non_prod_data:question:2:choice:1"]
+              question: urn:intuitem:risk:req_node:mls:non_prod_data:question:1
+              answers: ["urn:intuitem:risk:req_node:mls:non_prod_data:question:1:choice:2"]
               condition: any
             choices:
               - urn: urn:intuitem:risk:req_node:mls:non_prod_data:question:3:choice:1
@@ -467,10 +593,11 @@ objects:
                 color: "#dc3545"
               - urn: urn:intuitem:risk:req_node:mls:non_prod_data:question:3:choice:2
                 value: "Yes"
-                add_score: 50
+                add_score: 10
                 compute_result: true
                 color: "#33a745"
 
+      # Requirement: Control data exchange beyond organization
       - urn: urn:intuitem:risk:req_node:mls:data_exchange
         assessable: true
         depth: 2
@@ -480,7 +607,7 @@ objects:
         description: "Data exchange beyond the group is controlled"
         vulnerabilities: ["urn:intuitem:risk:vulnerability:mls:contractual_gap"]
         reference_controls:
-          - urn:intuitem:risk:framework:mls:information_exchange_contract
+          - urn:intuitem:risk:control:mls:information_exchange_contract
         implementation_groups: ["confidential_app", "secret_app"]
         questions:
           urn:intuitem:risk:req_node:mls:data_exchange:question:1:
@@ -514,6 +641,7 @@ objects:
                 compute_result: true
                 color: "#33a745"
 
+      # Requirement: Data destruction policy compliance
       - urn: urn:intuitem:risk:req_node:mls:data_destruction
         assessable: true
         depth: 2
@@ -522,7 +650,7 @@ objects:
         name: data_destruction
         description: "There is a compliant data destruction process for this application"
         reference_controls:
-          - urn:intuitem:risk:framework:mls:data_destruction_process
+          - urn:intuitem:risk:control:mls:data_destruction_process
         implementation_groups: ["confidential_app", "secret_app"]
         questions:
           urn:intuitem:risk:req_node:mls:data_destruction:question:1:
@@ -558,7 +686,8 @@ objects:
                 compute_result: true
                 color: "#33a745"
 
-      # === CHAPTER 3: SAAS REQUIREMENTS ===
+      # === CHAPTER 3: SAAS-SPECIFIC REQUIREMENTS ===
+      # Parent node for SaaS application requirements
       - urn: urn:intuitem:risk:req_node:mls:saas_chapter
         assessable: false
         depth: 1
@@ -566,6 +695,7 @@ objects:
         name: SaaS Requirements
         implementation_groups: ["saas_app"]
 
+      # Requirement: Ensure SaaS contract includes security clauses
       - urn: urn:intuitem:risk:req_node:mls:saas_contract
         assessable: true
         depth: 2
@@ -574,7 +704,7 @@ objects:
         name: SaaS Contractual Compliance
         vulnerabilities: ["urn:intuitem:risk:vulnerability:mls:contractual_gap"]
         implementation_groups: ["saas_app"]
-        reference_controls: ["urn:intuitem:risk:framework:mls:saas_contract"]
+        reference_controls: ["urn:intuitem:risk:control:mls:saas_contract"]
         questions:
           urn:intuitem:risk:req_node:mls:saas_contract:question:1:
             type: unique_choice
@@ -582,7 +712,7 @@ objects:
             choices:
               - urn: urn:intuitem:risk:req_node:mls:saas_contract:question:1:choice:2
                 value: "Yes"
-                add_score: 100
+                add_score: 20
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:mls:saas_contract:question:1:choice:1

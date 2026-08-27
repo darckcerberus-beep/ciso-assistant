@@ -12,6 +12,8 @@ class Framework:
         print(f"Name: {self.getName()}")
     def printID(self):
         print(f"ID: {self.getID()}")
+    def printJSON(self):
+        print(self.json_object)
 
 class FrameworkDict:
     def __init__(self):
@@ -26,6 +28,9 @@ class FrameworkDict:
         for f in self.frameworks:
             f.printName()
             f.printID()
+    def printFrameworkJSON(self):
+        for f in self.frameworks:
+            f.printJSON()
     def getIDfromName(self, name):
         for f in self.frameworks:
             if f.getName() == name:

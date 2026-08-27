@@ -65,7 +65,7 @@ class AppliedControlDict:
                     payload = {
                         "name": f"{ReferenceControlDict.getNamefromID(control_id)} on {PerimeterDict.getNamefromID(ra.getPerimeterID())}",
                         "reference_control": control_id,
-                        "owner": [PerimeterDict.getOwnerIDfromPerimeterID(ra.getPerimeterID())],
+                        "owner": [PerimeterDict.getOwnerIDfromPerimeterID(ra.getPerimeterID())] if ra.getAssessmentResults() != "compliant" else [],
                         "assets": ComplianceAssessmentDict.getAssetIDListfromComplianceassessmentID(ra.getComplianceAssessmentID()),
                         "compliance_assessments": [ra.getComplianceAssessmentID()],
                         "requirement_assessments": [ra.getID()],
