@@ -65,6 +65,16 @@ objects:
       likelihood: urn:intuitem:risk:req_node:mls:data_exchange
       impact: urn:intuitem:risk:req_node:mls:data_classification
 
+    # A SaaS provider leaks or misuses sensitive data due to inadequate contractual and security requirements.
+    - urn: urn:intuitem:risk:scenario:mls:saas_provider_data_leakage
+      ref_id: saas_provider_data_leakage
+      name: "SaaS provider data leakage"
+      description: >
+        Sensitive information is disclosed or misused by a SaaS provider
+        due to inadequate contractual and security requirements.
+      likelihood: urn:intuitem:risk:req_node:mls:saas_contract
+      impact: urn:intuitem:risk:req_node:mls:data_classification
+
     # Sensitive data is retained beyond business or regulatory requirements.
     - urn: urn:intuitem:risk:scenario:mls:improper_data_retention
       ref_id: improper_data_retention
@@ -606,7 +616,7 @@ objects:
               - urn: urn:intuitem:risk:req_node:mls:data_exchange:question:2:choice:1
                 value: "No contract"
                 add_score: 0
-                compute_result: false
+                compute_result: true
                 color: "#dc3545"
               - urn: urn:intuitem:risk:req_node:mls:data_exchange:question:2:choice:2
                 value: "Contract!"

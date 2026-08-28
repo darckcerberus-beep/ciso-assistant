@@ -220,21 +220,31 @@ class ComplianceAssessmentDict:
             print("Printing JSON for compliance assessment: " + ca.getName())
             print(ca.getJSON())
 
-    def CreateRiskAssessments(self,RiskAssessmentDict,RiskScenarioDict,FrameworkFile,RequirementAssessmentDict):
+    def CreateRiskAssessments(self,RiskAssessmentDict,RiskScenarioDict,FrameworkFile,RequirementAssessmentDict,RiskMatrixDict,FrameworkDict):
         self.reload()
         # Iterate through all compliance assessments and create risk assessments for those that have associated requirement assessments with results.
         for ca in self.compliance_assessments.values():
             print("Creating risk assessments for compliance assessment: " + ca.getName())
             print("Using framework ID: " + ca.getFrameworkID() + ", perimeter ID: " + ca.getPerimeterID())
-            risk_assemment = RiskAssessmentDict.CreateRiskAssessments(ca.getName() + " Risk Assessment", ca.getFrameworkID(), ca.getPerimeterID(), "b227135d-27d3-4855-a82a-a22131cac094")
+
+            risk_assemment = RiskAssessmentDict.CreateRiskAssessments(ca.getName() + " Risk Assessment", ca.getFrameworkID(), ca.getPerimeterID(), RiskMatrixDict.getRiskMatrixIDByLibraryID(FrameworkDict.getLibraryIDfromFrameworkID(ca.getFrameworkID())))
             for risk_scenario in FrameworkFile.getRiskScenarios():
                 print("Creating risk scenario: " + risk_scenario.get('name', '') + " for compliance assessment: " + ca.getName())
                 print("Risk scenario description: " + risk_scenario.get('description', ''))
                 print("Risk scenario impact node: " + risk_scenario.get('impact', ''))
-                print("Risk scenario impact value: " + str(RequirementAssessmentDict.getScorefromcomplianceAsseesmentIDandURN(ca.getID(), risk_scenario.get('impact', ''))))
                 print("Risk scenario likelihood node: " + risk_scenario.get('likelihood', ''))
-                print("Risk scenario likelihood value: " + str(RequirementAssessmentDict.getScorefromcomplianceAsseesmentIDandURN(ca.getID(), risk_scenario.get('likelihood', ''))))
-                RiskScenarioDict.createRiskScenario(risk_scenario.get('name', ''), risk_scenario.get('description', ''), risk_assemment.get('id', ''),1,1 ,1,1,[ ] ,[])
+                impact = RequirementAssessmentDict.getScorefromcomplianceAsseesmentIDandURN(ca.getID(), risk_scenario.get('impact', ''))
+                likelihood = RequirementAssessmentDict.getScorefromcomplianceAsseesmentIDandURN(ca.getID(), risk_scenario.get('likelihood', ''))
+                if likelihood is not None and impact is not None:
+                    print("Risk scenario impact value: " + str(impact))
+                    #Scaled impact in an integer from 0 to 3
+                    scaled_impact = max(1,int((impact) / 25))
+                    print("Risk scenario impact value: " + str(scaled_impact))
+                    
+                    print("Risk scenario likelihood value: " + str(likelihood))
+                    scaled_likelihood = max(1,int((100 - likelihood) / 25))
+                    print("Risk scenario likelihood value: " + str(scaled_likelihood))
+                    RiskScenarioDict.createRiskScenario(risk_scenario.get('name', ''), risk_scenario.get('description', ''), risk_assemment.get('id', ''), scaled_likelihood, scaled_impact, 1, scaled_impact, [], [])
             
 
 
@@ -491,6 +501,7 @@ class RequirementAssessmentDict:
             print(f"Created {created} applied controls.")
         else:
             print("No new applied controls created.")
+
     def getScorefromcomplianceAsseesmentIDandURN(self, compliance_assessment_id, requirement_node_urn):
         """Retrieve the score for a specific requirement node within a given compliance assessment."""
         self.reload()

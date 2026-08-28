@@ -132,7 +132,11 @@ class RiskMatrixDict:
     def printRiskMatrices(self):
         for rm in self.risk_matrices.values():
             pprint.pprint(rm.getJSON())
-
+    def getRiskMatrixIDByLibraryID(self, library_id):
+        for rm in self.risk_matrices.values():
+            if rm.getJSON().get('library').get('id') == library_id:
+                return rm.getJSON().get('id')
+        return None
 
 class Vulnerability:
     """Represents a single vulnerability object."""
