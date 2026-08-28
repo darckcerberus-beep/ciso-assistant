@@ -49,6 +49,15 @@ class RiskAssessmentDict:
         for ra in self.risk_assessments.values():
             ra.printName()
             ra.printID()
+    def CreateRiskAssessments(self, name,domain, perimeter,risk_matrix):
+        payload = {
+            "name": name,
+            "domain": domain,
+            "perimeter": perimeter,
+            "risk_matrix": risk_matrix
+        }
+        return utils.get_return("/api/risk-assessments/", method="POST", payload=payload)
+     
 
 class RiskScenario:
     """Represents a single risk scenario object."""

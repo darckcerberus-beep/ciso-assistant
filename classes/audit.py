@@ -30,7 +30,7 @@ class ComplianceAssessment:
         Get the ID of the associated framework. 
         Note: This usually returns the UUID string directly from the JSON.
         """
-        return self.compliance_assessment_json.get('framework', '')
+        return self.compliance_assessment_json.get('framework', '').get('id', '')
 
     def getPerimeterID(self) -> str:
         """Get the ID of the associated perimeter by accessing the nested 'id' field."""
@@ -55,7 +55,17 @@ class ComplianceAssessment:
 
     def getStatus(self):
         """Get the current status of the compliance assessment."""
-        return self.compliance_assessment_json.get('status', '')    
+        return self.compliance_assessment_json.get('status', '')
+    def getScoreFromRequirementNodeName(self, requirement_node_name):
+        """Retrieve the score for a specific requirement node by name."""
+        print(f"Searching for requirement node '{requirement_node_name}' in compliance assessment ID: {self.getID()}")
+        print(f"Compliance Assessment JSON: {self.compliance_assessment_json}")
+        for requirement in self.compliance_assessment_json.get('requirements', []):
+            print(f"Checking requirement node: {requirement.get('name', '')}")
+            if requirement.get('name') == requirement_node_name:
+                print(f"Found requirement node '{requirement_node_name}' with score: {requirement.get('score', '')}")
+                return requirement.get('score', '')
+        return None
 
 class ComplianceAssessmentDict:
     """Handles a collection of ComplianceAssessments and API interactions."""
@@ -162,7 +172,14 @@ class ComplianceAssessmentDict:
                 print("Requirement assessment IDs: " + str(requirement_assessment_ids))
                 print("Requirement assignment IDs: " + str(requirement_assignment_ids))
 
-
+    def getScoreFromRequirementNodeName(self, requirement_node_name):
+        """Retrieve the score for a specific requirement node by name across all compliance assessments."""
+        self.reload()
+        for ca in self.compliance_assessments.values():
+            score = ca.getScoreFromRequirementNodeName(requirement_node_name)
+            if score is not None:
+                return score
+        return None      
 
 
     def UpdateAssetCriticality(self,CRITICALITY_MAPPING,AssetDict):
@@ -203,7 +220,22 @@ class ComplianceAssessmentDict:
             print("Printing JSON for compliance assessment: " + ca.getName())
             print(ca.getJSON())
 
-
+    def CreateRiskAssessments(self,RiskAssessmentDict,RiskScenarioDict,FrameworkFile,RequirementAssessmentDict):
+        self.reload()
+        # Iterate through all compliance assessments and create risk assessments for those that have associated requirement assessments with results.
+        for ca in self.compliance_assessments.values():
+            print("Creating risk assessments for compliance assessment: " + ca.getName())
+            print("Using framework ID: " + ca.getFrameworkID() + ", perimeter ID: " + ca.getPerimeterID())
+            risk_assemment = RiskAssessmentDict.CreateRiskAssessments(ca.getName() + " Risk Assessment", ca.getFrameworkID(), ca.getPerimeterID(), "b227135d-27d3-4855-a82a-a22131cac094")
+            for risk_scenario in FrameworkFile.getRiskScenarios():
+                print("Creating risk scenario: " + risk_scenario.get('name', '') + " for compliance assessment: " + ca.getName())
+                print("Risk scenario description: " + risk_scenario.get('description', ''))
+                print("Risk scenario impact node: " + risk_scenario.get('impact', ''))
+                print("Risk scenario impact value: " + str(RequirementAssessmentDict.getScorefromcomplianceAsseesmentIDandURN(ca.getID(), risk_scenario.get('impact', ''))))
+                print("Risk scenario likelihood node: " + risk_scenario.get('likelihood', ''))
+                print("Risk scenario likelihood value: " + str(RequirementAssessmentDict.getScorefromcomplianceAsseesmentIDandURN(ca.getID(), risk_scenario.get('likelihood', ''))))
+                RiskScenarioDict.createRiskScenario(risk_scenario.get('name', ''), risk_scenario.get('description', ''), risk_assemment.get('id', ''),1,1 ,1,1,[ ] ,[])
+            
 
 
 
@@ -261,7 +293,12 @@ class RequirementAssessment:
     def getAssetsIDList(self):
         """Get the list of asset IDs associated with this requirement assessment."""
         return self.json_object.get('assets', [])
-
+    def getScore(self):
+        """Get the score of the requirement assessment, if available."""
+        return self.json_object.get('score', '')
+    def getURN(self):
+        """Get the unique resource name (URN) of the requirement."""
+        return self.json_object.get('requirement', {}).get('urn', '')    
     def printName(self):
         """Print the requirement assessment name."""
         print(f"Name: {self.getName()}")
@@ -290,8 +327,14 @@ class RequirementAssessment:
                 print("Creating applied control for control " + control.get('id', '') + " based on assessment results: " + results)
                 # Placeholder for logic to create applied controls based on assessment results and associated reference controls.
                 pass
-           
 
+
+    def printScore(self):
+        """Print the score of the requirement assessment."""
+        print(f"Score: {self.getScore()}")
+    def printURN(self):
+        """Print the unique resource name (URN) of the requirement."""
+        print(f"URN: {self.getURN()}")    
 
 
 class RequirementAssessmentDict:    
@@ -313,7 +356,7 @@ class RequirementAssessmentDict:
     def printRequirementAssessments(self):
         """Print details for all requirement assessments."""
         self.reload()
-        for ra in self.requirement_assessments:
+        for ra in self.requirement_assessments.values():
             ra.printName()
             ra.printID()
             ra.printPerimeterID()
@@ -321,7 +364,15 @@ class RequirementAssessmentDict:
             ra.printRequirementID()
             ra.printAssociatedReferenceControls()
             ra.printAssets()
-
+            ra.printScore()
+            ra.printURN()
+    def printRequirementAssessmentJSON(self):
+        """Print the raw JSON data for all requirement assessments."""
+        self.reload()
+        for ra in self.requirement_assessments.values():
+            print("Requirement Assessment JSON for ID: " + ra.getID())            
+            print(ra.getRequirementJSON())
+            print("\n")
 
     def getRequirementAssessmentIDListfromComplianceAssessmentID(self, compliance_assessment_id):
         """Filter and return a list of IDs for requirements belonging to a specific compliance assessment."""
@@ -440,7 +491,13 @@ class RequirementAssessmentDict:
             print(f"Created {created} applied controls.")
         else:
             print("No new applied controls created.")
-
+    def getScorefromcomplianceAsseesmentIDandURN(self, compliance_assessment_id, requirement_node_urn):
+        """Retrieve the score for a specific requirement node within a given compliance assessment."""
+        self.reload()
+        for ra in self.requirement_assessments.values():
+            if ra.getComplianceAssessmentID() == compliance_assessment_id and ra.getURN() == requirement_node_urn:
+                return ra.getScore()
+        return None
 
 
 class RequirementAssignment:

@@ -63,7 +63,10 @@ class FrameworkFile:
         with open(yaml_file, 'r') as f:
             return utils.load_yaml_file(yaml_file)
     def printRiskScenario(self):
-        risk_scenarios = self.json_object.get('objects', {}).get('risk_scenario', [])
+        risk_scenarios = self.json_object.get('objects', {}).get('risk_scenarios', [])
         for rs in risk_scenarios:
             print(f"Risk Scenario: {rs.get('name', '')}\nDescription: {rs.get('description', '')}")
             print(f"Likelihood: {rs.get('likelihood', '')}\nImpact: {rs.get('impact', '')}\n")
+
+    def getRiskScenarios(self):
+        return self.json_object.get('objects', {}).get('risk_scenarios', [])        

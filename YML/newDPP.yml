@@ -24,17 +24,25 @@ objects:
   # RISK SCENARIOS - Define specific threat scenarios related to data
   # Impact and likelihood are mapped to questions in the framework to calculate risk levels.
   # ========================================================================
-  risk_scenario:
-    # Sensitive data is exposed when encryption is missing in transit or at rest.
-    - urn: urn:intuitem:risk:scenario:mls:unencrypted_data_exposure
-      ref_id: unencrypted_data_exposure
-      name: "Exposure of unencrypted data"
+  risk_scenarios:
+    # Sensitive data is exposed when encryption is missing in transit.
+    - urn: urn:intuitem:risk:scenario:mls:unencrypted_data_in_transit
+      ref_id: unencrypted_data_in_transit
+      name: "Exposure of unencrypted data in transit"
       description: >
-        Sensitive information is exposed during storage or transmission due to
+        Sensitive information is exposed during transmission due to
         missing encryption controls.
-      likelihood:
-        - urn:intuitem:risk:req_node:mls:data_in_transit
-        - urn:intuitem:risk:req_node:mls:data_at_rest
+      likelihood: urn:intuitem:risk:req_node:mls:data_in_transit
+      impact: urn:intuitem:risk:req_node:mls:data_classification
+
+    # Sensitive data is exposed when encryption is missing at rest.
+    - urn: urn:intuitem:risk:scenario:mls:unencrypted_data_at_rest
+      ref_id: unencrypted_data_at_rest
+      name: "Exposure of unencrypted data at rest"
+      description: >
+        Sensitive information is exposed during storage due to
+        missing encryption controls.
+      likelihood: urn:intuitem:risk:req_node:mls:data_at_rest
       impact: urn:intuitem:risk:req_node:mls:data_classification
 
     # Production data is exposed when used in non-production environments.
@@ -44,8 +52,7 @@ objects:
       description: >
         Production data used in development, test or pre-production environments
         is exposed because adequate protection measures are not implemented.
-      likelihood:
-        - urn:intuitem:risk:req_node:mls:non_prod_data
+      likelihood: urn:intuitem:risk:req_node:mls:non_prod_data
       impact: urn:intuitem:risk:req_node:mls:data_classification
 
     # An external organization leaks or misuses sensitive exchanged data.
@@ -55,8 +62,7 @@ objects:
       description: >
         Sensitive information is disclosed or misused by an external organization
         due to inadequate contractual and security requirements.
-      likelihood:
-        - urn:intuitem:risk:req_node:mls:data_exchange
+      likelihood: urn:intuitem:risk:req_node:mls:data_exchange
       impact: urn:intuitem:risk:req_node:mls:data_classification
 
     # Sensitive data is retained beyond business or regulatory requirements.
@@ -66,8 +72,7 @@ objects:
       description: >
         Sensitive information is retained beyond business or regulatory
         requirements because a compliant destruction process is not implemented.
-      likelihood:
-        - urn:intuitem:risk:req_node:mls:data_destruction
+      likelihood: urn:intuitem:risk:req_node:mls:data_destruction
       impact: urn:intuitem:risk:req_node:mls:data_classification
 
   # ========================================================================
@@ -371,43 +376,25 @@ objects:
         questions:
           urn:intuitem:risk:req_node:mls:data_classification:q1:
             type: unique_choice
-            text: "Is there a defined data classification level for the application?"
+            text: "What is the maximum classification level handled?"
             choices:
               - urn: urn:intuitem:risk:req_node:mls:data_classification:q1:c1
-                value: "Yes"
-                add_score: 100
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:mls:data_classification:q1:c2
-                value: "No"
-                add_score: 0
-                compute_result: false
-                color: "#dc3545"
-          urn:intuitem:risk:req_node:mls:data_classification:q2:
-            type: unique_choice
-            text: "What is the maximum classification level handled?"
-            depends_on:
-              question: urn:intuitem:risk:req_node:mls:data_classification:q1
-              answers: ["urn:intuitem:risk:req_node:mls:data_classification:q1:c1"]
-              condition: any
-            choices:
-              - urn: urn:intuitem:risk:req_node:mls:data_classification:q2:c1
                 value: "Public"
                 add_score: 25
                 compute_result: false
                 color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:mls:data_classification:q2:c2
+              - urn: urn:intuitem:risk:req_node:mls:data_classification:q1:c2
                 value: "Internal"
                 add_score: 50
                 compute_result: false
                 color: "#fd7e14"
-              - urn: urn:intuitem:risk:req_node:mls:data_classification:q2:c3
+              - urn: urn:intuitem:risk:req_node:mls:data_classification:q1:c3
                 value: "Confidential"
                 add_score: 75
                 compute_result: false
                 select_implementation_groups: ["confidential_app"]
                 color: "#fd7e14"
-              - urn: urn:intuitem:risk:req_node:mls:data_classification:q2:c4
+              - urn: urn:intuitem:risk:req_node:mls:data_classification:q1:c4
                 value: "Secret"
                 add_score: 100
                 compute_result: false
