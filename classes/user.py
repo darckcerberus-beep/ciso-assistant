@@ -1,3 +1,4 @@
+import logging
 from . import utils
 
 class User:

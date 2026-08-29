@@ -4,48 +4,88 @@ import classes.organization as organization
 import classes.control as control
 import classes.risk as risk
 import classes.user as user
-import classes.task as task
-import classes.utils as utils
-import json
 
+
+def initialize_data_objects():
+    """Instantiate all required dictionaries and framework objects used in the workflow."""
+    requirement_assessment_dict = audit.RequirementAssessmentDict()
+    compliance_assessment_dict = audit.ComplianceAssessmentDict()
+    requirement_assignment_dict = audit.RequirementAssignmentDict()
+    perimeter_dict = organization.PerimeterDict()
+    asset_dict = organization.AssetDict()
+    framework_dict = framework.FrameworkDict()
+    reference_control_dict = control.ReferenceControlDict()
+    applied_control_dict = control.AppliedControlDict()
+    risk_assessment_dict = risk.RiskAssessmentDict()
+    risk_scenario_dict = risk.RiskScenarioDict()
+    user_dict = user.UserDict()
+    framework_file = framework.FrameworkFile("YML/newDPP.yml")
+    risk_matrix_dict = risk.RiskMatrixDict()
+
+    return {
+        "requirement_assessment_dict": requirement_assessment_dict,
+        "compliance_assessment_dict": compliance_assessment_dict,
+        "requirement_assignment_dict": requirement_assignment_dict,
+        "perimeter_dict": perimeter_dict,
+        "asset_dict": asset_dict,
+        "framework_dict": framework_dict,
+        "reference_control_dict": reference_control_dict,
+        "applied_control_dict": applied_control_dict,
+        "risk_assessment_dict": risk_assessment_dict,
+        "risk_scenario_dict": risk_scenario_dict,
+        "user_dict": user_dict,
+        "framework_file": framework_file,
+        "risk_matrix_dict": risk_matrix_dict,
+    }
 
 
 def main():
-    # Objects initialization    
-    RequirementAssessmentDict = audit.RequirementAssessmentDict()
-    ComplianceAssessmentDict = audit.ComplianceAssessmentDict()
-    RequirementAssignmentDict = audit.RequirementAssignmentDict()
-    PerimeterDict = organization.PerimeterDict()
-    AssetDict = organization.AssetDict()
-    FrameworkDict = framework.FrameworkDict()
-    ReferenceControlDict = control.ReferenceControlDict()
-    AppliedControlDict = control.AppliedControlDict()
-    RiskAssessmentDict = risk.RiskAssessmentDict()
-    RiskScenarioDict = risk.RiskScenarioDict()
-    UserDict = user.UserDict()
-    Framework = framework.FrameworkFile("YML/newDPP.yml")
-    RiskMatrixDict = risk.RiskMatrixDict()
-    
-    # Create missing assets from perimeter
-    AssetDict.createMissingAssets(PerimeterDict)
-    AssetDict.reload()
+    """Run the audit and risk assessment workflow."""
+    data = initialize_data_objects()
 
-    #Create compliance assessments for each perimeter and asset based on the framework
-    ComplianceAssessmentDict.CreateMissingComplianceAssessments(FrameworkDict, PerimeterDict, AssetDict)
+    # Create missing assets from the perimeter definition.
+    data["asset_dict"].createMissingAssets(data["perimeter_dict"])
+    data["asset_dict"].reload()
 
-    #Assign requirements to perimeter owners
-    ComplianceAssessmentDict.assignRequirementsToPerimeterOwner(PerimeterDict,ComplianceAssessmentDict,RequirementAssessmentDict,RequirementAssignmentDict)
+    # Create compliance assessments for each perimeter and asset based on the framework.
+    data["compliance_assessment_dict"].CreateMissingComplianceAssessments(
+        data["framework_dict"],
+        data["perimeter_dict"],
+        data["asset_dict"],
+    )
 
-    #Create missing applied controls for each compliance assessment
-    ComplianceAssessmentDict.CreateMissingAppliedControls(AppliedControlDict,PerimeterDict,ReferenceControlDict)
+    # Assign requirements to perimeter owners.
+    data["compliance_assessment_dict"].assignRequirementsToPerimeterOwner(
+        data["perimeter_dict"],
+        data["compliance_assessment_dict"],
+        data["requirement_assessment_dict"],
+        data["requirement_assignment_dict"],
+    )
 
-    #Update asset criticality based on the mapping defined in organization.py
-    ComplianceAssessmentDict.UpdateAssetCriticality(organization.CRITICALITY_MAPPING, AssetDict)
+    # Create missing applied controls for each compliance assessment.
+    data["compliance_assessment_dict"].CreateMissingAppliedControls(
+        data["applied_control_dict"],
+        data["perimeter_dict"],
+        data["reference_control_dict"],
+    )
 
-    #Create risk assessments for each compliance assessment based on the framework
-    ComplianceAssessmentDict.CreateRiskAssessments(RiskAssessmentDict,RiskScenarioDict,Framework,RequirementAssessmentDict,RiskMatrixDict,FrameworkDict)
+    # Update asset criticality based on the organization mapping.
+    data["compliance_assessment_dict"].UpdateAssetCriticality(
+        organization.CRITICALITY_MAPPING,
+        data["asset_dict"],
+    )
 
-
+    # Create risk assessments for each compliance assessment based on the framework.
+    data["compliance_assessment_dict"].CreateRiskAssessments(
+        data["risk_assessment_dict"],
+        data["risk_scenario_dict"],
+        data["applied_control_dict"],
+        data["asset_dict"],
+        data["framework_file"],
+        data["requirement_assessment_dict"],
+        data["risk_matrix_dict"],
+        data["framework_dict"],
+    )
 
 
 if __name__ == "__main__":
