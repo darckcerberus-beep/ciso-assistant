@@ -1,4 +1,3 @@
-import logging
 
 from . import utils
 
@@ -9,13 +8,13 @@ class Task:
     def __init__(self, json_task):
         self.json_object = json_task
 
-    def getJSON(self):
+    def get_json(self):
         return self.json_object
 
-    def getName(self):
+    def get_name(self):
         return self.json_object.get("name", "")
 
-    def getID(self):
+    def get_id(self):
         return self.json_object.get("id", "")
 
 
@@ -29,13 +28,13 @@ class TaskDict:
         # Fetch all task nodes and wrap each payload in a Task object.
         self.tasks = [Task(task) for task in utils.get_all_results("/api/task-nodes/")]
 
-    def getTasks(self):
+    def get_tasks(self):
         return self.tasks
 
-    def printTasks(self):
+    def print_tasks(self):
         for task in self.tasks:
-            utils.log(f"Name: {task.getName()}")
-            utils.log(f"ID: {task.getID()}")
+            utils.log(f"Name: {task.get_name()}")
+            utils.log(f"ID: {task.get_id()}")
 
 
 class TaskTemplate:
@@ -44,16 +43,16 @@ class TaskTemplate:
     def __init__(self, json_task_template):
         self.json_object = json_task_template
 
-    def getJSON(self):
+    def get_json(self):
         return self.json_object
 
-    def getName(self):
+    def get_name(self):
         return self.json_object.get("name", "")
 
-    def getID(self):
+    def get_id(self):
         return self.json_object.get("id", "")
 
-    def getIsReccurring(self):
+    def get_is_reccurring(self):
         # Keep the original key name to preserve compatibility with existing callers.
         return self.json_object.get("is_recurrent", False)
 
@@ -68,12 +67,12 @@ class TaskTemplateDict:
         # Fetch all task templates and wrap each payload in a TaskTemplate object.
         self.task_templates = [TaskTemplate(template) for template in utils.get_all_results("/api/task-templates/")]
 
-    def getTaskTemplates(self):
+    def get_task_templates(self):
         return self.task_templates
 
-    def printTaskTemplates(self):
+    def print_task_templates(self):
         utils.log("Task Templates:")
         for template in self.task_templates:
-            utils.log(f"Name: {template.getName()}")
-            utils.log(f"ID: {template.getID()}")
-            utils.log(f"Is Recurrent: {template.getIsReccurring()}")
+            utils.log(f"Name: {template.get_name()}")
+            utils.log(f"ID: {template.get_id()}")
+            utils.log(f"Is Recurrent: {template.get_is_reccurring()}")

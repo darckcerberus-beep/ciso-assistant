@@ -9,7 +9,7 @@ class Library:
     def __init__(self, json_library):
         self.json_object = json_library
 
-    def getJSON(self):
+    def get_json(self):
         """Return the raw JSON payload for the library."""
         return self.json_object
 
@@ -32,14 +32,14 @@ class LibraryDict:
             )
             self.libraries[library.get("id")] = Library(library)
 
-    def getLibraries(self):
+    def get_libraries(self):
         """Return the dictionary of libraries keyed by ID."""
         return self.libraries
 
-    def printLibraries(self):
+    def print_libraries(self):
         """Log each library payload for debugging purposes."""
         for library in self.libraries.values():
-            utils.log(pformat(library.getJSON()))
+            utils.log(pformat(library.get_json()))
 
 
 class Framework:
@@ -48,28 +48,28 @@ class Framework:
     def __init__(self, json_framework):
         self.json_object = json_framework
 
-    def getName(self):
+    def get_name(self):
         return self.json_object.get("name", "")
 
-    def getID(self):
+    def get_id(self):
         return self.json_object.get("id", "")
 
-    def printName(self):
-        utils.log(f"Name: {self.getName()}")
+    def print_name(self):
+        utils.log(f"Name: {self.get_name()}")
 
-    def printID(self):
-        utils.log(f"ID: {self.getID()}")
+    def print_id(self):
+        utils.log(f"ID: {self.get_id()}")
 
-    def printJSON(self):
+    def print_json(self):
         utils.log(pformat(self.json_object))
 
-    def getRiskScenarios(self):
+    def get_risk_scenarios(self):
         return self.json_object.get("objects", {}).get("risk_scenarios", [])
 
-    def getRiskMatrix(self):
+    def get_risk_matrix(self):
         return self.json_object.get("risk_matrix", [])
 
-    def getLibraryID(self):
+    def get_library_id(self):
         return self.json_object.get("library", {}).get("id", None)
 
 
@@ -83,54 +83,54 @@ class FrameworkDict:
         """Reload all frameworks from the API."""
         self.frameworks = [Framework(f) for f in utils.get_all_results("/api/frameworks/")]
 
-    def getFrameworks(self):
+    def get_frameworks(self):
         """Return the list of framework objects."""
         return self.frameworks
 
-    def printFrameworks(self):
+    def print_frameworks(self):
         """Log each framework name and ID."""
         for framework in self.frameworks:
-            framework.printName()
-            framework.printID()
+            framework.print_name()
+            framework.print_id()
 
-    def printFrameworkJSON(self):
+    def print_framework_json(self):
         """Log the raw JSON for each framework."""
         for framework in self.frameworks:
-            framework.printJSON()
+            framework.print_json()
 
-    def getIDfromName(self, name):
+    def get_id_from_name(self, name):
         """Return a framework ID matching the given name."""
         for framework in self.frameworks:
-            if framework.getName() == name:
-                return framework.getID()
+            if framework.get_name() == name:
+                return framework.get_id()
         return None
 
-    def getNamefromID(self, id):
+    def get_name_from_id(self, id):
         """Return the framework name matching the given ID."""
         for framework in self.frameworks:
-            if framework.getID() == id:
-                return framework.getName()
+            if framework.get_id() == id:
+                return framework.get_name()
         return None
 
-    def getRiskScenariosfromID(self, id):
+    def get_risk_scenarios_from_id(self, id):
         """Return the risk scenarios for the framework matching the given ID."""
         for framework in self.frameworks:
-            if framework.getID() == id:
-                return framework.getRiskScenarios()
+            if framework.get_id() == id:
+                return framework.get_risk_scenarios()
         return None
 
-    def getAllRiskScenarios(self):
+    def get_all_risk_scenarios(self):
         """Flatten all risk scenarios from all frameworks into a single list."""
         all_risk_scenarios = []
         for framework in self.frameworks:
-            all_risk_scenarios.extend(framework.getRiskScenarios())
+            all_risk_scenarios.extend(framework.get_risk_scenarios())
         return all_risk_scenarios
 
-    def printAllRiskScenarios(self):
+    def print_all_risk_scenarios(self):
         """Log each risk scenario with description and scoring details."""
         for framework in self.frameworks:
-            utils.log(f"Framework: {framework.getName()}")
-            for risk_scenario in framework.getRiskScenarios():
+            utils.log(f"Framework: {framework.get_name()}")
+            for risk_scenario in framework.get_risk_scenarios():
                 utils.log(
                     f"Risk Scenario: {risk_scenario.get('name', '')}\n"
                     f"Description: {risk_scenario.get('description', '')}"
@@ -140,39 +140,39 @@ class FrameworkDict:
                     f"Impact: {risk_scenario.get('impact', '')}\n"
                 )
 
-    def getRiskMatrixfromID(self, id):
+    def get_risk_matrix_from_id(self, id):
         """Return the risk matrix for the framework matching the given ID."""
         for framework in self.frameworks:
-            if framework.getID() == id:
-                return framework.getRiskMatrix()
+            if framework.get_id() == id:
+                return framework.get_risk_matrix()
         return None
 
-    def getAllRiskMatrices(self):
+    def get_all_risk_matrices(self):
         """Return a list containing each framework's risk matrix."""
         all_risk_matrices = []
         for framework in self.frameworks:
-            all_risk_matrices.append(framework.getRiskMatrix())
+            all_risk_matrices.append(framework.get_risk_matrix())
         return all_risk_matrices
 
-    def printAllRiskMatrices(self):
+    def print_all_risk_matrices(self):
         """Log each framework risk matrix."""
         for framework in self.frameworks:
-            utils.log(f"Framework: {framework.getName()}")
+            utils.log(f"Framework: {framework.get_name()}")
             utils.log("Risk Matrix:")
-            for row in framework.getRiskMatrix():
+            for row in framework.get_risk_matrix():
                 utils.log(pformat(row))
 
-    def PrintLibraryIDs(self):
+    def print_library_ids(self):
         """Compatibility wrapper: log the library ID for each framework."""
         for framework in self.frameworks:
-            utils.log(f"Framework: {framework.getName()}")
-            utils.log(f"Library ID: {framework.getLibraryID()}")
+            utils.log(f"Framework: {framework.get_name()}")
+            utils.log(f"Library ID: {framework.get_library_id()}")
 
-    def getLibraryIDfromFrameworkID(self, framework_id):
+    def get_library_id_from_framework_id(self, framework_id):
         """Return the library ID associated with a framework ID."""
         for framework in self.frameworks:
-            if framework.getID() == framework_id:
-                return framework.getLibraryID()
+            if framework.get_id() == framework_id:
+                return framework.get_library_id()
         return None
 
 
@@ -184,30 +184,30 @@ class FrameworkFile:
         self.json_file = filepath
         self.json_object = utils.load_yaml_file(filepath)
 
-    def getName(self):
+    def get_name(self):
         return self.json_object.get("name", "")
 
-    def getID(self):
+    def get_id(self):
         return self.json_object.get("id", "")
 
-    def printName(self):
-        utils.log(f"Name: {self.getName()}")
+    def print_name(self):
+        utils.log(f"Name: {self.get_name()}")
 
-    def printID(self):
-        utils.log(f"ID: {self.getID()}")
+    def print_id(self):
+        utils.log(f"ID: {self.get_id()}")
 
-    def printJSON(self):
+    def print_json(self):
         utils.log(pformat(self.json_object))
 
     def read(self):
         """Reload the JSON payload from the configured file path."""
         self.json_object = utils.load_json_file(self.json_file)
 
-    def loadFromYAMLFile(self, yaml_file):
+    def load_from_yaml_file(self, yaml_file):
         """Load and return a framework from a YAML file."""
         return utils.load_yaml_file(yaml_file)
 
-    def printRiskScenario(self):
+    def print_risk_scenario(self):
         """Log all risk scenarios declared in the local framework."""
         risk_scenarios = self.json_object.get("objects", {}).get("risk_scenarios", [])
         for risk_scenario in risk_scenarios:
@@ -220,7 +220,22 @@ class FrameworkFile:
                 f"Impact: {risk_scenario.get('impact', '')}\n"
             )
 
-    def getRiskScenarios(self):
+    def get_risk_scenarios(self):
         """Return the risk scenarios contained in the current framework."""
         return self.json_object.get("objects", {}).get("risk_scenarios", [])
+
+    def get_criticality_mapping(self):
+        """Return the framework's criticality mapping."""
+        return self.json_object.get("criticality_mapping", {})
+
+    def get_impact_mapping(self):
+        """Return the data classification mapping used to derive impact levels."""
+        criticality_mapping = self.get_criticality_mapping()
+        if not isinstance(criticality_mapping, dict):
+            return {}
+
+        for objective in ("confidentiality", "integrity", "availability"):
+            if objective in criticality_mapping and isinstance(criticality_mapping[objective], dict):
+                return criticality_mapping[objective]
+        return {}
         

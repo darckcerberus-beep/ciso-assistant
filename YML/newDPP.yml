@@ -75,6 +75,16 @@ objects:
       likelihood: urn:intuitem:risk:req_node:mls:saas_contract
       impact: urn:intuitem:risk:req_node:mls:data_classification
 
+    # The application lacks accountable and up-to-date business, IT, and data stakeholders.
+    - urn: urn:intuitem:risk:scenario:mls:missing_stakeholders
+      ref_id: missing_stakeholders
+      name: "Missing application stakeholders"
+      description: >
+        Unclear ownership and outdated stakeholder information delay security,
+        operational, and data-protection decisions.
+      likelihood: urn:intuitem:risk:req_node:mls:stakeholder_identification
+      impact: urn:intuitem:risk:req_node:mls:data_classification
+
     # Sensitive data is retained beyond business or regulatory requirements.
     - urn: urn:intuitem:risk:scenario:mls:improper_data_retention
       ref_id: improper_data_retention
@@ -359,7 +369,7 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
-          urn:intuitem:risk:req_node:mls:stakeholder_identification:question:4:
+          urn:intuitem:risk:req_node:mls:stakeholder_identification:question:4:          
             type: unique_choice
             text: "Is the information about stakeholders updated in LeanIX?"
             choices:
@@ -389,25 +399,17 @@ objects:
             text: "What is the maximum classification level handled?"
             choices:
               - urn: urn:intuitem:risk:req_node:mls:data_classification:q1:c1
-                value: "Public"
-                add_score: 25
-                compute_result: false
+                value: "Public"                
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:mls:data_classification:q1:c2
-                value: "Internal"
-                add_score: 50
-                compute_result: false
+                value: "Internal"            
                 color: "#fd7e14"
               - urn: urn:intuitem:risk:req_node:mls:data_classification:q1:c3
                 value: "Confidential"
-                add_score: 75
-                compute_result: false
                 select_implementation_groups: ["confidential_app"]
                 color: "#fd7e14"
               - urn: urn:intuitem:risk:req_node:mls:data_classification:q1:c4
                 value: "Secret"
-                add_score: 100
-                compute_result: false
                 select_implementation_groups: ["secret_app"]
                 color: "#dc3545"
 
@@ -775,3 +777,28 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+
+# ============================================================================
+# AUDIT CONFIGURATION
+# ============================================================================
+# Settings for compliance assessment and audit field visibility
+audit:
+  score_method: sum
+  score_visibility:
+    score:
+      auditor: "edit"
+      respondent: "hidden"
+
+# ============================================================================
+# CRITICALITY MAPPING
+# ============================================================================
+# Maps security objectives (confidentiality, integrity, availability) to risk levels
+# based on data classification requirements URNs
+criticality_mapping:
+  confidentiality:
+    urn:intuitem:risk:req_node:mls:data_classification:q1:c1: 0  # Public
+    urn:intuitem:risk:req_node:mls:data_classification:q1:c2: 1  # Internal
+    urn:intuitem:risk:req_node:mls:data_classification:q1:c3: 2  # Confidential
+    urn:intuitem:risk:req_node:mls:data_classification:q1:c4: 3  # Secret
+  integrity: {}
+  availability: {}

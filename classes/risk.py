@@ -1,5 +1,7 @@
-from . import utils
+import logging
 import pprint
+
+from . import utils
 
 
 class RiskAssessment:
@@ -11,26 +13,26 @@ class RiskAssessment:
             "/api/risk-assessments/" + json_risk.get('id') + "/"
         )
 
-    def getJSON(self):
+    def get_json(self):
         return self.json_object
 
-    def getName(self):
+    def get_name(self):
         return self.json_object.get('name', '')
 
-    def getID(self):
+    def get_id(self):
         return self.json_object.get('id', '')
 
-    def getRiskID(self):
+    def get_risk_id(self):
         return self.json_object.get('risk', '')
 
-    def getStatus(self):
+    def get_status(self):
         return self.json_object.get('status', '')
 
-    def printName(self):
-        utils.log(f"Risk Assessment Name: {self.getName()}")
+    def print_name(self):
+        utils.log(f"Risk Assessment Name: {self.get_name()}")
 
-    def printID(self):
-        utils.log(f"Risk Assessment ID: {self.getID()}")
+    def print_id(self):
+        utils.log(f"Risk Assessment ID: {self.get_id()}")
 
 
 class RiskAssessmentDict:
@@ -45,20 +47,20 @@ class RiskAssessmentDict:
         for ra in utils.get_all_results("/api/risk-assessments/"):
             self.risk_assessments[ra.get('id')] = RiskAssessment(ra)
 
-    def getRiskAssessments(self):
+    def get_risk_assessments(self):
         return self.risk_assessments
 
-    def printRiskAssessments(self):
+    def print_risk_assessments(self):
         """Print names and IDs for all risk assessments."""
         for ra in self.risk_assessments.values():
-            ra.printName()
-            ra.printID()
+            ra.print_name()
+            ra.print_id()
 
-    def CreateRiskAssessments(self, name, domain, perimeter, risk_matrix):
+    def create_risk_assessments(self, name, domain, perimeter, risk_matrix):
         """Create a risk assessment if it does not already exist."""
         for ra in self.risk_assessments.values():
-            if ra.getName() == name:
-                return ra.getJSON()
+            if ra.get_name() == name:
+                return ra.get_json()
 
         payload = {
             "name": name,
@@ -77,16 +79,16 @@ class RiskScenario:
             "/api/risk-scenarios/" + json_scenario.get('id') + "/"
         )
 
-    def getJSON(self):
+    def get_json(self):
         return self.json_object
 
-    def getName(self):
+    def get_name(self):
         return self.json_object.get('name', '')
 
-    def getID(self):
+    def get_id(self):
         return self.json_object.get('id', '')
 
-    def getRelatedIDs(self, field_name):
+    def get_related_ids(self, field_name):
         """Return IDs from a many-to-many scenario field."""
         related_objects = self.json_object.get(field_name, [])
         if not isinstance(related_objects, list):
@@ -96,7 +98,7 @@ class RiskScenario:
             for related_object in related_objects
         ]
 
-    def updateRelationships(self, existing_control_ids, planned_control_ids, asset_ids, owner_ids):
+    def update_relationships(self, existing_control_ids, planned_control_ids, asset_ids, owner_ids):
         """Add controls, assets, and owners without removing existing links."""
         relationship_updates = {
             "existing_applied_controls": existing_control_ids,
@@ -106,15 +108,15 @@ class RiskScenario:
         }
         payload = {}
         for field_name, related_ids in relationship_updates.items():
-            merged_ids = list(dict.fromkeys(self.getRelatedIDs(field_name) + related_ids))
-            if merged_ids != self.getRelatedIDs(field_name):
+            merged_ids = list(dict.fromkeys(self.get_related_ids(field_name) + related_ids))
+            if merged_ids != self.get_related_ids(field_name):
                 payload[field_name] = merged_ids
 
         if not payload:
             return self.json_object
 
         response = utils.get_return(
-            f"/api/risk-scenarios/{self.getID()}/",
+            f"/api/risk-scenarios/{self.get_id()}/",
             method="PATCH",
             payload=payload,
         )
@@ -134,20 +136,40 @@ class RiskScenarioDict:
         for rs in utils.get_all_results("/api/risk-scenarios/"):
             self.risk_scenarios[rs.get('id')] = RiskScenario(rs)
 
-    def getRiskScenarios(self):
+    def get_risk_scenarios(self):
         return self.risk_scenarios
 
-    def printRiskScenarios(self):
+    def print_risk_scenarios(self):
         for rs in self.risk_scenarios.values():
-            print(rs.getName())
-            print(rs.getID())
+            print(rs.get_name())
+            print(rs.get_id())
 
-    def printRiskScenarioJSON(self):
+    def print_risk_scenario_json(self):
         for rs in self.risk_scenarios.values():
             print("Risk Scenario JSON:")
-            print(rs.getJSON())
+            print(rs.get_json())
 
-    def createRiskScenario(
+    def delete_risk_scenario(self, name, risk_assessment_id):
+        """Delete the matching scenario when its prerequisite is no longer applicable."""
+        for scenario in list(self.risk_scenarios.values()):
+            scenario_json = scenario.get_json()
+            scenario_risk_assessment = scenario_json.get("risk_assessment")
+            if isinstance(scenario_risk_assessment, dict):
+                scenario_risk_assessment = scenario_risk_assessment.get("id")
+            if scenario.get_name() != name or scenario_risk_assessment != risk_assessment_id:
+                continue
+
+            response = utils.get_return(
+                f"/api/risk-scenarios/{scenario.get_id()}/",
+                method="DELETE",
+            )
+            if response is True:
+                self.risk_scenarios.pop(scenario.get_id(), None)
+                utils.log(f"Deleted no-longer-applicable risk scenario: {name}")
+            return response
+        return True
+
+    def create_risk_scenario(
         self,
         name,
         description,
@@ -165,22 +187,6 @@ class RiskScenarioDict:
 
         The API expects 0-based values, while the inputs are typically 1-based.
         """
-        for scenario in self.risk_scenarios.values():
-            scenario_json = scenario.getJSON()
-            risk_assessment = scenario_json.get("risk_assessment")
-            if isinstance(risk_assessment, dict):
-                risk_assessment = risk_assessment.get("id")
-            if (
-                scenario.getName() == name
-                and risk_assessment == risk_assessment_id
-            ):
-                return scenario.updateRelationships(
-                    existing_applied_controls or [],
-                    applied_controls or [],
-                    assets or [],
-                    owners or [],
-                )
-
         if existing_applied_controls is None:
             existing_applied_controls = []
         if applied_controls is None:
@@ -203,7 +209,35 @@ class RiskScenarioDict:
             "assets": assets,
             "owner": owners,
         }
-        return utils.get_return("/api/risk-scenarios/", method="POST", payload=payload)
+
+        for scenario in self.risk_scenarios.values():
+            scenario_json = scenario.get_json()
+            risk_assessment = scenario_json.get("risk_assessment")
+            if isinstance(risk_assessment, dict):
+                risk_assessment = risk_assessment.get("id")
+            if (
+                scenario.get_name() == name
+                and risk_assessment == risk_assessment_id
+            ):
+                update_payload = {
+                    key: value for key, value in payload.items()
+                    if value not in (None, [], {})
+                }
+                scenario_response = utils.get_return(
+                    f"/api/risk-scenarios/{scenario.get_id()}/",
+                    method="PATCH",
+                    payload=update_payload,
+                )
+                if isinstance(scenario_response, dict) and not scenario_response.get("error"):
+                    scenario.json_object = scenario_response
+                    self.risk_scenarios[scenario.get_id()] = scenario
+                return scenario_response
+
+        utils.log(f"Creating risk scenario with payload: {payload}", level=logging.DEBUG)
+        created = utils.get_return("/api/risk-scenarios/", method="POST", payload=payload)
+        if isinstance(created, dict) and created.get("id"):
+            self.risk_scenarios[created.get("id")] = RiskScenario(created)
+        return created
 
 
 class RiskMatrix:
@@ -214,7 +248,7 @@ class RiskMatrix:
             "/api/risk-matrices/" + json_matrix.get('id') + "/"
         )
 
-    def getJSON(self):
+    def get_json(self):
         return self.json_object
 
 
@@ -229,19 +263,19 @@ class RiskMatrixDict:
         for rm in utils.get_all_results("/api/risk-matrices/"):
             self.risk_matrices[rm.get('id')] = RiskMatrix(rm)
 
-    def getRiskMatrices(self):
+    def get_risk_matrices(self):
         return self.risk_matrices
 
-    def printRiskMatrices(self):
+    def print_risk_matrices(self):
         for rm in self.risk_matrices.values():
-            pprint.pprint(rm.getJSON())
+            pprint.pprint(rm.get_json())
 
-    def getRiskMatrixIDByLibraryID(self, library_id):
+    def get_risk_matrix_id_by_library_id(self, library_id):
         """Return the matrix ID matching a given library ID."""
         for rm in self.risk_matrices.values():
-            library = rm.getJSON().get('library') or {}
+            library = rm.get_json().get('library') or {}
             if library.get('id') == library_id:
-                return rm.getJSON().get('id')
+                return rm.get_json().get('id')
         return None
 
 
@@ -253,13 +287,13 @@ class Vulnerability:
             "/api/vulnerabilities/" + json_vulnerability.get('id') + "/"
         )
 
-    def getJSON(self):
+    def get_json(self):
         return self.json_object
 
-    def getName(self):
+    def get_name(self):
         return self.json_object.get('name', '')
 
-    def getID(self):
+    def get_id(self):
         return self.json_object.get('id', '')
 
 
@@ -274,18 +308,18 @@ class VulnerabilityDict:
         for v in utils.get_all_results("/api/vulnerabilities/"):
             self.vulnerabilities[v.get('id')] = Vulnerability(v)
 
-    def getVulnerabilities(self):
+    def get_vulnerabilities(self):
         return self.vulnerabilities
 
-    def printVulnerabilities(self):
+    def print_vulnerabilities(self):
         for v in self.vulnerabilities.values():
-            print(v.getName())
-            print(v.getID())
+            print(v.get_name())
+            print(v.get_id())
 
-    def printVulnerabilityJSON(self):
+    def print_vulnerability_json(self):
         for v in self.vulnerabilities.values():
             print("Vulnerability JSON:")
-            print(v.getJSON())
+            print(v.get_json())
 
 
 

@@ -1,32 +1,32 @@
 import logging
+from pathlib import Path
 
 from . import utils
 
+# Load settings from framework file
+_framework_path = Path(__file__).parent.parent / "YML" / "newDPP.yml"
+_framework = utils.load_yaml_file(str(_framework_path))
 # Mapping for data classification criticality levels
-CRITICALITY_MAPPING = {
-    "confidentiality": {
-        "urn:intuitem:risk:req_node:mls:data_classification:q1:c1": 0,  # Public
-        "urn:intuitem:risk:req_node:mls:data_classification:q1:c2": 1,  # Internal
-        "urn:intuitem:risk:req_node:mls:data_classification:q1:c3": 2,  # Confidential
-        "urn:intuitem:risk:req_node:mls:data_classification:q1:c4": 3,  # Secret
-    },
+criticality_mapping = _framework.get("criticality_mapping", {
+    "confidentiality": {},
     "integrity": {},
     "availability": {}
-}
+})
+
 
 
 class Domain:
     """Represents an organizational domain/folder."""
     def __init__(self, json_domain):
         self.json_object = json_domain
-    def getName(self):
+    def get_name(self):
         return self.json_object.get('name', '')
-    def getID(self):
+    def get_id(self):
         return self.json_object.get('id', '')
-    def printName(self):
-        utils.log(f"Name: {self.getName()}")
-    def printID(self):
-        utils.log(f"ID: {self.getID()}")
+    def print_name(self):
+        utils.log(f"Name: {self.get_name()}")
+    def print_id(self):
+        utils.log(f"ID: {self.get_id()}")
 
 class DomainDict:
     def __init__(self):
@@ -35,26 +35,26 @@ class DomainDict:
     def reload(self):
         self.domains = [Domain(d) for d in utils.get_all_results("/api/folders/")]
 
-    def getDomains(self):
+    def get_domains(self):
         return self.domains
-    def printDomains(self):
+    def print_domains(self):
         for d in self.domains:
-            d.printName()
-            d.printID()
-    def getIDfromName(self, name):
+            d.print_name()
+            d.print_id()
+    def get_id_from_name(self, name):
         for d in self.domains:
-            if d.getName() == name:
-                return d.getID()
+            if d.get_name() == name:
+                return d.get_id()
         return None
-    def getNamefromID(self, id):
+    def get_name_from_id(self, id):
         for d in self.domains:
-            if d.getID() == id:
-                return d.getName()
+            if d.get_id() == id:
+                return d.get_name()
         return None
-    def UpsertFolder(self, name):
+    def upsert_folder(self, name):
         # Check if the folder already exists
         for d in self.domains:
-            if d.getName() == name:
+            if d.get_name() == name:
                 utils.log(f"Folder '{name}' already exists.")
                 return d
         # If the folder does not exist, create it
@@ -68,13 +68,13 @@ class DomainDict:
         else:
             utils.log(f"Failed to create folder '{name}': {result}", level=logging.ERROR)
             return None
-    def UpsertFolderFromJSON(self, folder_dict):
+    def upsert_folder_from_json(self, folder_dict):
         folders = folder_dict.get('domains', [])
         utils.log(f"Upserting folders from JSON: {folders}")
         for folder in folders:
             folder_name = folder.get('name')
             if folder_name:
-                self.UpsertFolder(folder_name)
+                self.upsert_folder(folder_name)
             else:
                 utils.log("Folder name is missing in the provided JSON.", level=logging.WARNING)
 
@@ -82,30 +82,30 @@ class DomainDict:
 class Perimeter:
     def __init__(self, json_perimeter):
         self.json_object = json_perimeter
-    def getName(self):
+    def get_name(self):
         return self.json_object.get('name', '')
-    def getID(self):
+    def get_id(self):
         return self.json_object.get('id', '')
-    def getDefaultAssigneeID(self):
+    def get_default_assignee_id(self):
         assignees = self.json_object.get('default_assignee', [])
         if not assignees:
             return ''
         assignee = assignees[0]
         return assignee.get('id', '') if isinstance(assignee, dict) else assignee
-    def getDefaultAssignee(self):
+    def get_default_assignee(self):
         return self.json_object.get('default_assignee', [])
-    def getFolder(self):
+    def get_folder(self):
         return self.json_object.get('folder', '')
-    def getFolderUUID(self):
+    def get_folder_uuid(self):
         return self.json_object.get('folder', '').get('id', '')
-    def printName(self):
-        utils.log(f"Name: {self.getName()}")
-    def printID(self):
-        utils.log(f"ID: {self.getID()}")
-    def printDefaultAssignee(self):
-        utils.log(f"Default Assignee: {self.getDefaultAssignee()}")
-    def printFolder(self):
-        utils.log(f"Folder: {self.getFolder()}")
+    def print_name(self):
+        utils.log(f"Name: {self.get_name()}")
+    def print_id(self):
+        utils.log(f"ID: {self.get_id()}")
+    def print_default_assignee(self):
+        utils.log(f"Default Assignee: {self.get_default_assignee()}")
+    def print_folder(self):
+        utils.log(f"Folder: {self.get_folder()}")
 
 class PerimeterDict:
     def __init__(self):
@@ -114,41 +114,41 @@ class PerimeterDict:
     def reload(self):
         self.perimeters = [Perimeter(p) for p in utils.get_all_results("/api/perimeters/")]
 
-    def getPerimeters(self):
+    def get_perimeters(self):
         return self.perimeters
-    def printPerimeters(self):
+    def print_perimeters(self):
         for p in self.perimeters:
-            p.printName()
-            p.printID()
-            p.printDefaultAssignee()
-            p.printFolder()
-    def printPerimeterJSON(self):
+            p.print_name()
+            p.print_id()
+            p.print_default_assignee()
+            p.print_folder()
+    def print_perimeter_json(self):
         for p in self.perimeters:
             utils.log(str(p.json_object))
-    def getIDfromName(self, name):
+    def get_id_from_name(self, name):
         for p in self.perimeters:
-            if p.getName() == name:
-                return p.getID()
+            if p.get_name() == name:
+                return p.get_id()
         return None
-    def getNamefromID(self, id):
+    def get_name_from_id(self, id):
         for p in self.perimeters:
-            if p.getID() == id:
-                return p.getName()
+            if p.get_id() == id:
+                return p.get_name()
         return None
-    def getOwnerIDfromPerimeterID(self, perimeter_id):        
+    def get_owner_id_from_perimeter_id(self, perimeter_id):        
         for p in self.perimeters:
-            if p.getID() == perimeter_id:
-                return p.getDefaultAssigneeID()
+            if p.get_id() == perimeter_id:
+                return p.get_default_assignee_id()
         return None
-    def getFolderUUIDfromPerimeterID(self, perimeter_id):
+    def get_folder_uuid_from_perimeter_id(self, perimeter_id):
         for p in self.perimeters:
-            if p.getID() == perimeter_id:
-                return p.getFolderUUID()
+            if p.get_id() == perimeter_id:
+                return p.get_folder_uuid()
         return None
-    def CreatePerimeter(self, name, default_assignee_id, folder_uuid):
+    def create_perimeter(self, name, default_assignee_id, folder_uuid):
         # Check if the perimeter already exists
         for p in self.perimeters:
-            if p.getName() == name:
+            if p.get_name() == name:
                 utils.log(f"Perimeter '{name}' already exists.")
                 return p
         # If the perimeter does not exist, create it
@@ -166,68 +166,68 @@ class PerimeterDict:
         else:
             utils.log(f"Failed to create perimeter '{name}': {result}", level=logging.ERROR)
             return None
-    def CreatePerimetersFromDict(self,domain_dict, perimeter_dict_from_file,actor_dict,user_dict):
+    def create_perimeters_from_dict(self,domain_dict, perimeter_dict_from_file,actor_dict,user_dict):
         perimeters = perimeter_dict_from_file.get('assets', [])
         utils.log(f"Creating perimeters from asset dict: {perimeters}")
         for perimeter in perimeters:
             perimeter_name = perimeter.get('name')
             # get assignee id from name
-            default_assignee_id = actor_dict.getIDfromName(user_dict.getNamefromEmail(perimeter.get('it contact')))
+            default_assignee_id = actor_dict.get_id_from_name(user_dict.get_name_from_email(perimeter.get('it contact')))
             utils.log(f"Creating perimeter '{perimeter_name}' with default assignee ID '{default_assignee_id}'")
             # get folder uuid from name            
-            folder_uuid = domain_dict.getIDfromName(perimeter.get('domain'))
+            folder_uuid = domain_dict.get_id_from_name(perimeter.get('domain'))
             if perimeter_name and default_assignee_id and folder_uuid:
-                self.CreatePerimeter(perimeter_name, default_assignee_id, folder_uuid)
+                self.create_perimeter(perimeter_name, default_assignee_id, folder_uuid)
 
 class Asset:
     def __init__(self, json_asset):
         self.json_object = json_asset
-    def getJSON(self):
+    def get_json(self):
         return self.json_object    
-    def getName(self):
+    def get_name(self):
         return self.json_object.get('name', '')
-    def getID(self):
+    def get_id(self):
         return self.json_object.get('id', '')
-    def getAssetType(self):
+    def get_asset_type(self):
         return self.json_object.get('type', '')
-    def getOwner(self):
+    def get_owner(self):
         return self.json_object.get('owner', '')
 
-    def getOwnerIDs(self):
+    def get_owner_ids(self):
         """Return identifiers for users assigned as asset owners."""
-        owners = self.getOwner()
+        owners = self.get_owner()
         if not isinstance(owners, list):
             return []
         return [owner.get('id', '') if isinstance(owner, dict) else owner for owner in owners]
 
-    def setOwnerIfMissing(self, owner_id):
+    def set_owner_if_missing(self, owner_id):
         """Assign an owner only when no owner is already configured."""
-        if not owner_id or self.getOwnerIDs():
+        if not owner_id or self.get_owner_ids():
             return self.json_object
 
         response = utils.get_return(
-            f"/api/assets/{self.getID()}/",
+            f"/api/assets/{self.get_id()}/",
             method="PATCH",
             payload={"owner": [owner_id]},
         )
         if isinstance(response, dict) and not response.get("error"):
             self.json_object = response
         return response
-    def getFolder(self):
+    def get_folder(self):
         return self.json_object.get('folder', '')
-    def getMaxSecurityObjective(self):
+    def get_max_security_objective(self):
         max_objective = 0
         for so_list in self.json_object.get('security_objectives', ''):
             for o_dict in so_list.values():
                 max_objective = max(max_objective, o_dict)
         return max_objective
     
-    def getSecurityObjectives(self):
+    def get_security_objectives(self):
         return self.json_object.get('security_objectives', '')
-    def PrintSecurityObjectives(self):
-        utils.log(str(self.getSecurityObjectives()))
+    def print_security_objectives(self):
+        utils.log(str(self.get_security_objectives()))
 
-    def SetSecurityObjective(self, criteria, value):
+    def set_security_objective(self, criteria, value):
         """Update a specific security objective for the asset."""
         current_security_objectives_list = self.json_object.get('security_objectives', {})        
         utils.log(f"Existing security_objectives: {current_security_objectives_list}")
@@ -244,31 +244,31 @@ class Asset:
         utils.log(f"Updated security_objectives: {payload}")
         # Send the PATCH request
         result = utils.get_return(
-            f"/api/assets/{self.getID()}/",
+            f"/api/assets/{self.get_id()}/",
             method="PATCH",
             payload=payload
         )        
         # Refresh the asset's JSON object
         if result and not isinstance(result, dict) or not result.get("error"):
-            self.json_object = utils.get_return(f"/api/assets/{self.getID()}/")
+            self.json_object = utils.get_return(f"/api/assets/{self.get_id()}/")
         else:
             utils.log(f"Failed to update security objective: {result}", level=logging.ERROR)
         
 
         
     
-    def printJSON(self):
+    def print_json(self):
         utils.log(str(self.json_object))
-    def printName(self):
-        utils.log(f"Name: {self.getName()}")
-    def printID(self):
-        utils.log(f"ID: {self.getID()}")
-    def printAssetType(self):
-        utils.log(f"Asset Type: {self.getAssetType()}")
-    def printOwner(self):
-        utils.log(f"Owner: {self.getOwner()}")
-    def printFolder(self):
-        utils.log(f"Folder: {self.getFolder()}")
+    def print_name(self):
+        utils.log(f"Name: {self.get_name()}")
+    def print_id(self):
+        utils.log(f"ID: {self.get_id()}")
+    def print_asset_type(self):
+        utils.log(f"Asset Type: {self.get_asset_type()}")
+    def print_owner(self):
+        utils.log(f"Owner: {self.get_owner()}")
+    def print_folder(self):
+        utils.log(f"Folder: {self.get_folder()}")
 
 class AssetDict:
     def __init__(self):
@@ -277,27 +277,27 @@ class AssetDict:
     def reload(self):
         self.assets = [Asset(a) for a in utils.get_all_results("/api/assets/")]
 
-    def createAsset(self, name, asset_type,  folder):
+    def create_asset(self, name, asset_type,  folder):
         # checking if asset already exists
         for a in self.assets:
-            if a.getName() == name:
+            if a.get_name() == name:
                 utils.log("Asset already exists")
                 return a
         # checking if domain exists        if not utils.get_return(f"/api/folders/{folder}/"):
             utils.log("Folder does not exist", level=logging.WARNING)
             # Creating folder
-            utils.get_return(f"/api/folders/", method="POST", payload={'name': folder})
+            utils.get_return("/api/folders/", method="POST", payload={'name': folder})
         payload = {'name': name, 'type': asset_type , 'folder': folder}  
         res = utils.get_return("/api/assets/", method="POST", payload=payload)
         self.reload()
         return Asset(res)
 
-    def createMissingAssets(self, PerimeterDict):
+    def create_missing_assets(self, perimeter_dict):
         created = False
-        for p in PerimeterDict.getPerimeters():
-            if not self.CheckAssetFromName(p.getName()):
-                payload = {'name': p.getName(), 'type': "PR", 'folder': p.getFolderUUID()}
-                owner_id = p.getDefaultAssigneeID()
+        for p in perimeter_dict.get_perimeters():
+            if not self.check_asset_from_name(p.get_name()):
+                payload = {'name': p.get_name(), 'type': "PR", 'folder': p.get_folder_uuid()}
+                owner_id = p.get_default_assignee_id()
                 if owner_id:
                     payload['owner'] = [owner_id]
                 utils.get_return("/api/assets/", method="POST", payload=payload)
@@ -306,57 +306,57 @@ class AssetDict:
             self.reload()
 
         updated = False
-        for perimeter in PerimeterDict.getPerimeters():
-            owner_id = perimeter.getDefaultAssigneeID()
+        for perimeter in perimeter_dict.get_perimeters():
+            owner_id = perimeter.get_default_assignee_id()
             for asset in self.assets:
-                if asset.getName() != perimeter.getName() or asset.getOwnerIDs():
+                if asset.get_name() != perimeter.get_name() or asset.get_owner_ids():
                     continue
-                asset.setOwnerIfMissing(owner_id)
+                asset.set_owner_if_missing(owner_id)
                 updated = True
         if updated:
             self.reload()
     
-    def getAssetIDfromPerimeterName(self, name):
+    def get_asset_id_from_perimeter_name(self, name):
         for a in self.assets:
-            if a.getName() == name:
-                return a.getID()
+            if a.get_name() == name:
+                return a.get_id()
         return None
     
-    def getAssetIDfromPerimeterID(self, perimeter_id, PerimeterDict):
-        perimeter_name = PerimeterDict.getNamefromID(perimeter_id)
-        return self.getAssetIDfromPerimeterName(perimeter_name)
+    def get_asset_id_from_perimeter_id(self, perimeter_id, perimeter_dict):
+        perimeter_name = perimeter_dict.get_name_from_id(perimeter_id)
+        return self.get_asset_id_from_perimeter_name(perimeter_name)
     
-    def getAssets(self):
+    def get_assets(self):
         return self.assets
 
-    def getOwnerIDsForAssets(self, asset_ids):
+    def get_owner_ids_for_assets(self, asset_ids):
         """Return unique owner IDs for the supplied asset IDs."""
         selected_asset_ids = set(asset_ids)
         owner_ids = []
         for asset in self.assets:
-            if asset.getID() in selected_asset_ids:
-                owner_ids.extend(asset.getOwnerIDs())
+            if asset.get_id() in selected_asset_ids:
+                owner_ids.extend(asset.get_owner_ids())
         return list(dict.fromkeys(owner_ids))
 
-    def CheckAssetFromName(self, name):
+    def check_asset_from_name(self, name):
         for a in self.assets:
-            if a.getName() == name:
+            if a.get_name() == name:
                 return True
         return False
     
 
-    def printAssets(self):
+    def print_assets(self):
         for a in self.assets:
-            a.printJSON()
-            utils.log("Risk Impact: " + str(a.getMaxSecurityObjective()))
-    def UpdateAssetCriticality(self, asset_ID, criteria, value):
+            a.print_json()
+            utils.log("Risk Impact: " + str(a.get_max_security_objective()))
+    def update_asset_criticality(self, asset_id, criteria, value):
         for a in self.assets:
-            if a.getID() == asset_ID:
-                a.SetSecurityObjective(criteria, value)
+            if a.get_id() == asset_id:
+                a.set_security_objective(criteria, value)
         self.reload()
-    def PrintAssetSecurityObjectives(self):
+    def print_asset_security_objectives(self):
         for a in self.assets:
-            utils.log(f"Asset: {a.getName()}")
-            a.PrintSecurityObjectives()    
+            utils.log(f"Asset: {a.get_name()}")
+            a.print_security_objectives()    
     
             

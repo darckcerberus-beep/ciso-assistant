@@ -9,19 +9,19 @@ class AppliedControl:
         control_id = json_control.get('id')
         self.json_object = utils.get_return(f"/api/applied-controls/{control_id}/")
 
-    def getJSON(self):
+    def get_json(self):
         """Return the full JSON object."""
         return self.json_object
 
-    def getName(self):
+    def get_name(self):
         """Return the control name."""
         return self.json_object.get('name', '')
 
-    def getID(self):
+    def get_id(self):
         """Return the control ID."""
         return self.json_object.get('id', '')
 
-    def getRequirementAssessmentIDs(self):
+    def get_requirement_assessment_ids(self):
         """Return IDs of requirement assessments linked to this control."""
         assessments = self.json_object.get('requirement_assessments', [])
         if not isinstance(assessments, list):
@@ -31,20 +31,20 @@ class AppliedControl:
             for assessment in assessments
         ]
 
-    def getStatus(self):
+    def get_status(self):
         """Return the implementation status of this control."""
         return self.json_object.get('status', '')
 
-    def printName(self):
+    def print_name(self):
         """Print the control name."""
-        utils.log(f"Name: {self.getName()}")
+        utils.log(f"Name: {self.get_name()}")
 
-    def printID(self):
+    def print_id(self):
         """Print the control ID."""
-        utils.log(f"ID: {self.getID()}")
+        utils.log(f"ID: {self.get_id()}")
 
     @classmethod
-    def createAppliedControl(cls, name, control, requirement_assessment, status):
+    def create_applied_control(cls, name, control, requirement_assessment, status):
         """Create an applied control based on requirement assessment and reference control.
         
         Args:
@@ -80,34 +80,107 @@ class AppliedControlDict:
         for c in utils.get_all_results("/api/applied-controls/"):
             self.controls[c.get('id')] = AppliedControl(c)
 
-    def getControls(self):
+    def get_controls(self):
         """Return all controls."""
         return self.controls
 
-    def printControls(self):
+    def print_controls(self):
         """Print all control names and IDs."""
         for c in self.controls.values():
-            c.printName()
-            c.printID()
+            c.print_name()
+            c.print_id()
 
-    def printJSON(self):
+    def print_json(self):
         """Print JSON representation of all controls."""
         for c in self.controls.values():
-            utils.log(c.getJSON())
+            utils.log(c.get_json())
 
-    def getControlIDsByStatusForRequirementAssessments(self, requirement_assessment_ids):
+    def get_control_ids_by_status_for_requirement_assessments(self, requirement_assessment_ids):
         """Group controls by implementation status for the supplied assessments."""
         assessment_ids = set(requirement_assessment_ids)
         controls_by_status = {"existing": [], "planned": []}
         for control in self.controls.values():
-            if not assessment_ids.intersection(control.getRequirementAssessmentIDs()):
+            if not assessment_ids.intersection(control.get_requirement_assessment_ids()):
                 continue
 
-            status_group = "existing" if control.getStatus() == "active" else "planned"
-            controls_by_status[status_group].append(control.getID())
+            status_group = "existing" if control.get_status() == "active" else "planned"
+            controls_by_status[status_group].append(control.get_id())
         return controls_by_status
 
-    def CheckAppliedControlFromName(self, name):
+    def get_priority_from_risk_level(self, risk_level):
+        """Translate a risk level ID into the API priority integer: 1 is highest, 4 is lowest."""
+        if isinstance(risk_level, dict):
+            risk_level = risk_level.get("id", risk_level.get("value", 2))
+        try:
+            risk_level = int(risk_level)
+        except (TypeError, ValueError):
+            return 3
+
+        # Risk level 4 (critical) => priority 1 (highest urgency)
+        # Risk level 3 => 2
+        # Risk level 2 => 3
+        # Risk level 1/0 => 4 (lowest urgency)
+        if risk_level >= 4:
+            return 1
+        if risk_level == 3:
+            return 2
+        if risk_level == 2:
+            return 3
+        return 4
+
+    def get_priority_for_compliance_assessment_id(self, compliance_assessment_id, requirement_urn):
+        """Return priority from the current level of the scenario associated with a requirement."""
+        from .framework import FrameworkFile
+
+        compliance_assessment = None
+        for ca in utils.get_all_results("/api/compliance-assessments/"):
+            if ca.get("id") == compliance_assessment_id:
+                compliance_assessment = ca
+                break
+
+        if compliance_assessment is None:
+            return "medium"
+
+        compliance_name = compliance_assessment.get("name", "")
+        for risk_assessment in utils.get_all_results("/api/risk-assessments/"):
+            if risk_assessment.get("name", "") == f"{compliance_name} Risk Assessment":
+                risk_assessment_id = risk_assessment.get("id")
+                break
+
+        if risk_assessment_id is None:
+            return 3
+
+        scenario_names = {
+            scenario.get("name", "")
+            for scenario in FrameworkFile("YML/newDPP.yml").get_risk_scenarios()
+            if scenario.get("likelihood") == requirement_urn
+        }
+        if not scenario_names:
+            return 3
+
+        for scenario in utils.get_all_results("/api/risk-scenarios/"):
+            risk_assessment = scenario.get("risk_assessment", {})
+            if isinstance(risk_assessment, dict):
+                scenario_risk_assessment_id = risk_assessment.get("id")
+            else:
+                scenario_risk_assessment_id = risk_assessment
+
+            if (
+                scenario_risk_assessment_id != risk_assessment_id
+                or scenario.get("name", "") not in scenario_names
+            ):
+                continue
+
+            current_level = scenario.get("current_level", {})
+            if not isinstance(current_level, dict):
+                continue
+            return self.get_priority_from_risk_level(
+                current_level.get("id", current_level.get("value"))
+            )
+
+        return 3
+
+    def check_applied_control_from_name(self, name):
         """Check if a control with the given name exists.
         
         Args:
@@ -117,11 +190,46 @@ class AppliedControlDict:
             True if control exists, False otherwise
         """
         for c in self.controls.values():
-            if c.getName() == name:
+            if c.get_name() == name:
                 return True
         return False
 
-    def CreateMissingAppliedControls(self, perimeter_dict, requirement_assessment,
+    def update_priority_for_requirement_assessment(self, name, compliance_assessment_id, requirement_urn):
+        """Synchronize an existing to-do control with its associated scenario risk level."""
+        priority = self.get_priority_for_compliance_assessment_id(
+            compliance_assessment_id, requirement_urn
+        )
+        for control in self.controls.values():
+            if control.get_name() != name or control.get_status() != "to_do":
+                continue
+            response = utils.get_return(
+                f"/api/applied-controls/{control.get_id()}/",
+                method="PATCH",
+                payload={"priority": priority},
+            )
+            if isinstance(response, dict) and not response.get("error"):
+                control.json_object = response
+            return response
+        return None
+
+    def update_folder_for_control(self, name, folder_id):
+        """Synchronize an existing control with its perimeter folder."""
+        if not folder_id:
+            return None
+        for control in self.controls.values():
+            if control.get_name() != name:
+                continue
+            response = utils.get_return(
+                f"/api/applied-controls/{control.get_id()}/",
+                method="PATCH",
+                payload={"folder": folder_id},
+            )
+            if isinstance(response, dict) and not response.get("error"):
+                control.json_object = response
+            return response
+        return None
+
+    def create_missing_applied_controls(self, perimeter_dict, requirement_assessment,
                                      reference_control_dict, compliance_assessment_dict):
         """Create missing applied controls based on requirement assessments.
         
@@ -134,30 +242,41 @@ class AppliedControlDict:
         requirement_assessment.reload()
         created = 0
 
-        for ra in requirement_assessment.getRequirementAssessments().values():
+        for ra in requirement_assessment.get_requirement_assessments().values():
             # Skip non-assessed or empty results
-            if ra.getAssessmentResults() in ['', 'not_assessed']:
+            if ra.is_unassessed_result() or not ra.has_selected_answer():
                 continue
 
-            for control_id in ra.getAssociatedReferenceControlIDs():
-                control_name = reference_control_dict.getNamefromID(control_id)
-                perimeter_name = perimeter_dict.getNamefromID(ra.getPerimeterID())
+            for control_id in ra.get_associated_reference_control_ids():
+                control_name = reference_control_dict.get_name_from_id(control_id)
+                perimeter_name = perimeter_dict.get_name_from_id(ra.get_perimeter_id())
+                folder_id = perimeter_dict.get_folder_uuid_from_perimeter_id(ra.get_perimeter_id())
                 name = f"{control_name} on {perimeter_name}"
 
                 # Skip if control already exists
-                if self.CheckAppliedControlFromName(name):
+                if self.check_applied_control_from_name(name):
+                    self.update_folder_for_control(name, folder_id)
+                    if ra.get_assessment_results() != "compliant":
+                        self.update_priority_for_requirement_assessment(
+                            name, ra.get_compliance_assessment_id(), ra.get_urn()
+                        )
                     continue
 
                 # Determine owner and status based on assessment results
-                is_compliant = ra.getAssessmentResults() == "compliant"
+                is_compliant = ra.get_assessment_results() == "compliant"
+                priority = None if is_compliant else self.get_priority_for_compliance_assessment_id(
+                    ra.get_compliance_assessment_id(), ra.get_urn()
+                )
                 payload = {
                     "name": name,
                     "reference_control": control_id,
-                    "owner": [perimeter_dict.getOwnerIDfromPerimeterID(ra.getPerimeterID())] if not is_compliant else [],
-                    "assets": compliance_assessment_dict.getAssetIDListfromComplianceassessmentID(ra.getComplianceAssessmentID()),
-                    "compliance_assessments": [ra.getComplianceAssessmentID()],
-                    "requirement_assessments": [ra.getID()],
-                    "status": "active" if is_compliant else "to_do"
+                    "owner": [perimeter_dict.get_owner_id_from_perimeter_id(ra.get_perimeter_id())] if not is_compliant else [],
+                    "folder": folder_id,
+                    "assets": compliance_assessment_dict.get_asset_id_list_from_compliance_assessment_id(ra.get_compliance_assessment_id()),
+                    "compliance_assessments": [ra.get_compliance_assessment_id()],
+                    "requirement_assessments": [ra.get_id()],
+                    "status": "active" if is_compliant else "to_do",
+                    **({"priority": priority} if priority is not None else {})
                 }
                 utils.log(f"Payload for creating applied control: {payload}")
                 utils.get_return("/api/applied-controls/", method="POST", payload=payload)
@@ -182,17 +301,17 @@ class ReferenceControlDict:
         """Reload all reference controls from the API."""
         self.controls = [ReferenceControl(c) for c in utils.get_all_results("/api/reference-controls/")]
 
-    def getControls(self):
+    def get_controls(self):
         """Return all controls."""
         return self.controls
 
-    def printControls(self):
+    def print_controls(self):
         """Print all control names and IDs."""
         for c in self.controls:
-            c.printName()
-            c.printID()
+            c.print_name()
+            c.print_id()
 
-    def getNamefromID(self, control_id):  # noqa: A002
+    def get_name_from_id(self, control_id):
         """Get control name by ID.
         
         Args:
@@ -202,8 +321,8 @@ class ReferenceControlDict:
             Control name if found, None otherwise
         """
         for c in self.controls:
-            if c.getID() == control_id:
-                return c.getName()
+            if c.get_id() == control_id:
+                return c.get_name()
         return None        
 
 class ReferenceControl:
@@ -213,18 +332,18 @@ class ReferenceControl:
         """Initialize with control data."""
         self.json_object = json_control
 
-    def getName(self):
+    def get_name(self):
         """Return the control name."""
         return self.json_object.get('name', '')
 
-    def getID(self):
+    def get_id(self):
         """Return the control ID."""
         return self.json_object.get('id', '')
 
-    def printName(self):
+    def print_name(self):
         """Print the control name."""
-        utils.log(f"Name: {self.getName()}")
+        utils.log(f"Name: {self.get_name()}")
 
-    def printID(self):
+    def print_id(self):
         """Print the control ID."""
-        utils.log(f"ID: {self.getID()}")
+        utils.log(f"ID: {self.get_id()}")

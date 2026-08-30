@@ -1,0 +1,13 @@
+# ============================================================================
+# Application Settings and Configuration
+# ============================================================================
+# This YAML file contains application-wide constants and configuration settings.
+# API credentials are stored in keys.py
+# Audit and criticality settings are stored in newDPP.yml
+# ============================================================================
+
+# API Headers Configuration
+# These headers are sent with every API request
+api:
+  headers:
+    Content-Type: "application/json"

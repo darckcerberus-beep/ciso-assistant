@@ -1,9 +1,4 @@
-import classes.framework as framework
-import classes.audit as audit
-import classes.organization as organization
-import classes.control as control
-import classes.risk as risk
-import classes.user as user
+from classes import audit, control, framework, organization, risk, user
 
 
 def initialize_data_objects():
@@ -44,39 +39,34 @@ def main():
     data = initialize_data_objects()
 
     # Create missing assets from the perimeter definition.
-    data["asset_dict"].createMissingAssets(data["perimeter_dict"])
+    data["asset_dict"].create_missing_assets(data["perimeter_dict"])
     data["asset_dict"].reload()
 
     # Create compliance assessments for each perimeter and asset based on the framework.
-    data["compliance_assessment_dict"].CreateMissingComplianceAssessments(
+    data["compliance_assessment_dict"].create_missing_compliance_assessments(
         data["framework_dict"],
         data["perimeter_dict"],
         data["asset_dict"],
     )
 
     # Assign requirements to perimeter owners.
-    data["compliance_assessment_dict"].assignRequirementsToPerimeterOwner(
+    data["compliance_assessment_dict"].assign_requirements_to_perimeter_owner(
         data["perimeter_dict"],
         data["compliance_assessment_dict"],
         data["requirement_assessment_dict"],
         data["requirement_assignment_dict"],
     )
-
+    
     # Create missing applied controls for each compliance assessment.
-    data["compliance_assessment_dict"].CreateMissingAppliedControls(
+    data["compliance_assessment_dict"].create_missing_applied_controls(
         data["applied_control_dict"],
         data["perimeter_dict"],
         data["reference_control_dict"],
     )
 
-    # Update asset criticality based on the organization mapping.
-    data["compliance_assessment_dict"].UpdateAssetCriticality(
-        organization.CRITICALITY_MAPPING,
-        data["asset_dict"],
-    )
 
-    # Create risk assessments for each compliance assessment based on the framework.
-    data["compliance_assessment_dict"].CreateRiskAssessments(
+        # Create risk assessments for each compliance assessment based on the framework.
+    data["compliance_assessment_dict"].create_risk_assessments(
         data["risk_assessment_dict"],
         data["risk_scenario_dict"],
         data["applied_control_dict"],
@@ -87,6 +77,25 @@ def main():
         data["framework_dict"],
     )
 
+        # Update asset criticality based on the organization mapping.
+    data["compliance_assessment_dict"].update_asset_criticality(
+        organization.criticality_mapping,
+        data["asset_dict"],
+    )
+    
+    # Update asset criticality based on the organization mapping.
+    data["compliance_assessment_dict"].update_asset_criticality(
+        organization.criticality_mapping,
+        data["asset_dict"],
+    )
+
+    # Create missing applied controls for each compliance assessment.
+    data["compliance_assessment_dict"].create_missing_applied_controls(
+        data["applied_control_dict"],
+        data["perimeter_dict"],
+        data["reference_control_dict"],
+    )
+    
 
 if __name__ == "__main__":
     main()
