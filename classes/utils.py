@@ -57,6 +57,9 @@ HEADERS = {
     **_headers_config,
 }
 
+# Simple in-process cache for paginated GET results to avoid repeated API calls
+_get_all_results_cache: dict[str, list[dict[str, Any]]] = {}
+
 
 def log(message: str, level: int = logging.INFO) -> None:
     """Write a utility log message with configurable level.
@@ -147,7 +150,7 @@ def get_return(
         return None
 
 
-def get_all_results(endpoint: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+def get_all_results(endpoint: str, params: dict[str, Any] | None = None, force_reload: bool = False) -> list[dict[str, Any]]:
     """Collect all paginated results for a given endpoint.
     
     Automatically handles pagination by following the 'next' link in responses.
@@ -163,6 +166,19 @@ def get_all_results(endpoint: str, params: dict[str, Any] | None = None) -> list
     Example:
         all_assessments = get_all_results("/api/compliance-assessments/")
     """
+    cache_key = endpoint
+    if params:
+        try:
+            # Build a stable representation of params for caching
+            params_key = ";".join(f"{k}={v}" for k, v in sorted(params.items()))
+            cache_key = f"{endpoint}?{params_key}"
+        except Exception:
+            cache_key = endpoint
+
+    if not force_reload and cache_key in _get_all_results_cache:
+        LOGGER.debug(f"Using cached results for {cache_key}")
+        return list(_get_all_results_cache[cache_key])
+
     LOGGER.info(f"Fetching all results from {endpoint}")
     results: list[dict[str, Any]] = []
     current_url = endpoint
@@ -188,4 +204,46 @@ def get_all_results(endpoint: str, params: dict[str, Any] | None = None) -> list
             LOGGER.debug(f"Pagination detected, fetching next page from: {current_url}")
 
     LOGGER.info(f"Completed fetching all results from {endpoint}: {len(results)} total results across {page_count} pages")
+    _get_all_results_cache[cache_key] = list(results)
     return results
+
+
+def clear_get_all_results_cache() -> None:
+    """Clear the in-memory cache used by `get_all_results`.
+
+    Callers that need to ensure fresh reads across the process can call this helper.
+    """
+    _get_all_results_cache.clear()
+
+
+def capture_counts(data: dict) -> dict[str, int]:
+    """Capture counts of key objects from the initialized data dictionary.
+
+    Args:
+        data: The data dictionary returned by `initialize_data_objects()` in `main.py`.
+
+    Returns:
+        A mapping of metric name -> integer count.
+    """
+    return {
+        "assets": len(data["asset_dict"].get_assets()),
+        "compliance_assessments": len(data["compliance_assessment_dict"].get_compliance_assessments()),
+        "applied_controls": len(data["applied_control_dict"].get_controls()),
+        "risk_assessments": len(data["risk_assessment_dict"].get_risk_assessments()),
+        "risk_scenarios": len(data["risk_scenario_dict"].get_risk_scenarios()),
+        "requirement_assessments": len(data["compliance_assessment_dict"].requirement_assessments.get_requirement_assessments()),
+        "requirement_assignments": len(data["compliance_assessment_dict"].requirement_assignments.get_requirement_assignments()),
+    }
+
+
+def print_run_summary(initial_counts: dict[str, int], final_counts: dict[str, int]) -> None:
+    """Log a concise summary showing final counts and deltas from initial counts.
+
+    Args:
+        initial_counts: Mapping of metric -> initial count
+        final_counts: Mapping of metric -> final count
+    """
+    log("Run summary:")
+    for key in final_counts:
+        delta = final_counts[key] - initial_counts.get(key, 0)
+        log(f"- {key}: {final_counts[key]} (changed: {delta:+d})")

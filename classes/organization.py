@@ -33,7 +33,7 @@ class DomainDict:
         self.reload()
 
     def reload(self):
-        self.domains = [Domain(d) for d in utils.get_all_results("/api/folders/")]
+        self.domains = [Domain(d) for d in utils.get_all_results("/api/folders/", force_reload=True)]
 
     def get_domains(self):
         return self.domains
@@ -112,7 +112,7 @@ class PerimeterDict:
         self.reload()
 
     def reload(self):
-        self.perimeters = [Perimeter(p) for p in utils.get_all_results("/api/perimeters/")]
+        self.perimeters = [Perimeter(p) for p in utils.get_all_results("/api/perimeters/", force_reload=True)]
 
     def get_perimeters(self):
         return self.perimeters
@@ -275,7 +275,7 @@ class AssetDict:
         self.reload()
 
     def reload(self):
-        self.assets = [Asset(a) for a in utils.get_all_results("/api/assets/")]
+        self.assets = [Asset(a) for a in utils.get_all_results("/api/assets/", force_reload=True)]
 
     def create_asset(self, name, asset_type,  folder):
         # checking if asset already exists

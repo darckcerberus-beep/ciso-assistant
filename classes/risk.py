@@ -44,7 +44,7 @@ class RiskAssessmentDict:
     def reload(self):
         """Reload the dictionary from the API."""
         self.risk_assessments = {}
-        for ra in utils.get_all_results("/api/risk-assessments/"):
+        for ra in utils.get_all_results("/api/risk-assessments/", force_reload=True):
             self.risk_assessments[ra.get('id')] = RiskAssessment(ra)
 
     def get_risk_assessments(self):
@@ -133,7 +133,7 @@ class RiskScenarioDict:
 
     def reload(self):
         self.risk_scenarios = {}
-        for rs in utils.get_all_results("/api/risk-scenarios/"):
+        for rs in utils.get_all_results("/api/risk-scenarios/", force_reload=True):
             self.risk_scenarios[rs.get('id')] = RiskScenario(rs)
 
     def get_risk_scenarios(self):
@@ -260,7 +260,7 @@ class RiskMatrixDict:
 
     def reload(self):
         self.risk_matrices = {}
-        for rm in utils.get_all_results("/api/risk-matrices/"):
+        for rm in utils.get_all_results("/api/risk-matrices/", force_reload=True):
             self.risk_matrices[rm.get('id')] = RiskMatrix(rm)
 
     def get_risk_matrices(self):
@@ -305,7 +305,7 @@ class VulnerabilityDict:
 
     def reload(self):
         self.vulnerabilities = {}
-        for v in utils.get_all_results("/api/vulnerabilities/"):
+        for v in utils.get_all_results("/api/vulnerabilities/", force_reload=True):
             self.vulnerabilities[v.get('id')] = Vulnerability(v)
 
     def get_vulnerabilities(self):

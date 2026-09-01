@@ -102,7 +102,7 @@ class ComplianceAssessmentDict:
         """Refresh the internal dictionary from the API."""
         utils.log("Reloading compliance assessments from API", level=logging.DEBUG)
         self.compliance_assessments = {}
-        for ca in utils.get_all_results("/api/compliance-assessments/"):
+        for ca in utils.get_all_results("/api/compliance-assessments/", force_reload=True):
             utils.log(f"Adding compliance assessment object for assessment ID: {ca.get('id')}")
             self.compliance_assessments[ca.get('id')] = ComplianceAssessment(ca)
         utils.log(f"Reload completed: {len(self.compliance_assessments)} compliance assessments loaded", level=logging.INFO)
@@ -275,7 +275,14 @@ class ComplianceAssessmentDict:
         for ca in self.compliance_assessments.values():
             utils.log(f"Creating risk assessments for compliance assessment: {ca.get_name()}")
             utils.log(f"Using framework ID: {ca.get_framework_id()}, perimeter ID: {ca.get_perimeter_id()}")
+            # Skip creating risk assessments when the compliance assessment has no answered requirement assessments
+            if not requirement_assessment_dict.has_answers_for_compliance_assessment(ca.get_id()):
+                utils.log(f"Skipping risk creation for compliance assessment {ca.get_name()} ({ca.get_id()}): no answered requirements", level=20)
+                continue
             requirement_assessment_dict.log_assessment_results_for_compliance_assessment_id(ca.get_id())
+
+            # Load requirement assessments once for this compliance assessment to avoid repeated API calls
+            requirement_assessments = requirement_assessment_dict.get_requirement_assessments()
 
             risk_assessment = risk_assessment_dict.create_risk_assessments(
                 ca.get_name() + " Risk Assessment",
@@ -285,7 +292,6 @@ class ComplianceAssessmentDict:
                     framework_dict.get_library_id_from_framework_id(ca.get_framework_id())
                 )
             )
-
             for risk_scenario in framework_file.get_risk_scenarios():
                 utils.log(f"Creating risk scenario: {risk_scenario.get('name', '')} for compliance assessment: {ca.get_name()}")
                 utils.log(f"Risk scenario description: {risk_scenario.get('description', '')}")
@@ -295,7 +301,8 @@ class ComplianceAssessmentDict:
                 impact_mapping = framework_file.get_impact_mapping()
                 impact = None
                 likelihood_assessment = None
-                for requirement_assessment in requirement_assessment_dict.get_requirement_assessments().values():
+                # Iterate cached requirement assessments for this compliance assessment
+                for requirement_assessment in requirement_assessments.values():
                     if requirement_assessment.get_compliance_assessment_id() != ca.get_id():
                         continue
                     if requirement_assessment.get_urn() == risk_scenario.get('likelihood', ''):
@@ -321,15 +328,15 @@ class ComplianceAssessmentDict:
 
                 if impact is None:
                     impact = requirement_assessment_dict.get_score_from_compliance_assessment_id_and_urn(
-                        ca.get_id(), risk_scenario.get('impact', '')
+                        ca.get_id(), risk_scenario.get('impact', ''), refresh=False
                     )
 
                 likelihood = requirement_assessment_dict.get_score_from_compliance_assessment_id_and_urn(
-                    ca.get_id(), risk_scenario.get('likelihood', '')
+                    ca.get_id(), risk_scenario.get('likelihood', ''), refresh=False
                 )
                 requirement_assessment_ids = [
                     requirement_assessment.get_id()
-                    for requirement_assessment in requirement_assessment_dict.get_requirement_assessments().values()
+                    for requirement_assessment in requirement_assessments.values()
                     if requirement_assessment.get_compliance_assessment_id() == ca.get_id()
                     and requirement_assessment.get_urn() in {
                         risk_scenario.get('impact', ''),
@@ -516,12 +523,11 @@ class RequirementAssessmentDict:
     def reload(self):
         """Refresh the internal requirement assessment dictionary from the API."""
         self.requirement_assessments = {}
-        for ra in utils.get_all_results("/api/requirement-assessments/"):
+        for ra in utils.get_all_results("/api/requirement-assessments/", force_reload=True):
             self.requirement_assessments[ra.get('id')] = RequirementAssessment(ra)
 
     def get_requirement_assessments(self):
         """Return the current requirement assessment dictionary."""
-        self.reload()
         return self.requirement_assessments
 
     def print_requirement_assessments(self):
@@ -573,6 +579,21 @@ class RequirementAssessmentDict:
             if ra.get_compliance_assessment_id() == compliance_assessment_id:
                 requirement_assessment_ids.append(ra.get_id())
         return requirement_assessment_ids
+
+    def has_answers_for_compliance_assessment(self, compliance_assessment_id) -> bool:
+        """Return True when at least one requirement assessment in the compliance assessment has an answer.
+
+        This is used to decide whether it makes sense to create derived objects
+        (applied controls, risk assessments) for a compliance assessment.
+        """
+        self.reload()
+        for ra in self.requirement_assessments.values():
+            if ra.get_compliance_assessment_id() != compliance_assessment_id:
+                continue
+            # If any requirement assessment has a selected answer and is not unassessed, consider the CA answered
+            if not ra.is_unassessed_result() and ra.has_selected_answer():
+                return True
+        return False
 
     def assign_requirements_to_perimeter_owner(self, perimeter_dict, compliance_assessment_dict, requirement_assessment_dict, requirement_assignment_dict):
         """Create assignments for all non-assigned requirement assessments."""
@@ -692,9 +713,16 @@ class RequirementAssessmentDict:
         else:
             utils.log("No new applied controls created.")
 
-    def get_score_from_compliance_assessment_id_and_urn(self, compliance_assessment_id, requirement_node_urn):
-        """Return the score for a requirement node within a given compliance assessment."""
-        self.reload()
+    def get_score_from_compliance_assessment_id_and_urn(self, compliance_assessment_id, requirement_node_urn, refresh: bool = True):
+        """Return the score for a requirement node within a given compliance assessment.
+
+        Args:
+            compliance_assessment_id: ID of the compliance assessment to search within.
+            requirement_node_urn: URN of the requirement node to match.
+            refresh: When True (default), reload from the API before searching. Set to False when the caller already has fresh data.
+        """
+        if refresh:
+            self.reload()
         for ra in self.requirement_assessments.values():
             if ra.get_compliance_assessment_id() == compliance_assessment_id and ra.get_urn() == requirement_node_urn:
                 return ra.get_score()
@@ -753,7 +781,7 @@ class RequirementAssignmentDict:
     def reload(self):
         """Refresh the internal assignment list from the API."""
         self.requirement_assignments = [
-            RequirementAssignment(ra) for ra in utils.get_all_results("/api/requirement-assignments/")
+            RequirementAssignment(ra) for ra in utils.get_all_results("/api/requirement-assignments/", force_reload=True)
         ]
 
     def get_requirement_assignments(self):

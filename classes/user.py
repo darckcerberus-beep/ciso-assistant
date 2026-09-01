@@ -18,7 +18,7 @@ class UserDict:
         self.reload()
 
     def reload(self):
-        self.users = [User(u) for u in utils.get_all_results("/api/users/")]
+        self.users = [User(u) for u in utils.get_all_results("/api/users/", force_reload=True)]
 
     def get_users(self):
         return self.users
@@ -153,7 +153,7 @@ class TeamDict:
         self.reload()
 
     def reload(self):
-        self.teams = [Team(t) for t in utils.get_all_results("/api/teams/")]
+        self.teams = [Team(t) for t in utils.get_all_results("/api/teams/", force_reload=True)]
 
     def get_teams(self):
         return self.teams
@@ -229,7 +229,7 @@ class ActorDict:
         self.reload()
 
     def reload(self):
-        self.actors = [Actor(a) for a in utils.get_all_results("/api/actors/")]
+        self.actors = [Actor(a) for a in utils.get_all_results("/api/actors/", force_reload=True)]
 
     def get_actors(self):
         return self.actors

@@ -1,3 +1,4 @@
+import logging
 from . import utils
 
 
@@ -77,7 +78,7 @@ class AppliedControlDict:
     def reload(self):
         """Reload all applied controls from the API."""
         self.controls = {}
-        for c in utils.get_all_results("/api/applied-controls/"):
+        for c in utils.get_all_results("/api/applied-controls/", force_reload=True):
             self.controls[c.get('id')] = AppliedControl(c)
 
     def get_controls(self):
@@ -110,11 +111,11 @@ class AppliedControlDict:
     def get_priority_from_risk_level(self, risk_level):
         """Translate a risk level ID into the API priority integer: 1 is highest, 4 is lowest."""
         if isinstance(risk_level, dict):
-            risk_level = risk_level.get("id", risk_level.get("value", 2))
+            risk_level = risk_level.get("id", risk_level.get("value"))
         try:
             risk_level = int(risk_level)
         except (TypeError, ValueError):
-            return 3
+            raise ValueError(f"Invalid risk level value: {risk_level!r}")
 
         # Risk level 4 (critical) => priority 1 (highest urgency)
         # Risk level 3 => 2
@@ -139,16 +140,21 @@ class AppliedControlDict:
                 break
 
         if compliance_assessment is None:
-            return "medium"
+            raise LookupError(
+                f"Compliance assessment with id {compliance_assessment_id!r} not found"
+            )
 
         compliance_name = compliance_assessment.get("name", "")
+        risk_assessment_id = None
         for risk_assessment in utils.get_all_results("/api/risk-assessments/"):
             if risk_assessment.get("name", "") == f"{compliance_name} Risk Assessment":
                 risk_assessment_id = risk_assessment.get("id")
                 break
 
         if risk_assessment_id is None:
-            return 3
+            raise LookupError(
+                f"Risk assessment for compliance '{compliance_name}' not found"
+            )
 
         scenario_names = {
             scenario.get("name", "")
@@ -156,7 +162,9 @@ class AppliedControlDict:
             if scenario.get("likelihood") == requirement_urn
         }
         if not scenario_names:
-            return 3
+            raise LookupError(
+                f"No risk scenarios reference requirement urn {requirement_urn!r}"
+            )
 
         for scenario in utils.get_all_results("/api/risk-scenarios/"):
             risk_assessment = scenario.get("risk_assessment", {})
@@ -171,14 +179,22 @@ class AppliedControlDict:
             ):
                 continue
 
-            current_level = scenario.get("current_level", {})
-            if not isinstance(current_level, dict):
-                continue
-            return self.get_priority_from_risk_level(
-                current_level.get("id", current_level.get("value"))
-            )
-
-        return 3
+            # Prefer explicit current_level if present
+            current_level = scenario.get("current_level")
+            if isinstance(current_level, dict):
+                return self.get_priority_from_risk_level(
+                    current_level.get("id", current_level.get("value"))
+                )
+            # Fallback: some API representations use numeric current_proba (0-based)
+            current_proba = scenario.get("current_proba")
+            if isinstance(current_proba, int):
+                # convert 0-based proba to 1-based risk level
+                risk_level = current_proba + 1
+                utils.log(f"Using fallback current_proba={current_proba} -> risk_level={risk_level} for scenario {scenario.get('name','')}")
+                return self.get_priority_from_risk_level(risk_level)
+        raise LookupError(
+            f"No matching risk scenario with a current level for compliance assessment {compliance_assessment_id!r} and requirement {requirement_urn!r}"
+        )
 
     def check_applied_control_from_name(self, name):
         """Check if a control with the given name exists.
@@ -196,9 +212,13 @@ class AppliedControlDict:
 
     def update_priority_for_requirement_assessment(self, name, compliance_assessment_id, requirement_urn):
         """Synchronize an existing to-do control with its associated scenario risk level."""
-        priority = self.get_priority_for_compliance_assessment_id(
-            compliance_assessment_id, requirement_urn
-        )
+        try:
+            priority = self.get_priority_for_compliance_assessment_id(
+                compliance_assessment_id, requirement_urn
+            )
+        except (LookupError, ValueError) as e:
+            utils.log(f"Could not determine priority for {compliance_assessment_id!r} / {requirement_urn!r}: {e}", level=logging.WARNING)
+            return None
         for control in self.controls.values():
             if control.get_name() != name or control.get_status() != "to_do":
                 continue
@@ -242,7 +262,17 @@ class AppliedControlDict:
         requirement_assessment.reload()
         created = 0
 
+        # Determine which compliance assessments have at least one answered requirement assessment
+        answered_ca_ids = set()
+        for _ra in requirement_assessment.get_requirement_assessments().values():
+            if not _ra.is_unassessed_result() and _ra.has_selected_answer():
+                answered_ca_ids.add(_ra.get_compliance_assessment_id())
+
         for ra in requirement_assessment.get_requirement_assessments().values():
+            # Skip entire compliance assessments that have no answered requirement assessments
+            if ra.get_compliance_assessment_id() not in answered_ca_ids:
+                utils.log(f"Skipping applied-control creation for compliance assessment {ra.get_compliance_assessment_id()} because it has no answered requirements", level=20)
+                continue
             # Skip non-assessed or empty results
             if ra.is_unassessed_result() or not ra.has_selected_answer():
                 continue
@@ -264,9 +294,17 @@ class AppliedControlDict:
 
                 # Determine owner and status based on assessment results
                 is_compliant = ra.get_assessment_results() == "compliant"
-                priority = None if is_compliant else self.get_priority_for_compliance_assessment_id(
-                    ra.get_compliance_assessment_id(), ra.get_urn()
-                )
+                priority = None
+                if not is_compliant:
+                    try:
+                        priority = self.get_priority_for_compliance_assessment_id(
+                            ra.get_compliance_assessment_id(), ra.get_urn()
+                        )
+                    except (LookupError, ValueError) as e:
+                            utils.log(
+                                f"Could not determine priority for compliance {ra.get_compliance_assessment_id()!r} / {ra.get_urn()!r}: {e}",
+                                level=logging.WARNING,
+                            )
                 payload = {
                     "name": name,
                     "reference_control": control_id,
@@ -299,7 +337,7 @@ class ReferenceControlDict:
 
     def reload(self):
         """Reload all reference controls from the API."""
-        self.controls = [ReferenceControl(c) for c in utils.get_all_results("/api/reference-controls/")]
+        self.controls = [ReferenceControl(c) for c in utils.get_all_results("/api/reference-controls/", force_reload=True)]
 
     def get_controls(self):
         """Return all controls."""

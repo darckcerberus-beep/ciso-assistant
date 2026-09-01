@@ -26,7 +26,7 @@ class TaskDict:
 
     def reload(self):
         # Fetch all task nodes and wrap each payload in a Task object.
-        self.tasks = [Task(task) for task in utils.get_all_results("/api/task-nodes/")]
+        self.tasks = [Task(task) for task in utils.get_all_results("/api/task-nodes/", force_reload=True)]
 
     def get_tasks(self):
         return self.tasks
@@ -65,7 +65,7 @@ class TaskTemplateDict:
 
     def reload(self):
         # Fetch all task templates and wrap each payload in a TaskTemplate object.
-        self.task_templates = [TaskTemplate(template) for template in utils.get_all_results("/api/task-templates/")]
+        self.task_templates = [TaskTemplate(template) for template in utils.get_all_results("/api/task-templates/", force_reload=True)]
 
     def get_task_templates(self):
         return self.task_templates

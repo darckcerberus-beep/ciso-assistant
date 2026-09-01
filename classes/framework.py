@@ -25,7 +25,7 @@ class LibraryDict:
     def reload(self):
         """Reload all libraries from the API."""
         self.libraries = {}
-        for library in utils.get_all_results("/api/libraries/"):
+        for library in utils.get_all_results("/api/libraries/", force_reload=True):
             utils.log(
                 f"Loading library: {library.get('name', '')} "
                 f"(ID: {library.get('id', '')})"
@@ -81,7 +81,7 @@ class FrameworkDict:
 
     def reload(self):
         """Reload all frameworks from the API."""
-        self.frameworks = [Framework(f) for f in utils.get_all_results("/api/frameworks/")]
+        self.frameworks = [Framework(f) for f in utils.get_all_results("/api/frameworks/", force_reload=True)]
 
     def get_frameworks(self):
         """Return the list of framework objects."""
