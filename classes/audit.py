@@ -471,6 +471,55 @@ class RequirementAssessment:
             return requirement.get('urn', '')
         return ''
 
+    def get_requirement_ref_id(self):
+        """Return the underlying requirement's ref_id."""
+        requirement = self.json_object.get('requirement', {})
+        if isinstance(requirement, dict):
+            return requirement.get('ref_id', '')
+        return ''
+
+    def get_questions(self):
+        """Return the question definitions ({question_urn: {type, text, choices}}) for this requirement."""
+        requirement = self.json_object.get('requirement', {})
+        if isinstance(requirement, dict):
+            return requirement.get('questions', {}) or {}
+        return {}
+
+    def update_answers(self, answers, result=None, observation=None, merge=True):
+        """PATCH this requirement assessment's answers (and optionally result/observation).
+
+        Args:
+            answers: dict mapping question URN to the answer value (choice URN string for
+                unique_choice questions, list of choice URNs for multiple_choice questions).
+            result: optional assessment result to set (e.g. "compliant", "non_compliant").
+            observation: optional observation/comment text to set.
+            merge: when True (default), merge the provided answers onto the existing ones
+                instead of replacing them outright.
+
+        Returns:
+            The updated requirement assessment JSON, or None if the request failed.
+        """
+        payload = {}
+        if merge:
+            merged_answers = dict(self.get_answers())
+            merged_answers.update(answers)
+            payload['answers'] = merged_answers
+        else:
+            payload['answers'] = answers
+
+        if result is not None:
+            payload['result'] = result
+        if observation is not None:
+            payload['observation'] = observation
+
+        utils.log(f"Updating answers for requirement assessment ID: {self.get_id()} with payload: {payload}")
+        response = utils.get_return(f"/api/requirement-assessments/{self.get_id()}/", method="PATCH", payload=payload)
+        if not response or 'error' in response:
+            utils.log(f"Failed to update requirement assessment ID {self.get_id()}: {response}", level=logging.ERROR)
+            return None
+        self.json_object = response
+        return response
+
     def print_name(self):
         """Print the requirement assessment name."""
         print(f"Name: {self.get_name()}")
@@ -726,6 +775,29 @@ class RequirementAssessmentDict:
         for ra in self.requirement_assessments.values():
             if ra.get_compliance_assessment_id() == compliance_assessment_id and ra.get_urn() == requirement_node_urn:
                 return ra.get_score()
+        return None
+
+    def get_requirement_assessment_by_identifier(self, compliance_assessment_id, identifier, refresh: bool = False):
+        """Find a requirement assessment within a compliance assessment by URN or ref_id.
+
+        Args:
+            compliance_assessment_id: ID of the compliance assessment to search within.
+            identifier: The requirement's URN or ref_id (matched case-insensitively).
+            refresh: When True, reload from the API before searching.
+
+        Returns:
+            The matching RequirementAssessment, or None if not found.
+        """
+        if refresh:
+            self.reload()
+        identifier_normalized = str(identifier).strip().lower()
+        for ra in self.requirement_assessments.values():
+            if ra.get_compliance_assessment_id() != compliance_assessment_id:
+                continue
+            if ra.get_urn().strip().lower() == identifier_normalized:
+                return ra
+            if ra.get_requirement_ref_id().strip().lower() == identifier_normalized:
+                return ra
         return None
 
 
