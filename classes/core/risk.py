@@ -1,7 +1,7 @@
 import logging
 import pprint
 
-from . import utils
+from .. import utils
 
 
 class RiskAssessment:

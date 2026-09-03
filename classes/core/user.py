@@ -1,4 +1,4 @@
-from . import utils
+from .. import utils
 
 
 class User:
@@ -66,7 +66,7 @@ class UserDict:
         payload = {'first_name': first_name, 'last_name': last_name, 'email': email, 'team': team_id}
         result = utils.get_return("/api/users/", method="POST", payload=payload)
         print(f"Result: {result}")
-        if result and not isinstance(result, dict) or not result.get("error"):
+        if result and (not isinstance(result, dict) or not result.get("error")):
             print(f"User '{email}' created successfully.")
             self.reload()
             return result
@@ -81,7 +81,7 @@ class UserDict:
                 user_id = u.get_id()
                 result = utils.get_return(f"/api/users/{user_id}/", method="DELETE")
                 print(f"Result: {result}")
-                if result and not isinstance(result, dict) or not result.get("error"):
+                if result and (not isinstance(result, dict) or not result.get("error")):
                     print(f"User '{email}' deleted successfully.")
                     self.reload()
                     return True
@@ -122,7 +122,7 @@ class Team:
             payload = {'members': current_users}    
             result = utils.get_return(f"/api/teams/{self.get_id()}/", method="PATCH", payload=payload)
             print(f"Result: {result}")
-            if result and not isinstance(result, dict) or not result.get("error"):
+            if result and (not isinstance(result, dict) or not result.get("error")):
                 print(f"User with ID '{user_id}' added to team '{self.get_name()}' successfully.")
                 return True
             else:
@@ -137,7 +137,7 @@ class Team:
             payload = {'members': current_users}    
             result = utils.get_return(f"/api/teams/{self.get_id()}/", method="PATCH", payload=payload)
             print(f"Result: {result}")
-            if result and not isinstance(result, dict) or not result.get("error"):
+            if result and (not isinstance(result, dict) or not result.get("error")):
                 print(f"User with ID '{user_id}' removed from team '{self.get_name()}' successfully.")
                 return True
             else:
@@ -184,7 +184,7 @@ class TeamDict:
         payload = {'name': name}
         result = utils.get_return("/api/teams/", method="POST", payload=payload)
         print(f"Result: {result}")
-        if result and not isinstance(result, dict) or not result.get("error"):
+        if result and (not isinstance(result, dict) or not result.get("error")):
             print(f"Team '{name}' created successfully.")
             self.reload()
             return result

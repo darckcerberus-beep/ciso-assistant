@@ -1,5 +1,5 @@
 
-from . import utils
+from .. import utils
 
 
 class Task:

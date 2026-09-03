@@ -21,7 +21,7 @@ single PATCH per requirement assessment.
 import csv
 import logging
 
-from . import utils
+from .. import utils
 
 _HEADER_ALIASES = {
     "requirement": "requirement",

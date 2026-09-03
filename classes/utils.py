@@ -1,4 +1,5 @@
 import logging
+import json
 from pathlib import Path
 from typing import Any
 
@@ -97,6 +98,7 @@ def get_return(
     method: str = "GET",
     payload: dict[str, Any] | None = None,
     params: dict[str, Any] | None = None,
+    log_errors: bool = True,
 ) -> Any:
     """Execute an API request and return the JSON payload.
     
@@ -131,11 +133,27 @@ def get_return(
         )
 
         if response.status_code == 400:
-            LOGGER.error(f"Error 400 on {endpoint}: {response.text}")
+            if log_errors:
+                try:
+                    serialized_payload = json.dumps(payload, ensure_ascii=False)
+                except TypeError:
+                    serialized_payload = repr(payload)
+                try:
+                    serialized_params = json.dumps(params, ensure_ascii=False)
+                except TypeError:
+                    serialized_params = repr(params)
+                LOGGER.error(
+                    "Error 400 on %s: %s | params=%s | payload=%s",
+                    endpoint,
+                    response.text,
+                    serialized_params,
+                    serialized_payload,
+                )
             return {"error": 400, "details": response.json()}
 
         if response.status_code == 404:
-            LOGGER.warning(f"Resource not found (404) on {endpoint}")
+            if log_errors:
+                LOGGER.warning(f"Resource not found (404) on {endpoint}")
             return {"error": 404}
 
         response.raise_for_status()
@@ -216,11 +234,63 @@ def clear_get_all_results_cache() -> None:
     _get_all_results_cache.clear()
 
 
+def initialize_data_objects() -> dict[str, Any]:
+    """Instantiate all required dictionaries and framework objects used in the workflow."""
+    from classes.audits.compliance import ComplianceAssessmentDict
+    from classes.audits.entity_assessment import EntityAssessmentDict
+    from classes.audits.requirement_assignment import RequirementAssignmentDict
+    from classes.audits.requirement_assessment import RequirementAssessmentDict
+    from classes.controls.applied import AppliedControlDict
+    from classes.controls.reference import ReferenceControlDict
+    from classes.core.framework import FrameworkDict, FrameworkFile
+    from classes.core.risk import RiskAssessmentDict, RiskMatrixDict, RiskScenarioDict
+    from classes.core.user import UserDict
+    from classes.organization.asset import AssetDict
+    from classes.organization.entity import EntityDict, EntityRepresentativeDict
+    from classes.organization.perimeter import PerimeterDict
+
+    requirement_assessment_dict = RequirementAssessmentDict()
+    compliance_assessment_dict = ComplianceAssessmentDict()
+    requirement_assignment_dict = RequirementAssignmentDict()
+    perimeter_dict = PerimeterDict()
+    asset_dict = AssetDict()
+    framework_dict = FrameworkDict()
+    reference_control_dict = ReferenceControlDict()
+    applied_control_dict = AppliedControlDict()
+    risk_assessment_dict = RiskAssessmentDict()
+    risk_scenario_dict = RiskScenarioDict()
+    user_dict = UserDict()
+    framework_file = FrameworkFile("YML/newDPP.yml")
+    risk_matrix_dict = RiskMatrixDict()
+    entity_dict = EntityDict()
+    entity_representative_dict = EntityRepresentativeDict()
+    entity_assessment_dict = EntityAssessmentDict()
+
+    return {
+        "requirement_assessment_dict": requirement_assessment_dict,
+        "compliance_assessment_dict": compliance_assessment_dict,
+        "requirement_assignment_dict": requirement_assignment_dict,
+        "perimeter_dict": perimeter_dict,
+        "asset_dict": asset_dict,
+        "framework_dict": framework_dict,
+        "reference_control_dict": reference_control_dict,
+        "applied_control_dict": applied_control_dict,
+        "risk_assessment_dict": risk_assessment_dict,
+        "risk_scenario_dict": risk_scenario_dict,
+        "user_dict": user_dict,
+        "framework_file": framework_file,
+        "risk_matrix_dict": risk_matrix_dict,
+        "entity_dict": entity_dict,
+        "entity_representative_dict": entity_representative_dict,
+        "entity_assessment_dict": entity_assessment_dict,
+    }
+
+
 def capture_counts(data: dict) -> dict[str, int]:
     """Capture counts of key objects from the initialized data dictionary.
 
     Args:
-        data: The data dictionary returned by `initialize_data_objects()` in `main.py`.
+        data: The data dictionary returned by `initialize_data_objects()`.
 
     Returns:
         A mapping of metric name -> integer count.
@@ -228,6 +298,7 @@ def capture_counts(data: dict) -> dict[str, int]:
     return {
         "assets": len(data["asset_dict"].get_assets()),
         "compliance_assessments": len(data["compliance_assessment_dict"].get_compliance_assessments()),
+        "entity_assessments": len(data["entity_assessment_dict"].get_entity_assessments()),
         "applied_controls": len(data["applied_control_dict"].get_controls()),
         "risk_assessments": len(data["risk_assessment_dict"].get_risk_assessments()),
         "risk_scenarios": len(data["risk_scenario_dict"].get_risk_scenarios()),
@@ -246,4 +317,14 @@ def print_run_summary(initial_counts: dict[str, int], final_counts: dict[str, in
     log("Run summary:")
     for key in final_counts:
         delta = final_counts[key] - initial_counts.get(key, 0)
+        if key == "entity_assessments":
+            if delta > 0:
+                change_label = f"created: +{delta}"
+            elif delta < 0:
+                change_label = f"removed: {delta}"
+            else:
+                change_label = "created: +0"
+            log(f"- {key}: {final_counts[key]} ({change_label})")
+            continue
+
         log(f"- {key}: {final_counts[key]} (changed: {delta:+d})")

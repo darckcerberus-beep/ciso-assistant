@@ -10,7 +10,8 @@ See classes/csv_import.py for the expected CSV column layout.
 import argparse
 import sys
 
-from classes import audit, utils
+from classes import utils
+from classes.audits.compliance import ComplianceAssessmentDict
 
 
 def resolve_compliance_assessment_id(args, compliance_assessment_dict):
@@ -36,14 +37,14 @@ def main():
     parser.add_argument("--delimiter", help="CSV delimiter (auto-detected when omitted).")
     args = parser.parse_args()
 
-    compliance_assessment_dict = audit.ComplianceAssessmentDict()
+    compliance_assessment_dict = ComplianceAssessmentDict()
     compliance_assessment_id = resolve_compliance_assessment_id(args, compliance_assessment_dict)
 
     if not compliance_assessment_id:
         utils.log("Could not resolve a compliance assessment from the given arguments.", level=40)
         sys.exit(1)
 
-    from classes import csv_import
+    from classes.integrations import csv_import
 
     summary = csv_import.import_compliance_answers(
         args.csv,

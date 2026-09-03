@@ -1,5 +1,6 @@
 import logging
-from . import utils
+
+from .. import utils
 
 
 class AppliedControl:
@@ -47,13 +48,13 @@ class AppliedControl:
     @classmethod
     def create_applied_control(cls, name, control, requirement_assessment, status):
         """Create an applied control based on requirement assessment and reference control.
-        
+
         Args:
             name: Control name
             control: Control reference
             requirement_assessment: Associated requirement assessment
             status: Control status
-            
+
         Returns:
             API response with created control data
         """
@@ -65,7 +66,6 @@ class AppliedControl:
         }
         utils.log(f"Payload for creating applied control: {payload}")
         return utils.get_return("/api/applied-controls/", method="POST", payload=payload)
-       
 
 
 class AppliedControlDict:
@@ -131,7 +131,7 @@ class AppliedControlDict:
 
     def get_priority_for_compliance_assessment_id(self, compliance_assessment_id, requirement_urn):
         """Return priority from the current level of the scenario associated with a requirement."""
-        from .framework import FrameworkFile
+        from ..core.framework import FrameworkFile
 
         compliance_assessment = None
         for ca in utils.get_all_results("/api/compliance-assessments/"):
@@ -198,10 +198,10 @@ class AppliedControlDict:
 
     def check_applied_control_from_name(self, name):
         """Check if a control with the given name exists.
-        
+
         Args:
             name: Control name to search for
-            
+
         Returns:
             True if control exists, False otherwise
         """
@@ -252,7 +252,7 @@ class AppliedControlDict:
     def create_missing_applied_controls(self, perimeter_dict, requirement_assessment,
                                      reference_control_dict, compliance_assessment_dict):
         """Create missing applied controls based on requirement assessments.
-        
+
         Args:
             perimeter_dict: Dictionary of perimeters
             requirement_assessment: Requirement assessment object
@@ -277,10 +277,18 @@ class AppliedControlDict:
             if ra.is_unassessed_result() or not ra.has_selected_answer():
                 continue
 
+            perimeter_id = ra.get_perimeter_id()
+            if not perimeter_id:
+                utils.log(
+                    f"Skipping applied-control creation for requirement assessment {ra.get_id()}: no perimeter",
+                    level=logging.INFO,
+                )
+                continue
+
             for control_id in ra.get_associated_reference_control_ids():
                 control_name = reference_control_dict.get_name_from_id(control_id)
-                perimeter_name = perimeter_dict.get_name_from_id(ra.get_perimeter_id())
-                folder_id = perimeter_dict.get_folder_uuid_from_perimeter_id(ra.get_perimeter_id())
+                perimeter_name = perimeter_dict.get_name_from_id(perimeter_id)
+                folder_id = perimeter_dict.get_folder_uuid_from_perimeter_id(perimeter_id)
                 name = f"{control_name} on {perimeter_name}"
 
                 # Skip if control already exists
@@ -308,7 +316,7 @@ class AppliedControlDict:
                 payload = {
                     "name": name,
                     "reference_control": control_id,
-                    "owner": [perimeter_dict.get_owner_id_from_perimeter_id(ra.get_perimeter_id())] if not is_compliant else [],
+                    "owner": [perimeter_dict.get_owner_id_from_perimeter_id(perimeter_id)] if not is_compliant else [],
                     "folder": folder_id,
                     "assets": compliance_assessment_dict.get_asset_id_list_from_compliance_assessment_id(ra.get_compliance_assessment_id()),
                     "compliance_assessments": [ra.get_compliance_assessment_id()],
@@ -325,63 +333,3 @@ class AppliedControlDict:
             utils.log(f"Created {created} applied control(s).")
         else:
             utils.log("No new applied controls created.")
-                
-                
-
-class ReferenceControlDict:
-    """Dictionary of reference controls."""
-
-    def __init__(self):
-        """Initialize and load all reference controls."""
-        self.reload()
-
-    def reload(self):
-        """Reload all reference controls from the API."""
-        self.controls = [ReferenceControl(c) for c in utils.get_all_results("/api/reference-controls/", force_reload=True)]
-
-    def get_controls(self):
-        """Return all controls."""
-        return self.controls
-
-    def print_controls(self):
-        """Print all control names and IDs."""
-        for c in self.controls:
-            c.print_name()
-            c.print_id()
-
-    def get_name_from_id(self, control_id):
-        """Get control name by ID.
-        
-        Args:
-            control_id: The control ID to search for
-            
-        Returns:
-            Control name if found, None otherwise
-        """
-        for c in self.controls:
-            if c.get_id() == control_id:
-                return c.get_name()
-        return None        
-
-class ReferenceControl:
-    """Represents a reference control."""
-
-    def __init__(self, json_control):
-        """Initialize with control data."""
-        self.json_object = json_control
-
-    def get_name(self):
-        """Return the control name."""
-        return self.json_object.get('name', '')
-
-    def get_id(self):
-        """Return the control ID."""
-        return self.json_object.get('id', '')
-
-    def print_name(self):
-        """Print the control name."""
-        utils.log(f"Name: {self.get_name()}")
-
-    def print_id(self):
-        """Print the control ID."""
-        utils.log(f"ID: {self.get_id()}")
