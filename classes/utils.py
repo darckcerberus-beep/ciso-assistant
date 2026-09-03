@@ -234,6 +234,46 @@ def clear_get_all_results_cache() -> None:
     _get_all_results_cache.clear()
 
 
+def get_external_entity_representative_emails() -> dict[str, list[str]]:
+    """Return configured representative email addresses by external entity name."""
+    representatives = _settings.get('external_entity_representatives', {})
+    if not isinstance(representatives, dict):
+        return {}
+    return {
+        str(entity_name).lower(): [str(email) for email in emails if email]
+        for entity_name, emails in representatives.items()
+        if isinstance(emails, list)
+    }
+
+
+def start_requirement_assignment(assignment_id: str) -> bool:
+    """Transition a newly created requirement assignment to ``in_progress``."""
+    if not assignment_id:
+        return False
+
+    response = get_return(
+        f'/api/requirement-assignments/{assignment_id}/set_status/',
+        method='POST',
+        payload={'status': 'in_progress'},
+    )
+    if not isinstance(response, dict) or response.get('status') != 'in_progress':
+        log(
+            f"Failed to start requirement assignment {assignment_id}: {response}",
+            level=logging.ERROR,
+        )
+        return False
+
+    assignment = get_return(f'/api/requirement-assignments/{assignment_id}/')
+    if isinstance(assignment, dict) and assignment.get('status') == 'in_progress':
+        return True
+
+    log(
+        f"Requirement assignment {assignment_id} did not persist in_progress status: {assignment}",
+        level=logging.ERROR,
+    )
+    return False
+
+
 def initialize_data_objects() -> dict[str, Any]:
     """Instantiate all required dictionaries and framework objects used in the workflow."""
     from classes.audits.compliance import ComplianceAssessmentDict

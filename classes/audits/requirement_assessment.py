@@ -304,11 +304,8 @@ class RequirementAssessmentDict:
                     "actor": [perimeter_dict.get_owner_id_from_perimeter_id(ca.get_perimeter_id())]
                 }
                 req_assign_json = utils.get_return("/api/requirement-assignments/", method="POST", payload=payload)
-                utils.get_return(
-                    f"/api/requirement-assignments/{req_assign_json.get('id')}/set_status/",
-                    method="POST",
-                    payload={"status": "in_progress"}
-                )
+                if isinstance(req_assign_json, dict):
+                    utils.start_requirement_assignment(req_assign_json.get('id', ''))
                 created = True
             else:
                 utils.log(f"Requirement assessments are already assigned for compliance assessment: {ca.get_name()}")

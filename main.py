@@ -1,5 +1,4 @@
 from classes import utils
-from classes.audits.entity_assessment import create_external_entity_audits
 from classes.organization.domain import criticality_mapping
 
 
@@ -9,7 +8,7 @@ def main():
 
     # Capture initial counts for summary
     initial_counts = utils.capture_counts(data)
-    """
+
     # Create missing assets from the perimeter definition.
     data["asset_dict"].create_missing_assets(data["perimeter_dict"])
     data["asset_dict"].reload()
@@ -28,7 +27,14 @@ def main():
         data["requirement_assessment_dict"],
         data["requirement_assignment_dict"],
     )
-    # Create risk assessments for each compliance assessment based on the framework.
+
+    # Add external-entity audits for third parties. This is additive and does not alter the internal perimeter-based steps.
+    data["entity_assessment_dict"].create_external_entity_audits(
+        data["entity_dict"],
+        data["entity_representative_dict"],
+        data["framework_dict"],
+    )
+
     data["compliance_assessment_dict"].create_risk_assessments(
         data["risk_assessment_dict"],
         data["risk_scenario_dict"],
@@ -39,29 +45,20 @@ def main():
         data["risk_matrix_dict"],
         data["framework_dict"],
     )
-
-    # Create missing applied controls for each compliance assessment (after risk assessments so priorities can be set).
     data["compliance_assessment_dict"].create_missing_applied_controls(
         data["applied_control_dict"],
         data["perimeter_dict"],
         data["reference_control_dict"],
     )
-
-    # Update asset criticality based on the organization mapping.
     data["compliance_assessment_dict"].update_asset_criticality(
         criticality_mapping,
         data["asset_dict"],
     )
-
-    # Create missing applied controls for each compliance assessment.
     data["compliance_assessment_dict"].create_missing_applied_controls(
         data["applied_control_dict"],
         data["perimeter_dict"],
         data["reference_control_dict"],
     )
-    """
-    # Add external-entity audits for third parties. This is additive and does not alter the internal perimeter-based steps.
-    create_external_entity_audits(data)
 
     # Final counts and summary
     final_counts = utils.capture_counts(data)

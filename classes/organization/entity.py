@@ -155,6 +155,30 @@ class EntityRepresentativeDict:
                 entity_names[entity_name.lower()] = entity_id
 
         users = utils.get_all_results('/api/users/', force_reload=True)
+        users_by_email = {
+            str(user.get('email')).lower(): user.get('id')
+            for user in users
+            if isinstance(user, dict) and user.get('email') and user.get('id')
+        }
+        configured_representatives = utils.get_external_entity_representative_emails()
+        for entity_name, entity_id in entity_names.items():
+            for email in configured_representatives.get(entity_name, []):
+                user_id = users_by_email.get(email.lower())
+                if not user_id or any(
+                    representative.get_entity_id() == entity_id
+                    and representative.get_user_id() == user_id
+                    for representative in self.entity_representatives
+                ):
+                    continue
+                self.entity_representatives.append(
+                    EntityRepresentative({
+                        'id': user_id,
+                        'entity': {'id': entity_id},
+                        'user': {'id': user_id},
+                        'role': 'representative',
+                    })
+                )
+
         for user in users:
             if not isinstance(user, dict):
                 continue

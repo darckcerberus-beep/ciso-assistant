@@ -268,6 +268,30 @@ class AppliedControlDict:
             if not _ra.is_unassessed_result() and _ra.has_selected_answer():
                 answered_ca_ids.add(_ra.get_compliance_assessment_id())
 
+        external_context_by_compliance_id = {}
+        for entity_assessment in utils.get_all_results('/api/entity-assessments/', force_reload=True):
+            from ..audits.entity_assessment import EntityAssessment
+
+            compliance_assessment = entity_assessment.get('compliance_assessment', {})
+            compliance_assessment_id = (
+                compliance_assessment.get('id')
+                if isinstance(compliance_assessment, dict)
+                else compliance_assessment
+            )
+            if not compliance_assessment_id:
+                continue
+
+            entity = entity_assessment.get('entity', {})
+            entity_name = entity.get('name') or entity.get('str') if isinstance(entity, dict) else ''
+            folder = entity_assessment.get('folder', {})
+            folder_id = folder.get('id') if isinstance(folder, dict) else folder
+            assessment = EntityAssessment(entity_assessment)
+            external_context_by_compliance_id[compliance_assessment_id] = {
+                'entity_name': entity_name,
+                'folder_id': folder_id,
+                'owner_ids': assessment.resolve_actor_ids(assessment.get_representative_ids()),
+            }
+
         for ra in requirement_assessment.get_requirement_assessments().values():
             # Skip entire compliance assessments that have no answered requirement assessments
             if ra.get_compliance_assessment_id() not in answered_ca_ids:
@@ -279,17 +303,25 @@ class AppliedControlDict:
 
             perimeter_id = ra.get_perimeter_id()
             if not perimeter_id:
-                utils.log(
-                    f"Skipping applied-control creation for requirement assessment {ra.get_id()}: no perimeter",
-                    level=logging.INFO,
-                )
-                continue
+                external_context = external_context_by_compliance_id.get(ra.get_compliance_assessment_id())
+                if not external_context:
+                    utils.log(
+                        f"Skipping applied-control creation for requirement assessment {ra.get_id()}: no perimeter or entity assessment",
+                        level=logging.INFO,
+                    )
+                    continue
 
             for control_id in ra.get_associated_reference_control_ids():
                 control_name = reference_control_dict.get_name_from_id(control_id)
-                perimeter_name = perimeter_dict.get_name_from_id(perimeter_id)
-                folder_id = perimeter_dict.get_folder_uuid_from_perimeter_id(perimeter_id)
-                name = f"{control_name} on {perimeter_name}"
+                if perimeter_id:
+                    scope_name = perimeter_dict.get_name_from_id(perimeter_id)
+                    folder_id = perimeter_dict.get_folder_uuid_from_perimeter_id(perimeter_id)
+                    owner_ids = [perimeter_dict.get_owner_id_from_perimeter_id(perimeter_id)]
+                else:
+                    scope_name = external_context['entity_name']
+                    folder_id = external_context['folder_id']
+                    owner_ids = external_context['owner_ids']
+                name = f"{control_name} on {scope_name}"
 
                 # Skip if control already exists
                 if self.check_applied_control_from_name(name):
@@ -316,7 +348,7 @@ class AppliedControlDict:
                 payload = {
                     "name": name,
                     "reference_control": control_id,
-                    "owner": [perimeter_dict.get_owner_id_from_perimeter_id(perimeter_id)] if not is_compliant else [],
+                    "owner": owner_ids if not is_compliant else [],
                     "folder": folder_id,
                     "assets": compliance_assessment_dict.get_asset_id_list_from_compliance_assessment_id(ra.get_compliance_assessment_id()),
                     "compliance_assessments": [ra.get_compliance_assessment_id()],

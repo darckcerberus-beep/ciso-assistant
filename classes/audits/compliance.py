@@ -221,11 +221,8 @@ class ComplianceAssessmentDict:
                     "actor": [perimeter_dict.get_owner_id_from_perimeter_id(ca.get_perimeter_id())]
                 }
                 req_assign_json = utils.get_return("/api/requirement-assignments/", method="POST", payload=payload)
-                utils.get_return(
-                    f"/api/requirement-assignments/{req_assign_json.get('id')}/set_status/",
-                    method="POST",
-                    payload={"status": "in_progress"}
-                )
+                if isinstance(req_assign_json, dict):
+                    utils.start_requirement_assignment(req_assign_json.get('id', ''))
             else:
                 utils.log(f"Requirement assignments already exist for compliance assessment: {ca.get_name()}")
                 utils.log(f"Requirement assessment IDs: {requirement_assessment_ids}")
@@ -287,12 +284,6 @@ class ComplianceAssessmentDict:
         for ca in self.compliance_assessments.values():
             utils.log(f"Creating risk assessments for compliance assessment: {ca.get_name()}")
             utils.log(f"Using framework ID: {ca.get_framework_id()}, perimeter ID: {ca.get_perimeter_id()}")
-            if not ca.has_perimeter():
-                utils.log(
-                    f"Skipping risk creation for compliance assessment {ca.get_name()} ({ca.get_id()}): no perimeter",
-                    level=logging.INFO,
-                )
-                continue
             # Skip creating risk assessments when the compliance assessment has no answered requirement assessments
             if not requirement_assessment_dict.has_answers_for_compliance_assessment(ca.get_id()):
                 utils.log(f"Skipping risk creation for compliance assessment {ca.get_name()} ({ca.get_id()}): no answered requirements", level=20)

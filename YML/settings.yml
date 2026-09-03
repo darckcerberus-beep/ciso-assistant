@@ -11,3 +11,7 @@
 api:
   headers:
     Content-Type: "application/json"
+
+external_entity_representatives:
+  Mirakl:
+    - test.user2@example.com

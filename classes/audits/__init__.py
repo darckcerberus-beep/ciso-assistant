@@ -1,4 +1,4 @@
 from .compliance import ComplianceAssessment, ComplianceAssessmentDict
-from .entity_assessment import EntityAssessment, EntityAssessmentDict, create_external_entity_audits
+from .entity_assessment import EntityAssessment, EntityAssessmentDict
 from .requirement_assessment import RequirementAssessment, RequirementAssessmentDict
 from .requirement_assignment import RequirementAssignment, RequirementAssignmentDict
