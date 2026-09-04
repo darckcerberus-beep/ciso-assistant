@@ -131,7 +131,7 @@ class AppliedControlDict:
 
     def get_priority_for_compliance_assessment_id(self, compliance_assessment_id, requirement_urn):
         """Return priority from the current level of the scenario associated with a requirement."""
-        from ..core.framework import FrameworkFile
+        from ..core.framework import LibraryFile
 
         compliance_assessment = None
         for ca in utils.get_all_results("/api/compliance-assessments/"):
@@ -158,7 +158,7 @@ class AppliedControlDict:
 
         scenario_names = {
             scenario.get("name", "")
-            for scenario in FrameworkFile("YML/newDPP.yml").get_risk_scenarios()
+            for scenario in LibraryFile("YML/newDPP.yml").get_risk_scenarios()
             if scenario.get("likelihood") == requirement_urn
         }
         if not scenario_names:

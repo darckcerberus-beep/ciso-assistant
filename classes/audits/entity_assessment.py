@@ -5,6 +5,9 @@ import uuid
 
 from .. import utils
 from .compliance import AUDITOR_SCORE_METHOD, AUDITOR_SCORE_VISIBILITY
+from .implementation_groups import add_default_implementation_groups
+from .requirement_assessment import create_requirement_assignment
+from .requirement_assignment import start_requirement_assignment
 
 
 class EntityAssessment:
@@ -84,16 +87,18 @@ class EntityAssessment:
 
     @staticmethod
     def _extract_representative_user_ids(representatives):
-        """Extract user IDs from representative records returned by the API."""
+        """Extract representative user IDs from API payloads.
+
+        Only canonical user identifiers are accepted from representative
+        objects (``user.id`` or ``user_id``). Relationship object IDs are not
+        used because they are not stable user references.
+        """
         if not isinstance(representatives, list):
             return []
 
         representative_ids = []
         for representative in representatives:
             if isinstance(representative, dict):
-                if representative.get('id'):
-                    representative_ids.append(str(representative['id']))
-                    continue
                 user = representative.get('user', {})
                 if isinstance(user, dict):
                     if user.get('id'):
@@ -101,6 +106,11 @@ class EntityAssessment:
                         continue
                 if representative.get('user_id'):
                     representative_ids.append(str(representative['user_id']))
+                else:
+                    utils.log(
+                        f"Representative payload missing canonical user ID (user.id/user_id); skipping: {representative}",
+                        level=logging.WARNING,
+                    )
             elif representative:
                 representative_ids.append(str(representative))
         return list(dict.fromkeys(representative_ids))
@@ -117,18 +127,6 @@ class EntityAssessment:
         """Return the raw assessment payload."""
         return self.json_object
 
-    @staticmethod
-    def _get_default_implementation_groups(framework_id):
-        """Return the framework implementation groups selected by default."""
-        framework = utils.get_return(f'/api/frameworks/{framework_id}/')
-        if not isinstance(framework, dict):
-            return []
-        return [
-            group['name']
-            for group in framework.get('implementation_groups_definition', [])
-            if isinstance(group, dict) and group.get('default_selected') and group.get('name')
-        ]
-
     def synchronize_implementation_groups(self):
         """Match the linked audit's group selection to its framework defaults."""
         compliance_assessment_id = self.get_compliance_assessment_id()
@@ -143,13 +141,11 @@ class EntityAssessment:
 
         framework = compliance_assessment.get('framework', {})
         framework_id = framework.get('id') if isinstance(framework, dict) else framework
-        selected_groups = self._get_default_implementation_groups(framework_id)
         payload = {
             'score_calculation_method': AUDITOR_SCORE_METHOD,
             'field_visibility': AUDITOR_SCORE_VISIBILITY,
         }
-        if selected_groups:
-            payload['selected_implementation_groups'] = selected_groups
+        add_default_implementation_groups(payload, framework_id)
 
         changed_payload = {
             field: value
@@ -200,20 +196,59 @@ class EntityAssessment:
 
     def resolve_actor_ids(self, representative_ids):
         """Translate representative user IDs to API actor IDs when an actor record exists."""
+        def _normalize(value):
+            return str(value).strip().lower() if value else ''
+
         actor_ids = []
         actor_records = utils.get_all_results('/api/actors/', force_reload=True)
         user_records = utils.get_all_results('/api/users/', force_reload=True)
+        representative_records = utils.get_all_results('/api/representatives/', force_reload=True)
         assignment_records = utils.get_all_results('/api/requirement-assignments/', force_reload=True)
         user_by_id = {
-            user.get('id'): user
+            str(user.get('id')): user
             for user in user_records
             if isinstance(user, dict) and user.get('id')
         }
+        representative_aliases_by_user_id = {}
+
+        for representative in representative_records:
+            if not isinstance(representative, dict):
+                continue
+            user = representative.get('user', {})
+            user_id = ''
+            aliases = set()
+
+            if isinstance(user, dict):
+                user_id = str(user.get('id') or '')
+                aliases.add(_normalize(user.get('str')))
+            elif user:
+                user_id = str(user)
+
+            aliases.add(_normalize(representative.get('email')))
+            full_name = " ".join(
+                part for part in [representative.get('first_name', ''), representative.get('last_name', '')] if part
+            ).strip()
+            aliases.add(_normalize(full_name))
+
+            if not user_id:
+                continue
+
+            representative_aliases_by_user_id.setdefault(user_id, set()).update(alias for alias in aliases if alias)
 
         for representative_id in representative_ids:
             if not representative_id:
                 continue
             normalized = str(representative_id)
+            user = user_by_id.get(normalized, {})
+            representative_aliases = set(representative_aliases_by_user_id.get(normalized, set()))
+
+            if isinstance(user, dict):
+                representative_aliases.add(_normalize(user.get('email')))
+                full_name = " ".join(
+                    part for part in [user.get('first_name', ''), user.get('last_name', '')] if part
+                ).strip()
+                representative_aliases.add(_normalize(full_name))
+            representative_aliases = {alias for alias in representative_aliases if alias}
 
             for actor in actor_records:
                 if not isinstance(actor, dict):
@@ -229,16 +264,15 @@ class EntityAssessment:
                         actor_ids.append(str(actor.get('id')))
                         break
 
-                if actor.get('str') and actor.get('str') == user_by_id.get(normalized, {}).get('email'):
+                if _normalize(actor.get('str')) in representative_aliases:
                     actor_ids.append(str(actor.get('id')))
                     break
             else:
-                representative_email = user_by_id.get(normalized, {}).get('email')
                 for assignment in assignment_records:
                     for actor in assignment.get('actor', []) or []:
                         if not isinstance(actor, dict):
                             continue
-                        if actor.get('str') == representative_email and actor.get('id'):
+                        if _normalize(actor.get('str')) in representative_aliases and actor.get('id'):
                             actor_ids.append(str(actor['id']))
                             break
                     else:
@@ -351,6 +385,22 @@ class EntityAssessment:
 
         requirement_assessment_ids = self._get_requirement_assessment_ids(compliance_assessment_id)
         if not requirement_assessment_ids:
+            existing_assignment_without_requirements = self._find_matching_requirement_assignment(
+                compliance_assessment_id,
+                actor_ids,
+                [],
+            )
+            if existing_assignment_without_requirements:
+                assignment_id = existing_assignment_without_requirements.get('id')
+                if assignment_id and existing_assignment_without_requirements.get('status') != 'in_progress':
+                    start_requirement_assignment(assignment_id)
+                utils.log(
+                    f"Requirement assignment already exists for entity assessment {self.get_id()} "
+                    f"with representative(s): {representative_ids}; ensured it is started",
+                    level=logging.INFO,
+                )
+                return existing_assignment_without_requirements
+
             utils.log(
                 f"Skipping representative assignment for entity assessment {self.get_id()}: "
                 f"no requirement assessments have been created for compliance assessment "
@@ -367,7 +417,7 @@ class EntityAssessment:
         if existing_assignment:
             assignment_id = existing_assignment.get('id')
             if assignment_id and existing_assignment.get('status') != 'in_progress':
-                utils.start_requirement_assignment(assignment_id)
+                start_requirement_assignment(assignment_id)
             utils.log(
                 f"Requirement assignments already exist for entity assessment {self.get_id()} "
                 f"with representative(s): {representative_ids}",
@@ -391,12 +441,8 @@ class EntityAssessment:
             if folder_id:
                 payload['folder'] = folder_id
 
-        response = utils.get_return('/api/requirement-assignments/', method='POST', payload=payload)
+        response = create_requirement_assignment(payload)
         if response and (not isinstance(response, dict) or not response.get('error')):
-            assignment_id = response.get('id') if isinstance(response, dict) else None
-            if assignment_id:
-                utils.start_requirement_assignment(assignment_id)
-
             post_assignment = self._find_matching_requirement_assignment(
                 compliance_assessment_id,
                 actor_ids,
@@ -432,9 +478,7 @@ class EntityAssessment:
             'framework': framework_id,
             'create_audit': True,
         }
-        selected_groups = self._get_default_implementation_groups(framework_id)
-        if selected_groups:
-            payload['selected_implementation_groups'] = selected_groups
+        add_default_implementation_groups(payload, framework_id)
         response = utils.get_return(
             f"/api/entity-assessments/{self.get_id()}/",
             method='PATCH',
@@ -708,9 +752,7 @@ class EntityAssessmentDict:
                 payload['framework'] = framework_id
             if create_audit:
                 payload['create_audit'] = True
-                selected_groups = EntityAssessment._get_default_implementation_groups(framework_id)
-                if selected_groups:
-                    payload['selected_implementation_groups'] = selected_groups
+                add_default_implementation_groups(payload, framework_id)
             if compliance_assessment_id:
                 payload['compliance_assessment'] = compliance_assessment_id
             if representative_ids:
@@ -757,9 +799,7 @@ class EntityAssessmentDict:
                 payload['framework'] = framework_id
             if create_audit:
                 payload['create_audit'] = True
-                selected_groups = EntityAssessment._get_default_implementation_groups(framework_id)
-                if selected_groups:
-                    payload['selected_implementation_groups'] = selected_groups
+                add_default_implementation_groups(payload, framework_id)
             if compliance_assessment_id:
                 payload['compliance_assessment'] = compliance_assessment_id
             if representative_ids:
@@ -794,7 +834,7 @@ class EntityAssessmentDict:
         )
         return None
 
-    def create_external_entity_audits(self, entity_dict, entity_representative_dict, framework_dict):
+    def create_external_entity_audits(self, entity_dict, framework_dict):
         """Create one entity-level audit per external entity.
 
         This logic is additive: it does not replace the existing perimeter-based
@@ -807,6 +847,16 @@ class EntityAssessmentDict:
             if not entity.is_external():
                 continue
 
+            entity_representative_ids = entity.get_representative_ids()
+            primary_entity_representative_id = entity.get_representative_id()
+            if primary_entity_representative_id and primary_entity_representative_id not in entity_representative_ids:
+                entity_representative_ids = [primary_entity_representative_id] + entity_representative_ids
+
+            utils.log(
+                f"Resolved representative user IDs for external entity {entity.get_name()} ({entity.get_id()}): {entity_representative_ids}",
+                level=logging.INFO,
+            )
+
             matching_assessment = next(
                 (
                     assessment
@@ -817,7 +867,7 @@ class EntityAssessmentDict:
             )
             if matching_assessment:
                 representative_ids = list(dict.fromkeys(
-                    entity_representative_dict.get_user_ids_for_entity(entity.get_id())
+                    entity_representative_ids
                     + matching_assessment.get_representative_ids()
                 ))
                 if representative_ids:
@@ -831,7 +881,7 @@ class EntityAssessmentDict:
                     matching_assessment.assign_requirements_to_representatives(representative_ids)
                 continue
 
-            representative_ids = entity_representative_dict.get_user_ids_for_entity(entity.get_id())
+            representative_ids = entity_representative_ids
             self.create_entity_assessment(
                 name=f"Entity assessment of {entity.get_name()}",
                 entity_id=entity.get_id(),

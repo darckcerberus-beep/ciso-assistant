@@ -3,11 +3,11 @@ from pathlib import Path
 
 from .. import utils
 
-# Load settings from framework file
-_framework_path = Path(__file__).parent.parent.parent / "YML" / "newDPP.yml"
-_framework = utils.load_yaml_file(str(_framework_path))
+# Load settings from library file
+_library_path = Path(__file__).parent.parent.parent / "YML" / "newDPP.yml"
+_library = utils.load_yaml_file(str(_library_path))
 # Mapping for data classification criticality levels
-criticality_mapping = _framework.get("criticality_mapping", {
+criticality_mapping = _library.get("criticality_mapping", {
     "confidentiality": {},
     "integrity": {},
     "availability": {}

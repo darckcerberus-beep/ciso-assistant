@@ -51,7 +51,7 @@ print("4. ERROR Level - Operation Failures")
 print("-" * 80)
 utils.log("Failed to update asset criticality: Invalid security objective value", level=logging.ERROR)
 utils.log("API error 400 on /api/compliance-assessments/: Invalid framework reference", level=logging.ERROR)
-utils.log("YAML configuration file missing: /YML/settings.yml", level=logging.ERROR)
+utils.log("Framework configuration file missing: /YML/newDPP.yml", level=logging.ERROR)
 print()
 
 # Example 5: CRITICAL level - severe issues

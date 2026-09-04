@@ -4,14 +4,15 @@ import logging
 from pathlib import Path
 
 from .. import utils
-from .requirement_assessment import RequirementAssessmentDict
+from .implementation_groups import add_default_implementation_groups
+from .requirement_assessment import RequirementAssessmentDict, create_requirement_assignment
 from .requirement_assignment import RequirementAssignmentDict
 
-# Load settings from framework file
-_framework_path = Path(__file__).parent.parent.parent / "YML" / "newDPP.yml"
-_framework = utils.load_yaml_file(str(_framework_path))
-AUDITOR_SCORE_VISIBILITY = _framework.get("audit", {}).get("score_visibility", {})
-AUDITOR_SCORE_METHOD = _framework.get("audit", {}).get("score_method", "sum")
+# Load settings from library file
+_library_path = Path(__file__).parent.parent.parent / "YML" / "newDPP.yml"
+_library = utils.load_yaml_file(str(_library_path))
+AUDITOR_SCORE_VISIBILITY = _library.get("audit", {}).get("score_visibility", {})
+AUDITOR_SCORE_METHOD = _library.get("audit", {}).get("score_method", "sum")
 
 
 class ComplianceAssessment:
@@ -126,6 +127,7 @@ class ComplianceAssessmentDict:
             'score_calculation_method': AUDITOR_SCORE_METHOD,
             'field_visibility': AUDITOR_SCORE_VISIBILITY,
         }
+        add_default_implementation_groups(payload, framework_id)
         response = utils.get_return("/api/compliance-assessments/", method="POST", payload=payload)
         self.reload()
         utils.log(f"Compliance assessment created successfully: {name}", level=logging.INFO)
@@ -149,6 +151,7 @@ class ComplianceAssessmentDict:
                         'score_calculation_method': AUDITOR_SCORE_METHOD,
                         'field_visibility': AUDITOR_SCORE_VISIBILITY,
                     }
+                    add_default_implementation_groups(payload, framework.get_id())
                     utils.log(f"Payload for new compliance assessment: {payload}", level=logging.INFO)
                     utils.get_return("/api/compliance-assessments/", method="POST", payload=payload)
                     created = True
@@ -220,9 +223,12 @@ class ComplianceAssessmentDict:
                     "folder": perimeter_dict.get_folder_uuid_from_perimeter_id(ca.get_perimeter_id()),
                     "actor": [perimeter_dict.get_owner_id_from_perimeter_id(ca.get_perimeter_id())]
                 }
-                req_assign_json = utils.get_return("/api/requirement-assignments/", method="POST", payload=payload)
-                if isinstance(req_assign_json, dict):
-                    utils.start_requirement_assignment(req_assign_json.get('id', ''))
+                req_assign_json = create_requirement_assignment(payload)
+                if not req_assign_json or (isinstance(req_assign_json, dict) and req_assign_json.get('error')):
+                    utils.log(
+                        f"Failed to create requirement assignment for compliance assessment {ca.get_name()}: {req_assign_json}",
+                        level=logging.ERROR,
+                    )
             else:
                 utils.log(f"Requirement assignments already exist for compliance assessment: {ca.get_name()}")
                 utils.log(f"Requirement assessment IDs: {requirement_assessment_ids}")
@@ -278,7 +284,7 @@ class ComplianceAssessmentDict:
             utils.log(f"Printing JSON for compliance assessment: {ca.get_name()}")
             utils.log(ca.get_json())
 
-    def create_risk_assessments(self, risk_assessment_dict, risk_scenario_dict, applied_control_dict, asset_dict, framework_file, requirement_assessment_dict, risk_matrix_dict, framework_dict):
+    def create_risk_assessments(self, risk_assessment_dict, risk_scenario_dict, applied_control_dict, asset_dict, library_file, requirement_assessment_dict, risk_matrix_dict, framework_dict):
         """Create risk assessments and scenarios for each compliance assessment."""
         self.reload()
         for ca in self.compliance_assessments.values():
@@ -301,13 +307,13 @@ class ComplianceAssessmentDict:
                     framework_dict.get_library_id_from_framework_id(ca.get_framework_id())
                 )
             )
-            for risk_scenario in framework_file.get_risk_scenarios():
+            for risk_scenario in library_file.get_risk_scenarios():
                 utils.log(f"Creating risk scenario: {risk_scenario.get('name', '')} for compliance assessment: {ca.get_name()}")
                 utils.log(f"Risk scenario description: {risk_scenario.get('description', '')}")
                 utils.log(f"Risk scenario impact node: {risk_scenario.get('impact', '')}")
                 utils.log(f"Risk scenario likelihood node: {risk_scenario.get('likelihood', '')}")
 
-                impact_mapping = framework_file.get_impact_mapping()
+                impact_mapping = library_file.get_impact_mapping()
                 impact = None
                 likelihood_assessment = None
                 # Iterate cached requirement assessments for this compliance assessment

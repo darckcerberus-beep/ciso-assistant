@@ -1,8 +1,25 @@
 """Requirement assessment models and collection helpers."""
 
 import logging
+from typing import Any
 
 from .. import utils
+from .requirement_assignment import start_requirement_assignment
+
+
+def create_requirement_assignment(payload: dict[str, Any], *, start: bool = True, log_errors: bool = True):
+    """Create a requirement assignment and optionally start it immediately."""
+    response = utils.get_return(
+        '/api/requirement-assignments/',
+        method='POST',
+        payload=payload,
+        log_errors=log_errors,
+    )
+    if response and (not isinstance(response, dict) or not response.get('error')):
+        assignment_id = response.get('id') if isinstance(response, dict) else ''
+        if start and assignment_id:
+            start_requirement_assignment(assignment_id)
+    return response
 
 
 class RequirementAssessment:
@@ -303,9 +320,15 @@ class RequirementAssessmentDict:
                     "folder": perimeter_dict.get_folder_uuid_from_perimeter_id(ca.get_perimeter_id()),
                     "actor": [perimeter_dict.get_owner_id_from_perimeter_id(ca.get_perimeter_id())]
                 }
-                req_assign_json = utils.get_return("/api/requirement-assignments/", method="POST", payload=payload)
-                if isinstance(req_assign_json, dict):
-                    utils.start_requirement_assignment(req_assign_json.get('id', ''))
+                req_assign_json = create_requirement_assignment(payload)
+                if not req_assign_json or (isinstance(req_assign_json, dict) and req_assign_json.get('error')):
+                    utils.log(
+                        "Failed to create requirement assignment for compliance assessment: "
+                        + ca.get_name()
+                        + " | response="
+                        + str(req_assign_json),
+                        level=logging.ERROR,
+                    )
                 created = True
             else:
                 utils.log(f"Requirement assessments are already assigned for compliance assessment: {ca.get_name()}")

@@ -1,6 +1,36 @@
 """Requirement assignment models and collection helpers."""
 
+import logging
+
 from .. import utils
+
+
+def start_requirement_assignment(assignment_id: str) -> bool:
+    """Transition a newly created requirement assignment to ``in_progress``."""
+    if not assignment_id:
+        return False
+
+    response = utils.get_return(
+        f'/api/requirement-assignments/{assignment_id}/set_status/',
+        method='POST',
+        payload={'status': 'in_progress'},
+    )
+    if not isinstance(response, dict) or response.get('status') != 'in_progress':
+        utils.log(
+            f"Failed to start requirement assignment {assignment_id}: {response}",
+            level=logging.ERROR,
+        )
+        return False
+
+    assignment = utils.get_return(f'/api/requirement-assignments/{assignment_id}/')
+    if isinstance(assignment, dict) and assignment.get('status') == 'in_progress':
+        return True
+
+    utils.log(
+        f"Requirement assignment {assignment_id} did not persist in_progress status: {assignment}",
+        level=logging.ERROR,
+    )
+    return False
 
 
 class RequirementAssignment:
