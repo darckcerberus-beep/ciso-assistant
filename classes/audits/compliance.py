@@ -19,9 +19,11 @@ class ComplianceAssessment:
 
     def __init__(self, json_ca):
         """Initialize the object using the API payload."""
-        assessment_id = json_ca.get('id', '')
-        utils.log(f"Creating compliance assessment with ID: {assessment_id}")
-        self.compliance_assessment_json = utils.get_return(f"/api/compliance-assessments/{assessment_id}/")
+        if isinstance(json_ca, dict) and "name" in json_ca and "framework" in json_ca:
+            self.compliance_assessment_json = json_ca
+        else:
+            assessment_id = json_ca.get('id', '') if isinstance(json_ca, dict) else str(json_ca)
+            self.compliance_assessment_json = utils.get_return(f"/api/compliance-assessments/{assessment_id}/")
 
     def get_json(self):
         """Return the raw JSON object."""
@@ -279,11 +281,32 @@ class ComplianceAssessmentDict:
             utils.log(ca.get_json())
 
     def create_risk_assessments(self, risk_assessment_dict, risk_scenario_dict, applied_control_dict, asset_dict, framework_file, requirement_assessment_dict, risk_matrix_dict, framework_dict):
-        """Create risk assessments and scenarios for each compliance assessment."""
+        """Create risk assessments and evaluate risk scenarios for each compliance assessment.
+
+        Logic:
+        1. For each compliance assessment, check if it has at least one answered requirement.
+           If unassessed/unanswered, skip risk assessment creation.
+        2. Create or find the parent Risk Assessment object tied to the compliance assessment domain,
+           perimeter, and associated library risk matrix.
+        3. For each risk scenario definition defined in the framework YAML:
+           a. Locate the corresponding requirement assessment for likelihood and impact.
+           b. If the likelihood requirement has no selected answer, remove any existing scenario and skip.
+           c. Determine the raw impact score (either from mapped impact answers or the requirement score).
+           d. Determine the raw likelihood score (0-100 percentage score from requirement assessment).
+           e. Compute scaled impact (1-4 scale) and scaled likelihood:
+              - score between 76-100 -> likelihood level 1 (low risk)
+              - score between 51-75  -> likelihood level 2
+              - score between 26-50  -> likelihood level 3
+              - score between 0-25   -> likelihood level 4 (high risk)
+              Formula: scaled_likelihood = min(4, max(1, 4 - ((score - 1) // 25)))
+           f. Collect existing (active) vs planned (to_do) controls linked to these requirements.
+           g. Create/update the Risk Scenario with scaled likelihood, impact, assets, and owners.
+        """
         self.reload()
         for ca in self.compliance_assessments.values():
             utils.log(f"Creating risk assessments for compliance assessment: {ca.get_name()}")
             utils.log(f"Using framework ID: {ca.get_framework_id()}, perimeter ID: {ca.get_perimeter_id()}")
+            
             # Skip creating risk assessments when the compliance assessment has no answered requirement assessments
             if not requirement_assessment_dict.has_answers_for_compliance_assessment(ca.get_id()):
                 utils.log(f"Skipping risk creation for compliance assessment {ca.get_name()} ({ca.get_id()}): no answered requirements", level=20)
@@ -293,6 +316,7 @@ class ComplianceAssessmentDict:
             # Load requirement assessments once for this compliance assessment to avoid repeated API calls
             requirement_assessments = requirement_assessment_dict.get_requirement_assessments()
 
+            # Ensure parent Risk Assessment exists in the API for this compliance assessment
             risk_assessment = risk_assessment_dict.create_risk_assessments(
                 ca.get_name() + " Risk Assessment",
                 ca.get_framework_id(),
@@ -301,6 +325,8 @@ class ComplianceAssessmentDict:
                     framework_dict.get_library_id_from_framework_id(ca.get_framework_id())
                 )
             )
+
+            # Evaluate each scenario defined in the framework configuration
             for risk_scenario in framework_file.get_risk_scenarios():
                 utils.log(f"Creating risk scenario: {risk_scenario.get('name', '')} for compliance assessment: {ca.get_name()}")
                 utils.log(f"Risk scenario description: {risk_scenario.get('description', '')}")
@@ -310,7 +336,8 @@ class ComplianceAssessmentDict:
                 impact_mapping = framework_file.get_impact_mapping()
                 impact = None
                 likelihood_assessment = None
-                # Iterate cached requirement assessments for this compliance assessment
+
+                # Search requirement assessments for matching likelihood and impact nodes
                 for requirement_assessment in requirement_assessments.values():
                     if requirement_assessment.get_compliance_assessment_id() != ca.get_id():
                         continue
@@ -319,11 +346,13 @@ class ComplianceAssessmentDict:
                     if requirement_assessment.get_urn() != risk_scenario.get('impact', ''):
                         continue
 
+                    # Check if any answer matches configured impact mappings
                     for answer in requirement_assessment.get_requirement_json().get('answers', {}).values():
                         if answer in impact_mapping:
                             impact = impact_mapping[answer] + 1
                             break
 
+                # If the likelihood requirement assessment was never answered, clean up and skip
                 if likelihood_assessment is None or not likelihood_assessment.has_selected_answer():
                     utils.log(
                         f"Skipping risk scenario '{risk_scenario.get('name', '')}': "
@@ -335,6 +364,7 @@ class ComplianceAssessmentDict:
                     )
                     continue
 
+                # Fallback to direct requirement score if impact was not mapped from answer choices
                 if impact is None:
                     impact = requirement_assessment_dict.get_score_from_compliance_assessment_id_and_urn(
                         ca.get_id(), risk_scenario.get('impact', ''), refresh=False
@@ -343,6 +373,8 @@ class ComplianceAssessmentDict:
                 likelihood = requirement_assessment_dict.get_score_from_compliance_assessment_id_and_urn(
                     ca.get_id(), risk_scenario.get('likelihood', ''), refresh=False
                 )
+
+                # Identify all requirement assessment IDs associated with this scenario's impact and likelihood
                 requirement_assessment_ids = [
                     requirement_assessment.get_id()
                     for requirement_assessment in requirement_assessments.values()
@@ -352,6 +384,8 @@ class ComplianceAssessmentDict:
                         risk_scenario.get('likelihood', ''),
                     }
                 ]
+
+                # Categorize linked applied controls into active ("existing") and to_do ("planned")
                 controls_by_status = applied_control_dict.get_control_ids_by_status_for_requirement_assessments(
                     requirement_assessment_ids
                 )
@@ -363,11 +397,13 @@ class ComplianceAssessmentDict:
                     scaled_impact = max(1, int(impact))
                     utils.log(f"Scaled impact: {scaled_impact}")
 
+                    # Likelihood scaling: inverse relationship (higher compliance score -> lower risk likelihood)
                     utils.log(f"Risk scenario likelihood value: {likelihood}")
                     score = max(0, min(100, int(likelihood)))
                     scaled_likelihood = min(4, max(1, 4 - ((score - 1) // 25)))
                     utils.log(f"Scaled likelihood: {scaled_likelihood}")
 
+                    # Create or update the risk scenario in the API
                     risk_scenario_dict.create_risk_scenario(
                         risk_scenario.get('name', ''),
                         risk_scenario.get('description', ''),

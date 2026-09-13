@@ -1,23 +1,41 @@
+"""User, team, and actor identity models and management.
+
+Handles API operations for:
+- User accounts (authentication & email lookups).
+- Teams/IAM groups.
+- Actors (representatives/owners assignable to audits and controls).
+"""
+
 from .. import utils
 
 
 class User:
+    """Represents a single system user."""
+
     def __init__(self, json_user):
         self.json_object = json_user
+
     def get_json(self):
-        return self.json_object    
+        return self.json_object
+
     def get_full_name(self):
-        return self.json_object.get('first_name', '') + ' ' + self.json_object.get('last_name', '')
+        return (self.json_object.get('first_name', '') + ' ' + self.json_object.get('last_name', '')).strip()
+
     def get_email(self):
-        return self.json_object.get('email', '')    
+        return self.json_object.get('email', '')
+
     def get_id(self):
         return self.json_object.get('id', '')
 
+
 class UserDict:
+    """Handles collections of users and lookup by name/email."""
+
     def __init__(self):
         self.reload()
 
     def reload(self):
+        """Reload all users from the API."""
         self.users = [User(u) for u in utils.get_all_results("/api/users/", force_reload=True)]
 
     def get_users(self):

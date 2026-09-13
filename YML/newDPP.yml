@@ -246,35 +246,90 @@ objects:
     - urn: urn:intuitem:risk:control:mls:stakeholder_designation
       ref_id: stakeholder_designation
       name: "Designate stakeholders"
-      description: "Designate stakeholders to ensure proper accountability and update LeanIX with the information"
+      description: "Formally identify and document business owner, IT owner, and data owner for the application and keep the enterprise repository up to date."
+      annotation: >
+        Stakeholder designation establishes direct governance and operational accountability across business, technology, and data compliance domains.
+      typical_evidence: >
+        - LeanIX application fact sheet or CMDB configuration item record
+        - RACI matrix documenting business, IT, and data owner responsibilities
+        - Formal stakeholder appointment / delegation confirmation
+
     - urn: urn:intuitem:risk:control:mls:encrypt_data_in_transit
       ref_id: data_in_transit_encryption
       name: "Encrypt data in transit"
-      description: "Encrypt data in transit"
+      description: "Enforce end-to-end encryption for all data flows in transit across public and private networks using strong cryptographic protocols."
+      annotation: >
+        Requires TLS 1.2+ / TLS 1.3 with forward secrecy cipher suites, HSTS enforcement, and mutual TLS (mTLS) for machine-to-machine service communications.
+      typical_evidence: >
+        - SSL/TLS configuration report (e.g. Qualys SSL Labs report / testssl.sh audit)
+        - Web server / Ingress controller / Load balancer TLS configuration files
+        - API gateway mTLS certificate and policy definitions
+
     - urn: urn:intuitem:risk:control:mls:encrypt_data_at_rest
       ref_id: data_at_rest_encryption
       name: "Encrypt data at rest"
-      description: "Encrypt data at rest"
+      description: "Implement robust cryptographic protection for all persistent data stores, volumes, databases, and backup archives containing sensitive data."
+      annotation: >
+        Mandates industry-standard symmetric encryption algorithms (AES-256 / AES-GCM) with centralized, segregated key management (KMS / HSM) and automated key rotation.
+      typical_evidence: >
+        - Database Transparent Data Encryption (TDE) configuration
+        - Cloud storage bucket / disk volume KMS encryption policy confirmation
+        - Key management system (KMS) key rotation schedule and access audit logs
+
     - urn: urn:intuitem:risk:control:mls:identify_data_classification
       ref_id: data_classification
       name: "Identify the data classification level"
-      description: "Identify the classification level of the data the application is handling"
+      description: "Identify and record the classification level of the information assets processed, stored, or transmitted by the application."
+      annotation: >
+        Data classification drives proportional security baseline controls and dynamic implementation group activation (Public, Internal, Confidential, Secret).
+      typical_evidence: >
+        - Information asset register / data classification registry entry
+        - Data flow diagram with data sensitivity tagging
+        - Data Protection Impact Assessment (DPIA) or classification sign-off
+
     - urn: urn:intuitem:risk:control:mls:saas_contract
       ref_id: saas_contract
       name: "Sign a contract with the SaaS provider with all the adequate clauses"
-      description: "Having a contract is better"
+      description: "Execute formal SaaS contractual agreements incorporating audit rights, incident reporting, IAM standards, and confidentiality terms."
+      annotation: >
+        Mandates legal, security, and compliance review of third-party SaaS contracts to ensure data protection, breach notification SLAs, and right to audit.
+      typical_evidence: >
+        - Executed SaaS Master Services Agreement (MSA) with Security Exhibit
+        - Signed Data Processing Agreement (DPA) and Non-Disclosure Agreement (NDA)
+        - Third-party audit assurance reports (SOC 2 Type II / ISO 27001 certificate)
+
     - urn: urn:intuitem:risk:control:mls:protect_prod_data_in_non_prod
       ref_id: protect_prod_data_in_non_prod
       name: "Use hashing, encryption, anonymisation or pseudonymisation of prod data in non-production environment"
-      description: "Ensure non-production environments do not contain sensitive data"
+      description: "Sanitize, mask, or pseudonymize production data before replication into non-production environments to prevent unauthorized disclosure."
+      annotation: >
+        Non-production environments must never contain plaintext sensitive data. Automated data masking pipelines must be enforced prior to testing.
+      typical_evidence: >
+        - Data masking / pseudonymization procedure and tool configuration
+        - Non-production database content audit verifying absence of real PII
+        - Test data management policy and test environment data purge logs
+
     - urn: urn:intuitem:risk:control:mls:information_exchange_contract
       ref_id: information_exchange_contract
       name: "Sign a contract regarding the exchange of information with all the adequate clauses"
-      description: "Having a contract is better"
+      description: "Execute formal information exchange contracts with appropriate security, confidentiality, and data handling clauses for external transfers."
+      annotation: >
+        Governs external data transfers through legally binding agreements detailing authorized scope, encryption requirements, and return/destruction mandates.
+      typical_evidence: >
+        - Signed Data Transfer Agreement (DTA) / Cross-border transfer agreement
+        - Executed bilateral Non-Disclosure Agreement (NDA)
+        - Data exchange register and technical interface specification
+
     - urn: urn:intuitem:risk:control:mls:data_destruction_process
       ref_id: data_destruction_process
       name: "Write and implement a compliant data destruction process"
-      description: "Data destruction process must include clear responsibilities, approved methods and reporting upon completion"
+      description: "Establish and operationalize a verifiable data destruction process including defined roles, approved methods, and reporting upon completion."
+      annotation: >
+        Ensures obsolete or expired information is irrecoverably destroyed according to recognized standards (e.g. NIST SP 800-88) upon retention expiry.
+      typical_evidence: >
+        - Standard Operating Procedure (SOP) for data retention and disposal
+        - Scheduled automated database purge scripts and deletion logs
+        - Certificate of Destruction or cryptographic erasure verification report
 
   # ========================================================================
   # FRAMEWORK - Assessment framework with requirements and questions
@@ -311,6 +366,8 @@ objects:
         ref_id: info
         name: Application info
         description: "Basic context questions"
+        annotation: >
+          High-level application profiling and organizational governance context. Captures essential metadata to determine ownership, data sensitivity, and applicable compliance baseline tracks.
         implementation_groups: ["info"]
 
       # Requirement: Identify stakeholders for the application
@@ -321,6 +378,16 @@ objects:
         ref_id: stakeholder_identification
         name: Stakeholder identification
         description: "Stakeholders have been identified for the application"
+        annotation: >
+          Accountability and ownership governance. Ensures that every application deployed across the organization has clearly identified, registered, and active business, IT, and data governance points of contact.
+          Ex1: Business Owner responsible for functional requirements and data value.
+          Ex2: IT / Technical Owner responsible for infrastructure, deployment, and operational maintenance.
+          Ex3: Data Owner responsible for data classification, access authorization, and lifecycle management.
+          Ex4: Maintained inventory synchronization with the Enterprise Architecture repository (e.g., LeanIX / CMDB).
+        typical_evidence: >
+          - Enterprise Architecture repository extract (e.g. LeanIX application fact sheet)
+          - CMDB / Service Catalog configuration item entry with assigned technical & business owners
+          - Data Governance RACI matrix or formal appointment documentation
         vulnerabilities: ["urn:intuitem:risk:vulnerability:mls:unclear_accountability"]
         implementation_groups: ["info"]
         reference_controls:
@@ -391,6 +458,17 @@ objects:
         parent_urn: urn:intuitem:risk:req_node:mls:info
         ref_id: data_classification
         name: Data classification
+        description: "Classify data handled by the application according to organizational policy."
+        annotation: >
+          Data categorization according to the enterprise information security classification policy:
+          - Public: Information intended for public distribution with zero confidentiality impact.
+          - Internal: Operational data for internal use only; disclosure would cause minor organizational friction.
+          - Confidential: Sensitive business, customer, or employee data requiring restricted access controls and encryption.
+          - Secret: Highly sensitive intellectual property, cryptographic keys, or critical strategic assets requiring stringent isolation and executive authorization.
+        typical_evidence: >
+          - Data classification assessment form or registry
+          - Information asset register entry
+          - Data flow diagram identifying sensitivity tags on data stores and APIs
         reference_controls: ["urn:intuitem:risk:control:mls:identify_data_classification"]
         implementation_groups: ["info"]
         questions:
@@ -420,6 +498,14 @@ objects:
         parent_urn: urn:intuitem:risk:req_node:mls:info
         ref_id: hosting
         name: App hosting
+        description: "Determine whether the application is hosted in-house or outsourced as a SaaS solution."
+        annotation: >
+          Infrastructure hosting architecture classification:
+          - In-house: On-premises data centers, private cloud, or internally managed infrastructure.
+          - SaaS: Third-party Software-as-a-Service platforms where infrastructure and application management are outsourced to an external cloud vendor.
+        typical_evidence: >
+          - Architecture design document (ADD) / System topology diagram
+          - Cloud hosting provider procurement record or contract
         implementation_groups: ["info"]
         questions:
           urn:intuitem:risk:req_node:mls:hosting:q1:
@@ -441,6 +527,9 @@ objects:
         depth: 1
         ref_id: advanced_reqs
         name: Advanced requirements
+        description: "Technical security and cryptographic baseline controls mandated for Confidential and Secret data assets."
+        annotation: >
+          Mandatory technical protections enforced for higher sensitivity tiers to ensure confidentiality, integrity, and privacy throughout the data lifecycle.
         implementation_groups: ["confidential_app", "secret_app"]
 
       # Requirement: Encrypt data during transmission
@@ -450,6 +539,14 @@ objects:
         parent_urn: urn:intuitem:risk:req_node:mls:advanced
         ref_id: data_in_transit
         name: Encryption in Transit
+        description: "Encrypt data in transit across internal and external network boundaries."
+        annotation: >
+          Cryptographic protection of data during network transmission across internal, external, and cloud boundaries.
+          Mandates modern secure communication protocols (e.g., TLS 1.3 / TLS 1.2 with strong cipher suites, SSHv2, IPsec, mutual TLS / mTLS for API services) to prevent eavesdropping, man-in-the-middle (MITM) attacks, and packet sniffing.
+        typical_evidence: >
+          - TLS / SSL configuration inspection report (e.g., Qualys SSL Labs report, testssl.sh output)
+          - API gateway / Load balancer TLS cipher suite and protocol enforcement configuration
+          - Network architecture diagram showing encrypted transit boundaries and mTLS certificates
         vulnerabilities: ["urn:intuitem:risk:vulnerability:mls:lack_of_encryption"]
         implementation_groups: ["confidential_app", "secret_app"]
         reference_controls: ["urn:intuitem:risk:control:mls:encrypt_data_in_transit"]
@@ -476,6 +573,14 @@ objects:
         parent_urn: urn:intuitem:risk:req_node:mls:advanced
         ref_id: data_at_rest
         name: Encryption at Rest
+        description: "Encrypt data at rest in databases, file systems, and backups."
+        annotation: >
+          Cryptographic protection of stored data across persistent storage tiers (databases, object storage, file systems, volume storage, backups).
+          Requires robust symmetric encryption standards (e.g., AES-256 / AES-GCM) with centralized key management (KMS / HSM) and regular key rotation practices.
+        typical_evidence: >
+          - Database encryption configuration (e.g., Transparent Data Encryption / TDE enabled)
+          - Cloud storage bucket / disk volume encryption configuration (e.g., AWS KMS / Azure Key Vault / GCP KMS encryption policies)
+          - Key Management System (KMS) key rotation policy and access control audit logs
         vulnerabilities: ["urn:intuitem:risk:vulnerability:mls:lack_of_encryption"]
         implementation_groups: ["confidential_app", "secret_app"]
         reference_controls: ["urn:intuitem:risk:control:mls:encrypt_data_at_rest"]
@@ -503,6 +608,14 @@ objects:
         ref_id: non_prod_data
         name: App non_prod_data
         description: "Non prod data is adequately protected"
+        annotation: >
+          Data sanitization and privacy preservation in non-production environments (development, testing, staging, QA).
+          Direct use of raw production data in non-production environments is strictly prohibited unless sanitized via irreversible pseudonymisation, tokenization, masking, or cryptographic hashing. Production data extracts must be cleaned up post-test.
+        typical_evidence: >
+          - Data masking / anonymization / synthetic test data generation pipeline procedure
+          - Automated data sanitization job scripts or ETL workflow definitions
+          - Non-production environment database audit logs verifying absence of raw PII/sensitive production records
+          - Data purge and retention verification records for test environments
         vulnerabilities: ["urn:intuitem:risk:vulnerability:mls:unprotected_non_prod"]
         implementation_groups: ["secret_app", "confidential_app"]
         reference_controls: ["urn:intuitem:risk:control:mls:protect_prod_data_in_non_prod"]
@@ -590,6 +703,13 @@ objects:
         ref_id: data_exchange
         name: data_exchange
         description: "Data exchange beyond the group is controlled"
+        annotation: >
+          Cross-organizational data sharing and external transmission governance.
+          Ensures all outbound and inbound data exchanges with third parties, business partners, or external systems are governed by formal information sharing agreements, Non-Disclosure Agreements (NDAs), and Data Processing Agreements (DPAs) with strict confidentiality and security clauses.
+        typical_evidence: >
+          - Signed Data Transfer Agreement (DTA) / Data Processing Addendum (DPA)
+          - Non-Disclosure Agreement (NDA) with external recipients
+          - Third-party data exchange register or API interface specification documenting security controls
         vulnerabilities: ["urn:intuitem:risk:vulnerability:mls:contractual_gap"]
         reference_controls:
           - urn:intuitem:risk:control:mls:information_exchange_contract
@@ -634,6 +754,13 @@ objects:
         ref_id: data_destruction
         name: data_destruction
         description: "There is a compliant data destruction process for this application"
+        annotation: >
+          Compliant information disposal and data purging lifecycle.
+          Ensures defined retention schedules are enforced and data is sanitized or destroyed using approved cryptographic erasure, de-allocation, or physical destruction standards (e.g. NIST SP 800-88 Rev 1) upon end-of-lifecycle or upon regulatory retention expiry.
+        typical_evidence: >
+          - Formal Data Retention and Destruction Policy & Standard Operating Procedure (SOP)
+          - Automated database retention purge scripts / scheduled job logs
+          - Certificate of Destruction or cryptographic sanitization audit log
         reference_controls:
           - urn:intuitem:risk:control:mls:data_destruction_process
         implementation_groups: ["confidential_app", "secret_app"]
@@ -678,6 +805,9 @@ objects:
         depth: 1
         ref_id: saas_chapter
         name: SaaS Requirements
+        description: "Third-party cloud and SaaS provider security governance and contractual compliance."
+        annotation: >
+          Supply chain risk management and security governance requirements applicable when application workloads or data are hosted by external SaaS vendors.
         implementation_groups: ["saas_app"]
 
       # Requirement: Ensure SaaS contract includes security clauses
@@ -687,6 +817,19 @@ objects:
         parent_urn: urn:intuitem:risk:req_node:mls:saas_chapter
         ref_id: saas_contract_compliance
         name: SaaS Contractual Compliance
+        description: "Ensure SaaS contract includes security clauses"
+        annotation: >
+          Comprehensive SaaS vendor contract security review.
+          Validates that contractual agreements with SaaS vendors contain mandatory cybersecurity clauses:
+          1. Right to Audit / Third-Party Assurance (SOC 2 Type II, ISO/IEC 27001 certification).
+          2. Security Incident Notification window (e.g. notification within 24 to 72 hours of discovery).
+          3. Strong Identity & Access Management (SSO / SAML 2.0 integration, Multi-Factor Authentication, Role-Based Access Control).
+          4. Binding Confidentiality / Non-Disclosure Agreement (NDA) and Data Processing Agreement (DPA).
+        typical_evidence: >
+          - Signed SaaS Master Services Agreement (MSA) with Security Schedule / Exhibit
+          - Executed Data Processing Agreement (DPA) and Confidentiality Agreement (NDA)
+          - Vendor SOC 2 Type II / ISO 27001 audit report and security assessment questionnaire
+          - SSO / SAML federation configuration confirmation and MFA policy enforcement documentation
         vulnerabilities: ["urn:intuitem:risk:vulnerability:mls:contractual_gap"]
         implementation_groups: ["saas_app"]
         reference_controls: ["urn:intuitem:risk:control:mls:saas_contract"]

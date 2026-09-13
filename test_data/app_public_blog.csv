@@ -1,0 +1,19 @@
+requirement,question,answer,result,observation
+data_classification,"What is the maximum classification level handled?",Public,compliant,Public marketing articles and blogs
+hosting,"What is the hosting model?",SaaS,compliant,Managed CMS platform
+stakeholder_identification,"Is there a designated business contact?",Yes,compliant,Marketing director
+stakeholder_identification,"Is there a designated IT contact?",No,partially_compliant,Outsourced agency
+stakeholder_identification,"Is there a designated data owner?",No,not_applicable,No private data
+stakeholder_identification,"Is the information about stakeholders updated in LeanIX?",No,partially_compliant,Not in LeanIX
+data_in_transit,"Is data encrypted during transit?",Yes,compliant,HTTPS via Cloudflare
+data_at_rest,"Is data encrypted at rest?",No,partially_compliant,Public static pages only
+non_prod_data,"Do you have a dedicated non-production environment?",No,compliant,Direct CMS preview
+data_exchange,"Are there data exchanges beyond the group?",No,compliant,Public web feed only
+data_destruction,"Is there a data destruction process for this application?",No,partially_compliant,Archived posts remain public
+data_destruction,"Is the process compliant with the policy (responsibilities, methods, reporting)?","No, not compliant",partially_compliant,No formal destruction
+saas_contract_compliance,"Is there a signed SaaS contract?",Yes,compliant,CMS Terms of Service
+saas_contract_compliance,"Does the contract include an Audit clause?",No,partially_compliant,No audit rights
+saas_contract_compliance,"Does the contract include an Incident Notification process?",No,partially_compliant,Standard status page
+saas_contract_compliance,"Does the contract include Strong IAM requirements?",Yes,compliant,2FA enabled
+saas_contract_compliance,"Does the contract include a Confidentiality agreement (NDA)?",No,not_applicable,Public content
+

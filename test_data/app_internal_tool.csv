@@ -1,0 +1,21 @@
+requirement,question,answer,result,observation
+data_classification,"What is the maximum classification level handled?",Internal,compliant,Internal company memos and employee directory
+hosting,"What is the hosting model?",SaaS,compliant,Enterprise SaaS vendor
+stakeholder_identification,"Is there a designated business contact?",Yes,compliant,Product manager assigned
+stakeholder_identification,"Is there a designated IT contact?",Yes,compliant,DevOps engineer assigned
+stakeholder_identification,"Is there a designated data owner?",No,partially_compliant,Data owner not yet formalized
+stakeholder_identification,"Is the information about stakeholders updated in LeanIX?",No,partially_compliant,Pending LeanIX sync
+data_in_transit,"Is data encrypted during transit?",Yes,compliant,HTTPS TLS 1.2
+data_at_rest,"Is data encrypted at rest?",No,non_compliant,Default unencrypted disk storage
+non_prod_data,"Do you have a dedicated non-production environment?",Yes,compliant,Dedicated test tenant
+non_prod_data,"Do you use prod data in a non-prod environment?",Yes,compliant,Sanitized test database
+non_prod_data,"How do you protect them?",Hashing,compliant,Pseudonymization and hashing of employee IDs
+non_prod_data,"Do you clean the prod data after use in non-prod?",No,partially_compliant,Retained for 30 days
+data_exchange,"Are there data exchanges beyond the group?",No,compliant,No external partner exchange
+data_destruction,"Is there a data destruction process for this application?",Yes,partially_compliant,Manual script available
+data_destruction,"Is the process compliant with the policy (responsibilities, methods, reporting)?","No, not compliant",partially_compliant,Formal reporting not done
+saas_contract_compliance,"Is there a signed SaaS contract?",Yes,compliant,Standard enterprise agreement
+saas_contract_compliance,"Does the contract include an Audit clause?",No,partially_compliant,SOC 2 report provided instead of direct audit
+saas_contract_compliance,"Does the contract include an Incident Notification process?",Yes,compliant,72h breach notice
+saas_contract_compliance,"Does the contract include Strong IAM requirements?",Yes,compliant,SSO with Okta
+saas_contract_compliance,"Does the contract include a Confidentiality agreement (NDA)?",No,partially_compliant,Standard NDA not yet executed

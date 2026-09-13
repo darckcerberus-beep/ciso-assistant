@@ -1,3 +1,18 @@
+"""Applied control models, lifecycle management, and risk-priority synchronization.
+
+An Applied Control represents a concrete implementation of a Reference Control mapped
+to a specific scope (Perimeter or External Entity).
+
+Status and Priority Rules:
+- If assessment result is 'compliant': status = 'active', owner = [] (no action required).
+- If assessment result is not 'compliant': status = 'to_do', owner = [perimeter_owner / entity_representative].
+- Control priority is derived from the associated risk scenario current risk level:
+    Risk Level 4 (Critical) -> Priority 1 (Urgent)
+    Risk Level 3 (High)     -> Priority 2 (High)
+    Risk Level 2 (Medium)   -> Priority 3 (Medium)
+    Risk Level 1 (Low)      -> Priority 4 (Low)
+"""
+
 import logging
 
 from .. import utils
@@ -7,9 +22,15 @@ class AppliedControl:
     """Represents an applied control from the API."""
 
     def __init__(self, json_control):
-        """Initialize with control data from API."""
-        control_id = json_control.get('id')
-        self.json_object = utils.get_return(f"/api/applied-controls/{control_id}/")
+        """Initialize with control data from API.
+
+        Reuses the existing JSON dictionary when available to prevent redundant GET requests.
+        """
+        if isinstance(json_control, dict) and "name" in json_control:
+            self.json_object = json_control
+        else:
+            control_id = json_control.get('id') if isinstance(json_control, dict) else str(json_control)
+            self.json_object = utils.get_return(f"/api/applied-controls/{control_id}/")
 
     def get_json(self):
         """Return the full JSON object."""
@@ -69,7 +90,7 @@ class AppliedControl:
 
 
 class AppliedControlDict:
-    """Dictionary of applied controls with management functionality."""
+    """Dictionary of applied controls with management and priority synchronization functionality."""
 
     def __init__(self):
         """Initialize and load all applied controls."""
@@ -97,7 +118,12 @@ class AppliedControlDict:
             utils.log(c.get_json())
 
     def get_control_ids_by_status_for_requirement_assessments(self, requirement_assessment_ids):
-        """Group controls by implementation status for the supplied assessments."""
+        """Group controls by implementation status for the supplied assessments.
+
+        Returns a dictionary with:
+        - "existing": active/implemented controls
+        - "planned": to_do/planned controls
+        """
         assessment_ids = set(requirement_assessment_ids)
         controls_by_status = {"existing": [], "planned": []}
         for control in self.controls.values():
@@ -109,7 +135,14 @@ class AppliedControlDict:
         return controls_by_status
 
     def get_priority_from_risk_level(self, risk_level):
-        """Translate a risk level ID into the API priority integer: 1 is highest, 4 is lowest."""
+        """Translate a risk level integer into the API priority integer (1=Highest, 4=Lowest).
+
+        Mapping logic:
+        - Risk level 4 (Critical) -> Priority 1 (Urgent)
+        - Risk level 3 (High)     -> Priority 2 (High)
+        - Risk level 2 (Medium)   -> Priority 3 (Medium)
+        - Risk level 1 (Low)      -> Priority 4 (Low)
+        """
         if isinstance(risk_level, dict):
             risk_level = risk_level.get("id", risk_level.get("value"))
         try:
@@ -117,10 +150,6 @@ class AppliedControlDict:
         except (TypeError, ValueError):
             raise ValueError(f"Invalid risk level value: {risk_level!r}")
 
-        # Risk level 4 (critical) => priority 1 (highest urgency)
-        # Risk level 3 => 2
-        # Risk level 2 => 3
-        # Risk level 1/0 => 4 (lowest urgency)
         if risk_level >= 4:
             return 1
         if risk_level == 3:
@@ -129,24 +158,38 @@ class AppliedControlDict:
             return 3
         return 4
 
-    def get_priority_for_compliance_assessment_id(self, compliance_assessment_id, requirement_urn):
+    def get_priority_for_compliance_assessment_id(
+        self,
+        compliance_assessment_id,
+        requirement_urn,
+        compliance_assessment_dict=None,
+        risk_assessments=None,
+        risk_scenarios=None,
+        framework_file=None,
+    ):
         """Return priority from the current level of the scenario associated with a requirement."""
         from ..core.framework import FrameworkFile
 
         compliance_assessment = None
-        for ca in utils.get_all_results("/api/compliance-assessments/"):
-            if ca.get("id") == compliance_assessment_id:
-                compliance_assessment = ca
-                break
+        if compliance_assessment_dict:
+            ca_obj = compliance_assessment_dict.get_compliance_assessments().get(compliance_assessment_id)
+            if ca_obj:
+                compliance_assessment = ca_obj.get_json()
 
         if compliance_assessment is None:
+            compliance_assessment = utils.get_return(f"/api/compliance-assessments/{compliance_assessment_id}/")
+
+        if not compliance_assessment or (isinstance(compliance_assessment, dict) and compliance_assessment.get("error")):
             raise LookupError(
                 f"Compliance assessment with id {compliance_assessment_id!r} not found"
             )
 
         compliance_name = compliance_assessment.get("name", "")
+        if risk_assessments is None:
+            risk_assessments = utils.get_all_results("/api/risk-assessments/")
+
         risk_assessment_id = None
-        for risk_assessment in utils.get_all_results("/api/risk-assessments/"):
+        for risk_assessment in risk_assessments:
             if risk_assessment.get("name", "") == f"{compliance_name} Risk Assessment":
                 risk_assessment_id = risk_assessment.get("id")
                 break
@@ -156,9 +199,12 @@ class AppliedControlDict:
                 f"Risk assessment for compliance '{compliance_name}' not found"
             )
 
+        if framework_file is None:
+            framework_file = FrameworkFile("YML/newDPP.yml")
+
         scenario_names = {
             scenario.get("name", "")
-            for scenario in FrameworkFile("YML/newDPP.yml").get_risk_scenarios()
+            for scenario in framework_file.get_risk_scenarios()
             if scenario.get("likelihood") == requirement_urn
         }
         if not scenario_names:
@@ -166,7 +212,10 @@ class AppliedControlDict:
                 f"No risk scenarios reference requirement urn {requirement_urn!r}"
             )
 
-        for scenario in utils.get_all_results("/api/risk-scenarios/"):
+        if risk_scenarios is None:
+            risk_scenarios = utils.get_all_results("/api/risk-scenarios/")
+
+        for scenario in risk_scenarios:
             risk_assessment = scenario.get("risk_assessment", {})
             if isinstance(risk_assessment, dict):
                 scenario_risk_assessment_id = risk_assessment.get("id")
@@ -210,11 +259,25 @@ class AppliedControlDict:
                 return True
         return False
 
-    def update_priority_for_requirement_assessment(self, name, compliance_assessment_id, requirement_urn):
+    def update_priority_for_requirement_assessment(
+        self,
+        name,
+        compliance_assessment_id,
+        requirement_urn,
+        compliance_assessment_dict=None,
+        risk_assessments=None,
+        risk_scenarios=None,
+        framework_file=None,
+    ):
         """Synchronize an existing to-do control with its associated scenario risk level."""
         try:
             priority = self.get_priority_for_compliance_assessment_id(
-                compliance_assessment_id, requirement_urn
+                compliance_assessment_id,
+                requirement_urn,
+                compliance_assessment_dict=compliance_assessment_dict,
+                risk_assessments=risk_assessments,
+                risk_scenarios=risk_scenarios,
+                framework_file=framework_file,
             )
         except (LookupError, ValueError) as e:
             utils.log(f"Could not determine priority for {compliance_assessment_id!r} / {requirement_urn!r}: {e}", level=logging.WARNING)
@@ -222,6 +285,8 @@ class AppliedControlDict:
         for control in self.controls.values():
             if control.get_name() != name or control.get_status() != "to_do":
                 continue
+            if control.json_object.get("priority") == priority:
+                return control.json_object
             response = utils.get_return(
                 f"/api/applied-controls/{control.get_id()}/",
                 method="PATCH",
@@ -239,6 +304,11 @@ class AppliedControlDict:
         for control in self.controls.values():
             if control.get_name() != name:
                 continue
+            current_folder = control.json_object.get("folder")
+            if isinstance(current_folder, dict):
+                current_folder = current_folder.get("id")
+            if current_folder == folder_id:
+                return control.json_object
             response = utils.get_return(
                 f"/api/applied-controls/{control.get_id()}/",
                 method="PATCH",
@@ -253,14 +323,30 @@ class AppliedControlDict:
                                      reference_control_dict, compliance_assessment_dict):
         """Create missing applied controls based on requirement assessments.
 
-        Args:
-            perimeter_dict: Dictionary of perimeters
-            requirement_assessment: Requirement assessment object
-            reference_control_dict: Dictionary of reference controls
-            compliance_assessment_dict: Dictionary of compliance assessments
+        Scoping and Ownership Resolution:
+        1. Identify which compliance assessments have answered requirements (skip untouched assessments).
+        2. Prefetch external entity context (EntityAssessment) mapping compliance assessments to third parties,
+           their folder IDs, and resolved user actor IDs.
+        3. For each answered requirement assessment:
+           - If tied to an internal perimeter: scope_name is perimeter name, owner is perimeter owner.
+           - If tied to an external entity: scope_name is entity name, owner is representative actor ID.
+           - Name format: "<Reference Control Name> on <Scope Name>"
+        4. If control already exists:
+           - Update its folder if changed.
+           - If non-compliant, synchronize priority with the calculated risk level.
+        5. If control does not exist:
+           - Set status = 'active' if compliant (owner = []), else 'to_do' with assigned owner and priority.
+           - POST to /api/applied-controls/.
         """
+        from ..core.framework import FrameworkFile
+
         requirement_assessment.reload()
         created = 0
+
+        # Prefetch once to avoid repetitive API calls inside the loop
+        risk_assessments = utils.get_all_results("/api/risk-assessments/")
+        risk_scenarios = utils.get_all_results("/api/risk-scenarios/")
+        framework_file = FrameworkFile("YML/newDPP.yml")
 
         # Determine which compliance assessments have at least one answered requirement assessment
         answered_ca_ids = set()
@@ -328,7 +414,13 @@ class AppliedControlDict:
                     self.update_folder_for_control(name, folder_id)
                     if ra.get_assessment_results() != "compliant":
                         self.update_priority_for_requirement_assessment(
-                            name, ra.get_compliance_assessment_id(), ra.get_urn()
+                            name,
+                            ra.get_compliance_assessment_id(),
+                            ra.get_urn(),
+                            compliance_assessment_dict=compliance_assessment_dict,
+                            risk_assessments=risk_assessments,
+                            risk_scenarios=risk_scenarios,
+                            framework_file=framework_file,
                         )
                     continue
 
@@ -338,13 +430,18 @@ class AppliedControlDict:
                 if not is_compliant:
                     try:
                         priority = self.get_priority_for_compliance_assessment_id(
-                            ra.get_compliance_assessment_id(), ra.get_urn()
+                            ra.get_compliance_assessment_id(),
+                            ra.get_urn(),
+                            compliance_assessment_dict=compliance_assessment_dict,
+                            risk_assessments=risk_assessments,
+                            risk_scenarios=risk_scenarios,
+                            framework_file=framework_file,
                         )
                     except (LookupError, ValueError) as e:
-                            utils.log(
-                                f"Could not determine priority for compliance {ra.get_compliance_assessment_id()!r} / {ra.get_urn()!r}: {e}",
-                                level=logging.WARNING,
-                            )
+                        utils.log(
+                            f"Could not determine priority for compliance {ra.get_compliance_assessment_id()!r} / {ra.get_urn()!r}: {e}",
+                            level=logging.WARNING,
+                        )
                 payload = {
                     "name": name,
                     "reference_control": control_id,
@@ -363,5 +460,6 @@ class AppliedControlDict:
         # Log completion status
         if created > 0:
             utils.log(f"Created {created} applied control(s).")
+            self.reload()
         else:
             utils.log("No new applied controls created.")

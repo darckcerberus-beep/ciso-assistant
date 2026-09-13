@@ -1,3 +1,9 @@
+"""Domain and folder management models with criticality mappings.
+
+Domains (represented as folders in the API) organize perimeters, assessments, and controls
+into hierarchical business units or domains.
+"""
+
 import logging
 from pathlib import Path
 
@@ -6,7 +12,8 @@ from .. import utils
 # Load settings from framework file
 _framework_path = Path(__file__).parent.parent.parent / "YML" / "newDPP.yml"
 _framework = utils.load_yaml_file(str(_framework_path))
-# Mapping for data classification criticality levels
+
+# Mapping for data classification criticality levels (Confidentiality, Integrity, Availability)
 criticality_mapping = _framework.get("criticality_mapping", {
     "confidentiality": {},
     "integrity": {},
@@ -16,23 +23,31 @@ criticality_mapping = _framework.get("criticality_mapping", {
 
 class Domain:
     """Represents an organizational domain/folder."""
+
     def __init__(self, json_domain):
         self.json_object = json_domain
+
     def get_name(self):
         return self.json_object.get('name', '')
+
     def get_id(self):
         return self.json_object.get('id', '')
+
     def print_name(self):
         utils.log(f"Name: {self.get_name()}")
+
     def print_id(self):
         utils.log(f"ID: {self.get_id()}")
 
 
 class DomainDict:
+    """Collection of organization domains/folders."""
+
     def __init__(self):
         self.reload()
 
     def reload(self):
+        """Reload all folders/domains from the API."""
         self.domains = [Domain(d) for d in utils.get_all_results("/api/folders/", force_reload=True)]
 
     def get_domains(self):

@@ -1,19 +1,34 @@
+"""Entity models and third-party representative management.
+
+Entities represent legal entities, internal root organizations, or external third parties/vendors:
+- Builtin entity (builtin=True): Internal parent organization.
+- External entity (builtin=False): Third-party vendor, partner, or supplier subjected to external audits.
+- Entity representatives: Users assigned as liaisons or audit points of contact for an entity.
+"""
+
 import logging
 
 from .. import utils
 
 
 class Entity:
+    """Represents an organizational or external entity."""
+
     def __init__(self, json_entity):
         self.json_object = json_entity
+
     def get_json(self):
         return self.json_object
+
     def get_name(self):
         return self.json_object.get('name', '')
+
     def get_id(self):
         return self.json_object.get('id', '')
+
     def is_builtin(self):
         return bool(self.json_object.get('builtin', False))
+
     def is_external(self):
         """Return True when the entity should be treated as external/third-party.
 
@@ -21,12 +36,14 @@ class Entity:
         are non-builtin records.
         """
         return not self.is_builtin()
+
     def get_folder_id(self):
         """Return the folder ID associated with this entity."""
         folder = self.json_object.get('folder', {})
         if isinstance(folder, dict):
             return folder.get('id', '')
         return str(folder) if folder else ''
+
     def get_representatives(self):
         """Return the list of representatives attached to this entity.
 
@@ -37,6 +54,7 @@ class Entity:
         if representatives:
             return representatives
         return self.json_object.get('entity_representatives', [])
+
     def get_representative_ids(self):
         """Return all representative IDs attached to the entity."""
         representative_ids = []
@@ -54,10 +72,13 @@ class Entity:
             elif representative:
                 representative_ids.append(representative)
         return list(dict.fromkeys(representative_ids))
+
     def print_json(self):
         utils.log(str(self.json_object))
+
     def print_name(self):
         utils.log(f"Name: {self.get_name()}")
+
     def print_id(self):
         utils.log(f"ID: {self.get_id()}")
 

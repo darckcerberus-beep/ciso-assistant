@@ -258,7 +258,6 @@ class RequirementAssessmentDict:
 
     def get_requirement_assessment_id_list_from_compliance_assessment_id(self, compliance_assessment_id):
         """Return all requirement assessment IDs belonging to one compliance assessment."""
-        self.reload()
         requirement_assessment_ids = []
         for ra in self.requirement_assessments.values():
             if ra.get_compliance_assessment_id() == compliance_assessment_id:
@@ -271,7 +270,6 @@ class RequirementAssessmentDict:
         This is used to decide whether it makes sense to create derived objects
         (applied controls, risk assessments) for a compliance assessment.
         """
-        self.reload()
         for ra in self.requirement_assessments.values():
             if ra.get_compliance_assessment_id() != compliance_assessment_id:
                 continue
@@ -395,13 +393,13 @@ class RequirementAssessmentDict:
         else:
             utils.log("No new applied controls created.")
 
-    def get_score_from_compliance_assessment_id_and_urn(self, compliance_assessment_id, requirement_node_urn, refresh: bool = True):
+    def get_score_from_compliance_assessment_id_and_urn(self, compliance_assessment_id, requirement_node_urn, refresh: bool = False):
         """Return the score for a requirement node within a given compliance assessment.
 
         Args:
             compliance_assessment_id: ID of the compliance assessment to search within.
             requirement_node_urn: URN of the requirement node to match.
-            refresh: When True (default), reload from the API before searching. Set to False when the caller already has fresh data.
+            refresh: When True, reload from the API before searching. Set to False (default) when the caller already has fresh data.
         """
         if refresh:
             self.reload()

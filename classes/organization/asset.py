@@ -1,19 +1,35 @@
+"""Asset models, management, and CIA security objective mappings.
+
+Assets represent IT/business resources (applications, infrastructure, processes) in the organization.
+In this workflow:
+- Missing assets are automatically created for each perimeter (type="PR", primary asset).
+- Assets inherit the default assignee of the perimeter as their owner.
+- Security objectives (Confidentiality, Integrity, Availability) are updated based on audit question answers.
+"""
+
 import logging
 
 from .. import utils
 
 
 class Asset:
+    """Represents a single organization asset and its security objectives."""
+
     def __init__(self, json_asset):
         self.json_object = json_asset
+
     def get_json(self):
         return self.json_object
+
     def get_name(self):
         return self.json_object.get('name', '')
+
     def get_id(self):
         return self.json_object.get('id', '')
+
     def get_asset_type(self):
         return self.json_object.get('type', '')
+
     def get_owner(self):
         return self.json_object.get('owner', '')
 
@@ -37,14 +53,18 @@ class Asset:
         if isinstance(response, dict) and not response.get("error"):
             self.json_object = response
         return response
+
     def get_folder(self):
         return self.json_object.get('folder', '')
+
     def get_folder_id(self):
         folder = self.json_object.get('folder', {})
         if isinstance(folder, dict):
             return folder.get('id', '')
         return str(folder)
+
     def get_max_security_objective(self):
+        """Compute the maximum security objective value across all criteria."""
         max_objective = 0
         for so_list in self.json_object.get('security_objectives', ''):
             for o_dict in so_list.values():
@@ -53,77 +73,79 @@ class Asset:
 
     def get_security_objectives(self):
         return self.json_object.get('security_objectives', '')
+
     def print_security_objectives(self):
         utils.log(str(self.get_security_objectives()))
 
     def set_security_objective(self, criteria, value):
-        """Update a specific security objective for the asset."""
+        """Update a specific security objective (e.g., confidentiality, integrity, availability)."""
         current_security_objectives_list = self.json_object.get('security_objectives', {})
         utils.log(f"Existing security_objectives: {current_security_objectives_list}")
         security_objectives = {"objectives": {}}
-        # Build the new security_objectives structure
+        # Build the new security_objectives structure preserving existing values
         for exisiting_so in current_security_objectives_list:
             for existing_criteria, existing_value in exisiting_so.items():
-                security_objectives["objectives"][existing_criteria] = {"value": existing_value, "is_enabled":  True}
+                security_objectives["objectives"][existing_criteria] = {"value": existing_value, "is_enabled": True}
         security_objectives["objectives"][criteria] = {"value": value, "is_enabled": True}
-        # Replace the existing security_objectives with the new one
-
 
         payload = {'security_objectives': {'objectives': security_objectives["objectives"]}}
         utils.log(f"Updated security_objectives: {payload}")
-        # Send the PATCH request
         result = utils.get_return(
             f"/api/assets/{self.get_id()}/",
             method="PATCH",
             payload=payload
         )
-        # Refresh the asset's JSON object
         if result and (not isinstance(result, dict) or not result.get("error")):
             self.json_object = utils.get_return(f"/api/assets/{self.get_id()}/")
         else:
             utils.log(f"Failed to update security objective: {result}", level=logging.ERROR)
 
-
-
     def print_json(self):
         utils.log(str(self.json_object))
+
     def print_name(self):
         utils.log(f"Name: {self.get_name()}")
+
     def print_id(self):
         utils.log(f"ID: {self.get_id()}")
+
     def print_asset_type(self):
         utils.log(f"Asset Type: {self.get_asset_type()}")
+
     def print_owner(self):
         utils.log(f"Owner: {self.get_owner()}")
+
     def print_folder(self):
         utils.log(f"Folder: {self.get_folder()}")
 
 
 class AssetDict:
+    """Handles collections of assets and synchronization with perimeters."""
+
     def __init__(self):
         self.reload()
 
     def reload(self):
+        """Reload all assets from API."""
         self.assets = [Asset(a) for a in utils.get_all_results("/api/assets/", force_reload=True)]
 
-    def create_asset(self, name, asset_type,  folder):
-        # checking if asset already exists
+    def create_asset(self, name, asset_type, folder):
+        """Create a new asset if it does not already exist."""
         for a in self.assets:
             if a.get_name() == name:
                 utils.log("Asset already exists")
                 return a
 
-        # checking if domain exists
         if not utils.get_return(f"/api/folders/{folder}/"):
             utils.log("Folder does not exist", level=logging.WARNING)
-            # Creating folder
             utils.get_return("/api/folders/", method="POST", payload={'name': folder})
-        payload = {'name': name, 'type': asset_type , 'folder': folder}
+        payload = {'name': name, 'type': asset_type, 'folder': folder}
         res = utils.get_return("/api/assets/", method="POST", payload=payload)
         self.reload()
         return Asset(res)
 
     def create_missing_assets(self, perimeter_dict):
+        """Create primary assets for any perimeter that lacks a corresponding asset."""
         created = False
         for p in perimeter_dict.get_perimeters():
             if not self.check_asset_from_name(p.get_name()):
@@ -136,6 +158,7 @@ class AssetDict:
         if created:
             self.reload()
 
+        # Ensure existing assets without owners inherit the perimeter assignee
         updated = False
         for perimeter in perimeter_dict.get_perimeters():
             owner_id = perimeter.get_default_assignee_id()

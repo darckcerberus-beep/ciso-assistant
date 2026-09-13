@@ -1,0 +1,19 @@
+requirement,question,answer,result,observation
+data_classification,"What is the maximum classification level handled?",Secret,compliant,Secret banking transaction records
+hosting,"What is the hosting model?",In-house,compliant,Internal datacenter hosting
+stakeholder_identification,"Is there a designated business contact?",Yes,compliant,Business owner assigned
+stakeholder_identification,"Is there a designated IT contact?",Yes,compliant,IT owner assigned
+stakeholder_identification,"Is there a designated data owner?",Yes,compliant,Data steward assigned
+stakeholder_identification,"Is the information about stakeholders updated in LeanIX?",Yes,compliant,LeanIX catalog is updated
+data_in_transit,"Is data encrypted during transit?",Yes,compliant,TLS 1.3 enforced everywhere
+data_at_rest,"Is data encrypted at rest?",Yes,compliant,AES-256 with KMS key rotation
+non_prod_data,"Do you have a dedicated non-production environment?",No,compliant,No non-prod environments exist
+data_exchange,"Are there data exchanges beyond the group?",No,compliant,No external data exchange
+data_destruction,"Is there a data destruction process for this application?",Yes,compliant,Automated purge script active
+data_destruction,"Is the process compliant with the policy (responsibilities, methods, reporting)?","Yes, compliant!",compliant,Purge policy reviewed and approved
+saas_contract_compliance,"Is there a signed SaaS contract?",Yes,compliant,N/A - In house application
+saas_contract_compliance,"Does the contract include an Audit clause?",Yes,compliant,Audit clause present
+saas_contract_compliance,"Does the contract include an Incident Notification process?",Yes,compliant,24h SLA notification
+saas_contract_compliance,"Does the contract include Strong IAM requirements?",Yes,compliant,MFA and SAML SSO
+saas_contract_compliance,"Does the contract include a Confidentiality agreement (NDA)?",Yes,compliant,Mutual NDA signed
+

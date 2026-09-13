@@ -1,42 +1,68 @@
+"""Perimeter models and management for internal organization scopes.
+
+Perimeters define organizational boundaries/projects. Each perimeter:
+- Belongs to a folder/domain.
+- Has a default assignee (user) responsible for compliance assessments and applied controls in that perimeter.
+"""
+
 import logging
 
 from .. import utils
 
 
 class Perimeter:
+    """Represents an organizational perimeter/scope."""
+
     def __init__(self, json_perimeter):
         self.json_object = json_perimeter
+
     def get_name(self):
         return self.json_object.get('name', '')
+
     def get_id(self):
         return self.json_object.get('id', '')
+
     def get_default_assignee_id(self):
+        """Return the UUID of the primary default assignee."""
         assignees = self.json_object.get('default_assignee', [])
         if not assignees:
             return ''
         assignee = assignees[0]
         return assignee.get('id', '') if isinstance(assignee, dict) else assignee
+
     def get_default_assignee(self):
         return self.json_object.get('default_assignee', [])
+
     def get_folder(self):
         return self.json_object.get('folder', '')
+
     def get_folder_uuid(self):
-        return self.json_object.get('folder', '').get('id', '')
+        folder = self.json_object.get('folder', {})
+        if isinstance(folder, dict):
+            return folder.get('id', '')
+        return str(folder) if folder else ''
+
     def print_name(self):
         utils.log(f"Name: {self.get_name()}")
+
     def print_id(self):
         utils.log(f"ID: {self.get_id()}")
+
     def print_default_assignee(self):
         utils.log(f"Default Assignee: {self.get_default_assignee()}")
+
     def print_folder(self):
         utils.log(f"Folder: {self.get_folder()}")
 
 
 class PerimeterDict:
+    """Handles collections of perimeters and bulk creation."""
+
     def __init__(self):
         self.reload()
 
     def reload(self):
+        """Reload all perimeters from the API."""
         self.perimeters = [Perimeter(p) for p in utils.get_all_results("/api/perimeters/", force_reload=True)]
 
     def get_perimeters(self):

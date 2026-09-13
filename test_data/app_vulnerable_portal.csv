@@ -1,0 +1,23 @@
+requirement,question,answer,result,observation
+data_classification,"What is the maximum classification level handled?",Secret,non_compliant,Critical customer PII and credit cards
+hosting,"What is the hosting model?",SaaS,non_compliant,Third party SaaS provider
+stakeholder_identification,"Is there a designated business contact?",No,non_compliant,Missing business contact
+stakeholder_identification,"Is there a designated IT contact?",No,non_compliant,Missing IT contact
+stakeholder_identification,"Is there a designated data owner?",No,non_compliant,Missing data owner
+stakeholder_identification,"Is the information about stakeholders updated in LeanIX?",No,non_compliant,Not tracked in LeanIX
+data_in_transit,"Is data encrypted during transit?",No,non_compliant,Cleartext HTTP connections
+data_at_rest,"Is data encrypted at rest?",No,non_compliant,Unencrypted database volumes
+non_prod_data,"Do you have a dedicated non-production environment?",Yes,non_compliant,Dedicated dev environment exists
+non_prod_data,"Do you use prod data in a non-prod environment?",Yes,non_compliant,Full production database dumps copied to dev
+non_prod_data,"How do you protect them?","No, no protection",non_compliant,No data masking or hashing
+non_prod_data,"Do you clean the prod data after use in non-prod?",No,non_compliant,Data remains indefinitely in staging
+data_exchange,"Are there data exchanges beyond the group?",Yes,non_compliant,Transfers to third parties exist
+data_exchange,"Is there a data exchange contract with the appropriate confidentiality clauses?","No contract",non_compliant,No DPA or exchange contract
+data_destruction,"Is there a data destruction process for this application?",No,non_compliant,No data retention or destruction policy
+data_destruction,"Is the process compliant with the policy (responsibilities, methods, reporting)?","No, not compliant",non_compliant,No compliant process
+saas_contract_compliance,"Is there a signed SaaS contract?",No,non_compliant,Free tier account with no contract
+saas_contract_compliance,"Does the contract include an Audit clause?",No,non_compliant,No audit rights
+saas_contract_compliance,"Does the contract include an Incident Notification process?",No,non_compliant,No security notification clause
+saas_contract_compliance,"Does the contract include Strong IAM requirements?",No,non_compliant,Password only without MFA
+saas_contract_compliance,"Does the contract include a Confidentiality agreement (NDA)?",No,non_compliant,No confidentiality clause
+
