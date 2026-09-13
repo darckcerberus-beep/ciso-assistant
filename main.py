@@ -47,7 +47,6 @@ def main():
     # Step 6: Create or update external-entity audits for third-party vendors/partners (additive step).
     data["entity_assessment_dict"].create_external_entity_audits(
         data["entity_dict"],
-        data["entity_representative_dict"],
         data["framework_dict"],
     )
 
@@ -57,7 +56,7 @@ def main():
         data["risk_scenario_dict"],
         data["applied_control_dict"],
         data["asset_dict"],
-        data["framework_file"],
+        data["library_file"],
         data["requirement_assessment_dict"],
         data["risk_matrix_dict"],
         data["framework_dict"],

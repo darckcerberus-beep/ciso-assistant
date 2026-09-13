@@ -28,7 +28,7 @@ Flow and error cases:
 2. Build `compliance_name = compliance_assessment.get("name")` and search `utils.get_all_results("/api/risk-assessments/")` for an entry where `name == f"{compliance_name} Risk Assessment"`.
    - If not found -> raises `LookupError("Risk assessment for compliance '...' not found")`.
 
-3. Load scenarios from the framework file `YML/newDPP.yml` using `FrameworkFile(...).get_risk_scenarios()` and collect scenario names where `scenario.get('likelihood') == requirement_urn`.
+3. Load scenarios from the library file `YML/newDPP.yml` using `LibraryFile(...).get_risk_scenarios()` and collect scenario names where `scenario.get('likelihood') == requirement_urn`.
    - If no such scenarios -> raises `LookupError("No risk scenarios reference requirement urn ...")`.
 
 4. Iterate API `risk-scenarios` (`utils.get_all_results("/api/risk-scenarios/")`) and find a scenario where:
@@ -75,10 +75,10 @@ This document describes the end-to-end logic of the project and how `priority` v
 - `classes/utils.py` — API interaction and helpers
    - `get_return(endpoint, method, payload, params)`: performs HTTP requests to the API, handles 204/404/400, logs errors, and returns parsed JSON or None/error dict.
    - `get_all_results(endpoint, params)`: paginates through API `results` pages and returns a consolidated list.
-   - `load_yaml_file(path)`: loads YAML used by `FrameworkFile` and other classes.
+   - `load_yaml_file(path)`: loads YAML used by `LibraryFile` and other classes.
 
 - `classes/framework.py` — framework objects and YAML loader
-   - `FrameworkFile(filepath)`: loads local YAML framework files (e.g., `YML/newDPP.yml`) and exposes `get_risk_scenarios()`, `get_impact_mapping()`, and `get_criticality_mapping()`.
+   - `LibraryFile(filepath)`: loads local YAML library files (e.g., `YML/newDPP.yml`) and exposes `get_risk_scenarios()`, `get_impact_mapping()`, and `get_criticality_mapping()`.
    - `FrameworkDict` / `Framework`: fetch frameworks from API and expose helpers to query risk scenarios and matrices.
 
 - `classes/audit.py` — compliance and requirement assessment management
@@ -159,7 +159,7 @@ if priority is not None:
 
 - `main.py` — orchestration and entry point. [main.py](main.py)
 - `classes/utils.py` — API helper functions and YAML loader. [classes/utils.py](classes/utils.py)
-- `classes/framework.py` — framework objects and YAML `FrameworkFile`. [classes/framework.py](classes/framework.py)
+- `classes/framework.py` — framework objects and YAML `LibraryFile`. [classes/framework.py](classes/framework.py)
 - `classes/audit.py` — compliance and requirement assessment workflows. [classes/audit.py](classes/audit.py)
 - `classes/control.py` — applied/reference control logic and priority mapping. [classes/control.py](classes/control.py)
 - `classes/risk.py` — risk assessment and scenario creation/update. [classes/risk.py](classes/risk.py)

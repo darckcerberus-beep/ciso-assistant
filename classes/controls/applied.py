@@ -168,7 +168,7 @@ class AppliedControlDict:
         framework_file=None,
     ):
         """Return priority from the current level of the scenario associated with a requirement."""
-        from ..core.framework import FrameworkFile
+        from ..core.framework import LibraryFile
 
         compliance_assessment = None
         if compliance_assessment_dict:

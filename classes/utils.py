@@ -1,6 +1,5 @@
 import logging
 import json
-from pathlib import Path
 from typing import Any
 
 import requests
@@ -47,15 +46,10 @@ def load_yaml_file(yaml_file: str) -> dict[str, Any]:
         raise
 
 
-# Load settings from the settings YAML file
-_settings_path = Path(__file__).parent.parent / "YML" / "settings.yml"
-_settings = load_yaml_file(str(_settings_path))
-
-# Build default authentication headers from settings
-_headers_config = _settings.get("api", {}).get("headers", {})
+# Build default authentication headers
 HEADERS = {
     "Authorization": f"Token {API_TOKEN}",
-    **_headers_config,
+    "Content-Type": "application/json",
 }
 
 # Simple in-process cache for paginated GET results to avoid repeated API calls
@@ -234,46 +228,6 @@ def clear_get_all_results_cache() -> None:
     _get_all_results_cache.clear()
 
 
-def get_external_entity_representative_emails() -> dict[str, list[str]]:
-    """Return configured representative email addresses by external entity name."""
-    representatives = _settings.get('external_entity_representatives', {})
-    if not isinstance(representatives, dict):
-        return {}
-    return {
-        str(entity_name).lower(): [str(email) for email in emails if email]
-        for entity_name, emails in representatives.items()
-        if isinstance(emails, list)
-    }
-
-
-def start_requirement_assignment(assignment_id: str) -> bool:
-    """Transition a newly created requirement assignment to ``in_progress``."""
-    if not assignment_id:
-        return False
-
-    response = get_return(
-        f'/api/requirement-assignments/{assignment_id}/set_status/',
-        method='POST',
-        payload={'status': 'in_progress'},
-    )
-    if not isinstance(response, dict) or response.get('status') != 'in_progress':
-        log(
-            f"Failed to start requirement assignment {assignment_id}: {response}",
-            level=logging.ERROR,
-        )
-        return False
-
-    assignment = get_return(f'/api/requirement-assignments/{assignment_id}/')
-    if isinstance(assignment, dict) and assignment.get('status') == 'in_progress':
-        return True
-
-    log(
-        f"Requirement assignment {assignment_id} did not persist in_progress status: {assignment}",
-        level=logging.ERROR,
-    )
-    return False
-
-
 def initialize_data_objects() -> dict[str, Any]:
     """Instantiate all required dictionaries and framework objects used in the workflow."""
     from classes.audits.compliance import ComplianceAssessmentDict
@@ -282,11 +236,11 @@ def initialize_data_objects() -> dict[str, Any]:
     from classes.audits.requirement_assessment import RequirementAssessmentDict
     from classes.controls.applied import AppliedControlDict
     from classes.controls.reference import ReferenceControlDict
-    from classes.core.framework import FrameworkDict, FrameworkFile
+    from classes.core.framework import FrameworkDict, LibraryFile
     from classes.core.risk import RiskAssessmentDict, RiskMatrixDict, RiskScenarioDict
     from classes.core.user import UserDict
     from classes.organization.asset import AssetDict
-    from classes.organization.entity import EntityDict, EntityRepresentativeDict
+    from classes.organization.entity import EntityDict
     from classes.organization.perimeter import PerimeterDict
 
     requirement_assessment_dict = RequirementAssessmentDict()
@@ -300,10 +254,9 @@ def initialize_data_objects() -> dict[str, Any]:
     risk_assessment_dict = RiskAssessmentDict()
     risk_scenario_dict = RiskScenarioDict()
     user_dict = UserDict()
-    framework_file = FrameworkFile("YML/newDPP.yml")
+    library_file = LibraryFile("YML/newDPP.yml")
     risk_matrix_dict = RiskMatrixDict()
     entity_dict = EntityDict()
-    entity_representative_dict = EntityRepresentativeDict()
     entity_assessment_dict = EntityAssessmentDict()
 
     return {
@@ -318,10 +271,9 @@ def initialize_data_objects() -> dict[str, Any]:
         "risk_assessment_dict": risk_assessment_dict,
         "risk_scenario_dict": risk_scenario_dict,
         "user_dict": user_dict,
-        "framework_file": framework_file,
+        "library_file": library_file,
         "risk_matrix_dict": risk_matrix_dict,
         "entity_dict": entity_dict,
-        "entity_representative_dict": entity_representative_dict,
         "entity_assessment_dict": entity_assessment_dict,
     }
 

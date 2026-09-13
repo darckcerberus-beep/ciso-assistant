@@ -1,0 +1,53 @@
+# Sample model for entity assessment onboarding
+# Context: internal departments are modeled as domains,
+# and associated internal applications are modeled as external entities.
+
+model: department-as-domain_external-entity
+version: 1
+locale: en
+organization: ACME Corp
+
+# Departments -> CISO Assistant folders/domains
+domains:
+  - name: Finance
+  - name: Human Resources
+  - name: Sales
+  - name: Operations
+  - name: IT
+
+# Applications -> treated as external entities for entity assessment flow
+external_entities:
+  - name: SAP S/4HANA
+    domain: Finance
+    type: internal-application-treated-as-external
+    representative_emails:
+      - finance.app.owner@acme.example
+      - finance.security.contact@acme.example
+
+  - name: Workday HCM
+    domain: Human Resources
+    type: internal-application-treated-as-external
+    representative_emails:
+      - hr.app.owner@acme.example
+      - hr.security.contact@acme.example
+
+  - name: Salesforce CRM
+    domain: Sales
+    type: internal-application-treated-as-external
+    representative_emails:
+      - sales.app.owner@acme.example
+      - sales.security.contact@acme.example
+
+  - name: ServiceNow ITSM
+    domain: IT
+    type: internal-application-treated-as-external
+    representative_emails:
+      - it.app.owner@acme.example
+      - it.security.contact@acme.example
+
+  - name: MES Platform
+    domain: Operations
+    type: internal-application-treated-as-external
+    representative_emails:
+      - operations.app.owner@acme.example
+      - operations.security.contact@acme.example

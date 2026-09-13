@@ -176,8 +176,8 @@ class FrameworkDict:
         return None
 
 
-class FrameworkFile:
-    """Represent a framework loaded from a YAML file."""
+class LibraryFile:
+    """Represent a library definition loaded from a YAML file."""
 
     def __init__(self, filepath):
         self.filepath = filepath
@@ -204,11 +204,11 @@ class FrameworkFile:
         self.json_object = utils.load_json_file(self.json_file)
 
     def load_from_yaml_file(self, yaml_file):
-        """Load and return a framework from a YAML file."""
+        """Load and return a library definition from a YAML file."""
         return utils.load_yaml_file(yaml_file)
 
     def print_risk_scenario(self):
-        """Log all risk scenarios declared in the local framework."""
+        """Log all risk scenarios declared in the local library definition."""
         risk_scenarios = self.json_object.get("objects", {}).get("risk_scenarios", [])
         for risk_scenario in risk_scenarios:
             utils.log(
@@ -221,11 +221,11 @@ class FrameworkFile:
             )
 
     def get_risk_scenarios(self):
-        """Return the risk scenarios contained in the current framework."""
+        """Return the risk scenarios contained in the current library definition."""
         return self.json_object.get("objects", {}).get("risk_scenarios", [])
 
     def get_criticality_mapping(self):
-        """Return the framework's criticality mapping."""
+        """Return the library's criticality mapping."""
         return self.json_object.get("criticality_mapping", {})
 
     def get_impact_mapping(self):
