@@ -49,6 +49,7 @@ class Asset:
             f"/api/assets/{self.get_id()}/",
             method="PATCH",
             payload={"owner": [owner_id]},
+            log_errors=False,
         )
         if isinstance(response, dict) and not response.get("error"):
             self.json_object = response
@@ -129,7 +130,7 @@ class AssetDict:
         """Reload all assets from API."""
         self.assets = [Asset(a) for a in utils.get_all_results("/api/assets/", force_reload=True)]
 
-    def create_asset(self, name, asset_type, folder):
+    def create_asset(self, name, asset_type, folder, owner_id=None):
         """Create a new asset if it does not already exist."""
         for a in self.assets:
             if a.get_name() == name:
@@ -140,7 +141,12 @@ class AssetDict:
             utils.log("Folder does not exist", level=logging.WARNING)
             utils.get_return("/api/folders/", method="POST", payload={'name': folder})
         payload = {'name': name, 'type': asset_type, 'folder': folder}
+        if owner_id:
+            payload['owner'] = [owner_id]
         res = utils.get_return("/api/assets/", method="POST", payload=payload)
+        if isinstance(res, dict) and res.get("error") and "owner" in str(res.get("details", "")):
+            payload.pop('owner', None)
+            res = utils.get_return("/api/assets/", method="POST", payload=payload)
         self.reload()
         return Asset(res)
 
@@ -212,3 +218,14 @@ class AssetDict:
         for a in self.assets:
             utils.log(f"Asset: {a.get_name()}")
             a.print_security_objectives()
+
+    def delete_asset(self, asset_id):
+        """Delete an asset by UUID."""
+        utils.log(f"Deleting asset ID: {asset_id}", level=logging.INFO)
+        response = utils.get_return(f"/api/assets/{asset_id}/", method="DELETE")
+        if response is True or (isinstance(response, dict) and not response.get("error")):
+            self.assets = [a for a in self.assets if a.get_id() != asset_id]
+            utils.log(f"Successfully deleted asset ID: {asset_id}", level=logging.INFO)
+            return True
+        utils.log(f"Failed to delete asset ID {asset_id}: {response}", level=logging.ERROR)
+        return False

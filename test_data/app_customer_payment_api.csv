@@ -1,0 +1,21 @@
+requirement,question,answer,result,observation
+data_classification,"What is the maximum classification level handled?",Secret,compliant,Cardholder data environment (PCI-DSS PAN and CVV tokens)
+hosting,"What is the hosting model?",In-house,compliant,Dedicated PCI-DSS compliant private cloud enclave
+stakeholder_identification,"Is there a designated business contact?",Yes,compliant,VP Payments designated as business contact
+stakeholder_identification,"Is there a designated IT contact?",Yes,compliant,Principal Security Architect designated as IT contact
+stakeholder_identification,"Is there a designated data owner?",Yes,compliant,Payment Operations Director designated as data owner
+stakeholder_identification,"Is the information about stakeholders updated in LeanIX?",Yes,compliant,LeanIX application inventory is current
+data_in_transit,"Is data encrypted during transit?",Yes,compliant,Mutual TLS 1.3 with pinned certificates
+data_at_rest,"Is data encrypted at rest?",Yes,compliant,Hardware Security Module (HSM) envelope encryption (AES-256-GCM)
+non_prod_data,"Do you have a dedicated non-production environment?",Yes,compliant,Isolated sandbox test environment
+non_prod_data,"Do you use prod data in a non-prod environment?",No,compliant,Synthetically generated card numbers only
+data_exchange,"Are there data exchanges beyond the group?",Yes,compliant,Clearinghouse settlement network transfers
+data_exchange,"Is there a data exchange contract with the appropriate confidentiality clauses?","Yes, signed contract",compliant,Payment scheme bilateral agreements in place
+data_destruction,"Is there a data destruction process for this application?",Yes,compliant,Automated cryptographic erasure upon token expiration
+data_destruction,"Is the process compliant with the policy (responsibilities, methods, reporting)?","Yes, compliant!",compliant,Formal PCI ROC validated purge process
+saas_contract_compliance,"Is there a signed SaaS contract?",Yes,compliant,Payment gateway vendor agreement executed
+saas_contract_compliance,"Does the contract include an Audit clause?",Yes,compliant,Annual PCI DSS Attestation of Compliance (AoC) required
+saas_contract_compliance,"Does the contract include an Incident Notification process?",No,partially_compliant,Clearinghouse SLA specifies 30-day notice instead of mandated 24-hour window
+saas_contract_compliance,"Does the contract include Strong IAM requirements?",Yes,compliant,Hardware token MFA and restricted IP whitelisting
+saas_contract_compliance,"Does the contract include a Confidentiality agreement (NDA)?",Yes,compliant,Comprehensive mutual financial confidentiality NDA
+

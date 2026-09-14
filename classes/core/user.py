@@ -116,6 +116,34 @@ class UserDict:
         group = user_dict.get('group', '')
         return self.upsert_user(first_name, last_name, email, group)
 
+    def create_user_if_missing(self, email, first_name="", last_name="", is_third_party=True):
+        """Create a user account if one with the specified email does not exist."""
+        norm_email = (email or "").strip().lower()
+        for u in self.users:
+            if u.get_email().strip().lower() == norm_email:
+                return u.get_json()
+
+        payload = {
+            "email": norm_email,
+            "first_name": first_name or "",
+            "last_name": last_name or "",
+            "is_third_party": is_third_party,
+            "is_active": True,
+        }
+        res = utils.get_return("/api/users/", method="POST", payload=payload)
+        if res and (not isinstance(res, dict) or not res.get("error")):
+            self.reload()
+            return res
+        return None
+
+    def delete_user_by_id(self, user_id):
+        """Delete user account by ID."""
+        res = utils.get_return(f"/api/users/{user_id}/", method="DELETE")
+        if res:
+            self.reload()
+            return True
+        return False
+
 
 class Team:
     def __init__(self, json_user_group):

@@ -46,6 +46,29 @@ def load_yaml_file(yaml_file: str) -> dict[str, Any]:
         raise
 
 
+def load_json_file(json_file: str) -> dict[str, Any]:
+    """Load and parse a JSON file from disk.
+
+    Args:
+        json_file: Path to the JSON file to load
+
+    Returns:
+        Parsed JSON content as a dictionary
+    """
+    LOGGER.debug(f"Loading JSON file: {json_file}")
+    try:
+        with open(json_file, "r", encoding="utf-8") as file:
+            result = json.load(file) or {}
+        LOGGER.debug(f"Successfully loaded JSON file: {json_file}")
+        return result
+    except FileNotFoundError:
+        LOGGER.error(f"JSON file not found: {json_file}")
+        raise
+    except Exception as e:
+        LOGGER.error(f"Error loading JSON file {json_file}: {e}")
+        raise
+
+
 # Build default authentication headers
 HEADERS = {
     "Authorization": f"Token {API_TOKEN}",

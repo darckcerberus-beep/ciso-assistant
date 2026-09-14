@@ -1,0 +1,23 @@
+requirement,question,answer,result,observation
+data_classification,"What is the maximum classification level handled?",Confidential,compliant,Proprietary machine learning models and confidential customer behavioral logs
+hosting,"What is the hosting model?",SaaS,compliant,Multi-tenant cloud AI training and analytics platform
+stakeholder_identification,"Is there a designated business contact?",Yes,compliant,VP Artificial Intelligence designated as business contact
+stakeholder_identification,"Is there a designated IT contact?",Yes,compliant,Lead MLOps Engineer designated as IT contact
+stakeholder_identification,"Is there a designated data owner?",Yes,compliant,Chief Data Officer designated as data owner
+stakeholder_identification,"Is the information about stakeholders updated in LeanIX?",Yes,compliant,AI initiative registered in LeanIX enterprise architecture
+data_in_transit,"Is data encrypted during transit?",Yes,compliant,TLS 1.3 enforced for API inference endpoints and data pipelines
+data_at_rest,"Is data encrypted at rest?",Yes,compliant,Cloud object storage encrypted with AES-256
+non_prod_data,"Do you have a dedicated non-production environment?",Yes,compliant,Jupyter notebook research sandbox environments
+non_prod_data,"Do you use prod data in a non-prod environment?",Yes,non_compliant,Live customer interaction datasets used for prompt engineering
+non_prod_data,"How do you protect them?","No, no protection",non_compliant,Unmasked raw customer queries used in model evaluation
+non_prod_data,"Do you clean the prod data after use in non-prod?",No,non_compliant,Evaluation logs cached permanently across experiment runs
+data_exchange,"Are there data exchanges beyond the group?",Yes,non_compliant,Payloads submitted to external third-party foundation LLM APIs
+data_exchange,"Is there a data exchange contract with the appropriate confidentiality clauses?","No contract",non_compliant,No bilateral data protection addendum or zero-retention commitment
+data_destruction,"Is there a data destruction process for this application?",No,non_compliant,No automated data lifecycle or purge pipeline configured
+data_destruction,"Is the process compliant with the policy (responsibilities, methods, reporting)?","No, not compliant",non_compliant,Indefinite retention of model training corpora
+saas_contract_compliance,"Is there a signed SaaS contract?",Yes,compliant,Commercial online developer terms of service
+saas_contract_compliance,"Does the contract include an Audit clause?",No,partially_compliant,Standard commercial tier excludes direct audit rights
+saas_contract_compliance,"Does the contract include an Incident Notification process?",Yes,compliant,72-hour security incident notification clause
+saas_contract_compliance,"Does the contract include Strong IAM requirements?",Yes,compliant,SSO with mandatory hardware MFA integration
+saas_contract_compliance,"Does the contract include a Confidentiality agreement (NDA)?",No,non_compliant,Standard self-service terms without custom intellectual property protection
+

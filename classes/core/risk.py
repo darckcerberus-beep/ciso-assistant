@@ -50,6 +50,13 @@ class RiskAssessment:
         """Return the assessment lifecycle status."""
         return self.json_object.get('status', '')
 
+    def get_perimeter_id(self):
+        """Return the perimeter UUID associated with this risk assessment."""
+        p = self.json_object.get('perimeter')
+        if isinstance(p, dict):
+            return p.get('id', '')
+        return p or ''
+
     def print_name(self):
         """Log the risk assessment name."""
         utils.log(f"Risk Assessment Name: {self.get_name()}")
@@ -108,6 +115,17 @@ class RiskAssessmentDict:
         if isinstance(created, dict) and created.get("id"):
             self.risk_assessments[created.get("id")] = RiskAssessment(created)
         return created
+
+    def delete_risk_assessment(self, risk_assessment_id):
+        """Delete a risk assessment by UUID."""
+        utils.log(f"Deleting risk assessment ID: {risk_assessment_id}", level=logging.INFO)
+        response = utils.get_return(f"/api/risk-assessments/{risk_assessment_id}/", method="DELETE")
+        if response is True or (isinstance(response, dict) and not response.get("error")):
+            self.risk_assessments.pop(risk_assessment_id, None)
+            utils.log(f"Successfully deleted risk assessment ID: {risk_assessment_id}", level=logging.INFO)
+            return True
+        utils.log(f"Failed to delete risk assessment ID {risk_assessment_id}: {response}", level=logging.ERROR)
+        return False
 
 
 class RiskScenario:
@@ -247,6 +265,25 @@ class RiskScenarioDict:
                 utils.log(f"Deleted no-longer-applicable risk scenario: {name}")
             return response
         return True
+
+    def delete_scenarios_for_risk_assessment(self, risk_assessment_id):
+        """Delete all risk scenarios belonging to a specific risk assessment."""
+        deleted_count = 0
+        for scenario in list(self.risk_scenarios.values()):
+            scenario_json = scenario.get_json()
+            scenario_risk_assessment = scenario_json.get("risk_assessment")
+            if isinstance(scenario_risk_assessment, dict):
+                scenario_risk_assessment = scenario_risk_assessment.get("id")
+            if scenario_risk_assessment == risk_assessment_id:
+                response = utils.get_return(
+                    f"/api/risk-scenarios/{scenario.get_id()}/",
+                    method="DELETE",
+                )
+                if response is True or (isinstance(response, dict) and not response.get("error")):
+                    self.risk_scenarios.pop(scenario.get_id(), None)
+                    deleted_count += 1
+        utils.log(f"Deleted {deleted_count} scenario(s) for risk assessment {risk_assessment_id}", level=logging.INFO)
+        return deleted_count
 
     def create_risk_scenario(
         self,

@@ -1,11 +1,19 @@
-"""Demonstration and verification script for application risk calculations.
+"""Demonstration and simulation script for application risk calculations.
 
 Loads 4 sample application profiles from `test_data/` and evaluates their
 compliance scores, risk scenarios, likelihood/impact scaling, matrix risk levels,
 and applied control priorities.
+
+Supports:
+- Local offline calculations (default)
+- API simulation directly in the CISO Assistant UI (`--api`)
+- Interactive menu launcher (`--menu`)
 """
 
+import argparse
 from pathlib import Path
+import sys
+
 from tests.test_application_scenarios import ApplicationRiskSimulator
 
 
@@ -36,21 +44,74 @@ def print_application_summary(app_name, csv_file, simulator):
     print("\n")
 
 
+def run_api_simulation(app_target="all"):
+    """Simulate answers in the CISO Assistant UI by creating resources via the API."""
+    from classes.examples_manager import ExamplesManager
+    manager = ExamplesManager()
+    ok, msg = manager.test_connection()
+    if not ok:
+        print(f"\n[ERROR] Could not connect to CISO Assistant API: {msg}")
+        print("Please check connectivity and credentials in keys.py.")
+        sys.exit(1)
+
+    print("\n[+] Connected to CISO Assistant API. Simulating answers in the UI...")
+    if app_target == "all":
+        results = manager.create_all_examples()
+        print(f"\n[SUCCESS] Successfully created and simulated {len(results)} applications in CISO Assistant!")
+    else:
+        res = manager.create_example_application(app_target)
+        print(f"\n[SUCCESS] Successfully created and simulated {res['app_name']} in CISO Assistant!")
+
+    print("\nYou can now open CISO Assistant in your browser to view:")
+    print("  - Compliance Assessments & answers")
+    print("  - Evaluated Risk Assessments & Scenarios")
+    print("  - Applied Controls and Action Plan priorities")
+    print("  - Updated Asset Criticality")
+
+
 def main():
+    parser = argparse.ArgumentParser(
+        description="Simulate application compliance answers and risk calculations (offline or in CISO Assistant UI)."
+    )
+    parser.add_argument(
+        "--api",
+        nargs="?",
+        const="all",
+        metavar="APP_NAME",
+        help="Simulate answers in CISO Assistant UI via API ('all' or specific name/id).",
+    )
+    parser.add_argument(
+        "--menu",
+        action="store_true",
+        help="Launch interactive menu to create, inspect, or remove examples.",
+    )
+    args = parser.parse_args()
+
+    if args.menu:
+        import manage_examples
+        manage_examples.main()
+        return
+
+    if args.api:
+        run_api_simulation(args.api)
+        return
+
+    # Default: offline evaluation
+    from classes.examples_manager import EXAMPLE_APPLICATIONS
     simulator = ApplicationRiskSimulator("YML/newDPP.yml")
 
-    apps = [
-        ("App-Secure-Core (Secret / 100% Compliant)", "test_data/app_secure_core.csv"),
-        ("App-Vulnerable-Portal (Secret / 0% Non-Compliant)", "test_data/app_vulnerable_portal.csv"),
-        ("App-Internal-Tool (Internal / Mixed Compliance)", "test_data/app_internal_tool.csv"),
-        ("App-Public-Blog (Public / Low Sensitivity)", "test_data/app_public_blog.csv"),
-    ]
-
-    for app_name, csv_path in apps:
+    for app in EXAMPLE_APPLICATIONS:
+        csv_path = app["csv_path"]
         if Path(csv_path).exists():
-            print_application_summary(app_name, csv_path, simulator)
+            print_application_summary(app["label"], csv_path, simulator)
+
+    print("=" * 80)
+    print(" [TIP] To simulate and visualize these answers directly in the CISO Assistant UI:")
+    print("       python3 simulate_applications.py --api")
+    print("       or use the interactive manager:")
+    print("       python3 manage_examples.py")
+    print("=" * 80)
 
 
 if __name__ == "__main__":
     main()
-

@@ -58,6 +58,13 @@ class AppliedControl:
         """Return the implementation status of this control."""
         return self.json_object.get('status', '')
 
+    def get_reference_control_id(self):
+        """Return the reference control UUID."""
+        c = self.json_object.get('control')
+        if isinstance(c, dict):
+            return c.get('id', '')
+        return c or ''
+
     def print_name(self):
         """Print the control name."""
         utils.log(f"Name: {self.get_name()}")
@@ -117,7 +124,7 @@ class AppliedControlDict:
         for c in self.controls.values():
             utils.log(c.get_json())
 
-    def get_control_ids_by_status_for_requirement_assessments(self, requirement_assessment_ids):
+    def get_control_ids_by_status_for_requirement_assessments(self, requirement_assessment_ids, requirement_assessments=None):
         """Group controls by implementation status for the supplied assessments.
 
         Returns a dictionary with:
@@ -126,12 +133,38 @@ class AppliedControlDict:
         """
         assessment_ids = set(requirement_assessment_ids)
         controls_by_status = {"existing": [], "planned": []}
-        for control in self.controls.values():
-            if not assessment_ids.intersection(control.get_requirement_assessment_ids()):
-                continue
 
-            status_group = "existing" if control.get_status() == "active" else "planned"
-            controls_by_status[status_group].append(control.get_id())
+        # First approach: if requirement_assessments dict or list is provided,
+        # extract applied_controls directly from the requirement assessment JSON
+        if requirement_assessments:
+            ra_dict = (
+                requirement_assessments.get_requirement_assessments()
+                if hasattr(requirement_assessments, "get_requirement_assessments")
+                else requirement_assessments
+            )
+            if isinstance(ra_dict, dict):
+                ra_objs = [ra for ra_id, ra in ra_dict.items() if ra_id in assessment_ids]
+            else:
+                ra_objs = [ra for ra in ra_dict if getattr(ra, "get_id", lambda: "")() in assessment_ids]
+
+            for ra in ra_objs:
+                ctrl_ids = ra.get_applied_control_ids() if hasattr(ra, "get_applied_control_ids") else []
+                for cid in ctrl_ids:
+                    control = self.controls.get(cid)
+                    if control:
+                        status_group = "existing" if control.get_status() == "active" else "planned"
+                        if cid not in controls_by_status[status_group]:
+                            controls_by_status[status_group].append(cid)
+            if controls_by_status["existing"] or controls_by_status["planned"]:
+                return controls_by_status
+
+        # Second approach: check control.get_requirement_assessment_ids()
+        for control in self.controls.values():
+            if assessment_ids.intersection(control.get_requirement_assessment_ids()):
+                status_group = "existing" if control.get_status() == "active" else "planned"
+                if control.get_id() not in controls_by_status[status_group]:
+                    controls_by_status[status_group].append(control.get_id())
+
         return controls_by_status
 
     def get_priority_from_risk_level(self, risk_level):
@@ -319,6 +352,30 @@ class AppliedControlDict:
             return response
         return None
 
+    def ensure_assets_for_control(self, name, asset_ids):
+        """Ensure an applied control has its perimeter asset(s) linked."""
+        if not asset_ids:
+            return None
+        for control in self.controls.values():
+            if control.get_name() != name:
+                continue
+            current_assets = [
+                a.get("id", "") if isinstance(a, dict) else str(a)
+                for a in control.json_object.get("assets", [])
+            ]
+            merged_assets = list(dict.fromkeys(current_assets + [a for a in asset_ids if a]))
+            if merged_assets != current_assets:
+                response = utils.get_return(
+                    f"/api/applied-controls/{control.get_id()}/",
+                    method="PATCH",
+                    payload={"assets": merged_assets},
+                )
+                if isinstance(response, dict) and not response.get("error"):
+                    control.json_object = response
+                return response
+            return control.json_object
+        return None
+
     def create_missing_applied_controls(self, perimeter_dict, requirement_assessment,
                                      reference_control_dict, compliance_assessment_dict):
         """Create missing applied controls based on requirement assessments.
@@ -409,9 +466,20 @@ class AppliedControlDict:
                     owner_ids = external_context['owner_ids']
                 name = f"{control_name} on {scope_name}"
 
+                # Resolve assets for this control
+                control_assets = compliance_assessment_dict.get_asset_id_list_from_compliance_assessment_id(ra.get_compliance_assessment_id())
+                if not control_assets and perimeter_id:
+                    from ..organization.asset import AssetDict
+                    _ad = AssetDict()
+                    found_asset_id = _ad.get_asset_id_from_perimeter_id(perimeter_id, perimeter_dict)
+                    if found_asset_id:
+                        control_assets = [found_asset_id]
+
                 # Skip if control already exists
                 if self.check_applied_control_from_name(name):
                     self.update_folder_for_control(name, folder_id)
+                    if control_assets:
+                        self.ensure_assets_for_control(name, control_assets)
                     if ra.get_assessment_results() != "compliant":
                         self.update_priority_for_requirement_assessment(
                             name,
@@ -447,7 +515,7 @@ class AppliedControlDict:
                     "reference_control": control_id,
                     "owner": owner_ids if not is_compliant else [],
                     "folder": folder_id,
-                    "assets": compliance_assessment_dict.get_asset_id_list_from_compliance_assessment_id(ra.get_compliance_assessment_id()),
+                    "assets": control_assets,
                     "compliance_assessments": [ra.get_compliance_assessment_id()],
                     "requirement_assessments": [ra.get_id()],
                     "status": "active" if is_compliant else "to_do",
@@ -463,3 +531,14 @@ class AppliedControlDict:
             self.reload()
         else:
             utils.log("No new applied controls created.")
+
+    def delete_applied_control(self, control_id):
+        """Delete an applied control by UUID."""
+        utils.log(f"Deleting applied control ID: {control_id}", level=logging.INFO)
+        response = utils.get_return(f"/api/applied-controls/{control_id}/", method="DELETE")
+        if response is True or (isinstance(response, dict) and not response.get("error")):
+            self.controls.pop(control_id, None)
+            utils.log(f"Successfully deleted applied control ID: {control_id}", level=logging.INFO)
+            return True
+        utils.log(f"Failed to delete applied control ID {control_id}: {response}", level=logging.ERROR)
+        return False

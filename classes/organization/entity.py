@@ -381,6 +381,19 @@ class EntityRepresentativeDict:
         utils.log(f"Failed to create entity representative for entity {entity_id} and user {user_id}: {result}", level=logging.ERROR)
         return None
 
+    def delete_representatives_for_entity(self, entity_id):
+        """Delete all representative links for a given entity."""
+        deleted = 0
+        for rep in list(self.get_representatives_for_entity(entity_id)):
+            rep_id = rep.get_id()
+            if rep_id:
+                res = utils.get_return(f"/api/representatives/{rep_id}/", method="DELETE")
+                if res:
+                    deleted += 1
+        if deleted > 0:
+            self.reload()
+        return deleted
+
 
 class EntityDict:
     def __init__(self):
@@ -406,3 +419,32 @@ class EntityDict:
 
     def get_external_entities(self):
         return [entity for entity in self.entities if entity.is_external()]
+
+    def create_entity(self, name, folder_id=None, description=None):
+        """Create an external entity."""
+        for entity in self.entities:
+            if entity.get_name() == name:
+                return entity.get_json()
+
+        payload = {
+            "name": name,
+            "is_active": True,
+        }
+        if folder_id:
+            payload["folder"] = folder_id
+        if description:
+            payload["description"] = description
+
+        res = utils.get_return("/api/entities/", method="POST", payload=payload)
+        if res and (not isinstance(res, dict) or not res.get("error")):
+            self.reload()
+            return res
+        return None
+
+    def delete_entity(self, entity_id):
+        """Delete an external entity by ID."""
+        res = utils.get_return(f"/api/entities/{entity_id}/", method="DELETE")
+        if res:
+            self.reload()
+            return True
+        return False

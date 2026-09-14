@@ -1,0 +1,20 @@
+requirement,question,answer,result,observation
+data_classification,"What is the maximum classification level handled?",Internal,compliant,Factory assembly bills of materials and production scheduling
+hosting,"What is the hosting model?",In-house,compliant,On-premise plant data center running on physical servers
+stakeholder_identification,"Is there a designated business contact?",Yes,compliant,Plant Operations Manager designated as business contact
+stakeholder_identification,"Is there a designated IT contact?",Yes,compliant,OT/ICS Network Administrator designated as IT contact
+stakeholder_identification,"Is there a designated data owner?",No,partially_compliant,Informally managed by shop floor supervisors
+stakeholder_identification,"Is the information about stakeholders updated in LeanIX?",No,partially_compliant,Legacy OT systems not yet integrated into enterprise LeanIX
+data_in_transit,"Is data encrypted during transit?",No,non_compliant,Cleartext proprietary protocols and HTTP over factory plant LAN
+data_at_rest,"Is data encrypted at rest?",No,non_compliant,Unencrypted legacy relational database tablespaces
+non_prod_data,"Do you have a dedicated non-production environment?",Yes,compliant,Offline test bench available for staging firmware and patches
+non_prod_data,"Do you use prod data in a non-prod environment?",No,compliant,Static dummy parts catalog used for development
+data_exchange,"Are there data exchanges beyond the group?",No,compliant,Air-gapped factory subnet with no outbound partner connections
+data_destruction,"Is there a data destruction process for this application?",Yes,partially_compliant,Manual administrative database truncation script
+data_destruction,"Is the process compliant with the policy (responsibilities, methods, reporting)?","No, not compliant",partially_compliant,No formal verification or sign-off reports generated
+saas_contract_compliance,"Is there a signed SaaS contract?",No,not_applicable,N/A - Entirely self-hosted legacy on-premise application
+saas_contract_compliance,"Does the contract include an Audit clause?",No,not_applicable,N/A - In-house deployment
+saas_contract_compliance,"Does the contract include an Incident Notification process?",No,not_applicable,N/A - In-house deployment
+saas_contract_compliance,"Does the contract include Strong IAM requirements?",No,non_compliant,Local accounts with single-factor passwords only
+saas_contract_compliance,"Does the contract include a Confidentiality agreement (NDA)?",No,not_applicable,N/A - In-house deployment
+

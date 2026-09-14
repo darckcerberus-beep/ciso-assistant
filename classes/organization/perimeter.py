@@ -106,9 +106,17 @@ class PerimeterDict:
         payload = {
             'name': name,
             'folder': folder_uuid,
-            'default_assignee': [default_assignee_id]
         }
+        if default_assignee_id:
+            payload['default_assignee'] = [default_assignee_id]
+
         result = utils.get_return("/api/perimeters/", method="POST", payload=payload)
+        # If creation failed due to invalid default_assignee, retry without it
+        if isinstance(result, dict) and result.get("error") and "default_assignee" in str(result.get("details", "")):
+            utils.log(f"Retrying perimeter '{name}' creation without default_assignee...", level=logging.WARNING)
+            payload.pop('default_assignee', None)
+            result = utils.get_return("/api/perimeters/", method="POST", payload=payload)
+
         utils.log(f"Result: {result}")
         if result and (not isinstance(result, dict) or not result.get("error")):
             utils.log(f"Perimeter '{name}' created successfully.")
@@ -129,3 +137,14 @@ class PerimeterDict:
             folder_uuid = domain_dict.get_id_from_name(perimeter.get('domain'))
             if perimeter_name and default_assignee_id and folder_uuid:
                 self.create_perimeter(perimeter_name, default_assignee_id, folder_uuid)
+
+    def delete_perimeter(self, perimeter_id):
+        """Delete a perimeter by UUID."""
+        utils.log(f"Deleting perimeter ID: {perimeter_id}", level=logging.INFO)
+        response = utils.get_return(f"/api/perimeters/{perimeter_id}/", method="DELETE")
+        if response is True or (isinstance(response, dict) and not response.get("error")):
+            self.perimeters = [p for p in self.perimeters if p.get_id() != perimeter_id]
+            utils.log(f"Successfully deleted perimeter ID: {perimeter_id}", level=logging.INFO)
+            return True
+        utils.log(f"Failed to delete perimeter ID {perimeter_id}: {response}", level=logging.ERROR)
+        return False

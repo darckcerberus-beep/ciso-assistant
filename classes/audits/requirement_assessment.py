@@ -113,6 +113,21 @@ class RequirementAssessment:
         """Return the asset IDs linked to the requirement assessment."""
         return self.json_object.get('assets', [])
 
+    def get_applied_controls(self):
+        """Return the applied controls attached to this requirement assessment."""
+        return self.json_object.get('applied_controls', [])
+
+    def get_applied_control_ids(self):
+        """Return the list of applied control UUIDs attached to this requirement assessment."""
+        controls = self.get_applied_controls()
+        if not isinstance(controls, list):
+            return []
+        return [
+            c.get('id', '') if isinstance(c, dict) else str(c)
+            for c in controls
+            if c
+        ]
+
     def get_score(self):
         """Return the assessment score."""
         return self.json_object.get('score', '')

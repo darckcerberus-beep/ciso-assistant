@@ -113,6 +113,10 @@ class ComplianceAssessmentDict:
         for ca in utils.get_all_results("/api/compliance-assessments/", force_reload=True):
             utils.log(f"Adding compliance assessment object for assessment ID: {ca.get('id')}")
             self.compliance_assessments[ca.get('id')] = ComplianceAssessment(ca)
+        if hasattr(self, 'requirement_assessments') and self.requirement_assessments is not None:
+            self.requirement_assessments.reload()
+        if hasattr(self, 'requirement_assignments') and self.requirement_assignments is not None:
+            self.requirement_assignments.reload()
         utils.log(f"Reload completed: {len(self.compliance_assessments)} compliance assessments loaded", level=logging.INFO)
 
     def get_compliance_assessments(self):
@@ -218,12 +222,24 @@ class ComplianceAssessmentDict:
             utils.log(f"Requirement assignment IDs for compliance assessment {ca.get_name()}: {requirement_assignment_ids}")
 
             if requirement_assessment_ids and not requirement_assignment_ids:
+                owner_id = perimeter_dict.get_owner_id_from_perimeter_id(ca.get_perimeter_id())
+                if not owner_id:
+                    actor_records = utils.get_all_results("/api/actors/")
+                    if actor_records and isinstance(actor_records[0], dict):
+                        owner_id = actor_records[0].get("id")
+                if not owner_id:
+                    utils.log(
+                        f"Skipping requirement assignment for compliance assessment {ca.get_name()}: no actor available",
+                        level=logging.WARNING,
+                    )
+                    continue
+
                 utils.log(f"Creating assignments for compliance assessment: {ca.get_name()}")
                 payload = {
                     "requirement_assessments": requirement_assessment_ids,
                     "compliance_assessment": ca.get_id(),
                     "folder": perimeter_dict.get_folder_uuid_from_perimeter_id(ca.get_perimeter_id()),
-                    "actor": [perimeter_dict.get_owner_id_from_perimeter_id(ca.get_perimeter_id())]
+                    "actor": [owner_id]
                 }
                 req_assign_json = create_requirement_assignment(payload)
                 if not req_assign_json or (isinstance(req_assign_json, dict) and req_assign_json.get('error')):
@@ -423,3 +439,17 @@ class ComplianceAssessmentDict:
                         asset_ids,
                         owner_ids,
                     )
+
+    def delete_compliance_assessment(self, compliance_assessment_id):
+        """Delete a compliance assessment via DELETE request."""
+        utils.log(f"Deleting compliance assessment ID: {compliance_assessment_id}", level=logging.INFO)
+        response = utils.get_return(
+            f"/api/compliance-assessments/{compliance_assessment_id}/",
+            method="DELETE",
+        )
+        if response is True or (isinstance(response, dict) and not response.get("error")):
+            self.compliance_assessments.pop(compliance_assessment_id, None)
+            utils.log(f"Successfully deleted compliance assessment ID: {compliance_assessment_id}", level=logging.INFO)
+            return True
+        utils.log(f"Failed to delete compliance assessment ID {compliance_assessment_id}: {response}", level=logging.ERROR)
+        return False

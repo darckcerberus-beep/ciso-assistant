@@ -269,6 +269,69 @@ class TestApplicationScenarios(unittest.TestCase):
                 f"Public data scenario '{sc_name}' should only generate Medium/Low control priority"
             )
 
+    def test_app_hr_people_system(self):
+        """Test App-HR-People-System: Confidential data (Impact=3) with GDPR and non-prod gaps."""
+        results = self.simulator.evaluate_application("test_data/app_hr_people_system.csv")
+        self.assertEqual(results["impact_level"], 3, "Impact for Confidential HR data should be 3")
+
+        scenarios = results["scenarios"]
+        non_prod_sc = scenarios["Disclosure of production data in non-production environments"]
+        self.assertEqual(non_prod_sc["scaled_likelihood"], 4)
+        self.assertEqual(non_prod_sc["scaled_impact"], 3)
+        self.assertEqual(non_prod_sc["matrix_risk_id"], 3)  # High Risk
+        self.assertEqual(non_prod_sc["control_priority"], 1)  # Urgent Priority
+
+        retention_sc = scenarios["Excessive retention of sensitive data"]
+        self.assertEqual(retention_sc["scaled_likelihood"], 4)
+        self.assertEqual(retention_sc["control_priority"], 1)
+
+    def test_app_customer_payment_api(self):
+        """Test App-Customer-Payment-API: Secret PCI data (Impact=4) with vendor SLA gap."""
+        results = self.simulator.evaluate_application("test_data/app_customer_payment_api.csv")
+        self.assertEqual(results["impact_level"], 4, "Impact for Secret PCI data should be 4")
+
+        scenarios = results["scenarios"]
+        third_party_sc = scenarios["Third-party data leakage"]
+        self.assertEqual(third_party_sc["scaled_likelihood"], 4)
+        self.assertEqual(third_party_sc["scaled_impact"], 4)
+        self.assertEqual(third_party_sc["matrix_risk_id"], 4)  # Very High Risk
+        self.assertEqual(third_party_sc["control_priority"], 1)  # Urgent Priority
+
+        transit_sc = scenarios["Exposure of unencrypted data in transit"]
+        self.assertEqual(transit_sc["scaled_likelihood"], 1)
+
+    def test_app_legacy_erp_production(self):
+        """Test App-Legacy-ERP-Production: Internal data (Impact=2) with cleartext LAN and unencrypted DB."""
+        results = self.simulator.evaluate_application("test_data/app_legacy_erp_production.csv")
+        self.assertEqual(results["impact_level"], 2, "Impact for Internal data should be 2")
+
+        scenarios = results["scenarios"]
+        transit_sc = scenarios["Exposure of unencrypted data in transit"]
+        self.assertEqual(transit_sc["scaled_likelihood"], 4)
+        self.assertEqual(transit_sc["scaled_impact"], 2)
+        self.assertEqual(transit_sc["matrix_risk_id"], 2)  # Medium Risk
+        self.assertEqual(transit_sc["control_priority"], 2)  # High Priority
+
+        rest_sc = scenarios["Exposure of unencrypted data at rest"]
+        self.assertEqual(rest_sc["scaled_likelihood"], 4)
+        self.assertEqual(rest_sc["control_priority"], 2)
+
+    def test_app_ai_analytics_workbench(self):
+        """Test App-AI-Analytics-Workbench: Confidential data (Impact=3) with GenAI prompt and transfer risks."""
+        results = self.simulator.evaluate_application("test_data/app_ai_analytics_workbench.csv")
+        self.assertEqual(results["impact_level"], 3, "Impact for Confidential GenAI data should be 3")
+
+        scenarios = results["scenarios"]
+        non_prod_sc = scenarios["Disclosure of production data in non-production environments"]
+        self.assertEqual(non_prod_sc["scaled_likelihood"], 4)
+        self.assertEqual(non_prod_sc["matrix_risk_id"], 3)  # High Risk
+        self.assertEqual(non_prod_sc["control_priority"], 1)
+
+        third_party_sc = scenarios["Third-party data leakage"]
+        self.assertEqual(third_party_sc["scaled_likelihood"], 4)
+        self.assertEqual(third_party_sc["control_priority"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()
+

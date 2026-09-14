@@ -678,9 +678,28 @@ class EntityAssessmentDict:
         folder = entity.get('folder', {})
         if isinstance(folder, dict):
             return folder.get('id')
-        return folder or None
+    def delete_entity_assessment(self, assessment_id):
+        """Delete an entity assessment by ID."""
+        res = utils.get_return(f"/api/entity-assessments/{assessment_id}/", method="DELETE")
+        if res:
+            self.reload()
+            return True
+        return False
 
-    def create_entity_assessment(self, name, entity_id, compliance_assessment_id=None, representative_ids=None, framework_id=None, create_audit=False, status='in_progress'):
+    def create_entity_assessment(
+        self,
+        name,
+        entity_id,
+        compliance_assessment_id=None,
+        representative_ids=None,
+        framework_id=None,
+        create_audit=False,
+        status='in_progress',
+        criticality=None,
+        maturity=None,
+        trust=None,
+        conclusion=None,
+    ):
         """Create a new entity assessment for a third-party entity.
 
         This method is intentionally additive and does not affect the existing
@@ -757,6 +776,14 @@ class EntityAssessmentDict:
                 payload['compliance_assessment'] = compliance_assessment_id
             if representative_ids:
                 payload['representatives'] = representative_ids
+            if criticality is not None:
+                payload['criticality'] = criticality
+            if maturity is not None:
+                payload['maturity'] = maturity
+            if trust is not None:
+                payload['trust'] = trust
+            if conclusion is not None:
+                payload['conclusion'] = conclusion
 
             response = utils.get_return(
                 '/api/entity-assessments/',

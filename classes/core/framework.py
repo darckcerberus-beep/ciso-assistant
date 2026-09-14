@@ -201,7 +201,7 @@ class LibraryFile:
 
     def read(self):
         """Reload the JSON payload from the configured file path."""
-        self.json_object = utils.load_json_file(self.json_file)
+        self.json_object = utils.load_yaml_file(self.json_file)
 
     def load_from_yaml_file(self, yaml_file):
         """Load and return a library definition from a YAML file."""
@@ -238,4 +238,10 @@ class LibraryFile:
             if objective in criticality_mapping and isinstance(criticality_mapping[objective], dict):
                 return criticality_mapping[objective]
         return {}
-        
+
+
+class FrameworkFile(LibraryFile):
+    """Backward-compatible alias for library-defining framework files."""
+
+    pass
+
