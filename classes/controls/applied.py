@@ -4,8 +4,8 @@ An Applied Control represents a concrete implementation of a Reference Control m
 to a specific scope (Perimeter or External Entity).
 
 Status and Priority Rules:
-- If assessment result is 'compliant': status = 'active', owner = [] (no action required).
-- If assessment result is not 'compliant': status = 'to_do', owner = [perimeter_owner / entity_representative].
+- If requirement assessment score meets threshold (score >= 100): status = 'active', owner = [] (no action required).
+- If requirement assessment score is below threshold (score < 100): status = 'to_do', owner = [perimeter_owner / entity_representative].
 - Control priority is derived from the associated risk scenario current risk level:
     Risk Level 4 (Critical) -> Priority 1 (Urgent)
     Risk Level 3 (High)     -> Priority 2 (High)
@@ -390,9 +390,9 @@ class AppliedControlDict:
            - Name format: "<Reference Control Name> on <Scope Name>"
         4. If control already exists:
            - Update its folder if changed.
-           - If non-compliant, synchronize priority with the calculated risk level.
+           - If non-compliant (score < 100), synchronize priority with the calculated risk level.
         5. If control does not exist:
-           - Set status = 'active' if compliant (owner = []), else 'to_do' with assigned owner and priority.
+           - Set status = 'active' if compliant by score >= 100 (owner = []), else 'to_do' with assigned owner and priority.
            - POST to /api/applied-controls/.
         """
         from ..core.framework import FrameworkFile
@@ -480,7 +480,7 @@ class AppliedControlDict:
                     self.update_folder_for_control(name, folder_id)
                     if control_assets:
                         self.ensure_assets_for_control(name, control_assets)
-                    if ra.get_assessment_results() != "compliant":
+                    if not ra.is_score_compliant():
                         self.update_priority_for_requirement_assessment(
                             name,
                             ra.get_compliance_assessment_id(),
@@ -492,8 +492,8 @@ class AppliedControlDict:
                         )
                     continue
 
-                # Determine owner and status based on assessment results
-                is_compliant = ra.get_assessment_results() == "compliant"
+                # Determine owner and status based on assessment score (score >= 100 -> active, else to_do)
+                is_compliant = ra.is_score_compliant()
                 priority = None
                 if not is_compliant:
                     try:

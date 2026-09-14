@@ -159,6 +159,39 @@ class TestRiskCalculations(unittest.TestCase):
                 }
             )
 
+    def test_requirement_assessment_score_compliance(self):
+        """Verify that RequirementAssessment.is_score_compliant evaluates score threshold >= 100 correctly."""
+        from classes.audits.requirement_assessment import RequirementAssessment
+
+        # 100% score -> Compliant
+        ra_100 = RequirementAssessment({"score": 100})
+        self.assertTrue(ra_100.is_score_compliant())
+
+        ra_100_str = RequirementAssessment({"score": "100"})
+        self.assertTrue(ra_100_str.is_score_compliant())
+
+        # Fractional 100.0 -> Compliant
+        ra_100_float = RequirementAssessment({"score": 100.0})
+        self.assertTrue(ra_100_float.is_score_compliant())
+
+        # Scores < 100 -> Non-compliant
+        ra_99 = RequirementAssessment({"score": 99})
+        self.assertFalse(ra_99.is_score_compliant())
+
+        ra_80 = RequirementAssessment({"score": 80})
+        self.assertFalse(ra_80.is_score_compliant())
+
+        ra_0 = RequirementAssessment({"score": 0})
+        self.assertFalse(ra_0.is_score_compliant())
+
+        # Missing / None / Empty -> Non-compliant
+        ra_none = RequirementAssessment({"score": None})
+        self.assertFalse(ra_none.is_score_compliant())
+
+        ra_empty = RequirementAssessment({})
+        self.assertFalse(ra_empty.is_score_compliant())
+
 
 if __name__ == "__main__":
     unittest.main()
+

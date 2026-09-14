@@ -132,6 +132,16 @@ class RequirementAssessment:
         """Return the assessment score."""
         return self.json_object.get('score', '')
 
+    def is_score_compliant(self, threshold: float = 100.0) -> bool:
+        """Return True if the requirement assessment score meets or exceeds the compliance threshold (default: 100)."""
+        score = self.get_score()
+        if score is None or score == '':
+            return False
+        try:
+            return float(score) >= threshold
+        except (ValueError, TypeError):
+            return False
+
     def get_urn(self):
         """Return the requirement URN."""
         requirement = self.json_object.get('requirement', {})
@@ -421,7 +431,7 @@ class RequirementAssessmentDict:
                     "assets": compliance_assessment_dict.get_asset_id_list_from_compliance_assessment_id(ra.get_compliance_assessment_id()),
                     "compliance_assessments": [ra.get_compliance_assessment_id()],
                     "requirement_assessments": [ra.get_id()],
-                    "status": "active" if ra.get_assessment_results() == "compliant" else "to_do"
+                    "status": "active" if ra.is_score_compliant() else "to_do"
                 }
                 utils.get_return("/api/applied-controls/", method="POST", payload=payload)
                 created += 1
