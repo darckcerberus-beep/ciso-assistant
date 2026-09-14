@@ -212,6 +212,9 @@ objects:
       description: "Absence of a defined data classification level for the application."
       associated_controls:
         - urn:intuitem:risk:control:mls:identify_data_classification
+      threats:
+        - urn:intuitem:risk:threat:mls:unauthorized_access
+
     - urn: urn:intuitem:risk:vulnerability:mls:lack_of_encryption
       ref_id: lack_of_encryption
       name: "Lack of encryption"
@@ -219,18 +222,30 @@ objects:
       associated_controls:
         - urn:intuitem:risk:control:mls:encrypt_data_in_transit
         - urn:intuitem:risk:control:mls:encrypt_data_at_rest
+      threats:
+        - urn:intuitem:risk:threat:mls:data_exfiltration
+        - urn:intuitem:risk:threat:mls:unauthorized_access
+
     - urn: urn:intuitem:risk:vulnerability:mls:unclear_accountability
       ref_id: unclear_accountability
       name: "Unclear responsibilities"
       description: "Absence of identified points of contact for data governance."
       associated_controls:
         - urn:intuitem:risk:control:mls:stakeholder_designation
+      threats:
+        - urn:intuitem:risk:threat:mls:data_loss
+        - urn:intuitem:risk:threat:mls:unauthorized_access
+
     - urn: urn:intuitem:risk:vulnerability:mls:unprotected_non_prod
       ref_id: unprotected_non_prod
       name: "Vulnerable non-production environment"
       description: "Use of real data in unsecured test environments."
       associated_controls:
         - urn:intuitem:risk:control:mls:protect_prod_data_in_non_prod
+      threats:
+        - urn:intuitem:risk:threat:mls:data_exfiltration
+        - urn:intuitem:risk:threat:mls:unauthorized_access
+
     - urn: urn:intuitem:risk:vulnerability:mls:contractual_gap
       ref_id: contractual_gap
       name: "Contractual gap"
@@ -238,6 +253,18 @@ objects:
       associated_controls:
         - urn:intuitem:risk:control:mls:saas_contract
         - urn:intuitem:risk:control:mls:information_exchange_contract
+      threats:
+        - urn:intuitem:risk:threat:mls:data_exfiltration
+
+    - urn: urn:intuitem:risk:vulnerability:mls:uncontrolled_data_retention
+      ref_id: uncontrolled_data_retention
+      name: "Uncontrolled data retention"
+      description: "Absence of compliant data destruction procedures leading to excessive retention of sensitive data."
+      associated_controls:
+        - urn:intuitem:risk:control:mls:data_destruction_process
+      threats:
+        - urn:intuitem:risk:threat:mls:data_exfiltration
+        - urn:intuitem:risk:threat:mls:unauthorized_access
 
   # ========================================================================
   # REFERENCE CONTROLS - Mitigation measures and controls
@@ -341,17 +368,21 @@ objects:
     description: "Data protection policy of ACME Corp"
     # Implementation groups define assessment tracks/profiles
     implementation_groups_definition:
-      - name: "Application information"
+      - urn: urn:intuitem:risk:ig:mls:info
+        name: "Application information"
         ref_id: "info"
         description: "Basic information about the application"
         default_selected: true
-      - name: "Confidential"
+      - urn: urn:intuitem:risk:ig:mls:confidential_app
+        name: "Confidential"
         ref_id: "confidential_app"
         description: "Requirements for applications handling Confidential information"
-      - name: "Secret"
+      - urn: urn:intuitem:risk:ig:mls:secret_app
+        name: "Secret"
         ref_id: "secret_app"
         description: "Requirements for applications handling Secret information"
-      - name: "SaaS application"
+      - urn: urn:intuitem:risk:ig:mls:saas_app
+        name: "SaaS application"
         ref_id: "saas_app"
         description: "Requirements for SaaS applications"
 
@@ -364,7 +395,7 @@ objects:
         assessable: false
         depth: 1
         ref_id: info
-        name: Application info
+        name: Application Information
         description: "Basic context questions"
         annotation: >
           High-level application profiling and organizational governance context. Captures essential metadata to determine ownership, data sensitivity, and applicable compliance baseline tracks.
@@ -488,7 +519,7 @@ objects:
                 color: "#fd7e14"
               - urn: urn:intuitem:risk:req_node:mls:data_classification:q1:c4
                 value: "Secret"
-                select_implementation_groups: ["secret_app"]
+                select_implementation_groups: ["secret_app", "confidential_app"]
                 color: "#dc3545"
 
       # Requirement: Determine hosting model
@@ -497,7 +528,7 @@ objects:
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:mls:info
         ref_id: hosting
-        name: App hosting
+        name: Application Hosting Model
         description: "Determine whether the application is hosted in-house or outsourced as a SaaS solution."
         annotation: >
           Infrastructure hosting architecture classification:
@@ -606,7 +637,7 @@ objects:
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:mls:advanced
         ref_id: non_prod_data
-        name: App non_prod_data
+        name: Non-Production Data Protection
         description: "Non prod data is adequately protected"
         annotation: >
           Data sanitization and privacy preservation in non-production environments (development, testing, staging, QA).
@@ -701,7 +732,7 @@ objects:
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:mls:advanced
         ref_id: data_exchange
-        name: data_exchange
+        name: Control of Data Exchange
         description: "Data exchange beyond the group is controlled"
         annotation: >
           Cross-organizational data sharing and external transmission governance.
@@ -726,7 +757,7 @@ objects:
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:mls:data_exchange:question:1:choice:2
                 value: "Yes"
-                color: "#33a745"
+                color: "#fd7e14"
           urn:intuitem:risk:req_node:mls:data_exchange:question:2:
             type: unique_choice
             text: "Is there a data exchange contract with the appropriate confidentiality clauses?"
@@ -738,7 +769,7 @@ objects:
               - urn: urn:intuitem:risk:req_node:mls:data_exchange:question:2:choice:1
                 value: "No contract"
                 add_score: 0
-                compute_result: true
+                compute_result: false
                 color: "#dc3545"
               - urn: urn:intuitem:risk:req_node:mls:data_exchange:question:2:choice:2
                 value: "Contract!"
@@ -752,7 +783,7 @@ objects:
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:mls:advanced
         ref_id: data_destruction
-        name: data_destruction
+        name: Compliant Data Destruction
         description: "There is a compliant data destruction process for this application"
         annotation: >
           Compliant information disposal and data purging lifecycle.
@@ -761,6 +792,8 @@ objects:
           - Formal Data Retention and Destruction Policy & Standard Operating Procedure (SOP)
           - Automated database retention purge scripts / scheduled job logs
           - Certificate of Destruction or cryptographic sanitization audit log
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:mls:uncontrolled_data_retention
         reference_controls:
           - urn:intuitem:risk:control:mls:data_destruction_process
         implementation_groups: ["confidential_app", "secret_app"]

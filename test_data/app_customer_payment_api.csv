@@ -10,7 +10,7 @@ data_at_rest,"Is data encrypted at rest?",Yes,compliant,Hardware Security Module
 non_prod_data,"Do you have a dedicated non-production environment?",Yes,compliant,Isolated sandbox test environment
 non_prod_data,"Do you use prod data in a non-prod environment?",No,compliant,Synthetically generated card numbers only
 data_exchange,"Are there data exchanges beyond the group?",Yes,compliant,Clearinghouse settlement network transfers
-data_exchange,"Is there a data exchange contract with the appropriate confidentiality clauses?","Yes, signed contract",compliant,Payment scheme bilateral agreements in place
+data_exchange,"Is there a data exchange contract with the appropriate confidentiality clauses?","Contract!",compliant,Payment scheme bilateral agreements in place
 data_destruction,"Is there a data destruction process for this application?",Yes,compliant,Automated cryptographic erasure upon token expiration
 data_destruction,"Is the process compliant with the policy (responsibilities, methods, reporting)?","Yes, compliant!",compliant,Formal PCI ROC validated purge process
 saas_contract_compliance,"Is there a signed SaaS contract?",Yes,compliant,Payment gateway vendor agreement executed

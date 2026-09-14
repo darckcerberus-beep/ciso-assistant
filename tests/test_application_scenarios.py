@@ -292,10 +292,10 @@ class TestApplicationScenarios(unittest.TestCase):
 
         scenarios = results["scenarios"]
         third_party_sc = scenarios["Third-party data leakage"]
-        self.assertEqual(third_party_sc["scaled_likelihood"], 4)
+        self.assertEqual(third_party_sc["scaled_likelihood"], 1)
         self.assertEqual(third_party_sc["scaled_impact"], 4)
-        self.assertEqual(third_party_sc["matrix_risk_id"], 4)  # Very High Risk
-        self.assertEqual(third_party_sc["control_priority"], 1)  # Urgent Priority
+        self.assertEqual(third_party_sc["matrix_risk_id"], 1)  # Low Risk (mitigated by contract)
+        self.assertEqual(third_party_sc["control_priority"], 3)  # Medium Priority
 
         transit_sc = scenarios["Exposure of unencrypted data in transit"]
         self.assertEqual(transit_sc["scaled_likelihood"], 1)

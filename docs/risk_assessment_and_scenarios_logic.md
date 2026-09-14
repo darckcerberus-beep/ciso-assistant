@@ -118,14 +118,24 @@ Impact is determined by the classification level of data handled by the perimete
 - **Residual Impact**: Maintained equal to `scaled_impact` (inherent impact remains consistent).
 
 ### Step 5: Mitigating Control Classification
-Applied controls linked to the scenario's impact and likelihood requirements are segregated based on their `status`:
+Applied controls linked to the scenario's likelihood requirement (the specific mitigating security controls) are segregated based on their `status`:
 ```python
+# Identify requirement assessment IDs associated with this scenario's likelihood (mitigating controls)
+requirement_assessment_ids = [
+    requirement_assessment.get_id()
+    for requirement_assessment in requirement_assessments.values()
+    if requirement_assessment.get_compliance_assessment_id() == ca.get_id()
+    and requirement_assessment.get_urn() == risk_scenario.get('likelihood', '')
+]
+
 controls_by_status = applied_control_dict.get_control_ids_by_status_for_requirement_assessments(
     requirement_assessment_ids
 )
 ```
 - `existing_applied_controls` (`status == "active"`): Controls currently in place.
 - `applied_controls` (`status == "to_do"`): Planned mitigating controls.
+
+*(Note: The impact node, such as `data_classification`, reflects asset sensitivity rather than a risk-reducing security control and is therefore excluded from scenario mitigating controls to avoid falsely attributing classification as a mitigation for unaddressed threats).*
 
 ### Step 6: Asset and Owner Linkage
 - **Assets**: Extracted directly from the compliance assessment's perimeter (`ca.get_asset_id_list()`).

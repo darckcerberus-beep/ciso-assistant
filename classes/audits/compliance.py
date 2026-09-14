@@ -396,15 +396,12 @@ class ComplianceAssessmentDict:
                     ca.get_id(), risk_scenario.get('likelihood', ''), refresh=False
                 )
 
-                # Identify all requirement assessment IDs associated with this scenario's impact and likelihood
+                # Identify requirement assessment IDs associated with this scenario's likelihood (mitigating controls)
                 requirement_assessment_ids = [
                     requirement_assessment.get_id()
                     for requirement_assessment in requirement_assessments.values()
                     if requirement_assessment.get_compliance_assessment_id() == ca.get_id()
-                    and requirement_assessment.get_urn() in {
-                        risk_scenario.get('impact', ''),
-                        risk_scenario.get('likelihood', ''),
-                    }
+                    and requirement_assessment.get_urn() == risk_scenario.get('likelihood', '')
                 ]
 
                 # Categorize linked applied controls into active ("existing") and to_do ("planned")
