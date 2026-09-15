@@ -545,11 +545,11 @@ objects:
             choices:
               - urn: urn:intuitem:risk:req_node:mls:hosting:q1:c1
                 value: "In-house"
-                color: "#33a745"
+                color: "#17a2b8"
               - urn: urn:intuitem:risk:req_node:mls:hosting:q1:c2
                 value: "SaaS"
                 select_implementation_groups: ["saas_app"]
-                color: "#33a745"
+                color: "#17a2b8"
 
       # === CHAPTER 2: ADVANCED REQUIREMENTS ===
       # Parent node for encryption and data protection requirements

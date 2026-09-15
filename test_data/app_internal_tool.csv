@@ -1,6 +1,6 @@
 requirement,question,answer,result,observation
 data_classification,"What is the maximum classification level handled?",Internal,compliant,Internal company memos and employee directory
-hosting,"What is the hosting model?",SaaS,compliant,Enterprise SaaS vendor
+hosting,"What is the hosting model?",SaaS,not_applicable,Enterprise SaaS vendor
 stakeholder_identification,"Is there a designated business contact?",Yes,compliant,Product manager assigned
 stakeholder_identification,"Is there a designated IT contact?",Yes,compliant,DevOps engineer assigned
 stakeholder_identification,"Is there a designated data owner?",No,partially_compliant,Data owner not yet formalized

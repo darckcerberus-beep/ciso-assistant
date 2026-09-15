@@ -1,6 +1,6 @@
 requirement,question,answer,result,observation
 data_classification,"What is the maximum classification level handled?",Public,compliant,Public marketing articles and blogs
-hosting,"What is the hosting model?",SaaS,compliant,Managed CMS platform
+hosting,"What is the hosting model?",SaaS,not_applicable,Managed CMS platform
 stakeholder_identification,"Is there a designated business contact?",Yes,compliant,Marketing director
 stakeholder_identification,"Is there a designated IT contact?",No,partially_compliant,Outsourced agency
 stakeholder_identification,"Is there a designated data owner?",No,not_applicable,No private data

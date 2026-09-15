@@ -1,6 +1,6 @@
 requirement,question,answer,result,observation
 data_classification,"What is the maximum classification level handled?",Confidential,compliant,Proprietary machine learning models and confidential customer behavioral logs
-hosting,"What is the hosting model?",SaaS,compliant,Multi-tenant cloud AI training and analytics platform
+hosting,"What is the hosting model?",SaaS,not_applicable,Multi-tenant cloud AI training and analytics platform
 stakeholder_identification,"Is there a designated business contact?",Yes,compliant,VP Artificial Intelligence designated as business contact
 stakeholder_identification,"Is there a designated IT contact?",Yes,compliant,Lead MLOps Engineer designated as IT contact
 stakeholder_identification,"Is there a designated data owner?",Yes,compliant,Chief Data Officer designated as data owner

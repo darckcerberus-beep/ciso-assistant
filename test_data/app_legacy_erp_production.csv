@@ -1,6 +1,6 @@
 requirement,question,answer,result,observation
 data_classification,"What is the maximum classification level handled?",Internal,compliant,Factory assembly bills of materials and production scheduling
-hosting,"What is the hosting model?",In-house,compliant,On-premise plant data center running on physical servers
+hosting,"What is the hosting model?",In-house,not_applicable,On-premise plant data center running on physical servers
 stakeholder_identification,"Is there a designated business contact?",Yes,compliant,Plant Operations Manager designated as business contact
 stakeholder_identification,"Is there a designated IT contact?",Yes,compliant,OT/ICS Network Administrator designated as IT contact
 stakeholder_identification,"Is there a designated data owner?",No,partially_compliant,Informally managed by shop floor supervisors

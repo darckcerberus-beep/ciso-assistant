@@ -1,6 +1,6 @@
 requirement,question,answer,result,observation
 data_classification,"What is the maximum classification level handled?",Secret,compliant,Secret banking transaction records
-hosting,"What is the hosting model?",In-house,compliant,Internal datacenter hosting
+hosting,"What is the hosting model?",In-house,not_applicable,Internal datacenter hosting
 stakeholder_identification,"Is there a designated business contact?",Yes,compliant,Business owner assigned
 stakeholder_identification,"Is there a designated IT contact?",Yes,compliant,IT owner assigned
 stakeholder_identification,"Is there a designated data owner?",Yes,compliant,Data steward assigned

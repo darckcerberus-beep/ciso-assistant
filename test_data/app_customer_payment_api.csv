@@ -1,6 +1,6 @@
 requirement,question,answer,result,observation
 data_classification,"What is the maximum classification level handled?",Secret,compliant,Cardholder data environment (PCI-DSS PAN and CVV tokens)
-hosting,"What is the hosting model?",In-house,compliant,Dedicated PCI-DSS compliant private cloud enclave
+hosting,"What is the hosting model?",In-house,not_applicable,Dedicated PCI-DSS compliant private cloud enclave
 stakeholder_identification,"Is there a designated business contact?",Yes,compliant,VP Payments designated as business contact
 stakeholder_identification,"Is there a designated IT contact?",Yes,compliant,Principal Security Architect designated as IT contact
 stakeholder_identification,"Is there a designated data owner?",Yes,compliant,Payment Operations Director designated as data owner

@@ -1,6 +1,6 @@
 requirement,question,answer,result,observation
 data_classification,"What is the maximum classification level handled?",Confidential,compliant,Confidential employee HR records and compensation data
-hosting,"What is the hosting model?",SaaS,compliant,Enterprise Cloud HR SaaS platform
+hosting,"What is the hosting model?",SaaS,not_applicable,Enterprise Cloud HR SaaS platform
 stakeholder_identification,"Is there a designated business contact?",Yes,compliant,Chief People Officer designated as business contact
 stakeholder_identification,"Is there a designated IT contact?",Yes,compliant,HRIS Lead Engineer designated as IT contact
 stakeholder_identification,"Is there a designated data owner?",Yes,compliant,HR Operations Director designated as data owner

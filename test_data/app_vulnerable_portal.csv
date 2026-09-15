@@ -1,6 +1,6 @@
 requirement,question,answer,result,observation
 data_classification,"What is the maximum classification level handled?",Secret,non_compliant,Critical customer PII and credit cards
-hosting,"What is the hosting model?",SaaS,non_compliant,Third party SaaS provider
+hosting,"What is the hosting model?",SaaS,not_applicable,Third party SaaS provider
 stakeholder_identification,"Is there a designated business contact?",No,non_compliant,Missing business contact
 stakeholder_identification,"Is there a designated IT contact?",No,non_compliant,Missing IT contact
 stakeholder_identification,"Is there a designated data owner?",No,non_compliant,Missing data owner
