@@ -12,9 +12,4 @@ non_prod_data,"Do you use prod data in a non-prod environment?",No,compliant,Sta
 data_exchange,"Are there data exchanges beyond the group?",No,compliant,Air-gapped factory subnet with no outbound partner connections
 data_destruction,"Is there a data destruction process for this application?",Yes,partially_compliant,Manual administrative database truncation script
 data_destruction,"Is the process compliant with the policy (responsibilities, methods, reporting)?","No, not compliant",partially_compliant,No formal verification or sign-off reports generated
-saas_contract_compliance,"Is there a signed SaaS contract?",No,not_applicable,N/A - Entirely self-hosted legacy on-premise application
-saas_contract_compliance,"Does the contract include an Audit clause?",No,not_applicable,N/A - In-house deployment
-saas_contract_compliance,"Does the contract include an Incident Notification process?",No,not_applicable,N/A - In-house deployment
-saas_contract_compliance,"Does the contract include Strong IAM requirements?",No,non_compliant,Local accounts with single-factor passwords only
-saas_contract_compliance,"Does the contract include a Confidentiality agreement (NDA)?",No,not_applicable,N/A - In-house deployment
 

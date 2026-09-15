@@ -33,7 +33,7 @@ EXAMPLE_APPLICATIONS = [
         "id": "app_secure_core",
         "name": "App-Secure-Core",
         "label": "App-Secure-Core (Secret / 100% Compliant)",
-        "csv_path": "test_data/app_secure_core.csv",
+        "csv_path": "test_data/app_secure_core.yml",
         "classification": "Secret",
         "compliance_target": "100%",
         "expected_risk": "Low (Acceptable)",
@@ -54,7 +54,7 @@ EXAMPLE_APPLICATIONS = [
         "id": "app_vulnerable_portal",
         "name": "App-Vulnerable-Portal",
         "label": "App-Vulnerable-Portal (Secret / 0% Non-Compliant)",
-        "csv_path": "test_data/app_vulnerable_portal.csv",
+        "csv_path": "test_data/app_vulnerable_portal.yml",
         "classification": "Secret",
         "compliance_target": "0%",
         "expected_risk": "Very High / Critical -> Urgent Remediation",
@@ -75,7 +75,7 @@ EXAMPLE_APPLICATIONS = [
         "id": "app_internal_tool",
         "name": "App-Internal-Tool",
         "label": "App-Internal-Tool (Internal / Mixed Compliance)",
-        "csv_path": "test_data/app_internal_tool.csv",
+        "csv_path": "test_data/app_internal_tool.yml",
         "classification": "Internal",
         "compliance_target": "Mixed",
         "expected_risk": "Medium (Scenario-dependent)",
@@ -96,7 +96,7 @@ EXAMPLE_APPLICATIONS = [
         "id": "app_public_blog",
         "name": "App-Public-Blog",
         "label": "App-Public-Blog (Public / Low Sensitivity)",
-        "csv_path": "test_data/app_public_blog.csv",
+        "csv_path": "test_data/app_public_blog.yml",
         "classification": "Public",
         "compliance_target": "Mixed / Low Impact",
         "expected_risk": "Low (Capped at 1)",
@@ -117,7 +117,7 @@ EXAMPLE_APPLICATIONS = [
         "id": "app_hr_people_system",
         "name": "App-HR-People-System",
         "label": "App-HR-People-System (Confidential / HR & Privacy Gaps)",
-        "csv_path": "test_data/app_hr_people_system.csv",
+        "csv_path": "test_data/app_hr_people_system.yml",
         "classification": "Confidential",
         "compliance_target": "Mixed / Privacy Gaps",
         "expected_risk": "High (GDPR & Data Retention)",
@@ -138,7 +138,7 @@ EXAMPLE_APPLICATIONS = [
         "id": "app_customer_payment_api",
         "name": "App-Customer-Payment-API",
         "label": "App-Customer-Payment-API (Secret / PCI-DSS Aligned)",
-        "csv_path": "test_data/app_customer_payment_api.csv",
+        "csv_path": "test_data/app_customer_payment_api.yml",
         "classification": "Secret",
         "compliance_target": "High (95%)",
         "expected_risk": "Low-to-Medium (Vendor SLA Gaps)",
@@ -159,7 +159,7 @@ EXAMPLE_APPLICATIONS = [
         "id": "app_legacy_erp_production",
         "name": "App-Legacy-ERP-Production",
         "label": "App-Legacy-ERP-Production (Internal / On-Prem Legacy)",
-        "csv_path": "test_data/app_legacy_erp_production.csv",
+        "csv_path": "test_data/app_legacy_erp_production.yml",
         "classification": "Internal",
         "compliance_target": "Low / Legacy Gaps",
         "expected_risk": "Medium (Cleartext LAN & Unencrypted DB)",
@@ -180,7 +180,7 @@ EXAMPLE_APPLICATIONS = [
         "id": "app_ai_analytics_workbench",
         "name": "App-AI-Analytics-Workbench",
         "label": "App-AI-Analytics-Workbench (Confidential / Cloud GenAI)",
-        "csv_path": "test_data/app_ai_analytics_workbench.csv",
+        "csv_path": "test_data/app_ai_analytics_workbench.yml",
         "classification": "Confidential",
         "compliance_target": "Mixed / GenAI Risks",
         "expected_risk": "High (External LLM Transfer & Prompt Data Leakage)",
@@ -684,12 +684,13 @@ class ExamplesManager:
             sc_name = risk_scenario.get("name", "")
             sim_sc = sim_results.get("scenarios", {}).get(sc_name)
 
-            if sim_sc:
-                scaled_likelihood = sim_sc["scaled_likelihood"]
-                scaled_impact = sim_sc["scaled_impact"]
-            else:
-                scaled_impact = sim_results.get("impact_level", 1)
-                scaled_likelihood = 1
+            if not sim_sc:
+                utils.log(f"Skipping scenario '{sc_name}' for {app_name}: requirement not answered / out of scope")
+                risk_scenario_dict.delete_risk_scenario(sc_name, ra_id)
+                continue
+
+            scaled_likelihood = sim_sc["scaled_likelihood"]
+            scaled_impact = sim_sc["scaled_impact"]
 
             lh_urn = risk_scenario.get("likelihood", "")
             matching_ra = next(
@@ -833,6 +834,19 @@ class ExamplesManager:
             if s.get_json().get("risk_assessment") == ra_id
             or (isinstance(s.get_json().get("risk_assessment"), dict) and s.get_json().get("risk_assessment", {}).get("id") == ra_id)
         ]
+
+        # Purge any out-of-scope scenarios from previous runs
+        csv_path = app_spec.get("csv_path")
+        from tests.test_application_scenarios import ApplicationRiskSimulator
+        simulator = ApplicationRiskSimulator(str(self.framework_yaml))
+        sim_results = simulator.evaluate_application(csv_path) if csv_path else {}
+        in_scope_scenarios = sim_results.get("scenarios", {})
+
+        for sc in list(app_scenarios):
+            if sc.get_name() not in in_scope_scenarios:
+                utils.log(f"Deleting out-of-scope scenario '{sc.get_name()}' from {app_name}", level=logging.INFO)
+                risk_scenario_dict.delete_risk_scenario(sc.get_name(), ra_id)
+                app_scenarios = [s for s in app_scenarios if s.get_id() != sc.get_id()]
 
         total_existing_linked = 0
         total_planned_linked = 0

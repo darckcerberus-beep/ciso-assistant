@@ -1,0 +1,233 @@
+# ==============================================================================
+# Application: App-Secure-Core
+# Profile: Core Banking Ledger (Secret / In-House / 100% Compliant)
+# ==============================================================================
+# This profile represents a mission-critical on-premises core banking system.
+# It processes Secret-level financial transaction records and demonstrates
+# comprehensive security compliance across all in-scope technical baselines.
+# ==============================================================================
+
+application:
+  id: "app_secure_core"
+  name: "App-Secure-Core"
+  description: "Core banking ledger processing secret transaction records in on-premises datacenters"
+  classification: "Secret"
+  hosting: "In-house"
+
+answers:
+  # ----------------------------------------------------------------------------
+  # Governance & Context
+  # ----------------------------------------------------------------------------
+  - requirement: "data_classification"
+    question: "What is the maximum classification level handled?"
+    answer: "Secret"
+    result: "compliant"
+    observation: "Secret banking transaction records"
+    # Rationale: Secret data classification (Impact Level 4) triggers mandatory baseline
+    # requirements for high-assurance cryptographic controls and data lifecycle management.
+
+  - requirement: "hosting"
+    question: "What is the hosting model?"
+    answer: "In-house"
+    result: "compliant"
+    observation: "Internal datacenter hosting"
+    # Rationale: In-house deployment exempts the application from third-party SaaS contractual
+    # governance (saas_contract_compliance is out of scope).
+
+  # ----------------------------------------------------------------------------
+  # Stakeholder Accountability
+  # ----------------------------------------------------------------------------
+  - requirement: "stakeholder_identification"
+    question: "Is there a designated business contact?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Business owner assigned"
+
+  - requirement: "stakeholder_identification"
+    question: "Is there a designated IT contact?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "IT owner assigned"
+
+  - requirement: "stakeholder_identification"
+    question: "Is there a designated data owner?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Data steward assigned"
+
+  - requirement: "stakeholder_identification"
+    question: "Is the information about stakeholders updated in LeanIX?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "LeanIX catalog is updated"
+
+  # ----------------------------------------------------------------------------
+  # Cryptographic Protection (Transit & Rest)
+  # ----------------------------------------------------------------------------
+  - requirement: "data_in_transit"
+    question: "Is data encrypted during transit?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "TLS 1.3 enforced everywhere"
+    # Mitigates: Exposure of unencrypted data in transit (Likelihood 1 / Low Risk).
+
+  - requirement: "data_at_rest"
+    question: "Is data encrypted at rest?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "AES-256 with KMS key rotation"
+    # Mitigates: Exposure of unencrypted data at rest (Likelihood 1 / Low Risk).
+
+  # ----------------------------------------------------------------------------
+  # Non-Production Environments & Data Sanitization
+  # ----------------------------------------------------------------------------
+  - requirement: "non_prod_data"
+    question: "Do you have a dedicated non-production environment?"
+    answer: "No"
+    result: "compliant"
+    observation: "No non-prod environments exist"
+    # Rationale: No dedicated non-production environments exist, preventing production data replication.
+
+  # ----------------------------------------------------------------------------
+  # External Data Exchange Governance
+  # ----------------------------------------------------------------------------
+  - requirement: "data_exchange"
+    question: "Are there data exchanges beyond the group?"
+    answer: "No"
+    result: "compliant"
+    observation: "No external data exchange"
+    # Rationale: Air-gapped boundary; no external third-party data flows occur.
+
+  # ----------------------------------------------------------------------------
+  # Compliant Data Destruction
+  # ----------------------------------------------------------------------------
+  - requirement: "data_destruction"
+    question: "Is there a data destruction process for this application?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Automated purge script active"
+
+  - requirement: "data_destruction"
+    question: "Is the process compliant with the policy (responsibilities, methods, reporting)?"
+    answer: "Yes, compliant!"
+    result: "compliant"
+    observation: "Purge policy reviewed and approved"
+    # Mitigates: Excessive retention of sensitive data (Likelihood 1 / Low Risk).
+
+# ==============================================================================
+# Expected Control Statuses (newDPP Framework)
+# ==============================================================================
+# Rule: Score >= 100 -> status: active; Score < 100 -> status: to_do
+# Unanswered/out-of-scope requirements do not create applied controls.
+# ==============================================================================
+expected_controls:
+  - control: "Designate stakeholders"
+    reference_control: "stakeholder_designation"
+    requirement: "stakeholder_identification"
+    score: 100
+    status: "active" # 4/4 questions answered Yes -> Score 100%
+    rationale: "Business, IT, data owners assigned and synced to LeanIX."
+
+  - control: "Identify the data classification level"
+    reference_control: "identify_data_classification"
+    requirement: "data_classification"
+    score: 0
+    status: "to_do"
+    rationale: "Data classification registered as Secret."
+
+  - control: "Encrypt data in transit"
+    reference_control: "encrypt_data_in_transit"
+    requirement: "data_in_transit"
+    score: 100
+    status: "active" # TLS 1.3 enforced -> Score 100%
+    rationale: "Full end-to-end transport encryption implemented."
+
+  - control: "Encrypt data at rest"
+    reference_control: "encrypt_data_at_rest"
+    requirement: "data_at_rest"
+    score: 100
+    status: "active" # AES-256 KMS -> Score 100%
+    rationale: "Persistent database and storage volume encryption active."
+
+  - control: "Use hashing, encryption, anonymisation or pseudonymisation of prod data in non-production environment"
+    reference_control: "protect_prod_data_in_non_prod"
+    requirement: "non_prod_data"
+    score: 100
+    status: "active" # No non-prod env -> Score 100%
+    rationale: "No non-production environment risks."
+
+  - control: "Sign a contract regarding the exchange of information with all the adequate clauses"
+    reference_control: "information_exchange_contract"
+    requirement: "data_exchange"
+    score: 100
+    status: "active" # No external exchange -> Score 100%
+    rationale: "No external third-party data flows."
+
+  - control: "Write and implement a compliant data destruction process"
+    reference_control: "data_destruction_process"
+    requirement: "data_destruction"
+    score: 100
+    status: "active" # Compliant purge -> Score 100%
+    rationale: "Automated purge process fully compliant with policy."
+
+# ==============================================================================
+# Expected Risk Scenarios (newDPP Framework)
+# ==============================================================================
+# In-House Application -> 6 in-scope scenarios (SaaS provider leakage excluded).
+# Impact Level: 4 (Secret). All likelihoods: 1 (Unlikely, 100% compliance).
+# Grid[0][3] (Likelihood 1, Impact 4) = 1 (Low Risk, Level 2) -> Priority 3 (Medium)
+# ==============================================================================
+expected_risk_scenarios:
+  - scenario: "Exposure of unencrypted data in transit"
+    likelihood_requirement: "data_in_transit"
+    likelihood_score: 100
+    scaled_likelihood: 1 # 1 - Unlikely
+    scaled_impact: 4 # 4 - Critical (Secret)
+    matrix_risk_id: 1 # 2 - Low
+    risk_level: 2
+    control_priority: 3 # 3 (Medium)
+
+  - scenario: "Exposure of unencrypted data at rest"
+    likelihood_requirement: "data_at_rest"
+    likelihood_score: 100
+    scaled_likelihood: 1 # 1 - Unlikely
+    scaled_impact: 4 # 4 - Critical (Secret)
+    matrix_risk_id: 1 # 2 - Low
+    risk_level: 2
+    control_priority: 3 # 3 (Medium)
+
+  - scenario: "Disclosure of production data in non-production environments"
+    likelihood_requirement: "non_prod_data"
+    likelihood_score: 100
+    scaled_likelihood: 1 # 1 - Unlikely
+    scaled_impact: 4 # 4 - Critical (Secret)
+    matrix_risk_id: 1 # 2 - Low
+    risk_level: 2
+    control_priority: 3 # 3 (Medium)
+
+  - scenario: "Third-party data leakage"
+    likelihood_requirement: "data_exchange"
+    likelihood_score: 100
+    scaled_likelihood: 1 # 1 - Unlikely
+    scaled_impact: 4 # 4 - Critical (Secret)
+    matrix_risk_id: 1 # 2 - Low
+    risk_level: 2
+    control_priority: 3 # 3 (Medium)
+
+  - scenario: "Missing application stakeholders"
+    likelihood_requirement: "stakeholder_identification"
+    likelihood_score: 100
+    scaled_likelihood: 1 # 1 - Unlikely
+    scaled_impact: 4 # 4 - Critical (Secret)
+    matrix_risk_id: 1 # 2 - Low
+    risk_level: 2
+    control_priority: 3 # 3 (Medium)
+
+  - scenario: "Excessive retention of sensitive data"
+    likelihood_requirement: "data_destruction"
+    likelihood_score: 100
+    scaled_likelihood: 1 # 1 - Unlikely
+    scaled_impact: 4 # 4 - Critical (Secret)
+    matrix_risk_id: 1 # 2 - Low
+    risk_level: 2
+    control_priority: 3 # 3 (Medium)

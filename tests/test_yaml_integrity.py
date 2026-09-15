@@ -203,5 +203,29 @@ class TestYamlIntegrity(unittest.TestCase):
                 )
 
 
+    def test_audit_configuration(self):
+        """Ensure audit score and status visibility are configured to be hidden for respondents (auditees)."""
+        audit_conf = self.yaml_data.get("audit", {})
+        self.assertEqual(audit_conf.get("score_method"), "sum")
+        score_vis = audit_conf.get("score_visibility") or audit_conf.get("field_visibility")
+        self.assertIsNotNone(score_vis, "Audit configuration must specify score_visibility or field_visibility")
+
+        # Verify score visibility
+        self.assertIn("score", score_vis)
+        self.assertEqual(score_vis["score"].get("respondent"), "hidden")
+
+        # Verify status (compliance status) visibility
+        self.assertIn("status", score_vis)
+        self.assertEqual(score_vis["status"].get("respondent"), "hidden")
+
+        # Verify result (results) visibility
+        self.assertIn("result", score_vis)
+        self.assertEqual(score_vis["result"].get("respondent"), "hidden")
+
+        # Verify extended_result (extended compliance status) visibility
+        self.assertIn("extended_result", score_vis)
+        self.assertEqual(score_vis["extended_result"].get("respondent"), "hidden")
+
+
 if __name__ == "__main__":
     unittest.main()

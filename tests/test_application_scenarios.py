@@ -13,6 +13,7 @@ import unittest
 import yaml
 
 from classes.controls.applied import AppliedControlDict
+from classes.integrations.csv_import import read_answers_file
 
 
 class ApplicationRiskSimulator:
@@ -35,18 +36,17 @@ class ApplicationRiskSimulator:
         self.criticality_mapping = self.framework_data.get("criticality_mapping", {})
         self.applied_control_dict = AppliedControlDict.__new__(AppliedControlDict)
 
-    def load_answers_from_csv(self, csv_path):
-        """Read CSV answers into a dictionary grouped by requirement ref_id."""
+    def load_answers_from_csv(self, file_path):
+        """Read CSV or YAML answers into a dictionary grouped by requirement ref_id."""
         answers_by_req = {}
-        with open(csv_path, "r", encoding="utf-8-sig") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                req = row.get("requirement", "").strip()
-                question = row.get("question", "").strip()
-                answer = row.get("answer", "").strip()
-                if req not in answers_by_req:
-                    answers_by_req[req] = []
-                answers_by_req[req].append({"question": question, "answer": answer})
+        rows = read_answers_file(file_path)
+        for row in rows:
+            req = row.get("requirement", "").strip()
+            question = row.get("question", "").strip()
+            answer = row.get("answer", "").strip()
+            if req not in answers_by_req:
+                answers_by_req[req] = []
+            answers_by_req[req].append({"question": question, "answer": answer})
         return answers_by_req
 
     def evaluate_application(self, csv_path):
@@ -107,9 +107,22 @@ class ApplicationRiskSimulator:
         for scenario in self.risk_scenarios:
             sc_name = scenario.get("name")
             likelihood_urn = scenario.get("likelihood")
+            impact_urn = scenario.get("impact")
+
+            # Skip scenario if likelihood requirement was not answered in the CSV
+            rn = self.req_nodes_by_urn.get(likelihood_urn)
+            lh_ref_id = rn.get("ref_id") if rn else None
+            if (lh_ref_id not in answers_by_req and likelihood_urn not in answers_by_req) or (
+                lh_ref_id not in scores and likelihood_urn not in scores
+            ):
+                continue
+
+            # Skip scenario if impact requirement was not answered in the CSV
+            if "data_classification" not in answers_by_req and impact_urn not in answers_by_req:
+                continue
 
             # Get likelihood requirement score
-            lh_score = scores.get(likelihood_urn, 0)
+            lh_score = scores.get(likelihood_urn, scores.get(lh_ref_id, 0))
             scaled_score = max(0, min(100, int(lh_score)))
             scaled_likelihood = min(4, max(1, 4 - ((scaled_score - 1) // 25)))
 
@@ -150,19 +163,21 @@ class TestApplicationScenarios(unittest.TestCase):
         cls.simulator = ApplicationRiskSimulator("YML/newDPP.yml")
 
     def test_app_secure_core(self):
-        """Test App-Secure-Core: Secret data (Impact=4) with 100% compliance across all controls.
+        """Test App-Secure-Core: Secret data (Impact=4) with 100% compliance across all in-scope controls.
 
         Expected:
         - Impact: 4 (Critical)
+        - In-house app -> SaaS scenario is not evaluated (6 scenarios total)
         - All likelihoods: 1 (Unlikely)
         - Residual risk: Low / Acceptable
-        - Control priorities: 4 (Low urgency for additional action)
+        - Control priorities: 3 or 4 (Low urgency for additional action)
         """
         results = self.simulator.evaluate_application("test_data/app_secure_core.csv")
         self.assertEqual(results["impact_level"], 4, "Impact for Secret data should be 4")
 
         scenarios = results["scenarios"]
-        self.assertEqual(len(scenarios), 7, "All 7 scenarios must be evaluated")
+        self.assertEqual(len(scenarios), 6, "6 in-scope scenarios must be evaluated (SaaS excluded)")
+        self.assertNotIn("SaaS provider data leakage", scenarios)
 
         for sc_name, sc_data in scenarios.items():
             self.assertEqual(
@@ -175,7 +190,6 @@ class TestApplicationScenarios(unittest.TestCase):
             )
             # Grid[0][3] (Likelihood 1, Impact 4) = 1 (Low risk)
             self.assertEqual(sc_data["matrix_risk_id"], 1, f"Scenario '{sc_name}' matrix risk should be Low (id=1)")
-            # Risk Level 2 -> Priority 3 or 4
             self.assertIn(sc_data["control_priority"], [3, 4])
 
     def test_app_vulnerable_portal(self):
@@ -183,7 +197,7 @@ class TestApplicationScenarios(unittest.TestCase):
 
         Expected:
         - Impact: 4 (Critical)
-        - All likelihoods: 4 (Very likely)
+        - All 7 likelihoods: 4 (Very likely)
         - Grid[3][3] (Likelihood 4, Impact 4) = 4 (Very High / Unacceptable Risk)
         - Control Priority: 1 (Urgent remediation required!)
         """
@@ -191,6 +205,7 @@ class TestApplicationScenarios(unittest.TestCase):
         self.assertEqual(results["impact_level"], 4, "Impact for Secret data should be 4")
 
         scenarios = results["scenarios"]
+        self.assertEqual(len(scenarios), 7, "All 7 scenarios must be evaluated for SaaS Secret app")
         for sc_name, sc_data in scenarios.items():
             self.assertEqual(
                 sc_data["scaled_likelihood"], 4,
@@ -200,12 +215,10 @@ class TestApplicationScenarios(unittest.TestCase):
                 sc_data["scaled_impact"], 4,
                 f"Scenario '{sc_name}' should have impact 4"
             )
-            # Grid[3][3] = 4 (Very High / unacceptable risk)
             self.assertEqual(
                 sc_data["matrix_risk_id"], 4,
                 f"Scenario '{sc_name}' matrix risk must be Very High (id=4)"
             )
-            # Control priority must be 1 (Urgent)
             self.assertEqual(
                 sc_data["control_priority"], 1,
                 f"Scenario '{sc_name}' control priority must be Priority 1 (Urgent)"
@@ -248,22 +261,29 @@ class TestApplicationScenarios(unittest.TestCase):
 
         Expected:
         - Impact: 1 (Minor)
-        - Even when Likelihood is 4 (e.g. unencrypted at rest or missing destruction),
-          Grid[3][0] = 1 (Low Risk).
+        - Only applicable requirements answered (Stakeholders & SaaS Contract) -> 2 Scenarios
+        - Confidential/Secret Chapter 2 scenarios NOT evaluated
         - Max priority is Priority 3 or 4 (No urgent priorities on public data).
         """
         results = self.simulator.evaluate_application("test_data/app_public_blog.csv")
         self.assertEqual(results["impact_level"], 1, "Impact for Public data should be 1")
 
         scenarios = results["scenarios"]
+        self.assertEqual(len(scenarios), 2, "Only Stakeholders and SaaS scenarios should be evaluated for Public blog")
+        self.assertIn("Missing application stakeholders", scenarios)
+        self.assertIn("SaaS provider data leakage", scenarios)
+        self.assertNotIn("Exposure of unencrypted data in transit", scenarios)
+        self.assertNotIn("Exposure of unencrypted data at rest", scenarios)
+        self.assertNotIn("Disclosure of production data in non-production environments", scenarios)
+        self.assertNotIn("Third-party data leakage", scenarios)
+        self.assertNotIn("Excessive retention of sensitive data", scenarios)
+
         for sc_name, sc_data in scenarios.items():
             self.assertEqual(sc_data["scaled_impact"], 1)
-            # On public data (impact 1), risk never exceeds Low (matrix id <= 1)
             self.assertLessEqual(
                 sc_data["matrix_risk_id"], 1,
                 f"Public data scenario '{sc_name}' should not exceed Low Risk"
             )
-            # Priority should never be Urgent (Priority 1) or High (Priority 2)
             self.assertIn(
                 sc_data["control_priority"], [3, 4],
                 f"Public data scenario '{sc_name}' should only generate Medium/Low control priority"
@@ -286,11 +306,14 @@ class TestApplicationScenarios(unittest.TestCase):
         self.assertEqual(retention_sc["control_priority"], 1)
 
     def test_app_customer_payment_api(self):
-        """Test App-Customer-Payment-API: Secret PCI data (Impact=4) with vendor SLA gap."""
+        """Test App-Customer-Payment-API: Secret PCI data (Impact=4) with in-house deployment."""
         results = self.simulator.evaluate_application("test_data/app_customer_payment_api.csv")
         self.assertEqual(results["impact_level"], 4, "Impact for Secret PCI data should be 4")
 
         scenarios = results["scenarios"]
+        self.assertEqual(len(scenarios), 6, "In-house app must evaluate 6 scenarios (SaaS excluded)")
+        self.assertNotIn("SaaS provider data leakage", scenarios)
+
         third_party_sc = scenarios["Third-party data leakage"]
         self.assertEqual(third_party_sc["scaled_likelihood"], 1)
         self.assertEqual(third_party_sc["scaled_impact"], 4)
@@ -306,6 +329,9 @@ class TestApplicationScenarios(unittest.TestCase):
         self.assertEqual(results["impact_level"], 2, "Impact for Internal data should be 2")
 
         scenarios = results["scenarios"]
+        self.assertEqual(len(scenarios), 6, "In-house app must evaluate 6 scenarios (SaaS excluded)")
+        self.assertNotIn("SaaS provider data leakage", scenarios)
+
         transit_sc = scenarios["Exposure of unencrypted data in transit"]
         self.assertEqual(transit_sc["scaled_likelihood"], 4)
         self.assertEqual(transit_sc["scaled_impact"], 2)

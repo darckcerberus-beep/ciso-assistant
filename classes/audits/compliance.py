@@ -11,7 +11,8 @@ from .requirement_assignment import RequirementAssignmentDict
 # Load settings from library file
 _library_path = Path(__file__).parent.parent.parent / "YML" / "newDPP.yml"
 _library = utils.load_yaml_file(str(_library_path))
-AUDITOR_SCORE_VISIBILITY = _library.get("audit", {}).get("score_visibility", {})
+AUDITOR_SCORE_VISIBILITY = _library.get("audit", {}).get("field_visibility") or _library.get("audit", {}).get("score_visibility", {})
+AUDITOR_FIELD_VISIBILITY = AUDITOR_SCORE_VISIBILITY
 AUDITOR_SCORE_METHOD = _library.get("audit", {}).get("score_method", "sum")
 
 
@@ -162,11 +163,27 @@ class ComplianceAssessmentDict:
                     utils.get_return("/api/compliance-assessments/", method="POST", payload=payload)
                     created = True
 
+        self.synchronize_field_visibility()
+
         if created:
             utils.log("Compliance assessments created.")
             self.reload()
         else:
             utils.log("No new compliance assessments created.")
+
+    def synchronize_field_visibility(self):
+        """Ensure all compliance assessments have the configured field visibility and score method."""
+        for ca in self.compliance_assessments.values():
+            ca_json = ca.get_json()
+            changed = {}
+            if ca_json.get("field_visibility") != AUDITOR_SCORE_VISIBILITY:
+                changed["field_visibility"] = AUDITOR_SCORE_VISIBILITY
+            if ca_json.get("score_calculation_method") != AUDITOR_SCORE_METHOD:
+                changed["score_calculation_method"] = AUDITOR_SCORE_METHOD
+            if changed:
+                utils.log(f"Updating field visibility for compliance assessment '{ca.get_name()}' ({ca.get_id()})", level=logging.INFO)
+                utils.get_return(f"/api/compliance-assessments/{ca.get_id()}/", method="PATCH", payload=changed)
+        self.reload()
 
     def update_asset_objectives(self, asset_dict):
         """Refresh asset objectives for the current requirement assessment context."""
@@ -357,6 +374,7 @@ class ComplianceAssessmentDict:
 
                 impact_mapping = framework_file.get_impact_mapping()
                 impact = None
+                impact_assessment = None
                 likelihood_assessment = None
 
                 # Search requirement assessments for matching likelihood and impact nodes
@@ -365,20 +383,26 @@ class ComplianceAssessmentDict:
                         continue
                     if requirement_assessment.get_urn() == risk_scenario.get('likelihood', ''):
                         likelihood_assessment = requirement_assessment
-                    if requirement_assessment.get_urn() != risk_scenario.get('impact', ''):
-                        continue
+                    if requirement_assessment.get_urn() == risk_scenario.get('impact', ''):
+                        impact_assessment = requirement_assessment
+                        # Check if any answer matches configured impact mappings
+                        for answer in requirement_assessment.get_requirement_json().get('answers', {}).values():
+                            if answer in impact_mapping:
+                                impact = impact_mapping[answer] + 1
+                                break
 
-                    # Check if any answer matches configured impact mappings
-                    for answer in requirement_assessment.get_requirement_json().get('answers', {}).values():
-                        if answer in impact_mapping:
-                            impact = impact_mapping[answer] + 1
-                            break
-
-                # If the likelihood requirement assessment was never answered, clean up and skip
-                if likelihood_assessment is None or not likelihood_assessment.has_selected_answer():
+                # If either the likelihood or impact requirement assessment was never answered, clean up and skip
+                if (
+                    likelihood_assessment is None
+                    or not likelihood_assessment.has_selected_answer()
+                    or likelihood_assessment.is_unassessed_result()
+                    or impact_assessment is None
+                    or not impact_assessment.has_selected_answer()
+                    or impact_assessment.is_unassessed_result()
+                ):
                     utils.log(
                         f"Skipping risk scenario '{risk_scenario.get('name', '')}': "
-                        "its likelihood requirement has no selected answer"
+                        "its likelihood or impact requirement has no selected answer"
                     )
                     risk_scenario_dict.delete_risk_scenario(
                         risk_scenario.get('name', ''),

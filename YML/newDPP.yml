@@ -964,6 +964,15 @@ audit:
     score:
       auditor: "edit"
       respondent: "hidden"
+    status:
+      auditor: "edit"
+      respondent: "hidden"
+    result:
+      auditor: "edit"
+      respondent: "hidden"
+    extended_result:
+      auditor: "edit"
+      respondent: "hidden"
 
 # ============================================================================
 # CRITICALITY MAPPING

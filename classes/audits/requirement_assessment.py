@@ -420,7 +420,7 @@ class RequirementAssessmentDict:
         created = 0
 
         for ra in self.requirement_assessments.values():
-            if ra.is_unassessed_result():
+            if ra.is_unassessed_result() or not ra.has_selected_answer():
                 continue
 
             for control_id in ra.get_associated_reference_control_ids():

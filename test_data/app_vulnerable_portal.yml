@@ -1,0 +1,306 @@
+# ==============================================================================
+# Application: App-Vulnerable-Portal
+# Profile: Unmanaged SaaS Customer Portal (Secret / 0% Non-Compliant)
+# ==============================================================================
+# This profile represents a worst-case scenario: an unvetted third-party SaaS portal
+# processing Secret customer identity records and credit cards with complete absence
+# of technical controls, contractual protections, or governance points of contact.
+# ==============================================================================
+
+application:
+  id: "app_vulnerable_portal"
+  name: "App-Vulnerable-Portal"
+  description: "Unvetted third-party SaaS portal processing secret customer data with 0% compliance"
+  classification: "Secret"
+  hosting: "SaaS"
+
+answers:
+  # ----------------------------------------------------------------------------
+  # Governance & Context
+  # ----------------------------------------------------------------------------
+  - requirement: "data_classification"
+    question: "What is the maximum classification level handled?"
+    answer: "Secret"
+    result: "non_compliant"
+    observation: "Critical customer PII and credit cards"
+    # Rationale: Secret data sensitivity (Impact Level 4) results in Critical/Very High
+    # risk ratings for any unaddressed vulnerability.
+
+  - requirement: "hosting"
+    question: "What is the hosting model?"
+    answer: "SaaS"
+    result: "not_applicable"
+    observation: "Third party SaaS provider"
+    # Rationale: SaaS hosting model activates Chapter 3 SaaS Contractual Compliance requirements.
+
+  # ----------------------------------------------------------------------------
+  # Stakeholder Accountability
+  # ----------------------------------------------------------------------------
+  - requirement: "stakeholder_identification"
+    question: "Is there a designated business contact?"
+    answer: "No"
+    result: "non_compliant"
+    observation: "Missing business contact"
+
+  - requirement: "stakeholder_identification"
+    question: "Is there a designated IT contact?"
+    answer: "No"
+    result: "non_compliant"
+    observation: "Missing IT contact"
+
+  - requirement: "stakeholder_identification"
+    question: "Is there a designated data owner?"
+    answer: "No"
+    result: "non_compliant"
+    observation: "Missing data owner"
+
+  - requirement: "stakeholder_identification"
+    question: "Is the information about stakeholders updated in LeanIX?"
+    answer: "No"
+    result: "non_compliant"
+    observation: "Not tracked in LeanIX"
+    # Evaluates to: Missing application stakeholders (Likelihood 4 / Matrix Risk Very High / Priority 1 Urgent).
+
+  # ----------------------------------------------------------------------------
+  # Cryptographic Protection (Transit & Rest)
+  # ----------------------------------------------------------------------------
+  - requirement: "data_in_transit"
+    question: "Is data encrypted during transit?"
+    answer: "No"
+    result: "non_compliant"
+    observation: "Cleartext HTTP connections"
+    # Evaluates to: Exposure of unencrypted data in transit (Likelihood 4 / Matrix Risk Very High / Priority 1 Urgent).
+
+  - requirement: "data_at_rest"
+    question: "Is data encrypted at rest?"
+    answer: "No"
+    result: "non_compliant"
+    observation: "Unencrypted database volumes"
+    # Evaluates to: Exposure of unencrypted data at rest (Likelihood 4 / Matrix Risk Very High / Priority 1 Urgent).
+
+  # ----------------------------------------------------------------------------
+  # Non-Production Environments & Data Sanitization
+  # ----------------------------------------------------------------------------
+  - requirement: "non_prod_data"
+    question: "Do you have a dedicated non-production environment?"
+    answer: "Yes"
+    result: "non_compliant"
+    observation: "Dedicated dev environment exists"
+
+  - requirement: "non_prod_data"
+    question: "Do you use prod data in a non-prod environment?"
+    answer: "Yes"
+    result: "non_compliant"
+    observation: "Full production database dumps copied to dev"
+
+  - requirement: "non_prod_data"
+    question: "How do you protect them?"
+    answer: "No, no protection"
+    result: "non_compliant"
+    observation: "No data masking or hashing"
+
+  - requirement: "non_prod_data"
+    question: "Do you clean the prod data after use in non-prod?"
+    answer: "No"
+    result: "non_compliant"
+    observation: "Data remains indefinitely in staging"
+    # Evaluates to: Disclosure of production data in non-production environments (Likelihood 4 / Priority 1 Urgent).
+
+  # ----------------------------------------------------------------------------
+  # External Data Exchange Governance
+  # ----------------------------------------------------------------------------
+  - requirement: "data_exchange"
+    question: "Are there data exchanges beyond the group?"
+    answer: "Yes"
+    result: "non_compliant"
+    observation: "Transfers to third parties exist"
+
+  - requirement: "data_exchange"
+    question: "Is there a data exchange contract with the appropriate confidentiality clauses?"
+    answer: "No contract"
+    result: "non_compliant"
+    observation: "No DPA or exchange contract"
+    # Evaluates to: Third-party data leakage (Likelihood 4 / Matrix Risk Very High / Priority 1 Urgent).
+
+  # ----------------------------------------------------------------------------
+  # Compliant Data Destruction
+  # ----------------------------------------------------------------------------
+  - requirement: "data_destruction"
+    question: "Is there a data destruction process for this application?"
+    answer: "No"
+    result: "non_compliant"
+    observation: "No data retention or destruction policy"
+
+  - requirement: "data_destruction"
+    question: "Is the process compliant with the policy (responsibilities, methods, reporting)?"
+    answer: "No, not compliant"
+    result: "non_compliant"
+    observation: "No compliant process"
+    # Evaluates to: Excessive retention of sensitive data (Likelihood 4 / Priority 1 Urgent).
+
+  # ----------------------------------------------------------------------------
+  # Third-Party SaaS Contractual Governance
+  # ----------------------------------------------------------------------------
+  - requirement: "saas_contract_compliance"
+    question: "Is there a signed SaaS contract?"
+    answer: "No"
+    result: "non_compliant"
+    observation: "Free tier account with no contract"
+
+  - requirement: "saas_contract_compliance"
+    question: "Does the contract include an Audit clause?"
+    answer: "No"
+    result: "non_compliant"
+    observation: "No audit rights"
+
+  - requirement: "saas_contract_compliance"
+    question: "Does the contract include an Incident Notification process?"
+    answer: "No"
+    result: "non_compliant"
+    observation: "No security notification clause"
+
+  - requirement: "saas_contract_compliance"
+    question: "Does the contract include Strong IAM requirements?"
+    answer: "No"
+    result: "non_compliant"
+    observation: "Password only without MFA"
+
+  - requirement: "saas_contract_compliance"
+    question: "Does the contract include a Confidentiality agreement (NDA)?"
+    answer: "No"
+    result: "non_compliant"
+    observation: "No confidentiality clause"
+    # Evaluates to: SaaS provider data leakage (Likelihood 4 / Matrix Risk Very High / Priority 1 Urgent).
+
+# ==============================================================================
+# Expected Control Statuses (newDPP Framework)
+# ==============================================================================
+# All 8 controls are answered with 0% compliance -> status: to_do (Gap / Action required)
+# ==============================================================================
+expected_controls:
+  - control: "Designate stakeholders"
+    reference_control: "stakeholder_designation"
+    requirement: "stakeholder_identification"
+    score: 0
+    status: "to_do"
+    rationale: "No designated contacts or LeanIX record (Score 0%)."
+
+  - control: "Identify the data classification level"
+    reference_control: "identify_data_classification"
+    requirement: "data_classification"
+    score: 0
+    status: "to_do"
+    rationale: "Data classification registered as Secret."
+
+  - control: "Encrypt data in transit"
+    reference_control: "encrypt_data_in_transit"
+    requirement: "data_in_transit"
+    score: 0
+    status: "to_do"
+    rationale: "Cleartext HTTP connections without TLS."
+
+  - control: "Encrypt data at rest"
+    reference_control: "encrypt_data_at_rest"
+    requirement: "data_at_rest"
+    score: 0
+    status: "to_do"
+    rationale: "Databases and storage volumes unencrypted."
+
+  - control: "Use hashing, encryption, anonymisation or pseudonymisation of prod data in non-production environment"
+    reference_control: "protect_prod_data_in_non_prod"
+    requirement: "non_prod_data"
+    score: 0
+    status: "to_do"
+    rationale: "Raw production data used in test environment without protection."
+
+  - control: "Sign a contract regarding the exchange of information with all the adequate clauses"
+    reference_control: "information_exchange_contract"
+    requirement: "data_exchange"
+    score: 0
+    status: "to_do"
+    rationale: "External data exchanges occur without contracts or DPAs."
+
+  - control: "Write and implement a compliant data destruction process"
+    reference_control: "data_destruction_process"
+    requirement: "data_destruction"
+    score: 0
+    status: "to_do"
+    rationale: "No data destruction process implemented."
+
+  - control: "Sign a contract with the SaaS provider with all the adequate clauses"
+    reference_control: "saas_contract"
+    requirement: "saas_contract_compliance"
+    score: 0
+    status: "to_do"
+    rationale: "No formal contract, audit clause, incident response, IAM, or NDA."
+
+# ==============================================================================
+# Expected Risk Scenarios (newDPP Framework)
+# ==============================================================================
+# All 7 scenarios evaluated for SaaS Secret app.
+# Impact Level: 4 (Secret). All likelihoods: 4 (Very likely, 0% compliance).
+# Grid[3][3] (Likelihood 4, Impact 4) = 4 (Very High Risk, Level 5) -> Priority 1 (Urgent)
+# ==============================================================================
+expected_risk_scenarios:
+  - scenario: "Exposure of unencrypted data in transit"
+    likelihood_requirement: "data_in_transit"
+    likelihood_score: 0
+    scaled_likelihood: 4 # 4 - Very likely
+    scaled_impact: 4 # 4 - Critical (Secret)
+    matrix_risk_id: 4 # 5 - Very High
+    risk_level: 5
+    control_priority: 1 # 1 (Urgent)
+
+  - scenario: "Exposure of unencrypted data at rest"
+    likelihood_requirement: "data_at_rest"
+    likelihood_score: 0
+    scaled_likelihood: 4 # 4 - Very likely
+    scaled_impact: 4 # 4 - Critical (Secret)
+    matrix_risk_id: 4 # 5 - Very High
+    risk_level: 5
+    control_priority: 1 # 1 (Urgent)
+
+  - scenario: "Disclosure of production data in non-production environments"
+    likelihood_requirement: "non_prod_data"
+    likelihood_score: 0
+    scaled_likelihood: 4 # 4 - Very likely
+    scaled_impact: 4 # 4 - Critical (Secret)
+    matrix_risk_id: 4 # 5 - Very High
+    risk_level: 5
+    control_priority: 1 # 1 (Urgent)
+
+  - scenario: "Third-party data leakage"
+    likelihood_requirement: "data_exchange"
+    likelihood_score: 0
+    scaled_likelihood: 4 # 4 - Very likely
+    scaled_impact: 4 # 4 - Critical (Secret)
+    matrix_risk_id: 4 # 5 - Very High
+    risk_level: 5
+    control_priority: 1 # 1 (Urgent)
+
+  - scenario: "SaaS provider data leakage"
+    likelihood_requirement: "saas_contract_compliance"
+    likelihood_score: 0
+    scaled_likelihood: 4 # 4 - Very likely
+    scaled_impact: 4 # 4 - Critical (Secret)
+    matrix_risk_id: 4 # 5 - Very High
+    risk_level: 5
+    control_priority: 1 # 1 (Urgent)
+
+  - scenario: "Missing application stakeholders"
+    likelihood_requirement: "stakeholder_identification"
+    likelihood_score: 0
+    scaled_likelihood: 4 # 4 - Very likely
+    scaled_impact: 4 # 4 - Critical (Secret)
+    matrix_risk_id: 4 # 5 - Very High
+    risk_level: 5
+    control_priority: 1 # 1 (Urgent)
+
+  - scenario: "Excessive retention of sensitive data"
+    likelihood_requirement: "data_destruction"
+    likelihood_score: 0
+    scaled_likelihood: 4 # 4 - Very likely
+    scaled_impact: 4 # 4 - Critical (Secret)
+    matrix_risk_id: 4 # 5 - Very High
+    risk_level: 5
+    control_priority: 1 # 1 (Urgent)

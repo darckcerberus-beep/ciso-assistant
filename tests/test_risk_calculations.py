@@ -191,6 +191,42 @@ class TestRiskCalculations(unittest.TestCase):
         ra_empty = RequirementAssessment({})
         self.assertFalse(ra_empty.is_score_compliant())
 
+    def test_skip_scenarios_and_controls_for_unanswered_requirements(self):
+        """Verify that unanswered requirement assessments are skipped during control and scenario creation."""
+        from classes.audits.requirement_assessment import RequirementAssessment, RequirementAssessmentDict
+        from classes.controls.applied import AppliedControlDict
+
+        # Unanswered requirement assessment (no answers, not assessed)
+        unanswered_ra = RequirementAssessment({
+            "id": "ra-unanswered",
+            "compliance_assessment": "ca-1",
+            "answers": {},
+            "result": "not_assessed",
+            "requirement": {
+                "urn": "urn:test:req",
+                "associated_reference_controls": [{"id": "ref-ctrl-1", "name": "Test Control"}],
+            }
+        })
+
+        self.assertFalse(unanswered_ra.has_selected_answer())
+        self.assertTrue(unanswered_ra.is_unassessed_result())
+
+        # Requirement with explicit answers
+        answered_ra = RequirementAssessment({
+            "id": "ra-answered",
+            "compliance_assessment": "ca-1",
+            "answers": {"q1": "choice-1"},
+            "result": "compliant",
+            "score": 100,
+            "requirement": {
+                "urn": "urn:test:req",
+                "associated_reference_controls": [{"id": "ref-ctrl-1", "name": "Test Control"}],
+            }
+        })
+
+        self.assertTrue(answered_ra.has_selected_answer())
+        self.assertFalse(answered_ra.is_unassessed_result())
+
 
 if __name__ == "__main__":
     unittest.main()

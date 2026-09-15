@@ -1,0 +1,150 @@
+# ==============================================================================
+# Application: App-Public-Blog
+# Profile: Public Marketing Blog (Public / SaaS / Minor Sensitivity)
+# ==============================================================================
+# This profile represents a public-facing static CMS website.
+# It processes Public information (Impact Level 1) and answers ONLY the
+# applicable governance and SaaS contractual requirements (info + saas_app).
+# Advanced technical requirements for Confidential/Secret data are out of scope.
+# ==============================================================================
+
+application:
+  id: "app_public_blog"
+  name: "App-Public-Blog"
+  description: "Public marketing website and blog hosted on managed cloud CMS"
+  classification: "Public"
+  hosting: "SaaS"
+
+answers:
+  # ----------------------------------------------------------------------------
+  # Governance & Context
+  # ----------------------------------------------------------------------------
+  - requirement: "data_classification"
+    question: "What is the maximum classification level handled?"
+    answer: "Public"
+    result: "compliant"
+    observation: "Public marketing articles and blogs"
+    # Rationale: Public data classification (Impact Level 1) bounds all scenario risks
+    # to Low/Very Low, ensuring no urgent remediations are required for open content.
+
+  - requirement: "hosting"
+    question: "What is the hosting model?"
+    answer: "SaaS"
+    result: "not_applicable"
+    observation: "Managed CMS platform"
+    # Rationale: SaaS hosting model activates Chapter 3 SaaS Contractual Compliance.
+
+  # ----------------------------------------------------------------------------
+  # Stakeholder Accountability
+  # ----------------------------------------------------------------------------
+  - requirement: "stakeholder_identification"
+    question: "Is there a designated business contact?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Marketing director"
+
+  - requirement: "stakeholder_identification"
+    question: "Is there a designated IT contact?"
+    answer: "No"
+    result: "partially_compliant"
+    observation: "Outsourced agency"
+
+  - requirement: "stakeholder_identification"
+    question: "Is there a designated data owner?"
+    answer: "No"
+    result: "not_applicable"
+    observation: "No private data"
+
+  - requirement: "stakeholder_identification"
+    question: "Is the information about stakeholders updated in LeanIX?"
+    answer: "No"
+    result: "partially_compliant"
+    observation: "Not in LeanIX"
+    # Score: 25% -> Likelihood 4 (Very likely) -> Impact 1 -> Risk: Low (id=1) -> Priority 3 (Medium).
+
+  # ----------------------------------------------------------------------------
+  # Third-Party SaaS Contractual Governance
+  # ----------------------------------------------------------------------------
+  - requirement: "saas_contract_compliance"
+    question: "Is there a signed SaaS contract?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "CMS Terms of Service"
+
+  - requirement: "saas_contract_compliance"
+    question: "Does the contract include an Audit clause?"
+    answer: "No"
+    result: "partially_compliant"
+    observation: "No audit rights"
+
+  - requirement: "saas_contract_compliance"
+    question: "Does the contract include an Incident Notification process?"
+    answer: "No"
+    result: "partially_compliant"
+    observation: "Standard status page"
+
+  - requirement: "saas_contract_compliance"
+    question: "Does the contract include Strong IAM requirements?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "2FA enabled"
+
+  - requirement: "saas_contract_compliance"
+    question: "Does the contract include a Confidentiality agreement (NDA)?"
+    answer: "No"
+    result: "not_applicable"
+    observation: "Public content"
+    # Score: 40% (2/5 clauses) -> Likelihood 3 (Likely) -> Impact 1 -> Risk: Low (id=1) -> Priority 3.
+
+# ==============================================================================
+# Expected Control Statuses (newDPP Framework)
+# ==============================================================================
+# Only answered/in-scope requirements create applied controls.
+# Unanswered Chapter 2 requirements (encryption, non-prod, exchange, destruction) are omitted.
+# ==============================================================================
+expected_controls:
+  - control: "Designate stakeholders"
+    reference_control: "stakeholder_designation"
+    requirement: "stakeholder_identification"
+    score: 25
+    status: "to_do" # 1/4 questions Yes (25%) -> to_do
+    rationale: "Only business contact assigned; IT, data owner, and LeanIX missing."
+
+  - control: "Identify the data classification level"
+    reference_control: "identify_data_classification"
+    requirement: "data_classification"
+    score: 0
+    status: "to_do"
+    rationale: "Data classification registered as Public."
+
+  - control: "Sign a contract with the SaaS provider with all the adequate clauses"
+    reference_control: "saas_contract"
+    requirement: "saas_contract_compliance"
+    score: 40
+    status: "to_do" # 2/5 clauses (40%) -> to_do
+    rationale: "CMS contract signed with 2FA; Audit, incident notification, and NDA absent."
+
+# ==============================================================================
+# Expected Risk Scenarios (newDPP Framework)
+# ==============================================================================
+# Only 2 in-scope scenarios evaluated for Public SaaS blog.
+# Impact Level: 1 (Public / Minor). Out-of-scope scenarios are NOT created.
+# ==============================================================================
+expected_risk_scenarios:
+  - scenario: "SaaS provider data leakage"
+    likelihood_requirement: "saas_contract_compliance"
+    likelihood_score: 40
+    scaled_likelihood: 3 # 3 - Likely
+    scaled_impact: 1 # 1 - Minor (Public)
+    matrix_risk_id: 1 # 2 - Low
+    risk_level: 2
+    control_priority: 3 # 3 (Medium)
+
+  - scenario: "Missing application stakeholders"
+    likelihood_requirement: "stakeholder_identification"
+    likelihood_score: 25
+    scaled_likelihood: 4 # 4 - Very likely
+    scaled_impact: 1 # 1 - Minor (Public)
+    matrix_risk_id: 1 # 2 - Low
+    risk_level: 2
+    control_priority: 3 # 3 (Medium)

@@ -1,0 +1,238 @@
+# ==============================================================================
+# Application: App-Legacy-ERP-Production
+# Profile: On-Premises Plant ERP / OT System (Internal / In-House / Legacy Gaps)
+# ==============================================================================
+# This profile represents an on-premise legacy enterprise resource planning (ERP) system
+# deployed on physical servers inside a factory subnet.
+# It processes Internal data (bills of materials, scheduling) with cleartext network protocols
+# and unencrypted legacy databases, but is air-gapped from external data exchange.
+# SaaS hosting governance is out of scope.
+# ==============================================================================
+
+application:
+  id: "app_legacy_erp_production"
+  name: "App-Legacy-ERP-Production"
+  description: "On-premise legacy plant ERP running in factory datacenter with unencrypted LAN and database"
+  classification: "Internal"
+  hosting: "In-house"
+
+answers:
+  # ----------------------------------------------------------------------------
+  # Governance & Context
+  # ----------------------------------------------------------------------------
+  - requirement: "data_classification"
+    question: "What is the maximum classification level handled?"
+    answer: "Internal"
+    result: "compliant"
+    observation: "Factory assembly bills of materials and production scheduling"
+    # Rationale: Internal classification (Impact Level 2) caps risk exposure at Medium (id=2).
+
+  - requirement: "hosting"
+    question: "What is the hosting model?"
+    answer: "In-house"
+    result: "not_applicable"
+    observation: "On-premise plant data center running on physical servers"
+    # Rationale: In-house hosting; saas_contract_compliance is out of scope.
+
+  # ----------------------------------------------------------------------------
+  # Stakeholder Accountability
+  # ----------------------------------------------------------------------------
+  - requirement: "stakeholder_identification"
+    question: "Is there a designated business contact?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Plant Operations Manager designated as business contact"
+
+  - requirement: "stakeholder_identification"
+    question: "Is there a designated IT contact?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "OT/ICS Network Administrator designated as IT contact"
+
+  - requirement: "stakeholder_identification"
+    question: "Is there a designated data owner?"
+    answer: "No"
+    result: "partially_compliant"
+    observation: "Informally managed by shop floor supervisors"
+
+  - requirement: "stakeholder_identification"
+    question: "Is the information about stakeholders updated in LeanIX?"
+    answer: "No"
+    result: "partially_compliant"
+    observation: "Legacy OT systems not yet integrated into enterprise LeanIX"
+    # Score: 50% -> Likelihood 3 (Likely) -> Impact 2 -> Risk: Medium (id=2) -> Priority 2 (High).
+
+  # ----------------------------------------------------------------------------
+  # Cryptographic Protection (Transit & Rest - Legacy Technical Gaps)
+  # ----------------------------------------------------------------------------
+  - requirement: "data_in_transit"
+    question: "Is data encrypted during transit?"
+    answer: "No"
+    result: "non_compliant"
+    observation: "Cleartext proprietary protocols and HTTP over factory plant LAN"
+    # Score: 0% -> Likelihood 4 (Very likely) -> Impact 2 -> Risk: Medium (id=2) -> Priority 2 (High).
+
+  - requirement: "data_at_rest"
+    question: "Is data encrypted at rest?"
+    answer: "No"
+    result: "non_compliant"
+    observation: "Unencrypted legacy relational database tablespaces"
+    # Score: 0% -> Likelihood 4 (Very likely) -> Impact 2 -> Risk: Medium (id=2) -> Priority 2 (High).
+
+  # ----------------------------------------------------------------------------
+  # Non-Production Environments & Data Sanitization
+  # ----------------------------------------------------------------------------
+  - requirement: "non_prod_data"
+    question: "Do you have a dedicated non-production environment?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Offline test bench available for staging firmware and patches"
+
+  - requirement: "non_prod_data"
+    question: "Do you use prod data in a non-prod environment?"
+    answer: "No"
+    result: "compliant"
+    observation: "Static dummy parts catalog used for development"
+    # Score: 100% -> Likelihood 1 -> Risk: Very Low (id=0) -> Priority 4 (Low).
+
+  # ----------------------------------------------------------------------------
+  # External Data Exchange Governance
+  # ----------------------------------------------------------------------------
+  - requirement: "data_exchange"
+    question: "Are there data exchanges beyond the group?"
+    answer: "No"
+    result: "compliant"
+    observation: "Air-gapped factory subnet with no outbound partner connections"
+    # Score: 100% -> Likelihood 1 -> Risk: Very Low (id=0) -> Priority 4 (Low).
+
+  # ----------------------------------------------------------------------------
+  # Compliant Data Destruction
+  # ----------------------------------------------------------------------------
+  - requirement: "data_destruction"
+    question: "Is there a data destruction process for this application?"
+    answer: "Yes"
+    result: "partially_compliant"
+    observation: "Manual administrative database truncation script"
+
+  - requirement: "data_destruction"
+    question: "Is the process compliant with the policy (responsibilities, methods, reporting)?"
+    answer: "No, not compliant"
+    result: "partially_compliant"
+    observation: "No formal verification or sign-off reports generated"
+    # Score: 50% -> Likelihood 3 (Likely) -> Impact 2 -> Risk: Low/Medium (id=2) -> Priority 2 (High).
+
+# ==============================================================================
+# Expected Control Statuses (newDPP Framework)
+# ==============================================================================
+# Controls with score >= 100% -> active; score < 100% -> to_do
+# ==============================================================================
+expected_controls:
+  - control: "Designate stakeholders"
+    reference_control: "stakeholder_designation"
+    requirement: "stakeholder_identification"
+    score: 50
+    status: "to_do" # 2/4 questions Yes (50%) -> to_do
+    rationale: "Data owner and LeanIX synchronization missing in OT network."
+
+  - control: "Identify the data classification level"
+    reference_control: "identify_data_classification"
+    requirement: "data_classification"
+    score: 0
+    status: "to_do"
+    rationale: "Data classification registered as Internal."
+
+  - control: "Encrypt data in transit"
+    reference_control: "encrypt_data_in_transit"
+    requirement: "data_in_transit"
+    score: 0
+    status: "to_do" # Cleartext HTTP/LAN (0%) -> to_do
+    rationale: "Cleartext factory network communications require TLS encryption."
+
+  - control: "Encrypt data at rest"
+    reference_control: "encrypt_data_at_rest"
+    requirement: "data_at_rest"
+    score: 0
+    status: "to_do" # Unencrypted database (0%) -> to_do
+    rationale: "Legacy database tablespaces unencrypted on disk."
+
+  - control: "Use hashing, encryption, anonymisation or pseudonymisation of prod data in non-production environment"
+    reference_control: "protect_prod_data_in_non_prod"
+    requirement: "non_prod_data"
+    score: 100
+    status: "active" # Synthetic parts catalog only (100%) -> active
+    rationale: "No real production data replicated to offline test bench."
+
+  - control: "Sign a contract regarding the exchange of information with all the adequate clauses"
+    reference_control: "information_exchange_contract"
+    requirement: "data_exchange"
+    score: 100
+    status: "active" # Air-gapped / no external exchange (100%) -> active
+    rationale: "No external third-party data flows."
+
+  - control: "Write and implement a compliant data destruction process"
+    reference_control: "data_destruction_process"
+    requirement: "data_destruction"
+    score: 50
+    status: "to_do" # Manual script without reporting (50%) -> to_do
+    rationale: "Manual script lacks audit logging and formal policy compliance."
+
+# ==============================================================================
+# Expected Risk Scenarios (newDPP Framework)
+# ==============================================================================
+# In-House Application -> 6 in-scope scenarios (SaaS provider leakage excluded).
+# Impact Level: 2 (Internal). Cleartext transit and storage drive Medium Risks.
+# ==============================================================================
+expected_risk_scenarios:
+  - scenario: "Exposure of unencrypted data in transit"
+    likelihood_requirement: "data_in_transit"
+    likelihood_score: 0
+    scaled_likelihood: 4 # 4 - Very likely
+    scaled_impact: 2 # 2 - Significant (Internal)
+    matrix_risk_id: 2 # 3 - Medium
+    risk_level: 3
+    control_priority: 2 # 2 (High)
+
+  - scenario: "Exposure of unencrypted data at rest"
+    likelihood_requirement: "data_at_rest"
+    likelihood_score: 0
+    scaled_likelihood: 4 # 4 - Very likely
+    scaled_impact: 2 # 2 - Significant (Internal)
+    matrix_risk_id: 2 # 3 - Medium
+    risk_level: 3
+    control_priority: 2 # 2 (High)
+
+  - scenario: "Disclosure of production data in non-production environments"
+    likelihood_requirement: "non_prod_data"
+    likelihood_score: 100
+    scaled_likelihood: 1 # 1 - Unlikely
+    scaled_impact: 2 # 2 - Significant (Internal)
+    matrix_risk_id: 0 # 1 - Very Low
+    risk_level: 1
+    control_priority: 4 # 4 (Low)
+
+  - scenario: "Third-party data leakage"
+    likelihood_requirement: "data_exchange"
+    likelihood_score: 100
+    scaled_likelihood: 1 # 1 - Unlikely
+    scaled_impact: 2 # 2 - Significant (Internal)
+    matrix_risk_id: 0 # 1 - Very Low
+    risk_level: 1
+    control_priority: 4 # 4 (Low)
+
+  - scenario: "Missing application stakeholders"
+    likelihood_requirement: "stakeholder_identification"
+    likelihood_score: 50
+    scaled_likelihood: 3 # 3 - Likely
+    scaled_impact: 2 # 2 - Significant (Internal)
+    matrix_risk_id: 1 # 2 - Low
+    risk_level: 2
+    control_priority: 3 # 3 (Medium)
+
+  - scenario: "Excessive retention of sensitive data"
+    likelihood_requirement: "data_destruction"
+    likelihood_score: 50
+    scaled_likelihood: 3 # 3 - Likely
+    scaled_impact: 2 # 2 - Significant (Internal)
+    matrix_risk_id: 1 # 2 - Low
+    risk_level: 2
+    control_priority: 3 # 3 (Medium)

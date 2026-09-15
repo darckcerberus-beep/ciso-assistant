@@ -29,7 +29,7 @@ class TestExamplesManager(unittest.TestCase):
         self.assertIn("App-AI-Analytics-Workbench", app_names)
 
         for app in EXAMPLE_APPLICATIONS:
-            self.assertTrue(app["csv_path"].endswith(".csv"))
+            self.assertTrue(app["csv_path"].endswith((".yml", ".yaml", ".csv")))
 
     @patch("classes.utils.get_return")
     def test_test_connection_success(self, mock_get_return):

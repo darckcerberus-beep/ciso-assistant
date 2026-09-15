@@ -1,0 +1,244 @@
+# ==============================================================================
+# Application: App-Customer-Payment-API
+# Profile: Cardholder Payment Gateway (Secret / In-House / PCI-DSS Aligned)
+# ==============================================================================
+# This profile represents a dedicated on-premise PCI-DSS Cardholder Data Environment (CDE).
+# It processes Secret-level credit card tokens and settlement transactions with high
+# technical maturity, automated cryptographic erasure, and formal bilateral clearinghouse contracts.
+# As an in-house private enclave, third-party SaaS hosting governance is out of scope.
+# ==============================================================================
+
+application:
+  id: "app_customer_payment_api"
+  name: "App-Customer-Payment-API"
+  description: "Dedicated PCI-DSS compliant private cloud enclave processing cardholder transactions"
+  classification: "Secret"
+  hosting: "In-house"
+
+answers:
+  # ----------------------------------------------------------------------------
+  # Governance & Context
+  # ----------------------------------------------------------------------------
+  - requirement: "data_classification"
+    question: "What is the maximum classification level handled?"
+    answer: "Secret"
+    result: "compliant"
+    observation: "Cardholder data environment (PCI-DSS PAN and CVV tokens)"
+    # Rationale: Secret data sensitivity (Impact Level 4) reflects PCI-DSS scope.
+
+  - requirement: "hosting"
+    question: "What is the hosting model?"
+    answer: "In-house"
+    result: "not_applicable"
+    observation: "Dedicated PCI-DSS compliant private cloud enclave"
+    # Rationale: In-house private enclave; saas_contract_compliance is out of scope.
+
+  # ----------------------------------------------------------------------------
+  # Stakeholder Accountability
+  # ----------------------------------------------------------------------------
+  - requirement: "stakeholder_identification"
+    question: "Is there a designated business contact?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "VP Payments designated as business contact"
+
+  - requirement: "stakeholder_identification"
+    question: "Is there a designated IT contact?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Principal Security Architect designated as IT contact"
+
+  - requirement: "stakeholder_identification"
+    question: "Is there a designated data owner?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Payment Operations Director designated as data owner"
+
+  - requirement: "stakeholder_identification"
+    question: "Is the information about stakeholders updated in LeanIX?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "LeanIX application inventory is current"
+    # Score: 100% -> Likelihood 1 -> Risk: Low (id=1).
+
+  # ----------------------------------------------------------------------------
+  # Cryptographic Protection (Transit & Rest)
+  # ----------------------------------------------------------------------------
+  - requirement: "data_in_transit"
+    question: "Is data encrypted during transit?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Mutual TLS 1.3 with pinned certificates"
+    # Score: 100% -> Likelihood 1 -> Risk: Low (id=1).
+
+  - requirement: "data_at_rest"
+    question: "Is data encrypted at rest?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Hardware Security Module (HSM) envelope encryption (AES-256-GCM)"
+    # Score: 100% -> Likelihood 1 -> Risk: Low (id=1).
+
+  # ----------------------------------------------------------------------------
+  # Non-Production Environments & Data Sanitization
+  # ----------------------------------------------------------------------------
+  - requirement: "non_prod_data"
+    question: "Do you have a dedicated non-production environment?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Isolated sandbox test environment"
+
+  - requirement: "non_prod_data"
+    question: "Do you use prod data in a non-prod environment?"
+    answer: "No"
+    result: "compliant"
+    observation: "Synthetically generated card numbers only"
+    # Score: 100% -> Likelihood 1 -> Risk: Low (id=1).
+
+  # ----------------------------------------------------------------------------
+  # External Data Exchange Governance
+  # ----------------------------------------------------------------------------
+  - requirement: "data_exchange"
+    question: "Are there data exchanges beyond the group?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Clearinghouse settlement network transfers"
+
+  - requirement: "data_exchange"
+    question: "Is there a data exchange contract with the appropriate confidentiality clauses?"
+    answer: "Contract!"
+    result: "compliant"
+    observation: "Payment scheme bilateral agreements in place"
+    # Score: 100% -> Likelihood 1 -> Risk: Low (id=1).
+
+  # ----------------------------------------------------------------------------
+  # Compliant Data Destruction
+  # ----------------------------------------------------------------------------
+  - requirement: "data_destruction"
+    question: "Is there a data destruction process for this application?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Automated cryptographic erasure upon token expiration"
+
+  - requirement: "data_destruction"
+    question: "Is the process compliant with the policy (responsibilities, methods, reporting)?"
+    answer: "Yes, compliant!"
+    result: "compliant"
+    observation: "Formal PCI ROC validated purge process"
+    # Score: 100% -> Likelihood 1 -> Risk: Low (id=1).
+
+# ==============================================================================
+# Expected Control Statuses (newDPP Framework)
+# ==============================================================================
+# In-house PCI application with 100% compliance across all in-scope technical controls.
+# ==============================================================================
+expected_controls:
+  - control: "Designate stakeholders"
+    reference_control: "stakeholder_designation"
+    requirement: "stakeholder_identification"
+    score: 100
+    status: "active" # 4/4 questions Yes (100%) -> active
+    rationale: "Business, IT, data owners assigned and LeanIX synchronized."
+
+  - control: "Identify the data classification level"
+    reference_control: "identify_data_classification"
+    requirement: "data_classification"
+    score: 0
+    status: "to_do"
+    rationale: "Data classification registered as Secret."
+
+  - control: "Encrypt data in transit"
+    reference_control: "encrypt_data_in_transit"
+    requirement: "data_in_transit"
+    score: 100
+    status: "active" # mTLS 1.3 (100%) -> active
+    rationale: "Mutual TLS 1.3 with certificate pinning."
+
+  - control: "Encrypt data at rest"
+    reference_control: "encrypt_data_at_rest"
+    requirement: "data_at_rest"
+    score: 100
+    status: "active" # HSM AES-256-GCM (100%) -> active
+    rationale: "Hardware Security Module envelope encryption active."
+
+  - control: "Use hashing, encryption, anonymisation or pseudonymisation of prod data in non-production environment"
+    reference_control: "protect_prod_data_in_non_prod"
+    requirement: "non_prod_data"
+    score: 100
+    status: "active" # Synthetic test data only (100%) -> active
+    rationale: "No production card numbers replicated to non-prod."
+
+  - control: "Sign a contract regarding the exchange of information with all the adequate clauses"
+    reference_control: "information_exchange_contract"
+    requirement: "data_exchange"
+    score: 100
+    status: "active" # Bilateral contracts in place (100%) -> active
+    rationale: "Formal payment scheme clearinghouse contracts executed."
+
+  - control: "Write and implement a compliant data destruction process"
+    reference_control: "data_destruction_process"
+    requirement: "data_destruction"
+    score: 100
+    status: "active" # Cryptographic erasure compliant (100%) -> active
+    rationale: "Automated cryptographic token erasure compliant with PCI-DSS."
+
+# ==============================================================================
+# Expected Risk Scenarios (newDPP Framework)
+# ==============================================================================
+# In-House Application -> 6 in-scope scenarios (SaaS provider leakage excluded).
+# Impact Level: 4 (Secret). All likelihoods: 1 (Unlikely, 100% compliance).
+# Grid[0][3] (Likelihood 1, Impact 4) = 1 (Low Risk, Level 2) -> Priority 3 (Medium)
+# ==============================================================================
+expected_risk_scenarios:
+  - scenario: "Exposure of unencrypted data in transit"
+    likelihood_requirement: "data_in_transit"
+    likelihood_score: 100
+    scaled_likelihood: 1 # 1 - Unlikely
+    scaled_impact: 4 # 4 - Critical (Secret)
+    matrix_risk_id: 1 # 2 - Low
+    risk_level: 2
+    control_priority: 3 # 3 (Medium)
+
+  - scenario: "Exposure of unencrypted data at rest"
+    likelihood_requirement: "data_at_rest"
+    likelihood_score: 100
+    scaled_likelihood: 1 # 1 - Unlikely
+    scaled_impact: 4 # 4 - Critical (Secret)
+    matrix_risk_id: 1 # 2 - Low
+    risk_level: 2
+    control_priority: 3 # 3 (Medium)
+
+  - scenario: "Disclosure of production data in non-production environments"
+    likelihood_requirement: "non_prod_data"
+    likelihood_score: 100
+    scaled_likelihood: 1 # 1 - Unlikely
+    scaled_impact: 4 # 4 - Critical (Secret)
+    matrix_risk_id: 1 # 2 - Low
+    risk_level: 2
+    control_priority: 3 # 3 (Medium)
+
+  - scenario: "Third-party data leakage"
+    likelihood_requirement: "data_exchange"
+    likelihood_score: 100
+    scaled_likelihood: 1 # 1 - Unlikely
+    scaled_impact: 4 # 4 - Critical (Secret)
+    matrix_risk_id: 1 # 2 - Low
+    risk_level: 2
+    control_priority: 3 # 3 (Medium)
+
+  - scenario: "Missing application stakeholders"
+    likelihood_requirement: "stakeholder_identification"
+    likelihood_score: 100
+    scaled_likelihood: 1 # 1 - Unlikely
+    scaled_impact: 4 # 4 - Critical (Secret)
+    matrix_risk_id: 1 # 2 - Low
+    risk_level: 2
+    control_priority: 3 # 3 (Medium)
+
+  - scenario: "Excessive retention of sensitive data"
+    likelihood_requirement: "data_destruction"
+    likelihood_score: 100
+    scaled_likelihood: 1 # 1 - Unlikely
+    scaled_impact: 4 # 4 - Critical (Secret)
+    matrix_risk_id: 1 # 2 - Low
+    risk_level: 2
+    control_priority: 3 # 3 (Medium)

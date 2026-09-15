@@ -1,0 +1,299 @@
+# ==============================================================================
+# Application: App-HR-People-System
+# Profile: Cloud HR & Payroll Platform (Confidential / SaaS / Privacy Gaps)
+# ==============================================================================
+# This profile represents a cloud-hosted Human Resources platform (e.g. Workday).
+# It processes Confidential employee records, compensation, and privacy data.
+# Strong technical encryption is in place, but GDPR privacy compliance gaps exist
+# due to unmasked production data used in staging and lack of data destruction.
+# ==============================================================================
+
+application:
+  id: "app_hr_people_system"
+  name: "App-HR-People-System"
+  description: "Enterprise HR and payroll SaaS platform with privacy and retention gaps"
+  classification: "Confidential"
+  hosting: "SaaS"
+
+answers:
+  # ----------------------------------------------------------------------------
+  # Governance & Context
+  # ----------------------------------------------------------------------------
+  - requirement: "data_classification"
+    question: "What is the maximum classification level handled?"
+    answer: "Confidential"
+    result: "compliant"
+    observation: "Employee personal records, salaries, and performance reviews"
+    # Rationale: Confidential classification (Impact Level 3) triggers baseline technical
+    # safeguards and elevates data privacy exposures to Urgent/High priority.
+
+  - requirement: "hosting"
+    question: "What is the hosting model?"
+    answer: "SaaS"
+    result: "not_applicable"
+    observation: "Multi-tenant enterprise cloud HR provider"
+
+  # ----------------------------------------------------------------------------
+  # Stakeholder Accountability
+  # ----------------------------------------------------------------------------
+  - requirement: "stakeholder_identification"
+    question: "Is there a designated business contact?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Chief People Officer assigned"
+
+  - requirement: "stakeholder_identification"
+    question: "Is there a designated IT contact?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "HRIS Systems Lead assigned"
+
+  - requirement: "stakeholder_identification"
+    question: "Is there a designated data owner?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Data Protection Officer assigned as data owner"
+
+  - requirement: "stakeholder_identification"
+    question: "Is the information about stakeholders updated in LeanIX?"
+    answer: "No"
+    result: "partially_compliant"
+    observation: "LeanIX record update pending annual review"
+    # Score: 75% -> Likelihood 2 (Rather unlikely) -> Impact 3 -> Risk: Low (id=1).
+
+  # ----------------------------------------------------------------------------
+  # Cryptographic Protection (Transit & Rest)
+  # ----------------------------------------------------------------------------
+  - requirement: "data_in_transit"
+    question: "Is data encrypted during transit?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "TLS 1.3 enforced for all web and API traffic"
+    # Score: 100% -> Likelihood 1 -> Risk: Low (id=1).
+
+  - requirement: "data_at_rest"
+    question: "Is data encrypted at rest?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Database Transparent Data Encryption (TDE) with customer-managed keys"
+    # Score: 100% -> Likelihood 1 -> Risk: Low (id=1).
+
+  # ----------------------------------------------------------------------------
+  # Non-Production Environments & Data Sanitization (GDPR Gap)
+  # ----------------------------------------------------------------------------
+  - requirement: "non_prod_data"
+    question: "Do you have a dedicated non-production environment?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Staging and sandbox environments configured"
+
+  - requirement: "non_prod_data"
+    question: "Do you use prod data in a non-prod environment?"
+    answer: "Yes"
+    result: "non_compliant"
+    observation: "Production database copies used directly for UAT payroll testing"
+
+  - requirement: "non_prod_data"
+    question: "How do you protect them?"
+    answer: "No, no protection"
+    result: "non_compliant"
+    observation: "No masking or pseudonymization applied to employee salary data"
+
+  - requirement: "non_prod_data"
+    question: "Do you clean the prod data after use in non-prod?"
+    answer: "No"
+    result: "non_compliant"
+    observation: "Test datasets retained permanently in sandbox"
+    # Score: 0% -> Likelihood 4 (Very likely) -> Impact 3 -> Matrix Risk: High (id=3) -> Priority 1 (Urgent).
+
+  # ----------------------------------------------------------------------------
+  # External Data Exchange Governance
+  # ----------------------------------------------------------------------------
+  - requirement: "data_exchange"
+    question: "Are there data exchanges beyond the group?"
+    answer: "No"
+    result: "compliant"
+    observation: "No external partner data exchange"
+    # Score: 100% -> Likelihood 1 -> Risk: Low (id=1).
+
+  # ----------------------------------------------------------------------------
+  # Compliant Data Destruction (Retention Policy Gap)
+  # ----------------------------------------------------------------------------
+  - requirement: "data_destruction"
+    question: "Is there a data destruction process for this application?"
+    answer: "No"
+    result: "non_compliant"
+    observation: "Former employee records stored indefinitely without automated purge"
+
+  - requirement: "data_destruction"
+    question: "Is the process compliant with the policy (responsibilities, methods, reporting)?"
+    answer: "No, not compliant"
+    result: "non_compliant"
+    observation: "No compliant data retention lifecycle or destruction reporting"
+    # Score: 0% -> Likelihood 4 (Very likely) -> Impact 3 -> Matrix Risk: High (id=3) -> Priority 1 (Urgent).
+
+  # ----------------------------------------------------------------------------
+  # Third-Party SaaS Contractual Governance
+  # ----------------------------------------------------------------------------
+  - requirement: "saas_contract_compliance"
+    question: "Is there a signed SaaS contract?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Enterprise Master Services Agreement executed"
+
+  - requirement: "saas_contract_compliance"
+    question: "Does the contract include an Audit clause?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Annual SOC 2 Type II assurance and right to audit"
+
+  - requirement: "saas_contract_compliance"
+    question: "Does the contract include an Incident Notification process?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "48-hour security breach notification clause"
+
+  - requirement: "saas_contract_compliance"
+    question: "Does the contract include Strong IAM requirements?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "SAML SSO integration with mandatory hardware token MFA"
+
+  - requirement: "saas_contract_compliance"
+    question: "Does the contract include a Confidentiality agreement (NDA)?"
+    answer: "No"
+    result: "non_compliant"
+    observation: "Bilateral NDA pending final legal signature"
+    # Score: 80% (4/5 clauses) -> Likelihood 1 (Unlikely) -> Impact 3 -> Risk: Low (id=1).
+
+# ==============================================================================
+# Expected Control Statuses (newDPP Framework)
+# ==============================================================================
+# Controls with score >= 100% -> active; score < 100% -> to_do
+# ==============================================================================
+expected_controls:
+  - control: "Designate stakeholders"
+    reference_control: "stakeholder_designation"
+    requirement: "stakeholder_identification"
+    score: 75
+    status: "to_do" # 3/4 questions Yes (75%) -> to_do
+    rationale: "Business, IT, and data owners assigned; LeanIX sync pending."
+
+  - control: "Identify the data classification level"
+    reference_control: "identify_data_classification"
+    requirement: "data_classification"
+    score: 0
+    status: "to_do"
+    rationale: "Data classification registered as Confidential."
+
+  - control: "Encrypt data in transit"
+    reference_control: "encrypt_data_in_transit"
+    requirement: "data_in_transit"
+    score: 100
+    status: "active" # TLS 1.3 enforced (100%) -> active
+    rationale: "HTTPS/TLS 1.3 encryption across all connections."
+
+  - control: "Encrypt data at rest"
+    reference_control: "encrypt_data_at_rest"
+    requirement: "data_at_rest"
+    score: 100
+    status: "active" # TDE with KMS (100%) -> active
+    rationale: "Database transparent encryption with customer-managed keys."
+
+  - control: "Use hashing, encryption, anonymisation or pseudonymisation of prod data in non-production environment"
+    reference_control: "protect_prod_data_in_non_prod"
+    requirement: "non_prod_data"
+    score: 0
+    status: "to_do" # Raw prod data in test without masking (0%) -> to_do
+    rationale: "GDPR violation: raw production payroll data used in staging."
+
+  - control: "Sign a contract regarding the exchange of information with all the adequate clauses"
+    reference_control: "information_exchange_contract"
+    requirement: "data_exchange"
+    score: 100
+    status: "active" # No external exchange (100%) -> active
+    rationale: "No external third-party data exchange."
+
+  - control: "Write and implement a compliant data destruction process"
+    reference_control: "data_destruction_process"
+    requirement: "data_destruction"
+    score: 0
+    status: "to_do" # No retention or purge process (0%) -> to_do
+    rationale: "Former employee records stored indefinitely without automated purge."
+
+  - control: "Sign a contract with the SaaS provider with all the adequate clauses"
+    reference_control: "saas_contract"
+    requirement: "saas_contract_compliance"
+    score: 80
+    status: "to_do" # 4/5 clauses (80%) -> to_do
+    rationale: "Contract, audit, incident notification, IAM active; bilateral NDA missing."
+
+# ==============================================================================
+# Expected Risk Scenarios (newDPP Framework)
+# ==============================================================================
+# Impact Level: 3 (Confidential).
+# Privacy gaps trigger High Risk (Level 4) and Urgent Priority (Priority 1).
+# ==============================================================================
+expected_risk_scenarios:
+  - scenario: "Exposure of unencrypted data in transit"
+    likelihood_requirement: "data_in_transit"
+    likelihood_score: 100
+    scaled_likelihood: 1 # 1 - Unlikely
+    scaled_impact: 3 # 3 - Serious (Confidential)
+    matrix_risk_id: 1 # 2 - Low
+    risk_level: 2
+    control_priority: 3 # 3 (Medium)
+
+  - scenario: "Exposure of unencrypted data at rest"
+    likelihood_requirement: "data_at_rest"
+    likelihood_score: 100
+    scaled_likelihood: 1 # 1 - Unlikely
+    scaled_impact: 3 # 3 - Serious (Confidential)
+    matrix_risk_id: 1 # 2 - Low
+    risk_level: 2
+    control_priority: 3 # 3 (Medium)
+
+  - scenario: "Disclosure of production data in non-production environments"
+    likelihood_requirement: "non_prod_data"
+    likelihood_score: 0
+    scaled_likelihood: 4 # 4 - Very likely
+    scaled_impact: 3 # 3 - Serious (Confidential)
+    matrix_risk_id: 3 # 4 - High
+    risk_level: 4
+    control_priority: 1 # 1 (Urgent)
+
+  - scenario: "Third-party data leakage"
+    likelihood_requirement: "data_exchange"
+    likelihood_score: 100
+    scaled_likelihood: 1 # 1 - Unlikely
+    scaled_impact: 3 # 3 - Serious (Confidential)
+    matrix_risk_id: 1 # 2 - Low
+    risk_level: 2
+    control_priority: 3 # 3 (Medium)
+
+  - scenario: "SaaS provider data leakage"
+    likelihood_requirement: "saas_contract_compliance"
+    likelihood_score: 80
+    scaled_likelihood: 1 # 1 - Unlikely
+    scaled_impact: 3 # 3 - Serious (Confidential)
+    matrix_risk_id: 1 # 2 - Low
+    risk_level: 2
+    control_priority: 3 # 3 (Medium)
+
+  - scenario: "Missing application stakeholders"
+    likelihood_requirement: "stakeholder_identification"
+    likelihood_score: 75
+    scaled_likelihood: 2 # 2 - Rather unlikely
+    scaled_impact: 3 # 3 - Serious (Confidential)
+    matrix_risk_id: 1 # 2 - Low
+    risk_level: 2
+    control_priority: 3 # 3 (Medium)
+
+  - scenario: "Excessive retention of sensitive data"
+    likelihood_requirement: "data_destruction"
+    likelihood_score: 0
+    scaled_likelihood: 4 # 4 - Very likely
+    scaled_impact: 3 # 3 - Serious (Confidential)
+    matrix_risk_id: 3 # 4 - High
+    risk_level: 4
+    control_priority: 1 # 1 (Urgent)

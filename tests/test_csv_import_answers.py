@@ -23,6 +23,19 @@ class TestCsvImport(unittest.TestCase):
         self.assertEqual(first_row["requirement"], "data_classification")
         self.assertEqual(first_row["answer"], "Secret")
 
+    def test_read_yaml_rows_normalization(self):
+        """Verify reading and normalization of application YAML files."""
+        yml_path = Path("test_data/app_secure_core.yml")
+        rows = csv_import.read_answers_file(str(yml_path))
+
+        self.assertGreater(len(rows), 0)
+        first_row = rows[0]
+        self.assertIn("requirement", first_row)
+        self.assertIn("question", first_row)
+        self.assertIn("answer", first_row)
+        self.assertEqual(first_row["requirement"], "data_classification")
+        self.assertEqual(first_row["answer"], "Secret")
+
     def test_split_multi_values(self):
         """Verify pipe and semicolon multi-value answer splitting."""
         self.assertEqual(csv_import._split_multi_values("Choice A | Choice B"), ["Choice A", "Choice B"])

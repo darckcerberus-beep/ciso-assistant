@@ -58,13 +58,44 @@ def _normalize_row(row):
     return normalized
 
 
-def read_csv_rows(csv_path, delimiter=None):
-    """Read a CSV file and return a list of normalized row dicts.
+def read_answers_file(file_path, delimiter=None):
+    """Read a YAML or CSV file containing assessment answers and return normalized rows.
+
+    Supports:
+    - .yaml / .yml: Structured YAML files containing an 'answers' list of dicts.
+    - .csv: Delimited CSV files with standard header columns.
 
     Args:
-        csv_path: Path to the CSV file.
+        file_path: Path to the YAML or CSV file.
+        delimiter: Optional explicit delimiter for CSV files. Auto-detected when omitted.
+    """
+    path_str = str(file_path)
+    if path_str.endswith(".yaml") or path_str.endswith(".yml"):
+        import yaml
+        with open(file_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+        if isinstance(data, dict):
+            raw_rows = data.get("answers", [])
+        elif isinstance(data, list):
+            raw_rows = data
+        else:
+            raw_rows = []
+        return [_normalize_row(row) for row in raw_rows if isinstance(row, dict)]
+
+    return read_csv_rows(file_path, delimiter=delimiter)
+
+
+def read_csv_rows(csv_path, delimiter=None):
+    """Read a CSV or YAML file and return a list of normalized row dicts.
+
+    Args:
+        csv_path: Path to the CSV or YAML file.
         delimiter: Optional explicit delimiter. Auto-detected (',' or ';') when omitted.
     """
+    path_str = str(csv_path)
+    if path_str.endswith(".yaml") or path_str.endswith(".yml"):
+        return read_answers_file(csv_path)
+
     with open(csv_path, "r", encoding="utf-8-sig", newline="") as csv_file:
         sample = csv_file.read(4096)
         csv_file.seek(0)
