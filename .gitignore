@@ -1,24 +1,21 @@
+# Environment & credentials
 /keys.py
+keys.py
+
+# Python bytecode and cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Local libraries and data
+library/*.json
 library/assets.json
 library/domains.json
 library/users.json
 library/tasks.json
-__pycache__/audit.cpython-310.pyc
-__pycache__/control.cpython-310.pyc
-__pycache__/keys.cpython-310.pyc
-__pycache__/organization.cpython-310.pyc
-__pycache__/risk.cpython-310.pyc
-__pycache__/utils.cpython-310.pyc
-classes/__pycache__/organization.cpython-310.pyc
-classes/__pycache__/user.cpython-310.pyc
-classes/__pycache__/*
-classes/__pycache__/
-classes/__pycache__/risk.cpython-310.pyc
-classes/__pycache__/utils.cpython-310.pyc
-classes/__pycache__/user.cpython-310.pyc
-classes/__pycache__/__init__.cpython-310.pyc
-classes/__pycache__/__init__.cpython-310.pyc
-classes/__pycache__/__init__.cpython-310.pyc
-classes/__pycache__/framework.cpython-310.pyc
-__pycache__/
-*.pyc
+
+# Temporary & system files
+*.log
+.DS_Store

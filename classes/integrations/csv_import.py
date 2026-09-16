@@ -242,10 +242,18 @@ def import_compliance_answers(csv_path, compliance_assessment_id, requirement_as
         ra = entry["ra"]
         if not entry["answers"] and entry["result"] is None and entry["observation"] is None:
             continue
+        questions = ra.get_questions()
+        final_answers = {}
+        for q_urn in questions:
+            if q_urn in entry["answers"]:
+                final_answers[q_urn] = entry["answers"][q_urn]
+            else:
+                final_answers[q_urn] = None
         response = ra.update_answers(
-            answers=entry["answers"],
+            answers=final_answers,
             result=entry["result"],
             observation=entry["observation"],
+            merge=False,
         )
         if response is not None:
             updated += 1
@@ -254,6 +262,26 @@ def import_compliance_answers(csv_path, compliance_assessment_id, requirement_as
                 "row": None,
                 "reason": f"Failed to update requirement assessment '{ra.get_name()}' ({ra.get_id()})",
             })
+
+    # Reset any requirement assessments belonging to this compliance assessment that are NOT in the CSV
+    all_ra_ids = requirement_assessment_dict.get_requirement_assessment_id_list_from_compliance_assessment_id(compliance_assessment_id)
+    cleared = 0
+    for ra_id in all_ra_ids:
+        if ra_id not in pending:
+            ra = requirement_assessment_dict.requirement_assessments.get(ra_id)
+            if ra and (not ra.is_unassessed_result() or ra.has_selected_answer()):
+                questions = ra.get_questions()
+                cleared_answers = {q_urn: None for q_urn in questions} if questions else {}
+                res = ra.update_answers(
+                    answers=cleared_answers,
+                    result="not_assessed",
+                    observation="",
+                    merge=False,
+                )
+                if res is not None:
+                    cleared += 1
+    if cleared > 0:
+        utils.log(f"Reset {cleared} untriggered/unmentioned requirement assessment(s) to not_assessed")
 
     for error in errors:
         utils.log(f"CSV import issue: {error}", level=logging.WARNING)

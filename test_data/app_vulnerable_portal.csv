@@ -14,10 +14,5 @@ non_prod_data,"Do you clean the prod data after use in non-prod?",No,non_complia
 data_exchange,"Are there data exchanges beyond the group?",Yes,non_compliant,Transfers to third parties exist
 data_exchange,"Is there a data exchange contract with the appropriate confidentiality clauses?","No contract",non_compliant,No DPA or exchange contract
 data_destruction,"Is there a data destruction process for this application?",No,non_compliant,No data retention or destruction policy
-data_destruction,"Is the process compliant with the policy (responsibilities, methods, reporting)?","No, not compliant",non_compliant,No compliant process
 saas_contract_compliance,"Is there a signed SaaS contract?",No,non_compliant,Free tier account with no contract
-saas_contract_compliance,"Does the contract include an Audit clause?",No,non_compliant,No audit rights
-saas_contract_compliance,"Does the contract include an Incident Notification process?",No,non_compliant,No security notification clause
-saas_contract_compliance,"Does the contract include Strong IAM requirements?",No,non_compliant,Password only without MFA
-saas_contract_compliance,"Does the contract include a Confidentiality agreement (NDA)?",No,non_compliant,No confidentiality clause
 

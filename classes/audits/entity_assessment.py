@@ -100,17 +100,19 @@ class EntityAssessment:
         for representative in representatives:
             if isinstance(representative, dict):
                 user = representative.get('user', {})
-                if isinstance(user, dict):
-                    if user.get('id'):
-                        representative_ids.append(str(user['id']))
-                        continue
+                if isinstance(user, dict) and user.get('id'):
+                    representative_ids.append(str(user['id']))
+                    continue
                 if representative.get('user_id'):
                     representative_ids.append(str(representative['user_id']))
-                else:
-                    utils.log(
-                        f"Representative payload missing canonical user ID (user.id/user_id); skipping: {representative}",
-                        level=logging.WARNING,
-                    )
+                    continue
+                if representative.get('id'):
+                    representative_ids.append(str(representative['id']))
+                    continue
+                utils.log(
+                    f"Representative payload missing canonical user ID (user.id/user_id/id); skipping: {representative}",
+                    level=logging.WARNING,
+                )
             elif representative:
                 representative_ids.append(str(representative))
         return list(dict.fromkeys(representative_ids))

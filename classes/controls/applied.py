@@ -221,9 +221,19 @@ class AppliedControlDict:
         if risk_assessments is None:
             risk_assessments = utils.get_all_results("/api/risk-assessments/")
 
+        ca_perimeter = compliance_assessment.get("perimeter")
+        if isinstance(ca_perimeter, dict):
+            ca_perimeter = ca_perimeter.get("id")
+
         risk_assessment_id = None
         for risk_assessment in risk_assessments:
-            if risk_assessment.get("name", "") == f"{compliance_name} Risk Assessment":
+            ra_perimeter = risk_assessment.get("perimeter")
+            if isinstance(ra_perimeter, dict):
+                ra_perimeter = ra_perimeter.get("id")
+            if (
+                risk_assessment.get("name", "") == f"{compliance_name} Risk Assessment"
+                or (ca_perimeter and ra_perimeter == ca_perimeter)
+            ):
                 risk_assessment_id = risk_assessment.get("id")
                 break
 
@@ -239,6 +249,8 @@ class AppliedControlDict:
             scenario.get("name", "")
             for scenario in framework_file.get_risk_scenarios()
             if scenario.get("likelihood") == requirement_urn
+            or scenario.get("likelihood", "").rsplit(":", 1)[-1] == requirement_urn
+            or scenario.get("likelihood", "").endswith(f":{requirement_urn}")
         }
         if not scenario_names:
             raise LookupError(
@@ -246,7 +258,7 @@ class AppliedControlDict:
             )
 
         if risk_scenarios is None:
-            risk_scenarios = utils.get_all_results("/api/risk-scenarios/")
+            risk_scenarios = utils.get_all_results("/api/risk-scenarios/", force_reload=True)
 
         for scenario in risk_scenarios:
             risk_assessment = scenario.get("risk_assessment", {})
@@ -267,6 +279,8 @@ class AppliedControlDict:
                 return self.get_priority_from_risk_level(
                     current_level.get("id", current_level.get("value"))
                 )
+            if isinstance(current_level, (int, str)) and str(current_level).strip() != "":
+                return self.get_priority_from_risk_level(current_level)
             # Fallback: some API representations use numeric current_proba (0-based)
             current_proba = scenario.get("current_proba")
             if isinstance(current_proba, int):
@@ -408,7 +422,7 @@ class AppliedControlDict:
         # Determine which compliance assessments have at least one answered requirement assessment
         answered_ca_ids = set()
         for _ra in requirement_assessment.get_requirement_assessments().values():
-            if not _ra.is_unassessed_result() and _ra.has_selected_answer():
+            if _ra.has_selected_answer():
                 answered_ca_ids.add(_ra.get_compliance_assessment_id())
 
         external_context_by_compliance_id = {}

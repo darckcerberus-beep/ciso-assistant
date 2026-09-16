@@ -33,7 +33,7 @@ EXAMPLE_APPLICATIONS = [
         "id": "app_secure_core",
         "name": "App-Secure-Core",
         "label": "App-Secure-Core (Secret / 100% Compliant)",
-        "csv_path": "test_data/app_secure_core.yml",
+        "csv_path": "test_data/app_secure_core.csv",
         "classification": "Secret",
         "compliance_target": "100%",
         "expected_risk": "Low (Acceptable)",
@@ -54,7 +54,7 @@ EXAMPLE_APPLICATIONS = [
         "id": "app_vulnerable_portal",
         "name": "App-Vulnerable-Portal",
         "label": "App-Vulnerable-Portal (Secret / 0% Non-Compliant)",
-        "csv_path": "test_data/app_vulnerable_portal.yml",
+        "csv_path": "test_data/app_vulnerable_portal.csv",
         "classification": "Secret",
         "compliance_target": "0%",
         "expected_risk": "Very High / Critical -> Urgent Remediation",
@@ -75,7 +75,7 @@ EXAMPLE_APPLICATIONS = [
         "id": "app_internal_tool",
         "name": "App-Internal-Tool",
         "label": "App-Internal-Tool (Internal / Mixed Compliance)",
-        "csv_path": "test_data/app_internal_tool.yml",
+        "csv_path": "test_data/app_internal_tool.csv",
         "classification": "Internal",
         "compliance_target": "Mixed",
         "expected_risk": "Medium (Scenario-dependent)",
@@ -96,7 +96,7 @@ EXAMPLE_APPLICATIONS = [
         "id": "app_public_blog",
         "name": "App-Public-Blog",
         "label": "App-Public-Blog (Public / Low Sensitivity)",
-        "csv_path": "test_data/app_public_blog.yml",
+        "csv_path": "test_data/app_public_blog.csv",
         "classification": "Public",
         "compliance_target": "Mixed / Low Impact",
         "expected_risk": "Low (Capped at 1)",
@@ -117,7 +117,7 @@ EXAMPLE_APPLICATIONS = [
         "id": "app_hr_people_system",
         "name": "App-HR-People-System",
         "label": "App-HR-People-System (Confidential / HR & Privacy Gaps)",
-        "csv_path": "test_data/app_hr_people_system.yml",
+        "csv_path": "test_data/app_hr_people_system.csv",
         "classification": "Confidential",
         "compliance_target": "Mixed / Privacy Gaps",
         "expected_risk": "High (GDPR & Data Retention)",
@@ -138,7 +138,7 @@ EXAMPLE_APPLICATIONS = [
         "id": "app_customer_payment_api",
         "name": "App-Customer-Payment-API",
         "label": "App-Customer-Payment-API (Secret / PCI-DSS Aligned)",
-        "csv_path": "test_data/app_customer_payment_api.yml",
+        "csv_path": "test_data/app_customer_payment_api.csv",
         "classification": "Secret",
         "compliance_target": "High (95%)",
         "expected_risk": "Low-to-Medium (Vendor SLA Gaps)",
@@ -159,7 +159,7 @@ EXAMPLE_APPLICATIONS = [
         "id": "app_legacy_erp_production",
         "name": "App-Legacy-ERP-Production",
         "label": "App-Legacy-ERP-Production (Internal / On-Prem Legacy)",
-        "csv_path": "test_data/app_legacy_erp_production.yml",
+        "csv_path": "test_data/app_legacy_erp_production.csv",
         "classification": "Internal",
         "compliance_target": "Low / Legacy Gaps",
         "expected_risk": "Medium (Cleartext LAN & Unencrypted DB)",
@@ -180,7 +180,7 @@ EXAMPLE_APPLICATIONS = [
         "id": "app_ai_analytics_workbench",
         "name": "App-AI-Analytics-Workbench",
         "label": "App-AI-Analytics-Workbench (Confidential / Cloud GenAI)",
-        "csv_path": "test_data/app_ai_analytics_workbench.yml",
+        "csv_path": "test_data/app_ai_analytics_workbench.csv",
         "classification": "Confidential",
         "compliance_target": "Mixed / GenAI Risks",
         "expected_risk": "High (External LLM Transfer & Prompt Data Leakage)",
@@ -353,8 +353,10 @@ class ExamplesManager:
         user_dict: UserDict = data["user_dict"]
 
         status_list = []
+        known_names = set()
         for app in EXAMPLE_APPLICATIONS:
             app_name = app["name"]
+            known_names.add(app_name)
             perimeter_id = perimeter_dict.get_id_from_name(app_name)
             asset_id = asset_dict.get_asset_id_from_perimeter_name(app_name)
 
@@ -434,6 +436,117 @@ class ExamplesManager:
                 "user_exists": bool(user_id),
                 "tprm_conclusion": ea_obj.json_object.get("conclusion") if ea_obj and isinstance(ea_obj.json_object, dict) else None,
             })
+
+        # Discover custom applications created in the example folder
+        folder_id = None
+        domain_dict = data.get("domain_dict")
+        if domain_dict and hasattr(domain_dict, "get_domains"):
+            for d in domain_dict.get_domains():
+                if d.get_name() == self.folder_name:
+                    folder_id = d.get_id()
+                    break
+
+        if folder_id:
+            custom_entities = []
+            for ent in entity_dict.get_entities():
+                ent_name = ent.get_name()
+                if ent_name and ent_name not in known_names:
+                    ent_folder = ent.json_object.get("folder", {})
+                    ent_fid = ent_folder.get("id") if isinstance(ent_folder, dict) else ent_folder
+                    if ent_fid == folder_id:
+                        custom_entities.append(ent_name)
+
+            for app_name in custom_entities:
+                known_names.add(app_name)
+                perimeter_id = perimeter_dict.get_id_from_name(app_name)
+                asset_id = asset_dict.get_asset_id_from_perimeter_name(app_name)
+
+                ca_obj = None
+                for ca in compliance_dict.get_compliance_assessments().values():
+                    if perimeter_id and ca.get_perimeter_id() == perimeter_id:
+                        ca_obj = ca
+                        break
+                    if app_name in ca.get_name():
+                        ca_obj = ca
+                        break
+
+                ra_obj = None
+                ra_scenarios_count = 0
+                for ra in risk_dict.get_risk_assessments().values():
+                    if perimeter_id and ra.json_object.get("perimeter") == perimeter_id:
+                        ra_obj = ra
+                        break
+                    if app_name in ra.get_name():
+                        ra_obj = ra
+                        break
+
+                existing_ctrls_linked = 0
+                planned_ctrls_linked = 0
+                if ra_obj:
+                    ra_id = ra_obj.get_id()
+                    for sc in risk_scenarios_dict.get_risk_scenarios().values():
+                        sc_ra = sc.get_json().get("risk_assessment")
+                        if isinstance(sc_ra, dict):
+                            sc_ra = sc_ra.get("id")
+                        if sc_ra == ra_id:
+                            ra_scenarios_count += 1
+                            existing_ctrls_linked += len(sc.get_json().get("existing_applied_controls") or [])
+                            planned_ctrls_linked += len(sc.get_json().get("applied_controls") or [])
+
+                ctrl_count = 0
+                for ctrl in applied_ctrl_dict.get_controls().values():
+                    ctrl_name = ctrl.get_name()
+                    if f"on {app_name}" in ctrl_name:
+                        ctrl_count += 1
+
+                entity_id = entity_dict.get_id_from_name(app_name)
+                ea_obj = None
+                for ea in entity_assessment_dict.get_entity_assessments():
+                    if entity_id and ea.get_entity_id() == entity_id:
+                        ea_obj = ea
+                        break
+                    if app_name in ea.get_name():
+                        ea_obj = ea
+                        break
+
+                user_id = None
+                user_email = None
+                entity_rep_dict = data.get("entity_representative_dict")
+                rep_ids = ea_obj.get_representative_ids() if ea_obj else []
+                if not rep_ids and entity_id and entity_rep_dict:
+                    rep_ids = [r.get_user_id() for r in entity_rep_dict.get_representatives_for_entity(entity_id)]
+                if rep_ids:
+                    for u in user_dict.get_users():
+                        if u.get_id() in rep_ids:
+                            user_id = u.get_id()
+                            user_email = u.get_email()
+                            break
+
+                status_list.append({
+                    "id": f"custom_{app_name.lower().replace(' ', '_')}",
+                    "name": app_name,
+                    "label": f"{app_name} (Custom Audit Demo)",
+                    "csv_path": "-",
+                    "exists": bool(perimeter_id or ca_obj or ra_obj or entity_id or ea_obj),
+                    "perimeter_id": perimeter_id,
+                    "asset_id": asset_id,
+                    "compliance_assessment_id": ca_obj.get_id() if ca_obj else None,
+                    "compliance_assessment_name": ca_obj.get_name() if ca_obj else None,
+                    "compliance_status": ca_obj.get_status() if ca_obj else None,
+                    "risk_assessment_id": ra_obj.get_id() if ra_obj else None,
+                    "risk_scenarios_count": ra_scenarios_count,
+                    "applied_controls_count": ctrl_count,
+                    "existing_controls_linked": existing_ctrls_linked,
+                    "planned_controls_linked": planned_ctrls_linked,
+                    "entity_id": entity_id,
+                    "entity_assessment_id": ea_obj.get_id() if ea_obj else None,
+                    "entity_assessment_name": ea_obj.get_name() if ea_obj else None,
+                    "user_email": user_email,
+                    "user_id": user_id,
+                    "user_exists": bool(user_id),
+                    "tprm_conclusion": ea_obj.json_object.get("conclusion") if ea_obj and isinstance(ea_obj.json_object, dict) else None,
+                })
+
         return status_list
 
     def create_example_application(self, app_id_or_name: str) -> dict[str, Any]:
@@ -684,19 +797,19 @@ class ExamplesManager:
             sc_name = risk_scenario.get("name", "")
             sim_sc = sim_results.get("scenarios", {}).get(sc_name)
 
-            if not sim_sc:
+            lh_urn = risk_scenario.get("likelihood", "")
+            matching_ra = next(
+                (ra for ra in app_ras if ra.get_urn() == lh_urn or (ra.get_requirement_json().get("requirement", {}) or {}).get("urn") == lh_urn),
+                None,
+            )
+
+            if not sim_sc or matching_ra is None or matching_ra.is_unassessed_result() or not matching_ra.has_selected_answer():
                 utils.log(f"Skipping scenario '{sc_name}' for {app_name}: requirement not answered / out of scope")
                 risk_scenario_dict.delete_risk_scenario(sc_name, ra_id)
                 continue
 
             scaled_likelihood = sim_sc["scaled_likelihood"]
             scaled_impact = sim_sc["scaled_impact"]
-
-            lh_urn = risk_scenario.get("likelihood", "")
-            matching_ra = next(
-                (ra for ra in app_ras if ra.get_urn() == lh_urn or (ra.get_requirement_json().get("requirement", {}) or {}).get("urn") == lh_urn),
-                None,
-            )
 
             existing_controls = []
             planned_controls = []
@@ -750,6 +863,457 @@ class ExamplesManager:
             "planned_controls_linked": link_res.get("planned_controls", 0),
         }
 
+    def create_application_for_audit(
+        self,
+        app_name: str,
+        user_email: str,
+        first_name: str = "",
+        last_name: str = "",
+        is_third_party: bool = True,
+    ) -> dict[str, Any]:
+        """Create an application in CISO Assistant for an audit demonstration.
+
+        Sets up:
+        1. Third-party or internal user account (created if missing).
+        2. External Entity in TPRM and Entity Representative link.
+        3. Perimeter and Asset.
+        4. Compliance Assessment bound to target framework (Multi-level DPP).
+        5. TPRM Entity Assessment linking entity, compliance assessment, and representative user.
+        6. Requirement assignment in progress for the user.
+
+        NOTE:
+        Questions are left completely UNANSWERED (0% completion), with no risk scenarios
+        and no applied controls created, allowing demonstration of what an assigned
+        respondent sees when opening an audit to answer it.
+
+        Args:
+            app_name: Application name (e.g. 'App-Audit-Demo').
+            user_email: Email of the user to assign the assessment to.
+            first_name: Optional first name if creating a new user.
+            last_name: Optional last name if creating a new user.
+            is_third_party: Whether newly created user should be third-party (default True).
+
+        Returns:
+            Dict summary of created resources and assignment details.
+        """
+        app_name = (app_name or "").strip()
+        user_email = (user_email or "").strip().lower()
+        if not app_name:
+            raise ValueError("Application name cannot be empty.")
+        if not user_email:
+            raise ValueError("User email cannot be empty.")
+
+        utils.log(f"Starting audit demonstration creation for {app_name} assigned to {user_email}...", level=logging.INFO)
+
+        data = self._init_data(force_reload=True)
+        folder_id = self.get_or_create_folder()
+        assignee_id = self.get_default_assignee_id()
+        framework = self.find_target_framework()
+
+        if not framework:
+            raise RuntimeError(f"No suitable framework found in CISO Assistant for {app_name}.")
+
+        framework_id = framework.get_id()
+        framework_name = framework.get_name()
+
+        # Step 1: Ensure User exists (create if missing)
+        user_dict: UserDict = data["user_dict"]
+        user_id = user_dict.get_id_from_email(user_email)
+        user_created = False
+        if not user_id:
+            user_res = user_dict.create_user_if_missing(
+                email=user_email,
+                first_name=first_name,
+                last_name=last_name,
+                is_third_party=is_third_party,
+            )
+            if isinstance(user_res, dict):
+                user_id = user_res.get("id")
+            if not user_id:
+                user_id = user_dict.get_id_from_email(user_email)
+            user_created = True
+            utils.log(f"Created new user '{user_email}' with ID: {user_id}", level=logging.INFO)
+        else:
+            utils.log(f"Found existing user '{user_email}' with ID: {user_id}", level=logging.INFO)
+
+        # Step 2: Create External Entity for TPRM
+        entity_dict: EntityDict = data["entity_dict"]
+        entity_rep_dict: EntityRepresentativeDict = data["entity_representative_dict"]
+        entity_assessment_dict: EntityAssessmentDict = data["entity_assessment_dict"]
+
+        entity_res = entity_dict.create_entity(
+            name=app_name,
+            folder_id=folder_id,
+            description=f"External entity for {app_name} (audit demonstration)",
+        )
+        entity_id = entity_res.get("id") if isinstance(entity_res, dict) else entity_dict.get_id_from_name(app_name)
+        if not entity_id:
+            raise RuntimeError(f"Failed to create or find external entity '{app_name}'")
+        utils.log(f"External Entity '{app_name}' ready with ID: {entity_id}", level=logging.INFO)
+
+        # Step 3: Link Representative User to External Entity
+        if user_id and entity_id:
+            entity_rep_dict.upsert_entity_representative(
+                entity_id=entity_id,
+                user_id=user_id,
+                role="representative",
+            )
+
+        # Step 4: Create Perimeter
+        perimeter_dict: PerimeterDict = data["perimeter_dict"]
+        perimeter = perimeter_dict.create_perimeter(app_name, assignee_id, folder_id)
+        perimeter_dict.reload()
+        perimeter_id = perimeter_dict.get_id_from_name(app_name)
+        if not perimeter_id:
+            raise RuntimeError(f"Failed to create or find perimeter '{app_name}'")
+
+        # Step 5: Create Asset
+        asset_dict: AssetDict = data["asset_dict"]
+        asset = asset_dict.create_asset(app_name, "PR", folder_id, owner_id=assignee_id)
+        asset_dict.reload()
+        asset_id = asset_dict.get_asset_id_from_perimeter_name(app_name)
+        if asset_id and assignee_id:
+            for a in asset_dict.get_assets():
+                if a.get_id() == asset_id:
+                    a.set_owner_if_missing(assignee_id)
+                    break
+
+        # Step 6: Create Compliance Assessment
+        compliance_dict: ComplianceAssessmentDict = data["compliance_assessment_dict"]
+        ca_name = f"Assessment of {framework_name} in {app_name}"
+
+        ca_obj = None
+        for ca in compliance_dict.get_compliance_assessments().values():
+            if ca.get_name() == ca_name or (ca.get_perimeter_id() == perimeter_id and ca.get_framework_id() == framework_id):
+                ca_obj = ca
+                break
+
+        if not ca_obj:
+            payload = {
+                "name": ca_name,
+                "framework": framework_id,
+                "perimeter": perimeter_id,
+                "assets": [asset_id] if asset_id else [],
+                "score_calculation_method": AUDITOR_SCORE_METHOD,
+                "field_visibility": AUDITOR_SCORE_VISIBILITY,
+            }
+            add_default_implementation_groups(payload, framework_id)
+            ca_response = utils.get_return("/api/compliance-assessments/", method="POST", payload=payload)
+            if not ca_response or (isinstance(ca_response, dict) and ca_response.get("error")):
+                raise RuntimeError(f"Failed to create compliance assessment '{ca_name}': {ca_response}")
+            compliance_dict.reload()
+            ca_id = ca_response.get("id") if isinstance(ca_response, dict) else ""
+            ca_obj = compliance_dict.get_compliance_assessments().get(ca_id)
+
+        ca_id = ca_obj.get_id()
+
+        # Step 7: Create TPRM Entity Assessment linking external entity & compliance assessment
+        ea_name = f"Third-party assessment for {app_name}"
+        ea_res = entity_assessment_dict.create_entity_assessment(
+            name=ea_name,
+            entity_id=entity_id,
+            compliance_assessment_id=ca_id,
+            representative_ids=[user_id] if user_id else None,
+            status="in_progress",
+        )
+        ea_id = ea_res.get("id") if isinstance(ea_res, dict) else ""
+        if not ea_id:
+            for ea in entity_assessment_dict.get_entity_assessments():
+                if ea.get_entity_id() == entity_id:
+                    ea_id = ea.get_id()
+                    break
+        utils.log(f"Entity Assessment '{ea_name}' ready with ID: {ea_id}", level=logging.INFO)
+
+        # Step 8: Ensure requirement assessments are populated and loaded from API
+        utils.log(f"Waiting for requirement assessments to populate for {ca_name}...", level=logging.INFO)
+        req_ids = []
+        for _ in range(10):
+            compliance_dict.requirement_assessments.reload()
+            req_ids = compliance_dict.requirement_assessments.get_requirement_assessment_id_list_from_compliance_assessment_id(ca_id)
+            if req_ids:
+                utils.log(f"Loaded {len(req_ids)} requirement assessment(s) for {ca_name}", level=logging.INFO)
+                break
+            time.sleep(0.5)
+
+        # Step 9: Verify requirement assignment is created and started
+        compliance_dict.requirement_assignments.reload()
+        assignment_ids = compliance_dict.requirement_assignments.get_requirement_assignment_id_list_from_compliance_assessment_id(ca_id)
+        if not assignment_ids and req_ids and ea_id:
+            for ea in entity_assessment_dict.get_entity_assessments():
+                if ea.get_id() == ea_id:
+                    ea.assign_requirements_to_representatives([user_id] if user_id else None)
+                    break
+            compliance_dict.requirement_assignments.reload()
+            assignment_ids = compliance_dict.requirement_assignments.get_requirement_assignment_id_list_from_compliance_assessment_id(ca_id)
+
+        assignment_id = assignment_ids[0] if assignment_ids else None
+        utils.log(f"Requirement assignment ID for {ca_name}: {assignment_id}", level=logging.INFO)
+
+        # Step 10: Refresh cached state
+        self._init_data(force_reload=True)
+
+        return {
+            "app_name": app_name,
+            "user_email": user_email,
+            "user_id": user_id,
+            "user_created": user_created,
+            "entity_id": entity_id,
+            "entity_assessment_id": ea_id,
+            "entity_assessment_name": ea_name,
+            "perimeter_id": perimeter_id,
+            "asset_id": asset_id,
+            "compliance_assessment_id": ca_id,
+            "compliance_assessment_name": ca_name,
+            "compliance_status": ca_obj.get_status() if ca_obj else "in_progress",
+            "requirement_assessments_count": len(req_ids),
+            "assignment_id": assignment_id,
+            "direct_url": f"{utils.BASE_URL}/",
+        }
+
+    def generate_controls_and_risks_for_application(
+        self,
+        app_id_or_name: str,
+        csv_path: str | None = None,
+    ) -> dict[str, Any]:
+        """Generate applied controls and dynamic risk scenarios for an application.
+
+        Can evaluate from either:
+        1. Live requirement assessment answers already submitted in CISO Assistant UI.
+        2. A CSV answers file or example profile (e.g. 'app_secure_core', 'App-Secure-Core').
+
+        Steps:
+        1. Resolve application perimeter, asset, and compliance assessment.
+        2. If csv_path provided, import answers into the compliance assessment.
+        3. Validate that at least one requirement is answered (raise ValueError if none).
+        4. Create missing applied controls and link them to the application asset.
+        5. Update asset CIA criticality.
+        6. Create or resolve risk assessment with target risk matrix.
+        7. Evaluate dynamic risk scenarios using ApplicationRiskSimulator (from CSV or live UI answers).
+        8. Create in-scope risk scenarios and delete out-of-scope scenarios.
+        9. Synchronize control links (existing active vs. planned to_do) on risk scenarios.
+
+        Args:
+            app_id_or_name: Application ID or Name (e.g. 'App-Audit-Demo' or 'app_secure_core').
+            csv_path: Optional path to CSV answers file, or example application ID/name to use its CSV.
+
+        Returns:
+            Dict summary of generated controls, risk assessment, and scenarios.
+        """
+        app_name = (app_id_or_name or "").strip()
+        app_spec = next(
+            (a for a in EXAMPLE_APPLICATIONS if a["id"] == app_name or a["name"] == app_name),
+            None,
+        )
+        if app_spec:
+            app_name = app_spec["name"]
+
+        utils.log(f"Starting controls & risk generation for {app_name}...", level=logging.INFO)
+
+        data = self._init_data(force_reload=True)
+        perimeter_dict: PerimeterDict = data["perimeter_dict"]
+        asset_dict: AssetDict = data["asset_dict"]
+        compliance_dict: ComplianceAssessmentDict = data["compliance_assessment_dict"]
+        applied_control_dict: AppliedControlDict = data["applied_control_dict"]
+        reference_control_dict: ReferenceControlDict = data["reference_control_dict"]
+        risk_assessment_dict: RiskAssessmentDict = data["risk_assessment_dict"]
+        risk_scenario_dict: RiskScenarioDict = data["risk_scenario_dict"]
+        framework_file = data["framework_file"]
+
+        perimeter_id = perimeter_dict.get_id_from_name(app_name)
+        asset_id = asset_dict.get_asset_id_from_perimeter_name(app_name)
+        assignee_id = perimeter_dict.get_owner_id_from_perimeter_id(perimeter_id) if perimeter_id else None
+        if not assignee_id:
+            assignee_id = self.get_default_assignee_id()
+
+        # Find compliance assessment for this application
+        ca_obj = None
+        for ca in compliance_dict.get_compliance_assessments().values():
+            if (perimeter_id and ca.get_perimeter_id() == perimeter_id) or f"in {app_name}" in ca.get_name():
+                ca_obj = ca
+                break
+
+        if not ca_obj:
+            raise ValueError(f"No compliance assessment found for application '{app_name}'. Please ensure the application was created.")
+
+        ca_id = ca_obj.get_id()
+        ca_name = ca_obj.get_name()
+        framework_id = ca_obj.get_framework_id()
+        if not framework_id:
+            fw = self.find_target_framework()
+            framework_id = fw.get_id() if fw else None
+
+        # Resolve CSV path if provided
+        resolved_csv_path = None
+        if csv_path:
+            target_csv = Path(csv_path)
+            if target_csv.exists():
+                resolved_csv_path = str(target_csv)
+            else:
+                ex_profile = next(
+                    (a for a in EXAMPLE_APPLICATIONS if a["id"] == csv_path or a["name"] == csv_path),
+                    None,
+                )
+                if ex_profile and Path(ex_profile["csv_path"]).exists():
+                    resolved_csv_path = ex_profile["csv_path"]
+                else:
+                    raise FileNotFoundError(f"Specified answers file or profile not found: {csv_path}")
+
+        answers_updated = 0
+        if resolved_csv_path:
+            utils.log(f"Importing compliance answers from '{resolved_csv_path}' into {ca_name}...", level=logging.INFO)
+            csv_summary = csv_import.import_compliance_answers(
+                resolved_csv_path,
+                ca_id,
+                compliance_dict.requirement_assessments,
+            )
+            answers_updated = csv_summary.get("updated", 0)
+            compliance_dict.requirement_assessments.reload()
+
+        # Check that we have answered requirements
+        compliance_dict.requirement_assessments.reload()
+        req_assessments = compliance_dict.requirement_assessments.get_requirement_assessments()
+        app_ras = [
+            ra for ra in req_assessments.values()
+            if ra.get_compliance_assessment_id() == ca_id
+        ]
+        answered_ras = [
+            ra for ra in app_ras
+            if ra.has_selected_answer() and not ra.is_unassessed_result()
+        ]
+
+        if not answered_ras:
+            raise ValueError(
+                f"Application '{app_name}' has 0 answered requirements in assessment '{ca_name}'. "
+                f"Please answer questions in CISO Assistant UI, or supply an answers file/profile."
+            )
+
+        # Create missing applied controls
+        compliance_dict.create_missing_applied_controls(
+            applied_control_dict,
+            perimeter_dict,
+            reference_control_dict,
+        )
+        applied_control_dict.reload()
+
+        if asset_id:
+            for c in applied_control_dict.get_controls().values():
+                if f"on {app_name}" in c.get_name():
+                    applied_control_dict.ensure_assets_for_control(c.get_name(), [asset_id])
+
+        # Update Asset Criticality
+        compliance_dict.update_asset_criticality(criticality_mapping, asset_dict)
+
+        # Find or create Risk Assessment
+        risk_matrix_id = self.find_target_risk_matrix(framework_id) if framework_id else None
+        ra_name = f"{ca_name} Risk Assessment"
+
+        ra_obj = None
+        for ra in risk_assessment_dict.get_risk_assessments().values():
+            ra_perimeter = ra.json_object.get("perimeter")
+            if (perimeter_id and ra_perimeter == perimeter_id) or app_name in ra.get_name():
+                ra_obj = ra
+                break
+
+        if not ra_obj:
+            risk_assessment = risk_assessment_dict.create_risk_assessments(
+                ra_name,
+                framework_id,
+                perimeter_id,
+                risk_matrix_id,
+            )
+            ra_id = risk_assessment.get("id") if isinstance(risk_assessment, dict) else ""
+        else:
+            ra_id = ra_obj.get_id()
+
+        # Evaluate Scenarios with Simulator
+        from tests.test_application_scenarios import ApplicationRiskSimulator
+        simulator = ApplicationRiskSimulator(str(self.framework_yaml))
+
+        compliance_dict.requirement_assessments.reload()
+        req_assessments = compliance_dict.requirement_assessments.get_requirement_assessments()
+        app_ras = [
+            ra for ra in req_assessments.values()
+            if ra.get_compliance_assessment_id() == ca_id
+        ]
+
+        if resolved_csv_path:
+            sim_results = simulator.evaluate_application(resolved_csv_path)
+        else:
+            sim_results = simulator.evaluate_application(app_ras)
+
+        app_controls = {
+            c.get_id(): c
+            for c in applied_control_dict.get_controls().values()
+            if f"on {app_name}" in c.get_name()
+        }
+
+        scenarios_created = 0
+        asset_ids = [asset_id] if asset_id else []
+        owner_ids = [assignee_id] if assignee_id else []
+
+        for risk_scenario in framework_file.get_risk_scenarios():
+            sc_name = risk_scenario.get("name", "")
+            sim_sc = sim_results.get("scenarios", {}).get(sc_name)
+
+            lh_urn = risk_scenario.get("likelihood", "")
+            matching_ra = next(
+                (ra for ra in app_ras if ra.get_urn() == lh_urn or (ra.get_requirement_json().get("requirement", {}) or {}).get("urn") == lh_urn),
+                None,
+            )
+
+            if not sim_sc or matching_ra is None or not matching_ra.has_selected_answer():
+                utils.log(f"Skipping scenario '{sc_name}' for {app_name}: requirement not answered / out of scope")
+                risk_scenario_dict.delete_risk_scenario(sc_name, ra_id)
+                continue
+
+            scaled_likelihood = sim_sc["scaled_likelihood"]
+            scaled_impact = sim_sc["scaled_impact"]
+
+            existing_controls = []
+            planned_controls = []
+            if matching_ra:
+                for ac_id in matching_ra.get_applied_control_ids():
+                    ctrl = app_controls.get(ac_id)
+                    if ctrl:
+                        if ctrl.get_status() == "active":
+                            existing_controls.append(ac_id)
+                        else:
+                            planned_controls.append(ac_id)
+
+            risk_scenario_dict.create_risk_scenario(
+                sc_name,
+                risk_scenario.get("description", ""),
+                ra_id,
+                scaled_likelihood,
+                scaled_impact,
+                1,
+                scaled_impact,
+                existing_controls,
+                planned_controls,
+                asset_ids,
+                owner_ids,
+            )
+            scenarios_created += 1
+
+        time.sleep(1)
+        link_res = self.link_controls_for_application(app_name)
+        time.sleep(1)
+        self._init_data(force_reload=True)
+
+        return {
+            "app_name": app_name,
+            "perimeter_id": perimeter_id,
+            "asset_id": asset_id,
+            "compliance_assessment_id": ca_id,
+            "compliance_assessment_name": ca_name,
+            "risk_assessment_id": ra_id,
+            "answers_updated": answers_updated,
+            "scenarios_created": scenarios_created,
+            "applied_controls_count": len(app_controls),
+            "existing_controls_linked": link_res.get("existing_controls", 0),
+            "planned_controls_linked": link_res.get("planned_controls", 0),
+        }
+
     def link_controls_for_application(self, app_id_or_name: str) -> dict[str, Any]:
         """Link existing (active) and planned (to_do) controls and assets to risk scenarios.
 
@@ -763,10 +1327,7 @@ class ExamplesManager:
             (a for a in EXAMPLE_APPLICATIONS if a["id"] == app_id_or_name or a["name"] == app_id_or_name),
             None,
         )
-        if not app_spec:
-            raise ValueError(f"Unknown example application: {app_id_or_name}")
-
-        app_name = app_spec["name"]
+        app_name = app_spec["name"] if app_spec else app_id_or_name
         data = self._init_data(force_reload=True)
 
         asset_dict: AssetDict = data["asset_dict"]
@@ -836,10 +1397,13 @@ class ExamplesManager:
         ]
 
         # Purge any out-of-scope scenarios from previous runs
-        csv_path = app_spec.get("csv_path")
+        csv_path = app_spec.get("csv_path") if app_spec else None
         from tests.test_application_scenarios import ApplicationRiskSimulator
         simulator = ApplicationRiskSimulator(str(self.framework_yaml))
-        sim_results = simulator.evaluate_application(csv_path) if csv_path else {}
+        if csv_path:
+            sim_results = simulator.evaluate_application(csv_path)
+        else:
+            sim_results = simulator.evaluate_application(app_ras)
         in_scope_scenarios = sim_results.get("scenarios", {})
 
         for sc in list(app_scenarios):
@@ -897,6 +1461,19 @@ class ExamplesManager:
                 total_existing_linked += len(existing)
                 total_planned_linked += len(planned)
 
+            # Update priority on planned controls from scenario risk level
+            req_urn = matching_ra.get_urn() if matching_ra else lh_urn
+            for cid in planned:
+                ctrl = app_controls.get(cid)
+                if ctrl and req_urn:
+                    applied_control_dict.update_priority_for_requirement_assessment(
+                        ctrl.get_name(),
+                        ca_id,
+                        req_urn,
+                        compliance_assessment_dict=compliance_dict,
+                        framework_file=framework_file,
+                    )
+
         return {
             "app_name": app_name,
             "scenarios_updated": scenarios_updated,
@@ -936,10 +1513,7 @@ class ExamplesManager:
             (a for a in EXAMPLE_APPLICATIONS if a["id"] == app_id_or_name or a["name"] == app_id_or_name),
             None,
         )
-        if not app_spec:
-            raise ValueError(f"Unknown example application: {app_id_or_name}")
-
-        app_name = app_spec["name"]
+        app_name = app_spec["name"] if app_spec else app_id_or_name
         data = self._init_data(force_reload=True)
 
         perimeter_dict: PerimeterDict = data["perimeter_dict"]
@@ -977,18 +1551,25 @@ class ExamplesManager:
                     deleted["entity_assessments_deleted"] += 1
 
         # 0b. Delete Entity Representatives & External Entity
+        rep_user_ids = []
         if entity_id:
+            if hasattr(entity_rep_dict, "get_representatives_for_entity"):
+                rep_objs = entity_rep_dict.get_representatives_for_entity(entity_id) or []
+                rep_user_ids = [r.get_user_id() for r in rep_objs if hasattr(r, "get_user_id")]
             deleted["entity_representatives_deleted"] += entity_rep_dict.delete_representatives_for_entity(entity_id)
             if entity_dict.delete_entity(entity_id):
                 deleted["entities_deleted"] += 1
 
         # 0c. Delete Associated Third-Party User
-        user_spec = app_spec.get("user", {})
-        user_email = user_spec.get("email")
+        user_email = app_spec.get("user", {}).get("email") if app_spec else None
         if user_email:
             u_id = user_dict.get_id_from_email(user_email)
             if u_id:
                 if user_dict.delete_user_by_id(u_id):
+                    deleted["users_deleted"] += 1
+        elif rep_user_ids:
+            for r_uid in rep_user_ids:
+                if user_dict.delete_user_by_id(r_uid):
                     deleted["users_deleted"] += 1
 
         # 1. Delete Risk Assessment and Risk Scenarios

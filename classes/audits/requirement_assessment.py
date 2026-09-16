@@ -315,8 +315,8 @@ class RequirementAssessmentDict:
         for ra in self.requirement_assessments.values():
             if ra.get_compliance_assessment_id() != compliance_assessment_id:
                 continue
-            # If any requirement assessment has a selected answer and is not unassessed, consider the CA answered
-            if not ra.is_unassessed_result() and ra.has_selected_answer():
+            # If any requirement assessment has a selected answer, consider the CA answered
+            if ra.has_selected_answer():
                 return True
         return False
 
@@ -395,7 +395,7 @@ class RequirementAssessmentDict:
         """Update asset criticality fields using assessment answers and mapping rules."""
         self.reload()
         for ra in self.requirement_assessments.values():
-            if not ra.is_unassessed_result():
+            if ra.has_selected_answer():
                 for question, answer in ra.get_requirement_json().get('answers', {}).items():
                     for criteria_question, criteria_mapping in criticality_mapping.items():
                         if answer in criteria_mapping:

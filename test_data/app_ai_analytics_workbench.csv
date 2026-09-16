@@ -14,7 +14,6 @@ non_prod_data,"Do you clean the prod data after use in non-prod?",No,non_complia
 data_exchange,"Are there data exchanges beyond the group?",Yes,non_compliant,Payloads submitted to external third-party foundation LLM APIs
 data_exchange,"Is there a data exchange contract with the appropriate confidentiality clauses?","No contract",non_compliant,No bilateral data protection addendum or zero-retention commitment
 data_destruction,"Is there a data destruction process for this application?",No,non_compliant,No automated data lifecycle or purge pipeline configured
-data_destruction,"Is the process compliant with the policy (responsibilities, methods, reporting)?","No, not compliant",non_compliant,Indefinite retention of model training corpora
 saas_contract_compliance,"Is there a signed SaaS contract?",Yes,compliant,Commercial online developer terms of service
 saas_contract_compliance,"Does the contract include an Audit clause?",No,partially_compliant,Standard commercial tier excludes direct audit rights
 saas_contract_compliance,"Does the contract include an Incident Notification process?",Yes,compliant,72-hour security incident notification clause

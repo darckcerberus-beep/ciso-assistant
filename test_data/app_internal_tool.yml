@@ -60,77 +60,6 @@ answers:
     # Score: 50% -> Likelihood 3 (Likely) -> Risk: Medium.
 
   # ----------------------------------------------------------------------------
-  # Cryptographic Protection (Transit & Rest)
-  # ----------------------------------------------------------------------------
-  - requirement: "data_in_transit"
-    question: "Is data encrypted during transit?"
-    answer: "Yes"
-    result: "compliant"
-    observation: "HTTPS TLS 1.2"
-    # Score: 100% -> Likelihood 1 (Unlikely) -> Risk: Very Low.
-
-  - requirement: "data_at_rest"
-    question: "Is data encrypted at rest?"
-    answer: "No"
-    result: "non_compliant"
-    observation: "Default unencrypted disk storage"
-    # Score: 0% -> Likelihood 4 (Very likely) -> Risk: Medium -> Priority 2 (High).
-
-  # ----------------------------------------------------------------------------
-  # Non-Production Environments & Data Sanitization
-  # ----------------------------------------------------------------------------
-  - requirement: "non_prod_data"
-    question: "Do you have a dedicated non-production environment?"
-    answer: "Yes"
-    result: "compliant"
-    observation: "Dedicated test tenant"
-
-  - requirement: "non_prod_data"
-    question: "Do you use prod data in a non-prod environment?"
-    answer: "Yes"
-    result: "compliant"
-    observation: "Sanitized test database"
-
-  - requirement: "non_prod_data"
-    question: "How do you protect them?"
-    answer: "Hashing"
-    result: "compliant"
-    observation: "Pseudonymization and hashing of employee IDs"
-
-  - requirement: "non_prod_data"
-    question: "Do you clean the prod data after use in non-prod?"
-    answer: "No"
-    result: "partially_compliant"
-    observation: "Retained for 30 days"
-    # Score: 90% -> Likelihood 1 (Unlikely) -> Risk: Very Low.
-
-  # ----------------------------------------------------------------------------
-  # External Data Exchange Governance
-  # ----------------------------------------------------------------------------
-  - requirement: "data_exchange"
-    question: "Are there data exchanges beyond the group?"
-    answer: "No"
-    result: "compliant"
-    observation: "No external partner exchange"
-    # Score: 100% -> Likelihood 1 (Unlikely) -> Risk: Very Low.
-
-  # ----------------------------------------------------------------------------
-  # Compliant Data Destruction
-  # ----------------------------------------------------------------------------
-  - requirement: "data_destruction"
-    question: "Is there a data destruction process for this application?"
-    answer: "Yes"
-    result: "partially_compliant"
-    observation: "Manual script available"
-
-  - requirement: "data_destruction"
-    question: "Is the process compliant with the policy (responsibilities, methods, reporting)?"
-    answer: "No, not compliant"
-    result: "partially_compliant"
-    observation: "Formal reporting not done"
-    # Score: 50% -> Likelihood 3 (Likely) -> Risk: Low/Medium.
-
-  # ----------------------------------------------------------------------------
   # Third-Party SaaS Contractual Governance
   # ----------------------------------------------------------------------------
   - requirement: "saas_contract_compliance"
@@ -184,41 +113,6 @@ expected_controls:
     status: "to_do"
     rationale: "Data classification registered as Internal."
 
-  - control: "Encrypt data in transit"
-    reference_control: "encrypt_data_in_transit"
-    requirement: "data_in_transit"
-    score: 100
-    status: "active" # TLS 1.2 enforced (100%) -> active
-    rationale: "HTTPS/TLS encrypted transport active."
-
-  - control: "Encrypt data at rest"
-    reference_control: "encrypt_data_at_rest"
-    requirement: "data_at_rest"
-    score: 0
-    status: "to_do" # Unencrypted disk (0%) -> to_do
-    rationale: "Default unencrypted disk storage requires remediation."
-
-  - control: "Use hashing, encryption, anonymisation or pseudonymisation of prod data in non-production environment"
-    reference_control: "protect_prod_data_in_non_prod"
-    requirement: "non_prod_data"
-    score: 90
-    status: "to_do" # Hashing used but cleanup missing (90%) -> to_do
-    rationale: "Data hashing implemented, but test data purge after use is missing."
-
-  - control: "Sign a contract regarding the exchange of information with all the adequate clauses"
-    reference_control: "information_exchange_contract"
-    requirement: "data_exchange"
-    score: 100
-    status: "active" # No external exchange (100%) -> active
-    rationale: "No external data exchanges."
-
-  - control: "Write and implement a compliant data destruction process"
-    reference_control: "data_destruction_process"
-    requirement: "data_destruction"
-    score: 50
-    status: "to_do" # Script exists but non-compliant reporting (50%) -> to_do
-    rationale: "Manual script available but lacks formal policy compliance."
-
   - control: "Sign a contract with the SaaS provider with all the adequate clauses"
     reference_control: "saas_contract"
     requirement: "saas_contract_compliance"
@@ -229,45 +123,10 @@ expected_controls:
 # ==============================================================================
 # Expected Risk Scenarios (newDPP Framework)
 # ==============================================================================
-# Impact Level: 2 (Internal).
+# Only 2 in-scope scenarios evaluated for Internal SaaS tool.
+# Impact Level: 2 (Internal). Out-of-scope Chapter 2 scenarios are omitted.
 # ==============================================================================
 expected_risk_scenarios:
-  - scenario: "Exposure of unencrypted data in transit"
-    likelihood_requirement: "data_in_transit"
-    likelihood_score: 100
-    scaled_likelihood: 1 # 1 - Unlikely
-    scaled_impact: 2 # 2 - Significant (Internal)
-    matrix_risk_id: 0 # 1 - Very Low
-    risk_level: 1
-    control_priority: 4 # 4 (Low)
-
-  - scenario: "Exposure of unencrypted data at rest"
-    likelihood_requirement: "data_at_rest"
-    likelihood_score: 0
-    scaled_likelihood: 4 # 4 - Very likely
-    scaled_impact: 2 # 2 - Significant (Internal)
-    matrix_risk_id: 2 # 3 - Medium
-    risk_level: 3
-    control_priority: 2 # 2 (High)
-
-  - scenario: "Disclosure of production data in non-production environments"
-    likelihood_requirement: "non_prod_data"
-    likelihood_score: 90
-    scaled_likelihood: 1 # 1 - Unlikely
-    scaled_impact: 2 # 2 - Significant (Internal)
-    matrix_risk_id: 0 # 1 - Very Low
-    risk_level: 1
-    control_priority: 4 # 4 (Low)
-
-  - scenario: "Third-party data leakage"
-    likelihood_requirement: "data_exchange"
-    likelihood_score: 100
-    scaled_likelihood: 1 # 1 - Unlikely
-    scaled_impact: 2 # 2 - Significant (Internal)
-    matrix_risk_id: 0 # 1 - Very Low
-    risk_level: 1
-    control_priority: 4 # 4 (Low)
-
   - scenario: "SaaS provider data leakage"
     likelihood_requirement: "saas_contract_compliance"
     likelihood_score: 60
@@ -279,15 +138,6 @@ expected_risk_scenarios:
 
   - scenario: "Missing application stakeholders"
     likelihood_requirement: "stakeholder_identification"
-    likelihood_score: 50
-    scaled_likelihood: 3 # 3 - Likely
-    scaled_impact: 2 # 2 - Significant (Internal)
-    matrix_risk_id: 1 # 2 - Low
-    risk_level: 2
-    control_priority: 3 # 3 (Medium)
-
-  - scenario: "Excessive retention of sensitive data"
-    likelihood_requirement: "data_destruction"
     likelihood_score: 50
     scaled_likelihood: 3 # 3 - Likely
     scaled_impact: 2 # 2 - Significant (Internal)

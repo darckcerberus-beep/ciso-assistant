@@ -13,7 +13,6 @@ non_prod_data,"How do you protect them?","No, no protection",non_compliant,No da
 non_prod_data,"Do you clean the prod data after use in non-prod?",No,non_compliant,Test data retained indefinitely in staging
 data_exchange,"Are there data exchanges beyond the group?",No,compliant,No external partner data exchange
 data_destruction,"Is there a data destruction process for this application?",No,non_compliant,No automated data retention or purge policy
-data_destruction,"Is the process compliant with the policy (responsibilities, methods, reporting)?","No, not compliant",non_compliant,Missing GDPR compliant data erasure workflow
 saas_contract_compliance,"Is there a signed SaaS contract?",Yes,compliant,Master subscription agreement signed
 saas_contract_compliance,"Does the contract include an Audit clause?",No,partially_compliant,Provider supplies SOC 2 Type II reports but rejects direct audit
 saas_contract_compliance,"Does the contract include an Incident Notification process?",Yes,compliant,48-hour security incident notification SLA

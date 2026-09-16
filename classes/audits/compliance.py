@@ -285,7 +285,7 @@ class ComplianceAssessmentDict:
             requirement_assessment_ids = self.requirement_assessments.get_requirement_assessment_id_list_from_compliance_assessment_id(ca.get_id())
             for ra_id in requirement_assessment_ids:
                 ra = self.requirement_assessments.get_requirement_assessments().get(ra_id)
-                if ra and not ra.is_unassessed_result():
+                if ra and ra.has_selected_answer():
                     for question, answer in ra.get_requirement_json().get('answers', {}).items():
                         for criteria_question, criteria_mapping in criticality_mapping.items():
                             if answer in criteria_mapping:

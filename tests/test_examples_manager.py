@@ -365,6 +365,407 @@ class TestExamplesManager(unittest.TestCase):
                 conclusion="ok",
             )
 
+    @patch("classes.utils.get_return")
+    def test_create_application_for_audit_new_user(self, mock_get_return):
+        """Verify create_application_for_audit provisions uncompleted audit and creates user when missing."""
+        mock_data = {
+            "perimeter_dict": MagicMock(),
+            "asset_dict": MagicMock(),
+            "compliance_assessment_dict": MagicMock(),
+            "entity_dict": MagicMock(),
+            "entity_representative_dict": MagicMock(),
+            "entity_assessment_dict": MagicMock(),
+            "user_dict": MagicMock(),
+            "domain_dict": MagicMock(),
+        }
+
+        mock_data["user_dict"].get_id_from_email.side_effect = [None, "new-user-123"]
+        mock_data["user_dict"].create_user_if_missing.return_value = {"id": "new-user-123"}
+        mock_data["entity_dict"].create_entity.return_value = {"id": "entity-uuid-audit"}
+        mock_data["entity_dict"].get_id_from_name.return_value = "entity-uuid-audit"
+        mock_data["perimeter_dict"].create_perimeter.return_value = {"id": "perm-uuid-audit"}
+        mock_data["perimeter_dict"].get_id_from_name.return_value = "perm-uuid-audit"
+        mock_data["asset_dict"].create_asset.return_value = {"id": "asset-uuid-audit"}
+        mock_data["asset_dict"].get_asset_id_from_perimeter_name.return_value = "asset-uuid-audit"
+        mock_data["asset_dict"].get_assets.return_value = []
+
+        mock_fw = MagicMock()
+        mock_fw.get_id.return_value = "fw-uuid-1"
+        mock_fw.get_name.return_value = "Multi-level DPP"
+
+        mock_ca = MagicMock()
+        mock_ca.get_id.return_value = "ca-uuid-audit"
+        mock_ca.get_name.return_value = "Assessment of Multi-level DPP in App-Audit-Demo"
+        mock_ca.get_status.return_value = "in_progress"
+        mock_data["compliance_assessment_dict"].get_compliance_assessments.return_value = {"ca-uuid-audit": mock_ca}
+        mock_data["compliance_assessment_dict"].requirement_assessments.get_requirement_assessment_id_list_from_compliance_assessment_id.return_value = ["ra-1", "ra-2"]
+        mock_data["compliance_assessment_dict"].requirement_assignments.get_requirement_assignment_id_list_from_compliance_assessment_id.return_value = ["assign-1"]
+
+        mock_data["entity_assessment_dict"].create_entity_assessment.return_value = {"id": "ea-uuid-audit"}
+
+        with patch.object(self.manager, "_init_data", return_value=mock_data), \
+             patch.object(self.manager, "get_or_create_folder", return_value="folder-uuid-1"), \
+             patch.object(self.manager, "get_default_assignee_id", return_value="assignee-uuid-1"), \
+             patch.object(self.manager, "find_target_framework", return_value=mock_fw), \
+             patch("time.sleep"):
+
+            res = self.manager.create_application_for_audit(
+                app_name="App-Audit-Demo",
+                user_email="auditor@example.com",
+                first_name="Auditor",
+                last_name="Test",
+                is_third_party=True,
+            )
+
+            self.assertEqual(res["app_name"], "App-Audit-Demo")
+            self.assertEqual(res["user_email"], "auditor@example.com")
+            self.assertEqual(res["user_id"], "new-user-123")
+            self.assertTrue(res["user_created"])
+            self.assertEqual(res["entity_id"], "entity-uuid-audit")
+            self.assertEqual(res["entity_assessment_id"], "ea-uuid-audit")
+            self.assertEqual(res["compliance_assessment_id"], "ca-uuid-audit")
+            self.assertEqual(res["compliance_status"], "in_progress")
+            self.assertEqual(res["requirement_assessments_count"], 2)
+            self.assertEqual(res["assignment_id"], "assign-1")
+
+            mock_data["user_dict"].create_user_if_missing.assert_called_once_with(
+                email="auditor@example.com",
+                first_name="Auditor",
+                last_name="Test",
+                is_third_party=True,
+            )
+            mock_data["entity_dict"].create_entity.assert_called_once_with(
+                name="App-Audit-Demo",
+                folder_id="folder-uuid-1",
+                description="External entity for App-Audit-Demo (audit demonstration)",
+            )
+            mock_data["entity_representative_dict"].upsert_entity_representative.assert_called_once_with(
+                entity_id="entity-uuid-audit",
+                user_id="new-user-123",
+                role="representative",
+            )
+            mock_data["entity_assessment_dict"].create_entity_assessment.assert_called_once_with(
+                name="Third-party assessment for App-Audit-Demo",
+                entity_id="entity-uuid-audit",
+                compliance_assessment_id="ca-uuid-audit",
+                representative_ids=["new-user-123"],
+                status="in_progress",
+            )
+
+    @patch("classes.utils.get_return")
+    def test_create_application_for_audit_existing_user(self, mock_get_return):
+        """Verify create_application_for_audit reuses user when already existing."""
+        mock_data = {
+            "perimeter_dict": MagicMock(),
+            "asset_dict": MagicMock(),
+            "compliance_assessment_dict": MagicMock(),
+            "entity_dict": MagicMock(),
+            "entity_representative_dict": MagicMock(),
+            "entity_assessment_dict": MagicMock(),
+            "user_dict": MagicMock(),
+            "domain_dict": MagicMock(),
+        }
+
+        mock_data["user_dict"].get_id_from_email.return_value = "existing-user-uuid"
+        mock_data["entity_dict"].create_entity.return_value = {"id": "entity-uuid-2"}
+        mock_data["entity_dict"].get_id_from_name.return_value = "entity-uuid-2"
+        mock_data["perimeter_dict"].create_perimeter.return_value = {"id": "perm-uuid-2"}
+        mock_data["perimeter_dict"].get_id_from_name.return_value = "perm-uuid-2"
+        mock_data["asset_dict"].create_asset.return_value = {"id": "asset-uuid-2"}
+        mock_data["asset_dict"].get_asset_id_from_perimeter_name.return_value = "asset-uuid-2"
+        mock_data["asset_dict"].get_assets.return_value = []
+
+        mock_fw = MagicMock()
+        mock_fw.get_id.return_value = "fw-uuid-1"
+        mock_fw.get_name.return_value = "Multi-level DPP"
+
+        mock_ca = MagicMock()
+        mock_ca.get_id.return_value = "ca-uuid-2"
+        mock_ca.get_name.return_value = "Assessment of Multi-level DPP in App-Audit-Existing"
+        mock_ca.get_status.return_value = "in_progress"
+        mock_data["compliance_assessment_dict"].get_compliance_assessments.return_value = {"ca-uuid-2": mock_ca}
+        mock_data["compliance_assessment_dict"].requirement_assessments.get_requirement_assessment_id_list_from_compliance_assessment_id.return_value = ["ra-1"]
+        mock_data["compliance_assessment_dict"].requirement_assignments.get_requirement_assignment_id_list_from_compliance_assessment_id.return_value = ["assign-2"]
+
+        mock_data["entity_assessment_dict"].create_entity_assessment.return_value = {"id": "ea-uuid-2"}
+
+        with patch.object(self.manager, "_init_data", return_value=mock_data), \
+             patch.object(self.manager, "get_or_create_folder", return_value="folder-uuid-1"), \
+             patch.object(self.manager, "get_default_assignee_id", return_value="assignee-uuid-1"), \
+             patch.object(self.manager, "find_target_framework", return_value=mock_fw), \
+             patch("time.sleep"):
+
+            res = self.manager.create_application_for_audit(
+                app_name="App-Audit-Existing",
+                user_email="existing@example.com",
+            )
+
+            self.assertEqual(res["app_name"], "App-Audit-Existing")
+            self.assertEqual(res["user_email"], "existing@example.com")
+            self.assertEqual(res["user_id"], "existing-user-uuid")
+            self.assertFalse(res["user_created"])
+            mock_data["user_dict"].create_user_if_missing.assert_not_called()
+
+    @patch("classes.integrations.csv_import.import_compliance_answers")
+    @patch("tests.test_application_scenarios.ApplicationRiskSimulator")
+    def test_generate_controls_and_risks_with_answers_file(self, mock_sim_cls, mock_import_answers):
+        """Verify generating controls and risks using a CSV/profile answers file."""
+        mock_import_answers.return_value = {"updated": 10}
+        mock_sim = MagicMock()
+        mock_sim.evaluate_application.return_value = {
+            "impact_level": 4,
+            "scenarios": {
+                "Exposure of unencrypted data in transit": {
+                    "scaled_likelihood": 1,
+                    "scaled_impact": 4,
+                }
+            },
+            "requirement_scores": {"data_in_transit": 100},
+        }
+        mock_sim_cls.return_value = mock_sim
+
+        mock_data = {
+            "perimeter_dict": MagicMock(),
+            "asset_dict": MagicMock(),
+            "compliance_assessment_dict": MagicMock(),
+            "applied_control_dict": MagicMock(),
+            "reference_control_dict": MagicMock(),
+            "risk_assessment_dict": MagicMock(),
+            "risk_scenario_dict": MagicMock(),
+            "framework_file": MagicMock(),
+            "domain_dict": MagicMock(),
+        }
+
+        mock_data["perimeter_dict"].get_id_from_name.return_value = "perm-uuid-1"
+        mock_data["asset_dict"].get_asset_id_from_perimeter_name.return_value = "asset-uuid-1"
+
+        mock_ca = MagicMock()
+        mock_ca.get_id.return_value = "ca-uuid-1"
+        mock_ca.get_name.return_value = "Assessment of Multi-level DPP in App-Audit-Demo"
+        mock_ca.get_framework_id.return_value = "fw-uuid-1"
+        mock_data["compliance_assessment_dict"].get_compliance_assessments.return_value = {"ca-uuid-1": mock_ca}
+
+        mock_ra = MagicMock()
+        mock_ra.get_compliance_assessment_id.return_value = "ca-uuid-1"
+        mock_ra.get_urn.return_value = "data_in_transit"
+        mock_ra.has_selected_answer.return_value = True
+        mock_ra.is_unassessed_result.return_value = False
+        mock_ra.get_applied_control_ids.return_value = ["ctrl-uuid-1"]
+        mock_data["compliance_assessment_dict"].requirement_assessments.get_requirement_assessments.return_value = {
+            "ra-1": mock_ra
+        }
+
+        mock_ctrl = MagicMock()
+        mock_ctrl.get_id.return_value = "ctrl-uuid-1"
+        mock_ctrl.get_name.return_value = "Control on App-Audit-Demo"
+        mock_ctrl.get_status.return_value = "active"
+        mock_data["applied_control_dict"].get_controls.return_value = {"ctrl-uuid-1": mock_ctrl}
+
+        mock_data["risk_assessment_dict"].get_risk_assessments.return_value = {}
+        mock_data["risk_assessment_dict"].create_risk_assessments.return_value = {"id": "ra-uuid-1"}
+
+        mock_data["framework_file"].get_risk_scenarios.return_value = [
+            {
+                "name": "Exposure of unencrypted data in transit",
+                "description": "Desc",
+                "likelihood": "data_in_transit",
+            }
+        ]
+
+        with patch.object(self.manager, "_init_data", return_value=mock_data), \
+             patch.object(self.manager, "find_target_risk_matrix", return_value="matrix-uuid-1"), \
+             patch.object(self.manager, "link_controls_for_application", return_value={"existing_controls": 1, "planned_controls": 0}), \
+             patch("time.sleep"):
+
+            res = self.manager.generate_controls_and_risks_for_application(
+                app_id_or_name="App-Audit-Demo",
+                csv_path="test_data/app_secure_core.csv",
+            )
+
+            self.assertEqual(res["app_name"], "App-Audit-Demo")
+            self.assertEqual(res["compliance_assessment_id"], "ca-uuid-1")
+            self.assertEqual(res["risk_assessment_id"], "ra-uuid-1")
+            self.assertEqual(res["answers_updated"], 10)
+            self.assertEqual(res["scenarios_created"], 1)
+            self.assertEqual(res["existing_controls_linked"], 1)
+            mock_import_answers.assert_called_once()
+            mock_data["risk_scenario_dict"].create_risk_scenario.assert_called_once()
+
+    @patch("tests.test_application_scenarios.ApplicationRiskSimulator")
+    def test_generate_controls_and_risks_from_live_ui_answers(self, mock_sim_cls):
+        """Verify generating controls and risks using live answers from CISO Assistant UI."""
+        mock_sim = MagicMock()
+        mock_sim.evaluate_application.return_value = {
+            "impact_level": 4,
+            "scenarios": {
+                "Exposure of unencrypted data in transit": {
+                    "scaled_likelihood": 2,
+                    "scaled_impact": 4,
+                }
+            },
+            "requirement_scores": {"data_in_transit": 75},
+        }
+        mock_sim_cls.return_value = mock_sim
+
+        mock_data = {
+            "perimeter_dict": MagicMock(),
+            "asset_dict": MagicMock(),
+            "compliance_assessment_dict": MagicMock(),
+            "applied_control_dict": MagicMock(),
+            "reference_control_dict": MagicMock(),
+            "risk_assessment_dict": MagicMock(),
+            "risk_scenario_dict": MagicMock(),
+            "framework_file": MagicMock(),
+            "domain_dict": MagicMock(),
+        }
+
+        mock_data["perimeter_dict"].get_id_from_name.return_value = "perm-uuid-1"
+        mock_data["asset_dict"].get_asset_id_from_perimeter_name.return_value = "asset-uuid-1"
+
+        mock_ca = MagicMock()
+        mock_ca.get_id.return_value = "ca-uuid-1"
+        mock_ca.get_name.return_value = "Assessment of Multi-level DPP in App-Audit-Demo"
+        mock_ca.get_framework_id.return_value = "fw-uuid-1"
+        mock_data["compliance_assessment_dict"].get_compliance_assessments.return_value = {"ca-uuid-1": mock_ca}
+
+        mock_ra = MagicMock()
+        mock_ra.get_compliance_assessment_id.return_value = "ca-uuid-1"
+        mock_ra.get_urn.return_value = "data_in_transit"
+        mock_ra.has_selected_answer.return_value = True
+        mock_ra.is_unassessed_result.return_value = False
+        mock_ra.get_applied_control_ids.return_value = ["ctrl-uuid-1"]
+        mock_data["compliance_assessment_dict"].requirement_assessments.get_requirement_assessments.return_value = {
+            "ra-1": mock_ra
+        }
+
+        mock_ctrl = MagicMock()
+        mock_ctrl.get_id.return_value = "ctrl-uuid-1"
+        mock_ctrl.get_name.return_value = "Control on App-Audit-Demo"
+        mock_ctrl.get_status.return_value = "active"
+        mock_data["applied_control_dict"].get_controls.return_value = {"ctrl-uuid-1": mock_ctrl}
+
+        mock_data["risk_assessment_dict"].get_risk_assessments.return_value = {}
+        mock_data["risk_assessment_dict"].create_risk_assessments.return_value = {"id": "ra-uuid-1"}
+
+        mock_data["framework_file"].get_risk_scenarios.return_value = [
+            {
+                "name": "Exposure of unencrypted data in transit",
+                "description": "Desc",
+                "likelihood": "data_in_transit",
+            }
+        ]
+
+        with patch.object(self.manager, "_init_data", return_value=mock_data), \
+             patch.object(self.manager, "find_target_risk_matrix", return_value="matrix-uuid-1"), \
+             patch.object(self.manager, "link_controls_for_application", return_value={"existing_controls": 1, "planned_controls": 0}), \
+             patch("time.sleep"):
+
+            res = self.manager.generate_controls_and_risks_for_application(
+                app_id_or_name="App-Audit-Demo",
+                csv_path=None,
+            )
+
+            self.assertEqual(res["app_name"], "App-Audit-Demo")
+            self.assertEqual(res["answers_updated"], 0)
+            self.assertEqual(res["scenarios_created"], 1)
+            # Ensure polymorphic evaluate_application was called with requirement assessments
+            mock_sim.evaluate_application.assert_called_once()
+            call_arg = mock_sim.evaluate_application.call_args[0][0]
+            self.assertIsInstance(call_arg, list)
+            self.assertIn(mock_ra, call_arg)
+
+    def test_generate_controls_and_risks_unanswered_raises_error(self):
+        """Verify that attempting to generate risks for an unanswered audit raises ValueError."""
+        mock_data = {
+            "perimeter_dict": MagicMock(),
+            "asset_dict": MagicMock(),
+            "compliance_assessment_dict": MagicMock(),
+            "applied_control_dict": MagicMock(),
+            "reference_control_dict": MagicMock(),
+            "risk_assessment_dict": MagicMock(),
+            "risk_scenario_dict": MagicMock(),
+            "framework_file": MagicMock(),
+        }
+
+        mock_data["perimeter_dict"].get_id_from_name.return_value = "perm-uuid-1"
+        mock_data["asset_dict"].get_asset_id_from_perimeter_name.return_value = "asset-uuid-1"
+
+        mock_ca = MagicMock()
+        mock_ca.get_id.return_value = "ca-uuid-1"
+        mock_ca.get_name.return_value = "Assessment in App-Unanswered"
+        mock_ca.get_framework_id.return_value = "fw-uuid-1"
+        mock_data["compliance_assessment_dict"].get_compliance_assessments.return_value = {"ca-uuid-1": mock_ca}
+
+        # Mock unanswered RA
+        mock_ra = MagicMock()
+        mock_ra.get_compliance_assessment_id.return_value = "ca-uuid-1"
+        mock_ra.has_selected_answer.return_value = False
+        mock_ra.is_unassessed_result.return_value = True
+        mock_data["compliance_assessment_dict"].requirement_assessments.get_requirement_assessments.return_value = {
+            "ra-1": mock_ra
+        }
+
+        with patch.object(self.manager, "_init_data", return_value=mock_data), \
+             patch.object(self.manager, "get_default_assignee_id", return_value="assignee-uuid-1"):
+            with self.assertRaises(ValueError) as ctx:
+                self.manager.generate_controls_and_risks_for_application("App-Unanswered")
+            self.assertIn("0 answered requirements", str(ctx.exception))
+
+    def test_generate_controls_and_risks_missing_ca_raises_error(self):
+        """Verify that an unknown application raises ValueError."""
+        mock_data = {
+            "perimeter_dict": MagicMock(),
+            "asset_dict": MagicMock(),
+            "compliance_assessment_dict": MagicMock(),
+            "applied_control_dict": MagicMock(),
+            "reference_control_dict": MagicMock(),
+            "risk_assessment_dict": MagicMock(),
+            "risk_scenario_dict": MagicMock(),
+            "framework_file": MagicMock(),
+        }
+        mock_data["perimeter_dict"].get_id_from_name.return_value = None
+        mock_data["compliance_assessment_dict"].get_compliance_assessments.return_value = {}
+
+        with patch.object(self.manager, "_init_data", return_value=mock_data), \
+             patch.object(self.manager, "get_default_assignee_id", return_value="assignee-uuid-1"):
+            with self.assertRaises(ValueError) as ctx:
+                self.manager.generate_controls_and_risks_for_application("NonExistentApp")
+            self.assertIn("No compliance assessment found", str(ctx.exception))
+
+
+class TestMainCLI(unittest.TestCase):
+    """Test CLI flags and interactive entrypoints in main.py."""
+
+    @patch("main.generate_controls_and_risks_ui")
+    @patch("main.ExamplesManager")
+    def test_cli_generate_risks_explicit(self, mock_mgr_cls, mock_gen_ui):
+        """Verify --generate-risks APP --answers FILE calls generate_controls_and_risks_ui."""
+        from main import main
+        test_args = ["main.py", "--generate-risks", "Custom-App", "--answers", "test_data/app_secure_core.csv"]
+        with patch("sys.argv", test_args):
+            main()
+            mock_gen_ui.assert_called_once_with(
+                mock_mgr_cls.return_value,
+                app_name="Custom-App",
+                answers_source="test_data/app_secure_core.csv",
+                interactive=False,
+            )
+
+    @patch("main.generate_controls_and_risks_ui")
+    @patch("main.ExamplesManager")
+    def test_cli_generate_risks_default_name(self, mock_mgr_cls, mock_gen_ui):
+        """Verify --generate-risks without argument defaults to App-Audit-Demo."""
+        from main import main
+        test_args = ["main.py", "--generate-risks"]
+        with patch("sys.argv", test_args):
+            main()
+            mock_gen_ui.assert_called_once_with(
+                mock_mgr_cls.return_value,
+                app_name="App-Audit-Demo",
+                answers_source=None,
+                interactive=False,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
