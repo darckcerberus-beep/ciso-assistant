@@ -59,9 +59,16 @@ class ComplianceAssessment:
 
     def get_asset_id_list(self):
         """Return the asset IDs linked to this compliance assessment."""
-        utils.log(f"Getting asset ID list for compliance assessment ID: {self.get_id()}")
-        utils.log(f"Compliance assessment JSON: {self.compliance_assessment_json}")
-        return [asset.get('id', '') for asset in self.compliance_assessment_json.get('assets', [])]
+        raw_assets = self.compliance_assessment_json.get('assets', [])
+        asset_ids = []
+        for asset in raw_assets:
+            if isinstance(asset, dict):
+                aid = asset.get('id', '')
+            else:
+                aid = str(asset)
+            if aid:
+                asset_ids.append(str(aid))
+        return asset_ids
 
     def print_name(self):
         """Log the assessment name."""
@@ -298,6 +305,11 @@ class ComplianceAssessmentDict:
                                     f"Mapped Criticality: {criteria_mapping[answer]}"
                                 )
                                 asset_ids = ca.get_asset_id_list()
+                                if not asset_ids and ca.get_perimeter_id():
+                                    for a in asset_dict.get_assets():
+                                        if a.get_name() in ca.get_name() or a.get_folder_id() == ca.get_perimeter_id():
+                                            asset_ids = [a.get_id()]
+                                            break
                                 utils.log(f"Associated asset IDs: {asset_ids}")
                                 for asset_id in asset_ids:
                                     utils.log(f"Updating criticality for asset ID: {asset_id}")

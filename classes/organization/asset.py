@@ -80,13 +80,19 @@ class Asset:
 
     def set_security_objective(self, criteria, value):
         """Update a specific security objective (e.g., confidentiality, integrity, availability)."""
-        current_security_objectives_list = self.json_object.get('security_objectives', {})
+        current_security_objectives_list = self.json_object.get('security_objectives', [])
         utils.log(f"Existing security_objectives: {current_security_objectives_list}")
         security_objectives = {"objectives": {}}
         # Build the new security_objectives structure preserving existing values
-        for exisiting_so in current_security_objectives_list:
-            for existing_criteria, existing_value in exisiting_so.items():
-                security_objectives["objectives"][existing_criteria] = {"value": existing_value, "is_enabled": True}
+        if isinstance(current_security_objectives_list, list):
+            for exisiting_so in current_security_objectives_list:
+                if isinstance(exisiting_so, dict):
+                    for existing_criteria, existing_value in exisiting_so.items():
+                        val = existing_value - 1 if isinstance(existing_value, int) and existing_value > 0 else existing_value
+                        security_objectives["objectives"][existing_criteria] = {"value": val, "is_enabled": True}
+        elif isinstance(current_security_objectives_list, dict) and "objectives" in current_security_objectives_list:
+            security_objectives["objectives"] = dict(current_security_objectives_list["objectives"])
+
         security_objectives["objectives"][criteria] = {"value": value, "is_enabled": True}
 
         payload = {'security_objectives': {'objectives': security_objectives["objectives"]}}
@@ -128,7 +134,11 @@ class AssetDict:
 
     def reload(self):
         """Reload all assets from API."""
-        self.assets = [Asset(a) for a in utils.get_all_results("/api/assets/", force_reload=True)]
+        self.assets = []
+        for a in utils.get_all_results("/api/assets/"):
+            if not isinstance(a, dict):
+                continue
+            self.assets.append(Asset(a))
 
     def create_asset(self, name, asset_type, folder, owner_id=None):
         """Create a new asset if it does not already exist."""
@@ -151,20 +161,30 @@ class AssetDict:
         return Asset(res)
 
     def create_missing_assets(self, perimeter_dict):
-        """Create primary assets for any perimeter that lacks a corresponding asset."""
-        created = False
+        """Ensure each perimeter has an associated asset."""
+        utils.log("Creating missing assets...")
         for p in perimeter_dict.get_perimeters():
             if not self.check_asset_from_name(p.get_name()):
-                payload = {'name': p.get_name(), 'type': "PR", 'folder': p.get_folder_uuid()}
+                utils.log(f"Creating asset: {p.get_name()}")
+                payload = {
+                    'name': p.get_name(),
+                    'type': 'primary',
+                    'folder': p.get_folder_id() or p.get_folder_uuid(),
+                }
                 owner_id = p.get_default_assignee_id()
                 if owner_id:
                     payload['owner'] = [owner_id]
-                utils.get_return("/api/assets/", method="POST", payload=payload)
-                created = True
-        if created:
-            self.reload()
+                asset = utils.get_return("/api/assets/", method="POST", payload=payload)
+                if asset and (not isinstance(asset, dict) or not asset.get("error")):
+                    utils.log(f"Asset created: {p.get_name()}", level=logging.INFO)
+                else:
+                    utils.log(f"Failed to create asset for perimeter {p.get_name()}: {asset}", level=logging.ERROR)
+            else:
+                utils.log(f"Asset already exists: {p.get_name()}")
+        self.reload()
 
-        # Ensure existing assets without owners inherit the perimeter assignee
+    def synchronize_asset_owners(self, perimeter_dict):
+        """Sync perimeter owner assignments to the corresponding assets."""
         updated = False
         for perimeter in perimeter_dict.get_perimeters():
             owner_id = perimeter.get_default_assignee_id()
@@ -182,9 +202,14 @@ class AssetDict:
                 return a.get_id()
         return None
 
-    def get_asset_id_from_perimeter_id(self, perimeter_id, perimeter_dict):
-        perimeter_name = perimeter_dict.get_name_from_id(perimeter_id)
-        return self.get_asset_id_from_perimeter_name(perimeter_name)
+    def get_asset_id_from_perimeter_id(self, perimeter_id, perimeter_dict=None):
+        if perimeter_dict:
+            perimeter_name = perimeter_dict.get_name_from_id(perimeter_id)
+            return self.get_asset_id_from_perimeter_name(perimeter_name)
+        for a in self.assets:
+            if a.get_folder_id() == perimeter_id or a.get_name() == perimeter_id:
+                return a.get_id()
+        return None
 
     def get_assets(self):
         return self.assets
