@@ -224,6 +224,14 @@ class LibraryFile:
         """Return the risk scenarios contained in the current library definition."""
         return self.json_object.get("objects", {}).get("risk_scenarios", [])
 
+    def get_vulnerabilities(self):
+        """Return the vulnerabilities declared in the library definition."""
+        return self.json_object.get("objects", {}).get("vulnerabilities", [])
+
+    def get_threats(self):
+        """Return the threats declared in the library definition."""
+        return self.json_object.get("objects", {}).get("threats", [])
+
     def get_criticality_mapping(self):
         """Return the library's criticality mapping."""
         return self.json_object.get("criticality_mapping", {})

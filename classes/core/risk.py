@@ -11,6 +11,7 @@ CISO Assistant's risk engine:
 
 import logging
 import pprint
+from typing import Any
 
 from .. import utils
 
@@ -172,8 +173,24 @@ class RiskScenario:
             for related_object in related_objects
         ]
 
-    def update_relationships(self, existing_control_ids, planned_control_ids, asset_ids, owner_ids):
-        """Add controls, assets, and owners without removing existing links.
+    def get_vulnerability_ids(self) -> list[str]:
+        """Return list of linked vulnerability UUIDs."""
+        return self.get_related_ids("vulnerabilities")
+
+    def get_threat_ids(self) -> list[str]:
+        """Return list of linked threat UUIDs."""
+        return self.get_related_ids("threats")
+
+    def update_relationships(
+        self,
+        existing_control_ids,
+        planned_control_ids,
+        asset_ids,
+        owner_ids,
+        vulnerability_ids=None,
+        threat_ids=None,
+    ):
+        """Add controls, assets, owners, vulnerabilities, and threats without removing existing links.
 
         Performs an idempotent PATCH only when relationships have changed.
 
@@ -182,6 +199,8 @@ class RiskScenario:
             planned_control_ids (list[str]): To-do / planned applied control UUIDs.
             asset_ids (list[str]): Linked perimeter asset UUIDs.
             owner_ids (list[str]): Asset owner user UUIDs.
+            vulnerability_ids (list[str], optional): Linked vulnerability UUIDs.
+            threat_ids (list[str], optional): Linked threat UUIDs.
 
         Returns:
             dict: API response payload.
@@ -192,6 +211,11 @@ class RiskScenario:
             "assets": asset_ids,
             "owner": owner_ids,
         }
+        if vulnerability_ids is not None:
+            relationship_updates["vulnerabilities"] = vulnerability_ids
+        if threat_ids is not None:
+            relationship_updates["threats"] = threat_ids
+
         payload = {}
         for field_name, related_ids in relationship_updates.items():
             merged_ids = list(dict.fromkeys(self.get_related_ids(field_name) + related_ids))
@@ -298,6 +322,8 @@ class RiskScenarioDict:
         applied_controls=None,
         assets=None,
         owners=None,
+        vulnerabilities=None,
+        threats=None,
     ):
         """Create or update a risk scenario payload for the API.
 
@@ -318,6 +344,8 @@ class RiskScenarioDict:
             applied_controls (list[str], optional): UUIDs of planned controls.
             assets (list[str], optional): UUIDs of linked perimeter assets.
             owners (list[str], optional): UUIDs of asset owners.
+            vulnerabilities (list[str], optional): UUIDs of exploited vulnerabilities.
+            threats (list[str], optional): UUIDs of relevant threats.
 
         Returns:
             dict: Created or updated API object.
@@ -330,6 +358,10 @@ class RiskScenarioDict:
             assets = []
         if owners is None:
             owners = []
+        if vulnerabilities is None:
+            vulnerabilities = []
+        if threats is None:
+            threats = []
 
         payload = {
             "name": name,
@@ -343,6 +375,8 @@ class RiskScenarioDict:
             "applied_controls": applied_controls,
             "assets": assets,
             "owner": owners,
+            "vulnerabilities": vulnerabilities,
+            "threats": threats,
         }
 
         # Check if an existing scenario with the same name exists under this risk assessment
@@ -461,6 +495,34 @@ class Vulnerability:
         """Return the unique UUID identifier."""
         return self.json_object.get('id', '')
 
+    def get_urn(self):
+        """Return the URN identifier if defined."""
+        return self.json_object.get('urn', '')
+
+    def get_ref_id(self):
+        """Return the ref_id if defined."""
+        return self.json_object.get('ref_id', '')
+
+    def get_folder(self):
+        """Return the folder UUID."""
+        folder = self.json_object.get('folder', '')
+        if isinstance(folder, dict):
+            return folder.get('id', '')
+        return str(folder) if folder else ''
+
+    def get_asset_ids(self) -> list[str]:
+        """Return list of linked asset UUIDs."""
+        assets = self.json_object.get("assets", [])
+        return [
+            a.get("id", "") if isinstance(a, dict) else str(a)
+            for a in assets
+            if a
+        ]
+
+    def get_assets(self) -> list[Any]:
+        """Return raw list of assets from JSON payload."""
+        return self.json_object.get("assets", [])
+
 
 class VulnerabilityDict:
     """Handles a collection of vulnerabilities."""
@@ -473,11 +535,321 @@ class VulnerabilityDict:
         """Reload all vulnerabilities from the API."""
         self.vulnerabilities = {}
         for v in utils.get_all_results("/api/vulnerabilities/", force_reload=True):
-            self.vulnerabilities[v.get('id')] = Vulnerability(v)
+            if isinstance(v, dict) and v.get('id'):
+                self.vulnerabilities[v['id']] = Vulnerability(v)
 
     def get_vulnerabilities(self):
         """Return dictionary of vulnerabilities keyed by UUID."""
         return self.vulnerabilities
+
+    def get_id_by_name(self, name: str) -> str | None:
+        """Find vulnerability UUID by name."""
+        if not name:
+            return None
+        norm = name.strip().lower()
+        for v in self.vulnerabilities.values():
+            if v.get_name().strip().lower() == norm:
+                return v.get_id()
+        return None
+
+    def get_id_by_urn(self, urn: str) -> str | None:
+        """Find vulnerability UUID by URN or fallback to terminal ref_id."""
+        if not urn:
+            return None
+        for v in self.vulnerabilities.values():
+            if v.get_urn() == urn:
+                return v.get_id()
+        # In CISO Assistant API, vulnerabilities do not persist a URN field.
+        # Fall back to ref_id matching the terminal token of the URN.
+        ref_id = urn.rsplit(":", 1)[-1]
+        return self.get_id_by_ref_id(ref_id)
+
+    def get_id_by_ref_id(self, ref_id: str) -> str | None:
+        """Find vulnerability UUID by ref_id."""
+        if not ref_id:
+            return None
+        for v in self.vulnerabilities.values():
+            if v.get_ref_id() == ref_id:
+                return v.get_id()
+        return None
+
+    def resolve_vulnerability_id(self, identifier: str) -> str | None:
+        """Find vulnerability UUID by direct UUID, URN, ref_id, or name."""
+        if not identifier:
+            return None
+        if identifier in self.vulnerabilities:
+            return identifier
+        return (
+            self.get_id_by_urn(identifier)
+            or self.get_id_by_ref_id(identifier)
+            or self.get_id_by_name(identifier)
+        )
+
+    def create_vulnerability(
+        self,
+        name: str,
+        folder_id: str,
+        description: str = "",
+        ref_id: str = "",
+        severity: int = 2,
+        status: str = "potential",
+        applied_controls: list[str] | None = None,
+        assets: list[str] | None = None,
+        findings: list[str] | None = None,
+    ) -> dict:
+        """Create a vulnerability in the API and register in cache.
+
+        Args:
+            name: Vulnerability name/title.
+            folder_id: Folder UUID where the vulnerability belongs.
+            description: Detailed vulnerability explanation.
+            ref_id: Short reference identifier.
+            severity: Severity integer (-1=undef, 0=info, 1=low, 2=medium, 3=high, 4=critical).
+            status: Status string ('potential', 'exploitable', 'mitigated', etc.).
+            applied_controls: Optional list of applied control UUIDs.
+            assets: Optional list of asset UUIDs.
+            findings: Optional list of finding UUIDs.
+
+        Returns:
+            dict: API response payload.
+        """
+        payload = {
+            "name": name,
+            "folder": folder_id,
+            "status": status,
+            "severity": severity,
+        }
+        if description:
+            payload["description"] = description
+        if ref_id:
+            payload["ref_id"] = ref_id
+        if applied_controls:
+            payload["applied_controls"] = applied_controls
+        if assets:
+            payload["assets"] = assets
+        if findings:
+            payload["findings"] = findings
+
+        utils.log(f"Creating vulnerability '{name}' (ref_id={ref_id}) in folder {folder_id}...", level=logging.INFO)
+        result = utils.get_return("/api/vulnerabilities/", method="POST", payload=payload)
+        if isinstance(result, dict) and result.get("id"):
+            self.vulnerabilities[result["id"]] = Vulnerability(result)
+            utils.log(f"Vulnerability '{name}' created with ID: {result['id']}", level=logging.INFO)
+            return result
+        utils.log(f"Failed to create vulnerability '{name}': {result}", level=logging.WARNING)
+        return result or {}
+
+    def ensure_assets_for_vulnerability(self, vulnerability_id_or_name: str, asset_ids: list[str]) -> dict | None:
+        """Ensure a vulnerability has its asset(s) linked via PATCH if missing."""
+        if not asset_ids:
+            return None
+        vuln = None
+        if vulnerability_id_or_name in self.vulnerabilities:
+            vuln = self.vulnerabilities[vulnerability_id_or_name]
+        else:
+            for v in self.vulnerabilities.values():
+                if v.get_name() == vulnerability_id_or_name:
+                    vuln = v
+                    break
+        if not vuln:
+            return None
+        current_assets = vuln.get_asset_ids()
+        merged_assets = list(dict.fromkeys(current_assets + [a for a in asset_ids if a]))
+        if merged_assets != current_assets:
+            response = utils.get_return(
+                f"/api/vulnerabilities/{vuln.get_id()}/",
+                method="PATCH",
+                payload={"assets": merged_assets},
+            )
+            if isinstance(response, dict) and not response.get("error"):
+                vuln.json_object = response
+            return response
+        return vuln.get_json()
+
+    def get_vulnerability_id_for_asset(
+        self,
+        identifier: str,
+        asset_id: str | None = None,
+        asset_name: str | None = None,
+    ) -> str | None:
+        """Find vulnerability UUID scoped to a specific asset or perimeter.
+
+        Matches by exact scoped name ("<Base Name> on <Asset Name>"), by asset ID containment,
+        or falls back to URN, ref_id, and name resolution.
+        """
+        if not identifier:
+            return None
+
+        # 1. Direct UUID match
+        if identifier in self.vulnerabilities:
+            return identifier
+
+        # 2. Match by scoped name if asset_name provided
+        if asset_name:
+            target_name = f"{identifier} on {asset_name}".lower()
+            for v in self.vulnerabilities.values():
+                if v.get_name().strip().lower() == target_name:
+                    return v.get_id()
+
+        # 3. Match within vulnerabilities linked to this asset_id
+        if asset_id:
+            for v in self.vulnerabilities.values():
+                if asset_id not in v.get_asset_ids():
+                    continue
+                if v.get_urn() == identifier:
+                    return v.get_id()
+                if v.get_ref_id() == identifier:
+                    return v.get_id()
+                # Scoped ref_id check, e.g. lack_of_encryption_app_secure_core
+                if v.get_ref_id().startswith(f"{identifier}_"):
+                    return v.get_id()
+                # Check base name prefix
+                v_name_lower = v.get_name().lower()
+                id_lower = identifier.lower()
+                if v_name_lower == id_lower or v_name_lower.startswith(f"{id_lower} on "):
+                    return v.get_id()
+                # Terminal ref_id from URN
+                if ":" in identifier:
+                    base_ref = identifier.rsplit(":", 1)[-1]
+                    if v.get_ref_id() == base_ref or v.get_ref_id().startswith(f"{base_ref}_"):
+                        return v.get_id()
+
+        # 4. If asset_name provided, match any vulnerability whose name matches base token and ends with on {asset_name}
+        if asset_name:
+            suffix = f"on {asset_name}".lower()
+            for v in self.vulnerabilities.values():
+                v_name = v.get_name().lower()
+                if v_name.endswith(suffix):
+                    if ":" in identifier:
+                        base_ref = identifier.rsplit(":", 1)[-1].replace("_", " ").lower()
+                        if base_ref in v_name:
+                            return v.get_id()
+                    elif identifier.lower() in v_name:
+                        return v.get_id()
+
+        # 5. Fallback to general resolution
+        return self.resolve_vulnerability_id(identifier)
+
+    def create_vulnerability_if_missing(
+        self,
+        name: str,
+        folder_id: str,
+        description: str = "",
+        ref_id: str = "",
+        severity: int = 2,
+        status: str = "potential",
+        assets: list[str] | None = None,
+    ) -> dict:
+        """Return existing vulnerability or create one if not found by ref_id or name."""
+        existing_id = None
+        if ref_id:
+            existing_id = self.get_id_by_ref_id(ref_id)
+            if existing_id:
+                return self.vulnerabilities[existing_id].get_json()
+        if not existing_id:
+            existing_id = self.get_id_by_name(name)
+
+        existing_id = self.get_id_by_name(name)
+        if existing_id:
+            if assets:
+                self.ensure_assets_for_vulnerability(existing_id, assets)
+            return self.vulnerabilities[existing_id].get_json()
+
+        return self.create_vulnerability(
+            name=name,
+            folder_id=folder_id,
+            description=description,
+            ref_id=ref_id,
+            severity=severity,
+            status=status,
+            assets=assets,
+        )
+
+    def provision_vulnerabilities_from_framework(
+        self,
+        framework_file,
+        folder_id: str,
+        asset_id: str | None = None,
+        asset_name: str | None = None,
+    ) -> dict[str, str]:
+        """Provision all vulnerabilities declared in the framework file into CISO Assistant.
+
+        Vulnerabilities are linked to the given asset_id and named according to the asset_name
+        ('<Vulnerability Name> on <Asset Name>').
+
+        Args:
+            framework_file: FrameworkFile or LibraryFile instance.
+            folder_id: Folder UUID where vulnerabilities should be anchored.
+            asset_id: Optional Asset UUID to link the vulnerabilities to.
+            asset_name: Optional Asset/Application Name to suffix to vulnerability names.
+
+        Returns:
+            dict mapping ref_id / URN -> vulnerability UUID.
+        """
+        if not folder_id:
+            utils.log("Cannot provision vulnerabilities: folder_id is missing.", level=logging.WARNING)
+            return {}
+
+        vuln_defs = []
+        if hasattr(framework_file, "get_vulnerabilities"):
+            vuln_defs = framework_file.get_vulnerabilities()
+        elif hasattr(framework_file, "json_object"):
+            vuln_defs = framework_file.json_object.get("objects", {}).get("vulnerabilities", [])
+
+        if not vuln_defs:
+            utils.log("No vulnerabilities found in framework definition.", level=logging.DEBUG)
+            return {}
+
+        resolved = {}
+        assets_list = [asset_id] if asset_id else None
+
+        for v in vuln_defs:
+            name = v.get("name", "")
+            ref_id = v.get("ref_id") or v.get("urn", "").rsplit(":", 1)[-1]
+            base_name = v.get("name", "")
+            base_ref_id = v.get("ref_id") or v.get("urn", "").rsplit(":", 1)[-1]
+            desc = v.get("description", "")
+            if not name:
+            if not base_name:
+                continue
+
+            if asset_name and not base_name.endswith(f" on {asset_name}"):
+                vuln_name = f"{base_name} on {asset_name}"
+                asset_slug = asset_name.lower().replace("-", "_").replace(" ", "_")
+                ref_id = f"{base_ref_id}_{asset_slug}"[:100]
+            else:
+                vuln_name = base_name
+                ref_id = base_ref_id
+
+            created_or_found = self.create_vulnerability_if_missing(
+                name=name,
+                name=vuln_name,
+                folder_id=folder_id,
+                description=desc,
+                ref_id=ref_id,
+                severity=2,
+                status="potential",
+                assets=assets_list,
+            )
+            vid = created_or_found.get("id") if isinstance(created_or_found, dict) else None
+            if vid:
+                resolved[ref_id] = vid
+                resolved[base_ref_id] = vid
+                if ref_id != base_ref_id:
+                    resolved[ref_id] = vid
+                if v.get("urn"):
+                    resolved[v["urn"]] = vid
+
+        return resolved
+
+    def delete_vulnerability(self, vulnerability_id: str) -> bool:
+        """Delete a vulnerability by UUID."""
+        utils.log(f"Deleting vulnerability ID: {vulnerability_id}", level=logging.INFO)
+        response = utils.get_return(f"/api/vulnerabilities/{vulnerability_id}/", method="DELETE")
+        if response is True or (isinstance(response, dict) and not response.get("error")):
+            self.vulnerabilities.pop(vulnerability_id, None)
+            return True
+        return False
 
     def print_vulnerabilities(self):
         """Log names and IDs of all vulnerabilities."""
@@ -488,3 +860,197 @@ class VulnerabilityDict:
         """Log raw JSON payload for all vulnerabilities."""
         for v in self.vulnerabilities.values():
             utils.log(f"Vulnerability JSON:\n{pprint.pformat(v.get_json())}")
+
+
+class Threat:
+    """Represents a single threat object."""
+
+    def __init__(self, json_threat):
+        """Initialize threat from API payload or fetch if needed.
+
+        Args:
+            json_threat (dict or str): Dictionary payload or UUID of the threat.
+        """
+        if isinstance(json_threat, dict) and "name" in json_threat:
+            self.json_object = json_threat
+        else:
+            t_id = json_threat.get('id', '') if isinstance(json_threat, dict) else str(json_threat)
+            self.json_object = utils.get_return(f"/api/threats/{t_id}/") or {}
+
+    def get_json(self):
+        """Return the raw JSON dictionary payload."""
+        return self.json_object
+
+    def get_name(self):
+        """Return the threat name."""
+        return self.json_object.get('name', '')
+
+    def get_id(self):
+        """Return the unique UUID identifier."""
+        return self.json_object.get('id', '')
+
+    def get_urn(self):
+        """Return the URN identifier if defined."""
+        return self.json_object.get('urn', '')
+
+    def get_ref_id(self):
+        """Return the ref_id if defined."""
+        return self.json_object.get('ref_id', '')
+
+
+class ThreatDict:
+    """Handles a collection of threats loaded from the API."""
+
+    def __init__(self):
+        """Initialize and fetch all threats from the API."""
+        self.reload()
+
+    def reload(self):
+        """Reload all threats from the API."""
+        self.threats = {}
+        for t in utils.get_all_results("/api/threats/", force_reload=True):
+            if isinstance(t, dict) and t.get('id'):
+                self.threats[t['id']] = Threat(t)
+
+    def get_threats(self):
+        """Return dictionary of threats keyed by UUID."""
+        return self.threats
+
+    def get_id_by_name(self, name: str) -> str | None:
+        """Find threat UUID by name."""
+        if not name:
+            return None
+        norm = name.strip().lower()
+        for t in self.threats.values():
+            if t.get_name().strip().lower() == norm:
+                return t.get_id()
+        return None
+
+    def get_id_by_urn(self, urn: str) -> str | None:
+        """Find threat UUID by URN or fallback to terminal ref_id."""
+        if not urn:
+            return None
+        for t in self.threats.values():
+            if t.get_urn() == urn:
+                return t.get_id()
+        ref_id = urn.rsplit(":", 1)[-1]
+        return self.get_id_by_ref_id(ref_id)
+
+    def get_id_by_ref_id(self, ref_id: str) -> str | None:
+        """Find threat UUID by ref_id."""
+        if not ref_id:
+            return None
+        for t in self.threats.values():
+            if t.get_ref_id() == ref_id:
+                return t.get_id()
+        return None
+
+    def resolve_threat_id(self, identifier: str) -> str | None:
+        """Find threat UUID by direct UUID, URN, ref_id, or name."""
+        if not identifier:
+            return None
+        if identifier in self.threats:
+            return identifier
+        return (
+            self.get_id_by_urn(identifier)
+            or self.get_id_by_ref_id(identifier)
+            or self.get_id_by_name(identifier)
+        )
+
+    def create_threat(
+        self,
+        name: str,
+        description: str = "",
+        ref_id: str = "",
+        urn: str = "",
+        provider: str = "custom",
+    ) -> dict:
+        """Create a threat in the API and register in cache."""
+        payload = {
+            "name": name,
+            "provider": provider,
+        }
+        if description:
+            payload["description"] = description
+        if ref_id:
+            payload["ref_id"] = ref_id
+        if urn:
+            payload["urn"] = urn
+
+        utils.log(f"Creating threat '{name}' (ref_id={ref_id})...", level=logging.INFO)
+        result = utils.get_return("/api/threats/", method="POST", payload=payload)
+        if isinstance(result, dict) and result.get("id"):
+            self.threats[result["id"]] = Threat(result)
+            return result
+        return result or {}
+
+    def create_threat_if_missing(
+        self,
+        name: str,
+        description: str = "",
+        ref_id: str = "",
+        urn: str = "",
+        provider: str = "custom",
+    ) -> dict:
+        """Return existing threat or create one if not found."""
+        if urn:
+            existing_id = self.get_id_by_urn(urn)
+            if existing_id:
+                return self.threats[existing_id].get_json()
+        if ref_id:
+            existing_id = self.get_id_by_ref_id(ref_id)
+            if existing_id:
+                return self.threats[existing_id].get_json()
+        existing_id = self.get_id_by_name(name)
+        if existing_id:
+            return self.threats[existing_id].get_json()
+
+        return self.create_threat(
+            name=name,
+            description=description,
+            ref_id=ref_id,
+            urn=urn,
+            provider=provider,
+        )
+
+    def provision_threats_from_framework(self, framework_file) -> dict[str, str]:
+        """Provision all threats declared in the framework file into CISO Assistant."""
+        threat_defs = []
+        if hasattr(framework_file, "get_threats"):
+            threat_defs = framework_file.get_threats()
+        elif hasattr(framework_file, "json_object"):
+            threat_defs = framework_file.json_object.get("objects", {}).get("threats", [])
+
+        if not threat_defs:
+            return {}
+
+        resolved = {}
+        for t in threat_defs:
+            name = t.get("name", "")
+            ref_id = t.get("ref_id") or t.get("urn", "").rsplit(":", 1)[-1]
+            desc = t.get("description", "")
+            urn = t.get("urn", "")
+            provider = t.get("provider", "custom")
+            if not name:
+                continue
+
+            created_or_found = self.create_threat_if_missing(
+                name=name,
+                description=desc,
+                ref_id=ref_id,
+                urn=urn,
+                provider=provider,
+            )
+            tid = created_or_found.get("id") if isinstance(created_or_found, dict) else None
+            if tid:
+                resolved[ref_id] = tid
+                if urn:
+                    resolved[urn] = tid
+
+        return resolved
+
+    def print_threats(self):
+        """Log names and IDs of all threats."""
+        for t in self.threats.values():
+            utils.log(f"Threat: {t.get_name()}, ID: {t.get_id()}")
+

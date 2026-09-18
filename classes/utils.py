@@ -255,12 +255,13 @@ def initialize_data_objects() -> dict[str, Any]:
     """Instantiate all required dictionaries and framework objects used in the workflow."""
     from classes.audits.compliance import ComplianceAssessmentDict
     from classes.audits.entity_assessment import EntityAssessmentDict
+    from classes.audits.finding import FindingDict, FindingsAssessmentDict
     from classes.audits.requirement_assignment import RequirementAssignmentDict
     from classes.audits.requirement_assessment import RequirementAssessmentDict
     from classes.controls.applied import AppliedControlDict
     from classes.controls.reference import ReferenceControlDict
     from classes.core.framework import FrameworkDict, LibraryFile
-    from classes.core.risk import RiskAssessmentDict, RiskMatrixDict, RiskScenarioDict
+    from classes.core.risk import RiskAssessmentDict, RiskMatrixDict, RiskScenarioDict, ThreatDict, VulnerabilityDict
     from classes.core.user import UserDict
     from classes.organization.asset import AssetDict
     from classes.organization.entity import EntityDict
@@ -281,6 +282,10 @@ def initialize_data_objects() -> dict[str, Any]:
     risk_matrix_dict = RiskMatrixDict()
     entity_dict = EntityDict()
     entity_assessment_dict = EntityAssessmentDict()
+    findings_assessment_dict = FindingsAssessmentDict()
+    finding_dict = FindingDict()
+    threat_dict = ThreatDict()
+    vulnerability_dict = VulnerabilityDict()
 
     return {
         "requirement_assessment_dict": requirement_assessment_dict,
@@ -298,6 +303,10 @@ def initialize_data_objects() -> dict[str, Any]:
         "risk_matrix_dict": risk_matrix_dict,
         "entity_dict": entity_dict,
         "entity_assessment_dict": entity_assessment_dict,
+        "findings_assessment_dict": findings_assessment_dict,
+        "finding_dict": finding_dict,
+        "threat_dict": threat_dict,
+        "vulnerability_dict": vulnerability_dict,
     }
 
 
@@ -310,7 +319,7 @@ def capture_counts(data: dict) -> dict[str, int]:
     Returns:
         A mapping of metric name -> integer count.
     """
-    return {
+    counts = {
         "assets": len(data["asset_dict"].get_assets()),
         "compliance_assessments": len(data["compliance_assessment_dict"].get_compliance_assessments()),
         "entity_assessments": len(data["entity_assessment_dict"].get_entity_assessments()),
@@ -320,6 +329,12 @@ def capture_counts(data: dict) -> dict[str, int]:
         "requirement_assessments": len(data["compliance_assessment_dict"].requirement_assessments.get_requirement_assessments()),
         "requirement_assignments": len(data["compliance_assessment_dict"].requirement_assignments.get_requirement_assignments()),
     }
+    if "findings_assessment_dict" in data:
+        counts["findings_assessments"] = len(data["findings_assessment_dict"].get_findings_assessments())
+    if "finding_dict" in data:
+        counts["findings"] = len(data["finding_dict"].get_findings())
+    return counts
+
 
 
 def print_run_summary(initial_counts: dict[str, int], final_counts: dict[str, int]) -> None:

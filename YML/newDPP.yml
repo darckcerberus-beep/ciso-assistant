@@ -34,6 +34,13 @@ objects:
         missing encryption controls.
       likelihood: urn:intuitem:risk:req_node:mls:data_in_transit
       impact: urn:intuitem:risk:req_node:mls:data_classification
+      threats:
+        - urn:intuitem:risk:threat:mls:data_exfiltration
+        - urn:intuitem:risk:threat:mls:unauthorized_access
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:mls:lack_of_encryption
+      reference_controls:
+        - urn:intuitem:risk:control:mls:encrypt_data_in_transit
 
     # Sensitive data is exposed when encryption is missing at rest.
     - urn: urn:intuitem:risk:scenario:mls:unencrypted_data_at_rest
@@ -44,6 +51,13 @@ objects:
         missing encryption controls.
       likelihood: urn:intuitem:risk:req_node:mls:data_at_rest
       impact: urn:intuitem:risk:req_node:mls:data_classification
+      threats:
+        - urn:intuitem:risk:threat:mls:data_exfiltration
+        - urn:intuitem:risk:threat:mls:unauthorized_access
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:mls:lack_of_encryption
+      reference_controls:
+        - urn:intuitem:risk:control:mls:encrypt_data_at_rest
 
     # Production data is exposed when used in non-production environments.
     - urn: urn:intuitem:risk:scenario:mls:nonprod_data_disclosure
@@ -54,6 +68,13 @@ objects:
         is exposed because adequate protection measures are not implemented.
       likelihood: urn:intuitem:risk:req_node:mls:non_prod_data
       impact: urn:intuitem:risk:req_node:mls:data_classification
+      threats:
+        - urn:intuitem:risk:threat:mls:data_exfiltration
+        - urn:intuitem:risk:threat:mls:unauthorized_access
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:mls:unprotected_non_prod
+      reference_controls:
+        - urn:intuitem:risk:control:mls:protect_prod_data_in_non_prod
 
     # An external organization leaks or misuses sensitive exchanged data.
     - urn: urn:intuitem:risk:scenario:mls:third_party_data_leakage
@@ -64,6 +85,12 @@ objects:
         due to inadequate contractual and security requirements.
       likelihood: urn:intuitem:risk:req_node:mls:data_exchange
       impact: urn:intuitem:risk:req_node:mls:data_classification
+      threats:
+        - urn:intuitem:risk:threat:mls:data_exfiltration
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:mls:contractual_gap
+      reference_controls:
+        - urn:intuitem:risk:control:mls:information_exchange_contract
 
     # A SaaS provider leaks or misuses sensitive data due to inadequate contractual and security requirements.
     - urn: urn:intuitem:risk:scenario:mls:saas_provider_data_leakage
@@ -74,6 +101,12 @@ objects:
         due to inadequate contractual and security requirements.
       likelihood: urn:intuitem:risk:req_node:mls:saas_contract
       impact: urn:intuitem:risk:req_node:mls:data_classification
+      threats:
+        - urn:intuitem:risk:threat:mls:data_exfiltration
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:mls:contractual_gap
+      reference_controls:
+        - urn:intuitem:risk:control:mls:saas_contract
 
     # The application lacks accountable and up-to-date business, IT, and data stakeholders.
     - urn: urn:intuitem:risk:scenario:mls:missing_stakeholders
@@ -84,6 +117,13 @@ objects:
         operational, and data-protection decisions.
       likelihood: urn:intuitem:risk:req_node:mls:stakeholder_identification
       impact: urn:intuitem:risk:req_node:mls:data_classification
+      threats:
+        - urn:intuitem:risk:threat:mls:data_loss
+        - urn:intuitem:risk:threat:mls:unauthorized_access
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:mls:unclear_accountability
+      reference_controls:
+        - urn:intuitem:risk:control:mls:stakeholder_designation
 
     # Sensitive data is retained beyond business or regulatory requirements.
     - urn: urn:intuitem:risk:scenario:mls:improper_data_retention
@@ -94,6 +134,13 @@ objects:
         requirements because a compliant destruction process is not implemented.
       likelihood: urn:intuitem:risk:req_node:mls:data_destruction
       impact: urn:intuitem:risk:req_node:mls:data_classification
+      threats:
+        - urn:intuitem:risk:threat:mls:data_exfiltration
+        - urn:intuitem:risk:threat:mls:unauthorized_access
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:mls:uncontrolled_data_retention
+      reference_controls:
+        - urn:intuitem:risk:control:mls:data_destruction_process
 
   # ========================================================================
   # RISK MATRIX - 4x4 probability/impact matrix with risk levels
@@ -212,6 +259,8 @@ objects:
       description: "Absence of a defined data classification level for the application."
       associated_controls:
         - urn:intuitem:risk:control:mls:identify_data_classification
+      reference_controls:
+        - urn:intuitem:risk:control:mls:identify_data_classification
       threats:
         - urn:intuitem:risk:threat:mls:unauthorized_access
 
@@ -220,6 +269,9 @@ objects:
       name: "Lack of encryption"
       description: "Data stored or transmitted without cryptographic protection."
       associated_controls:
+        - urn:intuitem:risk:control:mls:encrypt_data_in_transit
+        - urn:intuitem:risk:control:mls:encrypt_data_at_rest
+      reference_controls:
         - urn:intuitem:risk:control:mls:encrypt_data_in_transit
         - urn:intuitem:risk:control:mls:encrypt_data_at_rest
       threats:
@@ -232,6 +284,8 @@ objects:
       description: "Absence of identified points of contact for data governance."
       associated_controls:
         - urn:intuitem:risk:control:mls:stakeholder_designation
+      reference_controls:
+        - urn:intuitem:risk:control:mls:stakeholder_designation
       threats:
         - urn:intuitem:risk:threat:mls:data_loss
         - urn:intuitem:risk:threat:mls:unauthorized_access
@@ -241,6 +295,8 @@ objects:
       name: "Vulnerable non-production environment"
       description: "Use of real data in unsecured test environments."
       associated_controls:
+        - urn:intuitem:risk:control:mls:protect_prod_data_in_non_prod
+      reference_controls:
         - urn:intuitem:risk:control:mls:protect_prod_data_in_non_prod
       threats:
         - urn:intuitem:risk:threat:mls:data_exfiltration
@@ -253,6 +309,9 @@ objects:
       associated_controls:
         - urn:intuitem:risk:control:mls:saas_contract
         - urn:intuitem:risk:control:mls:information_exchange_contract
+      reference_controls:
+        - urn:intuitem:risk:control:mls:saas_contract
+        - urn:intuitem:risk:control:mls:information_exchange_contract
       threats:
         - urn:intuitem:risk:threat:mls:data_exfiltration
 
@@ -261,6 +320,8 @@ objects:
       name: "Uncontrolled data retention"
       description: "Absence of compliant data destruction procedures leading to excessive retention of sensitive data."
       associated_controls:
+        - urn:intuitem:risk:control:mls:data_destruction_process
+      reference_controls:
         - urn:intuitem:risk:control:mls:data_destruction_process
       threats:
         - urn:intuitem:risk:threat:mls:data_exfiltration

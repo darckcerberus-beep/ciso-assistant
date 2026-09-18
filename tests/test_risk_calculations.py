@@ -156,7 +156,88 @@ class TestRiskCalculations(unittest.TestCase):
                     "applied_controls": ["ctrl-2"],
                     "assets": ["asset-1"],
                     "owner": ["user-1"],
+                    "vulnerabilities": [],
+                    "threats": [],
                 }
+            )
+
+    def test_risk_scenario_with_vulnerabilities_and_threats(self):
+        """Verify that RiskScenario and RiskScenarioDict create and patch vulnerabilities and threats."""
+        rs_dict = RiskScenarioDict.__new__(RiskScenarioDict)
+        rs_dict.risk_scenarios = {}
+
+        with patch("classes.utils.get_return") as mock_get_return:
+            mock_get_return.return_value = {
+                "id": "scenario-with-vulns",
+                "name": "Exposure of unencrypted data",
+                "vulnerabilities": ["vuln-uuid-1"],
+                "threats": ["threat-uuid-1"],
+            }
+
+            created = rs_dict.create_risk_scenario(
+                name="Exposure of unencrypted data",
+                description="Sensitive data exposed",
+                risk_assessment_id="ra-1",
+                current_proba=4,
+                current_impact=4,
+                residual_proba=1,
+                residual_impact=4,
+                assets=["asset-1"],
+                vulnerabilities=["vuln-uuid-1"],
+                threats=["threat-uuid-1"],
+            )
+
+            mock_get_return.assert_called_once_with(
+                "/api/risk-scenarios/",
+                method="POST",
+                payload={
+                    "name": "Exposure of unencrypted data",
+                    "description": "Sensitive data exposed",
+                    "risk_assessment": "ra-1",
+                    "current_proba": 3,
+                    "current_impact": 3,
+                    "residual_proba": 0,
+                    "residual_impact": 3,
+                    "existing_applied_controls": [],
+                    "applied_controls": [],
+                    "assets": ["asset-1"],
+                    "owner": [],
+                    "vulnerabilities": ["vuln-uuid-1"],
+                    "threats": ["threat-uuid-1"],
+                },
+            )
+
+        # Verify update_relationships patches vulnerabilities and threats
+        scenario = RiskScenario({
+            "id": "scenario-with-vulns",
+            "name": "Exposure of unencrypted data",
+            "vulnerabilities": ["vuln-uuid-1"],
+            "threats": ["threat-uuid-1"],
+        })
+        self.assertEqual(scenario.get_vulnerability_ids(), ["vuln-uuid-1"])
+        self.assertEqual(scenario.get_threat_ids(), ["threat-uuid-1"])
+
+        with patch("classes.utils.get_return") as mock_get_return:
+            mock_get_return.return_value = {
+                "id": "scenario-with-vulns",
+                "vulnerabilities": ["vuln-uuid-1", "vuln-uuid-2"],
+                "threats": ["threat-uuid-1", "threat-uuid-2"],
+            }
+            scenario.update_relationships(
+                existing_control_ids=[],
+                planned_control_ids=[],
+                asset_ids=[],
+                owner_ids=[],
+                vulnerability_ids=["vuln-uuid-2"],
+                threat_ids=["threat-uuid-2"],
+            )
+            mock_get_return.assert_called_once_with(
+                "/api/risk-scenarios/scenario-with-vulns/",
+                method="PATCH",
+                payload={
+                    "vulnerabilities": ["vuln-uuid-1", "vuln-uuid-2"],
+                    "threats": ["threat-uuid-1", "threat-uuid-2"],
+                },
             )
 
     def test_requirement_assessment_score_compliance(self):

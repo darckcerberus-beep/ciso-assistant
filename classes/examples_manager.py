@@ -12,12 +12,13 @@ from typing import Any
 
 from classes import utils
 from classes.core.framework import FrameworkDict, FrameworkFile
-from classes.core.risk import RiskAssessmentDict, RiskMatrixDict, RiskScenarioDict
+from classes.core.risk import RiskAssessmentDict, RiskMatrixDict, RiskScenarioDict, ThreatDict, VulnerabilityDict
 from classes.core.user import UserDict
 from classes.controls.applied import AppliedControlDict
 from classes.controls.reference import ReferenceControlDict
 from classes.audits.compliance import ComplianceAssessmentDict, AUDITOR_SCORE_METHOD, AUDITOR_SCORE_VISIBILITY
 from classes.audits.entity_assessment import EntityAssessmentDict
+from classes.audits.finding import FindingDict, FindingsAssessmentDict
 from classes.audits.implementation_groups import add_default_implementation_groups
 from classes.audits.requirement_assessment import create_requirement_assignment
 from classes.organization.asset import AssetDict
@@ -27,6 +28,7 @@ from classes.organization.perimeter import PerimeterDict
 from classes.integrations import csv_import
 
 LOGGER = logging.getLogger(__name__)
+
 
 EXAMPLE_APPLICATIONS = [
     {
@@ -232,9 +234,14 @@ class ExamplesManager:
                 "entity_dict": EntityDict(),
                 "entity_assessment_dict": EntityAssessmentDict(),
                 "entity_representative_dict": EntityRepresentativeDict(),
+                "findings_assessment_dict": FindingsAssessmentDict(),
+                "finding_dict": FindingDict(),
+                "vulnerability_dict": VulnerabilityDict(),
+                "threat_dict": ThreatDict(),
                 "framework_file": FrameworkFile(str(self.framework_yaml)),
             }
         return self.data
+
 
     def test_connection(self) -> tuple[bool, str]:
         """Verify API connectivity and authentication.
@@ -381,6 +388,8 @@ class ExamplesManager:
 
             existing_ctrls_linked = 0
             planned_ctrls_linked = 0
+            vulns_linked = 0
+            threats_linked = 0
             if ra_obj:
                 ra_id = ra_obj.get_id()
                 for sc in risk_scenarios_dict.get_risk_scenarios().values():
@@ -391,6 +400,8 @@ class ExamplesManager:
                         ra_scenarios_count += 1
                         existing_ctrls_linked += len(sc.get_json().get("existing_applied_controls") or [])
                         planned_ctrls_linked += len(sc.get_json().get("applied_controls") or [])
+                        vulns_linked += len(sc.get_vulnerability_ids() if hasattr(sc, "get_vulnerability_ids") else (sc.get_json().get("vulnerabilities") or []))
+                        threats_linked += len(sc.get_threat_ids() if hasattr(sc, "get_threat_ids") else (sc.get_json().get("threats") or []))
 
             ctrl_count = 0
             for ctrl in applied_ctrl_dict.get_controls().values():
@@ -412,6 +423,17 @@ class ExamplesManager:
             user_email = user_spec.get("email")
             user_id = user_dict.get_id_from_email(user_email) if user_email else None
 
+            fa_id = None
+            findings_count = 0
+            findings_fa_dict = data.get("findings_assessment_dict")
+            finding_dict = data.get("finding_dict")
+            if findings_fa_dict and finding_dict:
+                for fa in findings_fa_dict.get_findings_assessments().values():
+                    if (perimeter_id and fa.get_perimeter_id() == perimeter_id) or app_name in fa.get_name():
+                        fa_id = fa.get_id()
+                        findings_count = len(finding_dict.get_findings_for_assessment(fa_id))
+                        break
+
             status_list.append({
                 "id": app["id"],
                 "name": app_name,
@@ -428,6 +450,10 @@ class ExamplesManager:
                 "applied_controls_count": ctrl_count,
                 "existing_controls_linked": existing_ctrls_linked,
                 "planned_controls_linked": planned_ctrls_linked,
+                "vulnerabilities_linked": vulns_linked,
+                "threats_linked": threats_linked,
+                "findings_assessment_id": fa_id,
+                "findings_count": findings_count,
                 "entity_id": entity_id,
                 "entity_assessment_id": ea_obj.get_id() if ea_obj else None,
                 "entity_assessment_name": ea_obj.get_name() if ea_obj else None,
@@ -436,6 +462,7 @@ class ExamplesManager:
                 "user_exists": bool(user_id),
                 "tprm_conclusion": ea_obj.json_object.get("conclusion") if ea_obj and isinstance(ea_obj.json_object, dict) else None,
             })
+
 
         # Discover custom applications created in the example folder
         folder_id = None
@@ -482,6 +509,8 @@ class ExamplesManager:
 
                 existing_ctrls_linked = 0
                 planned_ctrls_linked = 0
+                vulns_linked = 0
+                threats_linked = 0
                 if ra_obj:
                     ra_id = ra_obj.get_id()
                     for sc in risk_scenarios_dict.get_risk_scenarios().values():
@@ -492,6 +521,8 @@ class ExamplesManager:
                             ra_scenarios_count += 1
                             existing_ctrls_linked += len(sc.get_json().get("existing_applied_controls") or [])
                             planned_ctrls_linked += len(sc.get_json().get("applied_controls") or [])
+                            vulns_linked += len(sc.get_vulnerability_ids() if hasattr(sc, "get_vulnerability_ids") else (sc.get_json().get("vulnerabilities") or []))
+                            threats_linked += len(sc.get_threat_ids() if hasattr(sc, "get_threat_ids") else (sc.get_json().get("threats") or []))
 
                 ctrl_count = 0
                 for ctrl in applied_ctrl_dict.get_controls().values():
@@ -522,6 +553,15 @@ class ExamplesManager:
                             user_email = u.get_email()
                             break
 
+                fa_id = None
+                findings_count = 0
+                if findings_fa_dict and finding_dict:
+                    for fa in findings_fa_dict.get_findings_assessments().values():
+                        if (perimeter_id and fa.get_perimeter_id() == perimeter_id) or app_name in fa.get_name():
+                            fa_id = fa.get_id()
+                            findings_count = len(finding_dict.get_findings_for_assessment(fa_id))
+                            break
+
                 status_list.append({
                     "id": f"custom_{app_name.lower().replace(' ', '_')}",
                     "name": app_name,
@@ -538,6 +578,10 @@ class ExamplesManager:
                     "applied_controls_count": ctrl_count,
                     "existing_controls_linked": existing_ctrls_linked,
                     "planned_controls_linked": planned_ctrls_linked,
+                    "vulnerabilities_linked": vulns_linked,
+                    "threats_linked": threats_linked,
+                    "findings_assessment_id": fa_id,
+                    "findings_count": findings_count,
                     "entity_id": entity_id,
                     "entity_assessment_id": ea_obj.get_id() if ea_obj else None,
                     "entity_assessment_name": ea_obj.get_name() if ea_obj else None,
@@ -546,6 +590,7 @@ class ExamplesManager:
                     "user_exists": bool(user_id),
                     "tprm_conclusion": ea_obj.json_object.get("conclusion") if ea_obj and isinstance(ea_obj.json_object, dict) else None,
                 })
+
 
         return status_list
 
@@ -591,6 +636,16 @@ class ExamplesManager:
 
         framework_id = framework.get_id()
         framework_name = framework.get_name()
+
+        # Step 0a: Ensure Vulnerabilities & Threats are provisioned from framework file
+        vuln_dict = data.get("vulnerability_dict")
+        # Step 0a: Ensure Threats are provisioned from framework file
+        threat_dict = data.get("threat_dict")
+        framework_file = data.get("framework_file")
+        if vuln_dict and folder_id and framework_file and hasattr(vuln_dict, "provision_vulnerabilities_from_framework"):
+            vuln_dict.provision_vulnerabilities_from_framework(framework_file, folder_id)
+        if threat_dict and framework_file and hasattr(threat_dict, "provision_threats_from_framework"):
+            threat_dict.provision_threats_from_framework(framework_file)
 
         # Step 0: Ensure Third-Party User Exists for TPRM
         user_dict: UserDict = data["user_dict"]
@@ -653,6 +708,16 @@ class ExamplesManager:
                 if a.get_id() == asset_id:
                     a.set_owner_if_missing(assignee_id)
                     break
+
+        # Step 3b: Provision Vulnerabilities for this Asset
+        vuln_dict = data.get("vulnerability_dict")
+        if vuln_dict and folder_id and framework_file and hasattr(vuln_dict, "provision_vulnerabilities_from_framework"):
+            vuln_dict.provision_vulnerabilities_from_framework(
+                framework_file,
+                folder_id=folder_id,
+                asset_id=asset_id,
+                asset_name=app_name,
+            )
 
         # Step 4: Create Compliance Assessment
         compliance_dict: ComplianceAssessmentDict = data["compliance_assessment_dict"]
@@ -763,6 +828,8 @@ class ExamplesManager:
         risk_assessment_dict: RiskAssessmentDict = data["risk_assessment_dict"]
         risk_scenario_dict: RiskScenarioDict = data["risk_scenario_dict"]
         framework_file = data["framework_file"]
+        vuln_dict = data.get("vulnerability_dict")
+        threat_dict = data.get("threat_dict")
 
         risk_matrix_id = self.find_target_risk_matrix(framework_id)
         ra_name = f"{ca_name} Risk Assessment"
@@ -822,6 +889,37 @@ class ExamplesManager:
                         else:
                             planned_controls.append(ac_id)
 
+            # Resolve Vulnerabilities and Threats
+            scenario_vuln_urns = risk_scenario.get("vulnerabilities", [])
+            scenario_threat_urns = risk_scenario.get("threats", [])
+            if not scenario_vuln_urns and matching_ra:
+                req_json = matching_ra.get_requirement_json()
+                req_obj = req_json.get("requirement", {}) if isinstance(req_json, dict) else {}
+                scenario_vuln_urns = req_obj.get("vulnerabilities", []) or []
+
+            vuln_ids = []
+            if vuln_dict and scenario_vuln_urns:
+                for vu in scenario_vuln_urns:
+                    vid = vuln_dict.get_id_by_urn(vu) or vuln_dict.get_id_by_ref_id(vu.rsplit(":", 1)[-1])
+                    vid = None
+                    if hasattr(vuln_dict, "get_vulnerability_id_for_asset"):
+                        vid = vuln_dict.get_vulnerability_id_for_asset(vu, asset_id=asset_id, asset_name=app_name)
+                    if not vid:
+                        vid = vuln_dict.get_id_by_urn(vu) or vuln_dict.get_id_by_ref_id(vu.rsplit(":", 1)[-1])
+                    if not vid and hasattr(vuln_dict, "resolve_vulnerability_id"):
+                        vid = vuln_dict.resolve_vulnerability_id(vu)
+                    if vid and vid not in vuln_ids:
+                        vuln_ids.append(vid)
+
+            threat_ids = []
+            if threat_dict and scenario_threat_urns:
+                for tu in scenario_threat_urns:
+                    tid = threat_dict.get_id_by_urn(tu) or threat_dict.get_id_by_ref_id(tu.rsplit(":", 1)[-1])
+                    if not tid and hasattr(threat_dict, "resolve_threat_id"):
+                        tid = threat_dict.resolve_threat_id(tu)
+                    if tid and tid not in threat_ids:
+                        threat_ids.append(tid)
+
             risk_scenario_dict.create_risk_scenario(
                 sc_name,
                 risk_scenario.get("description", ""),
@@ -834,12 +932,17 @@ class ExamplesManager:
                 planned_controls,
                 asset_ids,
                 owner_ids,
+                vulnerabilities=vuln_ids,
+                threats=threat_ids,
             )
             scenarios_created += 1
 
         # Step 9: Guarantee complete control & asset link synchronization
         time.sleep(1)
         link_res = self.link_controls_for_application(app_name)
+
+        # Step 10: Generate Findings from Audit Answers
+        findings_res = self.create_findings_for_application(app_name)
 
         # Reload for fresh state
         time.sleep(1)
@@ -861,7 +964,12 @@ class ExamplesManager:
             "scenarios_created": scenarios_created,
             "existing_controls_linked": link_res.get("existing_controls", 0),
             "planned_controls_linked": link_res.get("planned_controls", 0),
+            "vulnerabilities_linked": link_res.get("vulnerabilities_linked", 0),
+            "threats_linked": link_res.get("threats_linked", 0),
+            "findings_assessment_id": findings_res.get("findings_assessment_id"),
+            "findings_count": findings_res.get("findings_count", 0),
         }
+
 
     def create_application_for_audit(
         self,
@@ -1247,6 +1355,23 @@ class ExamplesManager:
             if f"on {app_name}" in c.get_name()
         }
 
+        vuln_dict = data.get("vulnerability_dict")
+        threat_dict = data.get("threat_dict")
+        if vuln_dict and framework_file and hasattr(vuln_dict, "provision_vulnerabilities_from_framework"):
+            target_folder_id = perimeter_dict.get_folder_uuid_from_perimeter_id(perimeter_id) if perimeter_dict and perimeter_id else None
+            if not target_folder_id:
+                target_folder_id = self.get_or_create_folder()
+            if target_folder_id:
+                vuln_dict.provision_vulnerabilities_from_framework(framework_file, target_folder_id)
+                vuln_dict.provision_vulnerabilities_from_framework(
+                    framework_file,
+                    target_folder_id,
+                    asset_id=asset_id,
+                    asset_name=app_name,
+                )
+        if threat_dict and framework_file and hasattr(threat_dict, "provision_threats_from_framework"):
+            threat_dict.provision_threats_from_framework(framework_file)
+
         scenarios_created = 0
         asset_ids = [asset_id] if asset_id else []
         owner_ids = [assignee_id] if assignee_id else []
@@ -1280,6 +1405,37 @@ class ExamplesManager:
                         else:
                             planned_controls.append(ac_id)
 
+            # Resolve Vulnerabilities and Threats
+            scenario_vuln_urns = risk_scenario.get("vulnerabilities", [])
+            scenario_threat_urns = risk_scenario.get("threats", [])
+            if not scenario_vuln_urns and matching_ra:
+                req_json = matching_ra.get_requirement_json()
+                req_obj = req_json.get("requirement", {}) if isinstance(req_json, dict) else {}
+                scenario_vuln_urns = req_obj.get("vulnerabilities", []) or []
+
+            vuln_ids = []
+            if vuln_dict and scenario_vuln_urns:
+                for vu in scenario_vuln_urns:
+                    vid = vuln_dict.get_id_by_urn(vu) or vuln_dict.get_id_by_ref_id(vu.rsplit(":", 1)[-1])
+                    vid = None
+                    if hasattr(vuln_dict, "get_vulnerability_id_for_asset"):
+                        vid = vuln_dict.get_vulnerability_id_for_asset(vu, asset_id=asset_id, asset_name=app_name)
+                    if not vid:
+                        vid = vuln_dict.get_id_by_urn(vu) or vuln_dict.get_id_by_ref_id(vu.rsplit(":", 1)[-1])
+                    if not vid and hasattr(vuln_dict, "resolve_vulnerability_id"):
+                        vid = vuln_dict.resolve_vulnerability_id(vu)
+                    if vid and vid not in vuln_ids:
+                        vuln_ids.append(vid)
+
+            threat_ids = []
+            if threat_dict and scenario_threat_urns:
+                for tu in scenario_threat_urns:
+                    tid = threat_dict.get_id_by_urn(tu) or threat_dict.get_id_by_ref_id(tu.rsplit(":", 1)[-1])
+                    if not tid and hasattr(threat_dict, "resolve_threat_id"):
+                        tid = threat_dict.resolve_threat_id(tu)
+                    if tid and tid not in threat_ids:
+                        threat_ids.append(tid)
+
             risk_scenario_dict.create_risk_scenario(
                 sc_name,
                 risk_scenario.get("description", ""),
@@ -1292,11 +1448,17 @@ class ExamplesManager:
                 planned_controls,
                 asset_ids,
                 owner_ids,
+                vulnerabilities=vuln_ids,
+                threats=threat_ids,
             )
             scenarios_created += 1
 
         time.sleep(1)
         link_res = self.link_controls_for_application(app_name)
+
+        # Generate Findings from Audit Answers
+        findings_res = self.create_findings_for_application(app_name)
+
         time.sleep(1)
         self._init_data(force_reload=True)
 
@@ -1312,9 +1474,100 @@ class ExamplesManager:
             "applied_controls_count": len(app_controls),
             "existing_controls_linked": link_res.get("existing_controls", 0),
             "planned_controls_linked": link_res.get("planned_controls", 0),
+            "vulnerabilities_linked": link_res.get("vulnerabilities_linked", 0),
+            "threats_linked": link_res.get("threats_linked", 0),
+            "findings_assessment_id": findings_res.get("findings_assessment_id"),
+            "findings_count": findings_res.get("findings_count", 0),
+        }
+
+    def create_findings_for_application(self, app_id_or_name: str) -> dict[str, Any]:
+        """Create or update findings for an application from its audit answers.
+
+        Works for both:
+        - Internal applications (bound to internal perimeter).
+        - TPRM applications (bound to external entity / entity assessment).
+
+        Args:
+            app_id_or_name: Application ID or Name.
+
+        Returns:
+            Dict summary of findings assessment ID, name, and count of findings.
+        """
+        app_spec = next(
+            (a for a in EXAMPLE_APPLICATIONS if a["id"] == app_id_or_name or a["name"] == app_id_or_name),
+            None,
+        )
+        app_name = app_spec["name"] if app_spec else app_id_or_name
+
+        data = self._init_data()
+        perimeter_dict = data.get("perimeter_dict")
+        compliance_dict = data.get("compliance_assessment_dict")
+        entity_dict = data.get("entity_dict")
+        entity_assessment_dict = data.get("entity_assessment_dict")
+        findings_fa_dict = data.get("findings_assessment_dict")
+        finding_dict = data.get("finding_dict")
+        asset_dict = data.get("asset_dict")
+        vuln_dict = data.get("vulnerability_dict")
+        threat_dict = data.get("threat_dict")
+        framework_file = data.get("framework_file")
+
+        if not compliance_dict or not findings_fa_dict or not finding_dict:
+            return {"app_name": app_name, "findings_assessment_id": None, "findings_count": 0}
+
+        perimeter_id = perimeter_dict.get_id_from_name(app_name) if perimeter_dict else None
+        entity_id = entity_dict.get_id_from_name(app_name) if entity_dict else None
+
+        # Resolve compliance assessment (check perimeter or name or TPRM entity assessment)
+        ca_obj = None
+        for ca in compliance_dict.get_compliance_assessments().values():
+            if (perimeter_id and ca.get_perimeter_id() == perimeter_id) or f"in {app_name}" in ca.get_name():
+                ca_obj = ca
+                break
+
+        if not ca_obj and entity_id and entity_assessment_dict:
+            for ea in entity_assessment_dict.get_entity_assessments():
+                if ea.get_entity_id() == entity_id:
+                    ca_id = ea.get_compliance_assessment_id()
+                    if ca_id:
+                        ca_obj = compliance_dict.get_compliance_assessments().get(ca_id)
+                        if ca_obj:
+                            break
+
+        if not ca_obj:
+            utils.log(f"No compliance assessment found for {app_name}; skipping findings creation", level=logging.WARNING)
+            return {
+                "app_name": app_name,
+                "findings_assessment_id": None,
+                "findings_assessment_name": None,
+                "findings_count": 0,
+            }
+
+        summaries = compliance_dict.create_findings_assessments(
+            findings_assessment_dict=findings_fa_dict,
+            finding_dict=finding_dict,
+            requirement_assessment_dict=compliance_dict.requirement_assessments,
+            asset_dict=asset_dict,
+            vulnerability_dict=vuln_dict,
+            threat_dict=threat_dict,
+            framework_file=framework_file,
+            compliance_assessment_id=ca_obj.get_id(),
+        )
+
+        if summaries:
+            summary = dict(summaries[0])
+            summary["app_name"] = app_name
+            return summary
+
+        return {
+            "app_name": app_name,
+            "compliance_assessment_id": ca_obj.get_id(),
+            "findings_assessment_id": None,
+            "findings_assessment_name": None,
+            "findings_count": 0,
         }
 
     def link_controls_for_application(self, app_id_or_name: str) -> dict[str, Any]:
+
         """Link existing (active) and planned (to_do) controls and assets to risk scenarios.
 
         Args:
@@ -1412,8 +1665,28 @@ class ExamplesManager:
                 risk_scenario_dict.delete_risk_scenario(sc.get_name(), ra_id)
                 app_scenarios = [s for s in app_scenarios if s.get_id() != sc.get_id()]
 
+        # Provision framework vulnerabilities and threats if missing
+        vuln_dict = data.get("vulnerability_dict")
+        threat_dict = data.get("threat_dict")
+        if vuln_dict and framework_file and hasattr(vuln_dict, "provision_vulnerabilities_from_framework"):
+            target_folder_id = perimeter_dict.get_folder_uuid_from_perimeter_id(perimeter_id) if perimeter_dict and perimeter_id else None
+            if not target_folder_id:
+                target_folder_id = self.get_or_create_folder()
+            if target_folder_id:
+                vuln_dict.provision_vulnerabilities_from_framework(framework_file, target_folder_id)
+                vuln_dict.provision_vulnerabilities_from_framework(
+                    framework_file,
+                    target_folder_id,
+                    asset_id=asset_id,
+                    asset_name=app_name,
+                )
+        if threat_dict and framework_file and hasattr(threat_dict, "provision_threats_from_framework"):
+            threat_dict.provision_threats_from_framework(framework_file)
+
         total_existing_linked = 0
         total_planned_linked = 0
+        total_vulnerabilities_linked = 0
+        total_threats_linked = 0
         scenarios_updated = 0
 
         for sc_def in framework_file.get_risk_scenarios():
@@ -1453,6 +1726,45 @@ class ExamplesManager:
             if assignee_id:
                 patch_payload["owner"] = [assignee_id]
 
+            # Resolve vulnerabilities and threats from framework scenario definition
+            vuln_dict = data.get("vulnerability_dict")
+            threat_dict = data.get("threat_dict")
+            scenario_vuln_urns = sc_def.get("vulnerabilities", [])
+            scenario_threat_urns = sc_def.get("threats", [])
+            if not scenario_vuln_urns and matching_ra:
+                req_json = matching_ra.get_requirement_json()
+                req_obj = req_json.get("requirement", {}) if isinstance(req_json, dict) else {}
+                scenario_vuln_urns = req_obj.get("vulnerabilities", []) or []
+
+            if vuln_dict and scenario_vuln_urns:
+                v_ids = []
+                for vu in scenario_vuln_urns:
+                    vid = vuln_dict.get_id_by_urn(vu) or vuln_dict.get_id_by_ref_id(vu.rsplit(":", 1)[-1])
+                    vid = None
+                    if hasattr(vuln_dict, "get_vulnerability_id_for_asset"):
+                        vid = vuln_dict.get_vulnerability_id_for_asset(vu, asset_id=asset_id, asset_name=app_name)
+                    if not vid:
+                        vid = vuln_dict.get_id_by_urn(vu) or vuln_dict.get_id_by_ref_id(vu.rsplit(":", 1)[-1])
+                    if not vid and hasattr(vuln_dict, "resolve_vulnerability_id"):
+                        vid = vuln_dict.resolve_vulnerability_id(vu)
+                    if vid and vid not in v_ids:
+                        v_ids.append(vid)
+                if v_ids:
+                    patch_payload["vulnerabilities"] = v_ids
+                    total_vulnerabilities_linked += len(v_ids)
+
+            if threat_dict and scenario_threat_urns:
+                t_ids = []
+                for tu in scenario_threat_urns:
+                    tid = threat_dict.get_id_by_urn(tu) or threat_dict.get_id_by_ref_id(tu.rsplit(":", 1)[-1])
+                    if not tid and hasattr(threat_dict, "resolve_threat_id"):
+                        tid = threat_dict.resolve_threat_id(tu)
+                    if tid and tid not in t_ids:
+                        t_ids.append(tid)
+                if t_ids:
+                    patch_payload["threats"] = t_ids
+                    total_threats_linked += len(t_ids)
+
             utils.log(f"Updating scenario '{sc_name}' on {app_name}: existing={existing}, planned={planned}")
             res = utils.get_return(f"/api/risk-scenarios/{matching_sc.get_id()}/", method="PATCH", payload=patch_payload)
             if isinstance(res, dict) and not res.get("error"):
@@ -1474,11 +1786,19 @@ class ExamplesManager:
                         framework_file=framework_file,
                     )
 
+        # Synchronize findings with newly provisioned vulnerabilities/threats if findings exist
+        try:
+            self.create_findings_for_application(app_name)
+        except Exception as e:
+            utils.log(f"Could not refresh findings during link_controls for {app_name}: {e}", level=logging.DEBUG)
+
         return {
             "app_name": app_name,
             "scenarios_updated": scenarios_updated,
             "existing_controls": total_existing_linked,
             "planned_controls": total_planned_linked,
+            "vulnerabilities_linked": total_vulnerabilities_linked,
+            "threats_linked": total_threats_linked,
         }
 
     def link_all_controls_to_risk_scenarios(self) -> list[dict[str, Any]]:
@@ -1525,10 +1845,14 @@ class ExamplesManager:
         entity_dict: EntityDict = data["entity_dict"]
         entity_rep_dict: EntityRepresentativeDict = data["entity_representative_dict"]
         entity_assessment_dict: EntityAssessmentDict = data["entity_assessment_dict"]
-        user_dict: UserDict = data["user_dict"]
+        user_dict: UserDict | None = data.get("user_dict")
+        findings_fa_dict = data.get("findings_assessment_dict")
+        finding_dict = data.get("finding_dict")
+        vuln_dict = data.get("vulnerability_dict")
 
         perimeter_id = perimeter_dict.get_id_from_name(app_name)
         entity_id = entity_dict.get_id_from_name(app_name)
+        asset_id = asset_dict.get_asset_id_from_perimeter_name(app_name)
 
         deleted = {
             "app_name": app_name,
@@ -1536,9 +1860,12 @@ class ExamplesManager:
             "entity_representatives_deleted": 0,
             "entities_deleted": 0,
             "users_deleted": 0,
+            "findings_deleted": 0,
+            "findings_assessments_deleted": 0,
             "scenarios_deleted": 0,
             "risk_assessments_deleted": 0,
             "applied_controls_deleted": 0,
+            "vulnerabilities_deleted": 0,
             "compliance_assessments_deleted": 0,
             "assets_deleted": 0,
             "perimeters_deleted": 0,
@@ -1562,15 +1889,26 @@ class ExamplesManager:
 
         # 0c. Delete Associated Third-Party User
         user_email = app_spec.get("user", {}).get("email") if app_spec else None
-        if user_email:
-            u_id = user_dict.get_id_from_email(user_email)
-            if u_id:
-                if user_dict.delete_user_by_id(u_id):
-                    deleted["users_deleted"] += 1
-        elif rep_user_ids:
-            for r_uid in rep_user_ids:
-                if user_dict.delete_user_by_id(r_uid):
-                    deleted["users_deleted"] += 1
+        if user_dict:
+            if user_email:
+                u_id = user_dict.get_id_from_email(user_email)
+                if u_id:
+                    if user_dict.delete_user_by_id(u_id):
+                        deleted["users_deleted"] += 1
+            elif rep_user_ids:
+                for r_uid in rep_user_ids:
+                    if user_dict.delete_user_by_id(r_uid):
+                        deleted["users_deleted"] += 1
+
+        # 0d. Delete Findings and Findings Assessments
+        if findings_fa_dict and finding_dict:
+            for fa in list(findings_fa_dict.get_findings_assessments().values()):
+                if (perimeter_id and fa.get_perimeter_id() == perimeter_id) or app_name in fa.get_name():
+                    f_count = finding_dict.delete_findings_for_assessment(fa.get_id())
+                    deleted["findings_deleted"] += f_count
+                    if findings_fa_dict.delete_findings_assessment(fa.get_id()):
+                        deleted["findings_assessments_deleted"] += 1
+
 
         # 1. Delete Risk Assessment and Risk Scenarios
         for ra in list(risk_dict.get_risk_assessments().values()):
@@ -1588,6 +1926,15 @@ class ExamplesManager:
             if f"on {app_name}" in ctrl_name:
                 if applied_ctrl_dict.delete_applied_control(ctrl.get_id()):
                     deleted["applied_controls_deleted"] += 1
+
+        # 2b. Delete Asset-Scoped Vulnerabilities
+        if vuln_dict:
+            for v in list(vuln_dict.get_vulnerabilities().values()):
+                v_name = v.get_name()
+                v_assets = v.get_asset_ids() if hasattr(v, "get_asset_ids") else []
+                if f"on {app_name}" in v_name or (asset_id and asset_id in v_assets):
+                    if vuln_dict.delete_vulnerability(v.get_id()):
+                        deleted["vulnerabilities_deleted"] += 1
 
         # 3. Delete Compliance Assessment
         for ca in list(compliance_dict.get_compliance_assessments().values()):

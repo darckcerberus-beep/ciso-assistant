@@ -59,6 +59,8 @@ class TestExamplesManager(unittest.TestCase):
             "entity_dict": MagicMock(),
             "entity_assessment_dict": MagicMock(),
             "user_dict": MagicMock(),
+            "findings_assessment_dict": MagicMock(),
+            "finding_dict": MagicMock(),
         }
         mock_data["perimeter_dict"].get_id_from_name.return_value = None
         mock_data["asset_dict"].get_asset_id_from_perimeter_name.return_value = None
@@ -69,6 +71,8 @@ class TestExamplesManager(unittest.TestCase):
         mock_data["entity_dict"].get_id_from_name.return_value = None
         mock_data["entity_assessment_dict"].get_entity_assessments.return_value = []
         mock_data["user_dict"].get_id_from_email.return_value = None
+        mock_data["findings_assessment_dict"].get_findings_assessments.return_value = {}
+        mock_data["finding_dict"].get_findings_for_assessment.return_value = []
 
         self.manager.data = mock_data
         with patch.object(self.manager, "_init_data", return_value=mock_data):
@@ -79,6 +83,8 @@ class TestExamplesManager(unittest.TestCase):
                 self.assertIn("user_email", item)
                 self.assertIn("entity_id", item)
                 self.assertIn("entity_assessment_id", item)
+                self.assertIn("findings_assessment_id", item)
+                self.assertIn("findings_count", item)
 
     def test_remove_example_application_ordering(self):
         """Verify deletion runs in reverse dependency order: TPRM -> Risk -> Controls -> Compliance -> Asset -> Perimeter."""
@@ -93,6 +99,8 @@ class TestExamplesManager(unittest.TestCase):
             "entity_representative_dict": MagicMock(),
             "entity_assessment_dict": MagicMock(),
             "user_dict": MagicMock(),
+            "findings_assessment_dict": MagicMock(),
+            "finding_dict": MagicMock(),
         }
 
         app_name = "App-Secure-Core"
@@ -100,6 +108,7 @@ class TestExamplesManager(unittest.TestCase):
         asset_id = "asset-uuid-1"
         ca_id = "ca-uuid-1"
         ra_id = "ra-uuid-1"
+        fa_id = "fa-uuid-1"
         ctrl_id = "ctrl-uuid-1"
         entity_id = "entity-uuid-1"
         ea_id = "ea-uuid-1"
@@ -122,6 +131,15 @@ class TestExamplesManager(unittest.TestCase):
         mock_data["entity_representative_dict"].delete_representatives_for_entity.return_value = 1
         mock_data["entity_dict"].delete_entity.return_value = True
         mock_data["user_dict"].delete_user_by_id.return_value = True
+
+        # Mock Findings Assessment and Findings deletes
+        mock_fa = MagicMock()
+        mock_fa.get_id.return_value = fa_id
+        mock_fa.get_name.return_value = f"Findings Assessment for {app_name}"
+        mock_fa.get_perimeter_id.return_value = perimeter_id
+        mock_data["findings_assessment_dict"].get_findings_assessments.return_value = {fa_id: mock_fa}
+        mock_data["findings_assessment_dict"].delete_findings_assessment.return_value = True
+        mock_data["finding_dict"].delete_findings_for_assessment.return_value = 3
 
         # Mock Risk Assessment
         mock_ra = MagicMock()
@@ -160,6 +178,8 @@ class TestExamplesManager(unittest.TestCase):
             self.assertEqual(del_summary["entity_representatives_deleted"], 1)
             self.assertEqual(del_summary["entities_deleted"], 1)
             self.assertEqual(del_summary["users_deleted"], 1)
+            self.assertEqual(del_summary["findings_deleted"], 3)
+            self.assertEqual(del_summary["findings_assessments_deleted"], 1)
             self.assertEqual(del_summary["risk_assessments_deleted"], 1)
             self.assertEqual(del_summary["scenarios_deleted"], 7)
             self.assertEqual(del_summary["applied_controls_deleted"], 1)
@@ -172,12 +192,13 @@ class TestExamplesManager(unittest.TestCase):
             mock_data["entity_representative_dict"].delete_representatives_for_entity.assert_called_once_with(entity_id)
             mock_data["entity_dict"].delete_entity.assert_called_once_with(entity_id)
             mock_data["user_dict"].delete_user_by_id.assert_called_once_with(user_id)
+            mock_data["finding_dict"].delete_findings_for_assessment.assert_called_once_with(fa_id)
+            mock_data["findings_assessment_dict"].delete_findings_assessment.assert_called_once_with(fa_id)
             mock_data["risk_scenario_dict"].delete_scenarios_for_risk_assessment.assert_called_once_with(ra_id)
             mock_data["risk_assessment_dict"].delete_risk_assessment.assert_called_once_with(ra_id)
             mock_data["applied_control_dict"].delete_applied_control.assert_called_once_with(ctrl_id)
             mock_data["compliance_assessment_dict"].delete_compliance_assessment.assert_called_once_with(ca_id)
             mock_data["asset_dict"].delete_asset.assert_called_once_with(asset_id)
-            mock_data["perimeter_dict"].delete_perimeter.assert_called_once_with(perimeter_id)
             mock_data["perimeter_dict"].delete_perimeter.assert_called_once_with(perimeter_id)
 
     @patch("classes.utils.get_return")
@@ -731,6 +752,119 @@ class TestExamplesManager(unittest.TestCase):
             with self.assertRaises(ValueError) as ctx:
                 self.manager.generate_controls_and_risks_for_application("NonExistentApp")
             self.assertIn("No compliance assessment found", str(ctx.exception))
+
+    @patch("classes.integrations.csv_import.import_compliance_answers")
+    @patch("tests.test_application_scenarios.ApplicationRiskSimulator")
+    def test_create_example_application_links_vulnerabilities_and_threats_to_scenarios(self, mock_sim_cls, mock_import_answers):
+        """Verify that create_example_application resolves and links vulnerabilities and threats to risk scenarios."""
+        mock_import_answers.return_value = {"updated": 1}
+        mock_sim = MagicMock()
+        mock_sim.evaluate_application.return_value = {
+            "impact_level": 4,
+            "scenarios": {
+                "Exposure of unencrypted data in transit": {
+                    "scaled_likelihood": 4,
+                    "scaled_impact": 4,
+                }
+            },
+            "requirement_scores": {},
+        }
+        mock_sim_cls.return_value = mock_sim
+
+        mock_data = {
+            "user_dict": MagicMock(),
+            "entity_dict": MagicMock(),
+            "entity_representative_dict": MagicMock(),
+            "entity_assessment_dict": MagicMock(),
+            "perimeter_dict": MagicMock(),
+            "asset_dict": MagicMock(),
+            "compliance_assessment_dict": MagicMock(),
+            "risk_assessment_dict": MagicMock(),
+            "risk_scenario_dict": MagicMock(),
+            "risk_matrix_dict": MagicMock(),
+            "reference_control_dict": MagicMock(),
+            "applied_control_dict": MagicMock(),
+            "vulnerability_dict": MagicMock(),
+            "threat_dict": MagicMock(),
+            "framework_file": MagicMock(),
+        }
+
+        mock_data["user_dict"].create_user_if_missing.return_value = {"id": "u-1"}
+        mock_data["entity_dict"].create_entity.return_value = {"id": "e-1"}
+        mock_data["entity_representative_dict"].upsert_entity_representative.return_value = {"id": "rep-1"}
+        mock_data["entity_assessment_dict"].create_entity_assessment.return_value = {"id": "ea-1"}
+
+        mock_data["perimeter_dict"].get_id_from_name.return_value = "perm-1"
+        mock_data["asset_dict"].get_asset_id_from_perimeter_name.return_value = "asset-1"
+        mock_asset = MagicMock()
+        mock_asset.get_id.return_value = "asset-1"
+        mock_data["asset_dict"].get_assets.return_value = [mock_asset]
+
+        mock_fw = MagicMock()
+        mock_fw.get_id.return_value = "fw-1"
+        mock_fw.get_name.return_value = "Multi-level DPP"
+
+        mock_ca = MagicMock()
+        mock_ca.get_id.return_value = "ca-1"
+        mock_ca.get_name.return_value = "Assessment of Multi-level DPP in App-Secure-Core"
+        mock_ca.get_perimeter_id.return_value = "perm-1"
+        mock_ca.get_framework_id.return_value = "fw-1"
+        mock_data["compliance_assessment_dict"].get_compliance_assessments.return_value = {"ca-1": mock_ca}
+
+        # Mock requirement assessment with answer
+        mock_ra = MagicMock()
+        mock_ra.get_compliance_assessment_id.return_value = "ca-1"
+        mock_ra.get_urn.return_value = "urn:dpp:transit"
+        mock_ra.has_selected_answer.return_value = True
+        mock_ra.is_unassessed_result.return_value = False
+        mock_ra.get_applied_control_ids.return_value = []
+        mock_data["compliance_assessment_dict"].requirement_assessments.get_requirement_assessments.return_value = {
+            "ra-1": mock_ra
+        }
+
+        # Mock scenario definition in framework YAML with vulnerabilities and threats
+        mock_data["framework_file"].get_risk_scenarios.return_value = [
+            {
+                "name": "Exposure of unencrypted data in transit",
+                "description": "Sensitive data exposed",
+                "likelihood": "urn:dpp:transit",
+                "vulnerabilities": ["urn:dpp:vuln:no_enc"],
+                "threats": ["urn:dpp:threat:leak"],
+            }
+        ]
+
+        mock_data["vulnerability_dict"].get_id_by_urn.return_value = "vuln-uuid-99"
+        mock_data["vulnerability_dict"].get_vulnerability_id_for_asset.return_value = "vuln-uuid-99"
+        mock_data["threat_dict"].get_id_by_urn.return_value = "threat-uuid-99"
+        mock_data["risk_assessment_dict"].create_risk_assessments.return_value = {"id": "ra-1"}
+
+        self.manager.data = mock_data
+        with patch.object(self.manager, "_init_data", return_value=mock_data), \
+             patch.object(self.manager, "get_or_create_folder", return_value="folder-1"), \
+             patch.object(self.manager, "get_default_assignee_id", return_value="assignee-1"), \
+             patch.object(self.manager, "find_target_framework", return_value=mock_fw), \
+             patch.object(self.manager, "find_target_risk_matrix", return_value="matrix-1"), \
+             patch.object(self.manager, "link_controls_for_application", return_value={}), \
+             patch.object(self.manager, "create_findings_for_application", return_value={}), \
+             patch("time.sleep"):
+
+            self.manager.create_example_application("app_secure_core")
+
+            mock_data["risk_scenario_dict"].create_risk_scenario.assert_called_once_with(
+                "Exposure of unencrypted data in transit",
+                "Sensitive data exposed",
+                "ra-1",
+                4,
+                4,
+                1,
+                4,
+                [],
+                [],
+                ["asset-1"],
+                ["assignee-1"],
+                vulnerabilities=["vuln-uuid-99"],
+                threats=["threat-uuid-99"],
+            )
 
 
 class TestMainCLI(unittest.TestCase):

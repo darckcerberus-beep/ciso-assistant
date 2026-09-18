@@ -331,7 +331,7 @@ class ComplianceAssessmentDict:
             utils.log(f"Printing JSON for compliance assessment: {ca.get_name()}")
             utils.log(ca.get_json())
 
-    def create_risk_assessments(self, risk_assessment_dict, risk_scenario_dict, applied_control_dict, asset_dict, framework_file, requirement_assessment_dict, risk_matrix_dict, framework_dict):
+    def create_risk_assessments(self, risk_assessment_dict, risk_scenario_dict, applied_control_dict, asset_dict, framework_file, requirement_assessment_dict, risk_matrix_dict, framework_dict, vulnerability_dict=None, threat_dict=None):
         """Create risk assessments and evaluate risk scenarios for each compliance assessment.
 
         Logic:
@@ -446,6 +446,15 @@ class ComplianceAssessmentDict:
                 )
                 asset_ids = ca.get_asset_id_list()
                 owner_ids = asset_dict.get_owner_ids_for_assets(asset_ids)
+                ca_asset_id = asset_ids[0] if asset_ids else None
+                ca_asset_name = None
+                if asset_dict and ca_asset_id:
+                    assets_list = getattr(asset_dict, "assets", [])
+                    if hasattr(asset_dict, "get_assets"):
+                        assets_list = asset_dict.get_assets()
+                    ca_asset_obj = next((a for a in assets_list if a.get_id() == ca_asset_id), None)
+                    if ca_asset_obj:
+                        ca_asset_name = ca_asset_obj.get_name()
 
                 if likelihood is not None and impact is not None:
                     utils.log(f"Risk scenario impact value: {impact}")
@@ -457,6 +466,33 @@ class ComplianceAssessmentDict:
                     score = max(0, min(100, int(likelihood)))
                     scaled_likelihood = min(4, max(1, 4 - ((score - 1) // 25)))
                     utils.log(f"Scaled likelihood: {scaled_likelihood}")
+
+                    vuln_ids = []
+                    scenario_vuln_urns = risk_scenario.get("vulnerabilities", [])
+                    if vulnerability_dict and scenario_vuln_urns:
+                        for vu in scenario_vuln_urns:
+                            vid = vulnerability_dict.get_id_by_urn(vu) or vulnerability_dict.get_id_by_ref_id(vu.rsplit(":", 1)[-1])
+                            vid = None
+                            if hasattr(vulnerability_dict, "get_vulnerability_id_for_asset"):
+                                vid = vulnerability_dict.get_vulnerability_id_for_asset(
+                                    vu, asset_id=ca_asset_id, asset_name=ca_asset_name
+                                )
+                            if not vid:
+                                vid = vulnerability_dict.get_id_by_urn(vu) or vulnerability_dict.get_id_by_ref_id(vu.rsplit(":", 1)[-1])
+                            if not vid and hasattr(vulnerability_dict, "resolve_vulnerability_id"):
+                                vid = vulnerability_dict.resolve_vulnerability_id(vu)
+                            if vid and vid not in vuln_ids:
+                                vuln_ids.append(vid)
+
+                    threat_ids = []
+                    scenario_threat_urns = risk_scenario.get("threats", [])
+                    if threat_dict and scenario_threat_urns:
+                        for tu in scenario_threat_urns:
+                            tid = threat_dict.get_id_by_urn(tu) or threat_dict.get_id_by_ref_id(tu.rsplit(":", 1)[-1])
+                            if not tid and hasattr(threat_dict, "resolve_threat_id"):
+                                tid = threat_dict.resolve_threat_id(tu)
+                            if tid and tid not in threat_ids:
+                                threat_ids.append(tid)
 
                     # Create or update the risk scenario in the API
                     risk_scenario_dict.create_risk_scenario(
@@ -471,7 +507,248 @@ class ComplianceAssessmentDict:
                         controls_by_status["planned"],
                         asset_ids,
                         owner_ids,
+                        vulnerabilities=vuln_ids,
+                        threats=threat_ids,
                     )
+
+    def create_findings_assessments(
+        self,
+        findings_assessment_dict,
+        finding_dict,
+        requirement_assessment_dict=None,
+        asset_dict=None,
+        vulnerability_dict=None,
+        threat_dict=None,
+        framework_file=None,
+        compliance_assessment_id: str | None = None,
+    ) -> list[dict]:
+        """Create findings assessments and individual findings for compliance gaps.
+
+        Evaluates requirement assessment answers from compliance assessments (both internal
+        perimeters and TPRM entity assessments) and creates actionable findings for any
+        non-conformity (result in ('non_compliant', 'partially_compliant') or score < 100%).
+
+        Args:
+            findings_assessment_dict: FindingsAssessmentDict collection instance.
+            finding_dict: FindingDict collection instance.
+            requirement_assessment_dict: Optional RequirementAssessmentDict instance.
+            asset_dict: Optional AssetDict instance.
+            vulnerability_dict: Optional VulnerabilityDict instance.
+            threat_dict: Optional ThreatDict instance.
+            framework_file: Optional FrameworkFile instance for vulnerability/threat metadata.
+            compliance_assessment_id: Optional UUID to evaluate only a specific assessment.
+
+        Returns:
+            List of summary dicts with findings assessments and findings counts.
+        """
+        if not self.compliance_assessments:
+            self.reload()
+        ra_dict = requirement_assessment_dict or self.requirement_assessments
+
+        # Build vulnerability and threat lookup maps from framework YAML if available
+        vuln_to_threats_map: dict[str, list[str]] = {}
+        req_to_vulns_map: dict[str, list[str]] = {}
+        if framework_file and hasattr(framework_file, "json_object") and isinstance(framework_file.json_object, dict):
+            raw_vulns = framework_file.json_object.get("objects", {}).get("vulnerabilities", [])
+            for v in raw_vulns:
+                if isinstance(v, dict) and v.get("urn"):
+                    vuln_to_threats_map[v["urn"]] = v.get("threats", []) or []
+
+            fw_obj = framework_file.json_object.get("objects", {}).get("framework", {})
+            if isinstance(fw_obj, dict):
+                for rn in fw_obj.get("requirement_nodes", []):
+                    if isinstance(rn, dict):
+                        vulns = rn.get("vulnerabilities", []) or []
+                        if rn.get("urn"):
+                            req_to_vulns_map[rn["urn"]] = vulns
+                        if rn.get("ref_id"):
+                            req_to_vulns_map[rn["ref_id"]] = vulns
+
+        summaries = []
+        target_cas = (
+            [self.compliance_assessments[compliance_assessment_id]]
+            if compliance_assessment_id and compliance_assessment_id in self.compliance_assessments
+            else list(self.compliance_assessments.values())
+        )
+
+        for ca in target_cas:
+            ca_id = ca.get_id()
+            ca_name = ca.get_name()
+            perimeter_id = ca.get_perimeter_id() or None
+
+            if not ra_dict.has_answers_for_compliance_assessment(ca_id):
+                utils.log(f"Skipping findings creation for {ca_name}: no answered requirements", level=logging.DEBUG)
+                continue
+
+            # Resolve folder
+            ca_json = ca.get_json()
+            folder_id = ca_json.get("folder")
+            if isinstance(folder_id, dict):
+                folder_id = folder_id.get("id")
+            if not folder_id and perimeter_id:
+                folder_id = perimeter_id
+
+            # Create or resolve parent FindingsAssessment
+            fa_name = f"{ca_name} Findings"
+            fa_res = findings_assessment_dict.create_findings_assessment(
+                name=fa_name,
+                folder_id=folder_id or "",
+                perimeter_id=perimeter_id,
+                category="audit",
+                status="in_progress",
+                description=f"Audit findings assessment generated from compliance questionnaire answers for {ca_name}.",
+            )
+            fa_id = fa_res.get("id") if isinstance(fa_res, dict) else findings_assessment_dict.get_id_from_name(fa_name)
+            if not fa_id:
+                utils.log(f"Failed to create findings assessment container for {ca_name}", level=logging.WARNING)
+                continue
+
+            app_ras = [
+                ra for ra in ra_dict.get_requirement_assessments().values()
+                if ra.get_compliance_assessment_id() == ca_id
+            ]
+
+            created_findings_count = 0
+            for ra in app_ras:
+                if not ra.has_selected_answer() or ra.is_unassessed_result():
+                    continue
+
+                result = (ra.get_assessment_results() or "").strip().lower()
+                if result in ("not_applicable", "n/a", "na"):
+                    continue
+
+                score_raw = ra.get_score()
+                score = None
+                if score_raw is not None and score_raw != "":
+                    try:
+                        score = float(score_raw)
+                    except (ValueError, TypeError):
+                        score = None
+
+                # Determine if this requirement is an audit finding / gap
+                is_gap = False
+                if result in ("non_compliant", "partially_compliant"):
+                    is_gap = True
+                elif score is not None and score < 100.0 and result != "compliant":
+                    is_gap = True
+
+                if not is_gap:
+                    continue
+
+                req_json = ra.get_requirement_json()
+                req_obj = req_json.get("requirement", {}) if isinstance(req_json, dict) else {}
+                req_name = ra.get_name() or (req_obj.get("name") if isinstance(req_obj, dict) else "") or ra.get_urn()
+                req_urn = ra.get_urn()
+                req_ref_id = ra.get_requirement_ref_id()
+
+                # Severity & Priority derivation
+                asset_ids = ra.get_asset_id_list() or ca.get_asset_id_list()
+                asset_id = asset_ids[0] if asset_ids else None
+
+                is_high_sensitivity = False
+                asset_name = None
+                if asset_dict and asset_id:
+                    asset_obj = next((a for a in asset_dict.get_assets() if a.get_id() == asset_id), None)
+                    if asset_obj:
+                        asset_name = asset_obj.get_name()
+                        sec_obj = asset_obj.get_security_objectives() if hasattr(asset_obj, "get_security_objectives") else {}
+                        conf = sec_obj.get("confidentiality") if isinstance(sec_obj, dict) else None
+                        if conf in (3, 4, "3", "4", "secret", "critical"):
+                            is_high_sensitivity = True
+
+                if result == "non_compliant" or (score is not None and score <= 25.0):
+                    severity = 4 if is_high_sensitivity else 3
+                elif result == "partially_compliant" or (score is not None and score <= 75.0):
+                    severity = 2
+                elif score is not None and score < 100.0:
+                    severity = 1
+                else:
+                    severity = 2
+
+                priority_map = {4: 1, 3: 2, 2: 3, 1: 4}
+                priority = priority_map.get(severity, 3)
+
+                obs = req_json.get("observation") if isinstance(req_json, dict) else ""
+                req_desc = req_obj.get("description", "") if isinstance(req_obj, dict) else ""
+                desc_lines = [
+                    f"Audit gap identified during assessment '{ca_name}'.",
+                    f"Requirement: {req_name} (Result: {result or 'gap'}, Score: {score if score is not None else 'N/A'}%).",
+                ]
+                if req_desc:
+                    desc_lines.append(f"Requirement Description: {req_desc}")
+                if obs:
+                    desc_lines.append(f"Auditor Observation: {obs}")
+
+                req_node_id = req_obj.get("id") if isinstance(req_obj, dict) else None
+                if not req_node_id:
+                    req_node_id = ra.get_requirement_id()
+                if isinstance(req_node_id, dict):
+                    req_node_id = req_node_id.get("id")
+
+                # Resolve Vulnerabilities and Threats
+                vuln_urns = req_to_vulns_map.get(req_urn, []) or req_to_vulns_map.get(req_ref_id, [])
+                if not vuln_urns and isinstance(req_obj, dict):
+                    vuln_urns = req_obj.get("vulnerabilities", []) or []
+
+                vuln_ids = []
+                threat_ids = []
+                if vulnerability_dict and vuln_urns:
+                    for vu in vuln_urns:
+                        vid = vulnerability_dict.get_id_by_urn(vu) or vulnerability_dict.get_id_by_ref_id(vu.rsplit(":", 1)[-1])
+                        vid = None
+                        if hasattr(vulnerability_dict, "get_vulnerability_id_for_asset"):
+                            vid = vulnerability_dict.get_vulnerability_id_for_asset(
+                                vu, asset_id=asset_id, asset_name=asset_name
+                            )
+                        if not vid:
+                            vid = vulnerability_dict.get_id_by_urn(vu) or vulnerability_dict.get_id_by_ref_id(vu.rsplit(":", 1)[-1])
+                        if not vid and hasattr(vulnerability_dict, "resolve_vulnerability_id"):
+                            vid = vulnerability_dict.resolve_vulnerability_id(vu)
+                        if vid and vid not in vuln_ids:
+                            vuln_ids.append(vid)
+                        # Threat mapping
+                        if threat_dict:
+                            for tu in vuln_to_threats_map.get(vu, []):
+                                tid = threat_dict.get_id_by_urn(tu) or threat_dict.get_id_by_ref_id(tu.rsplit(":", 1)[-1])
+                                if not tid and hasattr(threat_dict, "resolve_threat_id"):
+                                    tid = threat_dict.resolve_threat_id(tu)
+                                if tid and tid not in threat_ids:
+                                    threat_ids.append(tid)
+
+                owner_ids = []
+                if asset_dict and asset_ids:
+                    owner_ids = asset_dict.get_owner_ids_for_assets(asset_ids)
+
+                finding_title = f"Audit Finding: Non-compliance on {req_name}"
+                created_f = finding_dict.create_finding(
+                    findings_assessment_id=fa_id,
+                    name=finding_title,
+                    description="\n".join(desc_lines),
+                    observation=obs or None,
+                    severity=severity,
+                    priority=priority,
+                    status="identified",
+                    requirement_node=str(req_node_id) if req_node_id else None,
+                    asset=asset_id,
+                    threats=threat_ids,
+                    vulnerabilities=vuln_ids,
+                    reference_controls=ra.get_associated_reference_control_ids(),
+                    applied_controls=ra.get_applied_control_ids(),
+                    owner=owner_ids,
+                    ref_id=req_ref_id or None,
+                )
+                if created_f and (not isinstance(created_f, dict) or not created_f.get("error")):
+                    created_findings_count += 1
+
+            summaries.append({
+                "compliance_assessment_id": ca_id,
+                "compliance_assessment_name": ca_name,
+                "findings_assessment_id": fa_id,
+                "findings_assessment_name": fa_name,
+                "findings_count": created_findings_count,
+            })
+
+        return summaries
 
     def delete_compliance_assessment(self, compliance_assessment_id):
         """Delete a compliance assessment via DELETE request."""
@@ -486,3 +763,4 @@ class ComplianceAssessmentDict:
             return True
         utils.log(f"Failed to delete compliance assessment ID {compliance_assessment_id}: {response}", level=logging.ERROR)
         return False
+

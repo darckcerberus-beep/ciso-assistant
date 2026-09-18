@@ -47,20 +47,21 @@ def print_banner():
 
 def print_status_table(status_list):
     """Print formatted deployment summary table and resource breakdown."""
-    print("\n" + "-" * 115)
-    print(f"{'#':<3} | {'Application Name':<26} | {'Status':<11} | {'TPRM Entity':<12} | {'User':<20} | {'Scenarios':<9} | {'Controls':<8} | {'Linked':<10}")
-    print("-" * 115)
+    print("\n" + "-" * 128)
+    print(f"{'#':<3} | {'Application Name':<26} | {'Status':<11} | {'TPRM Entity':<12} | {'User':<20} | {'Findings':<9} | {'Scenarios':<9} | {'Controls':<8} | {'Linked':<10}")
+    print("-" * 128)
     for idx, item in enumerate(status_list, start=1):
         state_str = "DEPLOYED" if item["exists"] else "NOT CREATED"
         entity_str = "YES" if item.get("entity_id") else "NO"
         user_str = item.get("user_email") or "-"
         if len(user_str) > 20:
             user_str = user_str[:17] + "..."
+        findings_str = str(item.get("findings_count", 0)) if item["exists"] else "-"
         sc_count = str(item["risk_scenarios_count"]) if item["exists"] else "-"
         ctrl_count = str(item["applied_controls_count"]) if item["exists"] else "-"
         linked_str = f"{item.get('existing_controls_linked', 0)}/{item.get('planned_controls_linked', 0)}" if item["exists"] else "-"
-        print(f"{idx:<3} | {item['name']:<26} | {state_str:<11} | {entity_str:<12} | {user_str:<20} | {sc_count:<9} | {ctrl_count:<8} | {linked_str:<10}")
-    print("-" * 115)
+        print(f"{idx:<3} | {item['name']:<26} | {state_str:<11} | {entity_str:<12} | {user_str:<20} | {findings_str:<9} | {sc_count:<9} | {ctrl_count:<8} | {linked_str:<10}")
+    print("-" * 128)
 
     # Detailed view
     deployed = [s for s in status_list if s["exists"]]
@@ -75,13 +76,18 @@ def print_status_table(status_list):
             print(f"    - Perimeter ID:             {s['perimeter_id'] or 'None'}")
             print(f"    - Asset ID:                 {s['asset_id'] or 'None'}")
             print(f"    - Compliance Assessment:    {s['compliance_assessment_name'] or 'None'}")
+            print(f"    - Findings Assessment ID:   {s.get('findings_assessment_id') or 'None'}")
+            print(f"    - Audit Findings Count:     {s.get('findings_count', 0)}")
             print(f"    - Risk Assessment ID:       {s['risk_assessment_id'] or 'None'}")
             print(f"    - Risk Scenarios Created:   {s['risk_scenarios_count']}")
             print(f"    - Applied Controls Created: {s['applied_controls_count']}")
             print(f"    - Controls Linked to Risks: {s.get('existing_controls_linked', 0)} Active (Existing), {s.get('planned_controls_linked', 0)} To Do (Planned)")
+            print(f"    - Vulnerabilities Linked:   {s.get('vulnerabilities_linked', 0)}")
+            print(f"    - Threats Linked:           {s.get('threats_linked', 0)}")
     else:
         print("\nNo example applications currently exist in CISO Assistant.")
     print()
+
 
 
 def show_status(manager: ExamplesManager, wait_seconds: float = 2.0):
@@ -118,7 +124,9 @@ def link_controls_ui(manager: ExamplesManager, target="all"):
             else:
                 print(f"  * {r['app_name']}: {r['scenarios_updated']} scenarios updated | "
                       f"{r['existing_controls']} active controls linked, "
-                      f"{r['planned_controls']} planned controls linked")
+                      f"{r['planned_controls']} planned controls linked | "
+                      f"{r.get('vulnerabilities_linked', 0)} vulnerabilities linked, "
+                      f"{r.get('threats_linked', 0)} threats linked")
         print("\n[SUCCESS] Completed linking controls to risk scenarios.")
     else:
         app = next((a for a in EXAMPLE_APPLICATIONS if a["id"] == target or a["name"] == target), None)
@@ -131,6 +139,8 @@ def link_controls_ui(manager: ExamplesManager, target="all"):
             print(f"     [OK] Scenarios updated: {r['scenarios_updated']}")
             print(f"     [OK] Active controls linked: {r['existing_controls']}")
             print(f"     [OK] Planned controls linked: {r['planned_controls']}")
+            print(f"     [OK] Vulnerabilities linked: {r.get('vulnerabilities_linked', 0)}")
+            print(f"     [OK] Threats linked: {r.get('threats_linked', 0)}")
             print(f"\n[SUCCESS] Successfully linked controls for {app['name']}!")
         except Exception as e:
             print(f"[ERROR] Failed to link controls for {app['name']}: {e}")
@@ -157,6 +167,9 @@ def create_examples_ui(manager: ExamplesManager, target="all"):
                 print(f"     [OK] Answers Imported: {res['answers_updated']} from {app['csv_path']}")
                 print(f"     [OK] Risk Scenarios Evaluated: {res['scenarios_created']}")
                 print(f"     [OK] Controls Linked: {res.get('existing_controls_linked', 0)} active, {res.get('planned_controls_linked', 0)} planned")
+                print(f"     [OK] Vulnerabilities Linked: {res.get('vulnerabilities_linked', 0)}")
+                print(f"     [OK] Threats Linked: {res.get('threats_linked', 0)}")
+                print(f"     [OK] Audit Findings Generated: {res.get('findings_count', 0)}")
             except Exception as e:
                 print(f"     [FAILED] Error creating {app['name']}: {e}")
         print("\n[SUCCESS] Completed provisioning of all example applications.")
@@ -180,7 +193,11 @@ def create_examples_ui(manager: ExamplesManager, target="all"):
             print(f"     [OK] Answers Imported: {res['answers_updated']}")
             print(f"     [OK] Risk Scenarios Evaluated: {res['scenarios_created']}")
             print(f"     [OK] Controls Linked: {res.get('existing_controls_linked', 0)} active, {res.get('planned_controls_linked', 0)} planned")
+            print(f"     [OK] Vulnerabilities Linked: {res.get('vulnerabilities_linked', 0)}")
+            print(f"     [OK] Threats Linked: {res.get('threats_linked', 0)}")
+            print(f"     [OK] Audit Findings Generated: {res.get('findings_count', 0)}")
             print(f"\n[SUCCESS] Successfully created {app['name']} in CISO Assistant!")
+
             print("Waiting 2s for CISO Assistant to finalize updates before checking status...")
             time.sleep(2)
             show_status(manager, wait_seconds=0)
@@ -402,7 +419,9 @@ def generate_controls_and_risks_ui(
         print(f" Applied Controls Created: {res.get('applied_controls_count', 0)}")
         print(f" Risk Scenarios Evaluated: {res.get('scenarios_created', 0)}")
         print(f" Controls Linked:          {res.get('existing_controls_linked', 0)} active, {res.get('planned_controls_linked', 0)} planned")
+        print(f" Audit Findings Created:   {res.get('findings_count', 0)}")
         print("-" * 80)
+
         print(f" View the generated scenarios and controls in CISO Assistant at:")
         print(f"   {utils.BASE_URL}")
         print(" Navigate to 'Risk Management' -> 'Risk Scenarios' or 'Third-Party Risk Management'")
@@ -441,6 +460,8 @@ def remove_examples_ui(manager: ExamplesManager, target="all", auto_confirm=Fals
                 print(f"     Deleted: {del_res.get('entity_assessments_deleted', 0)} entity assessment(s), "
                       f"{del_res.get('entities_deleted', 0)} entity(ies), "
                       f"{del_res.get('users_deleted', 0)} user(s), "
+                      f"{del_res.get('findings_deleted', 0)} finding(s), "
+                      f"{del_res.get('findings_assessments_deleted', 0)} findings assessment(s), "
                       f"{del_res['risk_assessments_deleted']} risk assessment(s), "
                       f"{del_res['scenarios_deleted']} scenario(s), "
                       f"{del_res['compliance_assessments_deleted']} compliance assessment(s), "
@@ -459,6 +480,8 @@ def remove_examples_ui(manager: ExamplesManager, target="all", auto_confirm=Fals
             print(f"     Deleted: {del_res.get('entity_assessments_deleted', 0)} entity assessment(s), "
                   f"{del_res.get('entities_deleted', 0)} entity(ies), "
                   f"{del_res.get('users_deleted', 0)} user(s), "
+                  f"{del_res.get('findings_deleted', 0)} finding(s), "
+                  f"{del_res.get('findings_assessments_deleted', 0)} findings assessment(s), "
                   f"{del_res['risk_assessments_deleted']} risk assessment(s), "
                   f"{del_res['scenarios_deleted']} scenario(s), "
                   f"{del_res['compliance_assessments_deleted']} compliance assessment(s), "
@@ -466,6 +489,7 @@ def remove_examples_ui(manager: ExamplesManager, target="all", auto_confirm=Fals
                   f"{del_res['assets_deleted']} asset(s), "
                   f"{del_res['perimeters_deleted']} perimeter(s).")
             print(f"\n[SUCCESS] Successfully removed {target_name} from CISO Assistant!")
+
         except Exception as e:
             print(f"[ERROR] Failed to remove {target_name}: {e}")
 
@@ -553,7 +577,18 @@ def run_pipeline():
         data["asset_dict"],
     )
 
+    data["compliance_assessment_dict"].create_findings_assessments(
+        data["findings_assessment_dict"],
+        data["finding_dict"],
+        requirement_assessment_dict=data["requirement_assessment_dict"],
+        asset_dict=data["asset_dict"],
+        vulnerability_dict=data.get("vulnerability_dict"),
+        threat_dict=data.get("threat_dict"),
+        framework_file=data.get("library_file"),
+    )
+
     final_counts = utils.capture_counts(data)
+
     utils.print_run_summary(initial_counts, final_counts)
 
 
