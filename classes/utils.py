@@ -260,6 +260,7 @@ def initialize_data_objects() -> dict[str, Any]:
     from classes.audits.requirement_assessment import RequirementAssessmentDict
     from classes.controls.applied import AppliedControlDict
     from classes.controls.reference import ReferenceControlDict
+    from classes.controls.security_exception import SecurityExceptionDict
     from classes.core.framework import FrameworkDict, LibraryFile
     from classes.core.risk import RiskAssessmentDict, RiskMatrixDict, RiskScenarioDict, ThreatDict, VulnerabilityDict
     from classes.core.user import UserDict
@@ -275,6 +276,7 @@ def initialize_data_objects() -> dict[str, Any]:
     framework_dict = FrameworkDict()
     reference_control_dict = ReferenceControlDict()
     applied_control_dict = AppliedControlDict()
+    security_exception_dict = SecurityExceptionDict()
     risk_assessment_dict = RiskAssessmentDict()
     risk_scenario_dict = RiskScenarioDict()
     user_dict = UserDict()
@@ -296,6 +298,7 @@ def initialize_data_objects() -> dict[str, Any]:
         "framework_dict": framework_dict,
         "reference_control_dict": reference_control_dict,
         "applied_control_dict": applied_control_dict,
+        "security_exception_dict": security_exception_dict,
         "risk_assessment_dict": risk_assessment_dict,
         "risk_scenario_dict": risk_scenario_dict,
         "user_dict": user_dict,
@@ -333,6 +336,8 @@ def capture_counts(data: dict) -> dict[str, int]:
         counts["findings_assessments"] = len(data["findings_assessment_dict"].get_findings_assessments())
     if "finding_dict" in data:
         counts["findings"] = len(data["finding_dict"].get_findings())
+    if "security_exception_dict" in data:
+        counts["security_exceptions"] = len(data["security_exception_dict"].get_security_exceptions())
     return counts
 
 

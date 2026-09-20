@@ -16,6 +16,7 @@ from classes.core.risk import RiskAssessmentDict, RiskMatrixDict, RiskScenarioDi
 from classes.core.user import UserDict
 from classes.controls.applied import AppliedControlDict
 from classes.controls.reference import ReferenceControlDict
+from classes.controls.security_exception import SecurityExceptionDict
 from classes.audits.compliance import ComplianceAssessmentDict, AUDITOR_SCORE_METHOD, AUDITOR_SCORE_VISIBILITY
 from classes.audits.entity_assessment import EntityAssessmentDict
 from classes.audits.finding import FindingDict, FindingsAssessmentDict
@@ -51,6 +52,18 @@ EXAMPLE_APPLICATIONS = [
             "trust": 4,
             "conclusion": "ok",
         },
+        "exceptions": [
+            {
+                "name": "Exception: Emergency Break-Glass Local Console MFA Bypass",
+                "ref_id": "EXC-SEC-001",
+                "description": "Physical air-gapped server console emergency account exempt from remote MFA requirements.",
+                "severity": 1,
+                "status": "approved",
+                "expiration_date": "2027-12-31",
+                "observation": "Compensating control: Console locked in physical vault requiring dual key authorization.",
+                "reference_control": "access_control",
+            },
+        ],
     },
     {
         "id": "app_vulnerable_portal",
@@ -72,6 +85,27 @@ EXAMPLE_APPLICATIONS = [
             "trust": 1,
             "conclusion": "blocker",
         },
+        "exceptions": [
+            {
+                "name": "Exception: Plaintext Legacy Gateway HTTP Transport",
+                "ref_id": "EXC-VULN-001",
+                "description": "Temporary exception for unencrypted HTTP traffic to deprecated legacy payment provider.",
+                "severity": 4,
+                "status": "in_review",
+                "expiration_date": "2026-11-30",
+                "observation": "Remediation plan submitted; security team reviewing risk mitigation.",
+                "reference_control": "data_encryption_in_transit",
+            },
+            {
+                "name": "Exception: WAF Deep Packet Inspection Waiver",
+                "ref_id": "EXC-VULN-002",
+                "description": "WAF payload inspection disabled on public file upload endpoints due to processing latency.",
+                "severity": 3,
+                "status": "rejected",
+                "expiration_date": "2026-10-15",
+                "observation": "Rejected by CISO due to critical vulnerability exploitation risk.",
+            },
+        ],
     },
     {
         "id": "app_internal_tool",
@@ -93,6 +127,18 @@ EXAMPLE_APPLICATIONS = [
             "trust": 2,
             "conclusion": "warning",
         },
+        "exceptions": [
+            {
+                "name": "Exception: Trusted LAN Multi-Factor Authentication Exemption",
+                "ref_id": "EXC-INT-001",
+                "description": "Internal employee tool exempt from MFA when connected directly via headquarters office LAN.",
+                "severity": 2,
+                "status": "approved",
+                "expiration_date": "2027-06-30",
+                "observation": "Compensating control: Strict 802.1X network access control and certificate authentication.",
+                "reference_control": "access_control",
+            },
+        ],
     },
     {
         "id": "app_public_blog",
@@ -114,6 +160,17 @@ EXAMPLE_APPLICATIONS = [
             "trust": 3,
             "conclusion": "ok",
         },
+        "exceptions": [
+            {
+                "name": "Exception: Public Static Asset Origin Mutual TLS Exemption",
+                "ref_id": "EXC-BLOG-001",
+                "description": "Content delivery network origin for static marketing blog images does not enforce client mTLS.",
+                "severity": 0,
+                "status": "approved",
+                "expiration_date": "2028-12-31",
+                "observation": "Assets are completely public by design; residual risk accepted.",
+            },
+        ],
     },
     {
         "id": "app_hr_people_system",
@@ -135,6 +192,17 @@ EXAMPLE_APPLICATIONS = [
             "trust": 2,
             "conclusion": "warning",
         },
+        "exceptions": [
+            {
+                "name": "Exception: Extended Candidate Data Retention for Talent Analytics",
+                "ref_id": "EXC-HR-001",
+                "description": "Job applicant profiles retained beyond standard 24-month limit for longitudinal AI talent pool analysis.",
+                "severity": 2,
+                "status": "in_review",
+                "expiration_date": "2027-03-31",
+                "observation": "Data Protection Officer assessing candidate re-consent mechanisms and anonymization.",
+            },
+        ],
     },
     {
         "id": "app_customer_payment_api",
@@ -156,6 +224,17 @@ EXAMPLE_APPLICATIONS = [
             "trust": 3,
             "conclusion": "warning",
         },
+        "exceptions": [
+            {
+                "name": "Exception: Extended 48-Hour Vendor Incident Notification SLA",
+                "ref_id": "EXC-PAY-001",
+                "description": "Third-party payment clearinghouse SLA permits 48h breach notification instead of standard 24h window.",
+                "severity": 1,
+                "status": "approved",
+                "expiration_date": "2027-09-30",
+                "observation": "Vendor contract renegotiation scheduled for annual renewal cycle.",
+            },
+        ],
     },
     {
         "id": "app_legacy_erp_production",
@@ -177,6 +256,18 @@ EXAMPLE_APPLICATIONS = [
             "trust": 1,
             "conclusion": "warning",
         },
+        "exceptions": [
+            {
+                "name": "Exception: Plaintext Database Storage in Factory OT Enclave",
+                "ref_id": "EXC-ERP-001",
+                "description": "Plant manufacturing ERP database operates without encryption at rest on legacy OT physical servers.",
+                "severity": 2,
+                "status": "approved",
+                "expiration_date": "2027-12-31",
+                "observation": "Compensating control: Factory subnet is physically air-gapped from corporate LAN and Internet.",
+                "reference_control": "data_encryption_at_rest",
+            },
+        ],
     },
     {
         "id": "app_ai_analytics_workbench",
@@ -198,6 +289,17 @@ EXAMPLE_APPLICATIONS = [
             "trust": 2,
             "conclusion": "warning",
         },
+        "exceptions": [
+            {
+                "name": "Exception: Third-Party LLM Zero-Retention Audit Waiver",
+                "ref_id": "EXC-AI-001",
+                "description": "Commercial SaaS LLM provider contract does not yet include verified zero-data-retention certification.",
+                "severity": 3,
+                "status": "in_review",
+                "expiration_date": "2026-12-31",
+                "observation": "Compensating control: On-premise proxy scrubs prompts of all confidential tokens and PII.",
+            },
+        ],
     },
 ]
 
@@ -236,6 +338,7 @@ class ExamplesManager:
                 "entity_representative_dict": EntityRepresentativeDict(),
                 "findings_assessment_dict": FindingsAssessmentDict(),
                 "finding_dict": FindingDict(),
+                "security_exception_dict": SecurityExceptionDict(),
                 "vulnerability_dict": VulnerabilityDict(),
                 "threat_dict": ThreatDict(),
                 "framework_file": FrameworkFile(str(self.framework_yaml)),
@@ -300,6 +403,20 @@ class ExamplesManager:
                     return actor["id"]
 
         return None
+
+    def resolve_actor_id(self, user_id: str | None = None, user_email: str | None = None) -> str | None:
+        """Resolve an Actor UUID from a User UUID or email, falling back to default assignee."""
+        actor_records = utils.get_all_results("/api/actors/", force_reload=False)
+        if actor_records:
+            for actor in actor_records:
+                if isinstance(actor, dict):
+                    spec = actor.get("specific")
+                    spec_id = spec.get("id") if isinstance(spec, dict) else None
+                    if user_id and spec_id == user_id:
+                        return actor.get("id")
+                    if user_email and actor.get("str") == user_email:
+                        return actor.get("id")
+        return self.get_default_assignee_id()
 
     def find_target_framework(self) -> Any | None:
         """Find the matching framework in CISO Assistant (by name or ref_id)."""
@@ -434,6 +551,14 @@ class ExamplesManager:
                         findings_count = len(finding_dict.get_findings_for_assessment(fa_id))
                         break
 
+            sec_exp_dict = data.get("security_exception_dict")
+            app_exceptions = []
+            if sec_exp_dict:
+                for exc in sec_exp_dict.get_security_exceptions().values():
+                    if (asset_id and asset_id in exc.get_asset_ids()) or app_name in exc.get_name():
+                        app_exceptions.append(exc)
+            exceptions_count = len(app_exceptions)
+
             status_list.append({
                 "id": app["id"],
                 "name": app_name,
@@ -454,6 +579,8 @@ class ExamplesManager:
                 "threats_linked": threats_linked,
                 "findings_assessment_id": fa_id,
                 "findings_count": findings_count,
+                "security_exceptions_count": exceptions_count,
+                "security_exceptions": [e.get_json() for e in app_exceptions],
                 "entity_id": entity_id,
                 "entity_assessment_id": ea_obj.get_id() if ea_obj else None,
                 "entity_assessment_name": ea_obj.get_name() if ea_obj else None,
@@ -562,6 +689,14 @@ class ExamplesManager:
                             findings_count = len(finding_dict.get_findings_for_assessment(fa_id))
                             break
 
+                sec_exp_dict = data.get("security_exception_dict")
+                app_exceptions = []
+                if sec_exp_dict:
+                    for exc in sec_exp_dict.get_security_exceptions().values():
+                        if (asset_id and asset_id in exc.get_asset_ids()) or app_name in exc.get_name():
+                            app_exceptions.append(exc)
+                exceptions_count = len(app_exceptions)
+
                 status_list.append({
                     "id": f"custom_{app_name.lower().replace(' ', '_')}",
                     "name": app_name,
@@ -582,6 +717,8 @@ class ExamplesManager:
                     "threats_linked": threats_linked,
                     "findings_assessment_id": fa_id,
                     "findings_count": findings_count,
+                    "security_exceptions_count": exceptions_count,
+                    "security_exceptions": [e.get_json() for e in app_exceptions],
                     "entity_id": entity_id,
                     "entity_assessment_id": ea_obj.get_id() if ea_obj else None,
                     "entity_assessment_name": ea_obj.get_name() if ea_obj else None,
@@ -944,6 +1081,9 @@ class ExamplesManager:
         # Step 10: Generate Findings from Audit Answers
         findings_res = self.create_findings_for_application(app_name)
 
+        # Step 11: Generate Security Exceptions
+        exceptions_res = self.create_security_exceptions_for_application(app_name)
+
         # Reload for fresh state
         time.sleep(1)
         self._init_data(force_reload=True)
@@ -968,6 +1108,7 @@ class ExamplesManager:
             "threats_linked": link_res.get("threats_linked", 0),
             "findings_assessment_id": findings_res.get("findings_assessment_id"),
             "findings_count": findings_res.get("findings_count", 0),
+            "security_exceptions_count": len(exceptions_res),
         }
 
 
@@ -1157,7 +1298,10 @@ class ExamplesManager:
         assignment_id = assignment_ids[0] if assignment_ids else None
         utils.log(f"Requirement assignment ID for {ca_name}: {assignment_id}", level=logging.INFO)
 
-        # Step 10: Refresh cached state
+        # Step 10: Generate Security Exceptions if defined
+        exceptions_res = self.create_security_exceptions_for_application(app_name)
+
+        # Step 11: Refresh cached state
         self._init_data(force_reload=True)
 
         return {
@@ -1175,6 +1319,7 @@ class ExamplesManager:
             "compliance_status": ca_obj.get_status() if ca_obj else "in_progress",
             "requirement_assessments_count": len(req_ids),
             "assignment_id": assignment_id,
+            "security_exceptions_count": len(exceptions_res),
             "direct_url": f"{utils.BASE_URL}/",
         }
 
@@ -1459,6 +1604,9 @@ class ExamplesManager:
         # Generate Findings from Audit Answers
         findings_res = self.create_findings_for_application(app_name)
 
+        # Generate Security Exceptions
+        exceptions_res = self.create_security_exceptions_for_application(app_name)
+
         time.sleep(1)
         self._init_data(force_reload=True)
 
@@ -1478,6 +1626,7 @@ class ExamplesManager:
             "threats_linked": link_res.get("threats_linked", 0),
             "findings_assessment_id": findings_res.get("findings_assessment_id"),
             "findings_count": findings_res.get("findings_count", 0),
+            "security_exceptions_count": len(exceptions_res),
         }
 
     def create_findings_for_application(self, app_id_or_name: str) -> dict[str, Any]:
@@ -1565,6 +1714,115 @@ class ExamplesManager:
             "findings_assessment_name": None,
             "findings_count": 0,
         }
+
+    def create_security_exceptions_for_application(self, app_id_or_name: str) -> list[dict[str, Any]]:
+        """Create or update example security exceptions for an application.
+
+        Args:
+            app_id_or_name: Application ID or Name.
+
+        Returns:
+            List of created or updated security exception API dictionaries.
+        """
+        app_spec = next(
+            (a for a in EXAMPLE_APPLICATIONS if a["id"] == app_id_or_name or a["name"] == app_id_or_name),
+            None,
+        )
+        app_name = app_spec["name"] if app_spec else app_id_or_name
+
+        data = self._init_data()
+        sec_exp_dict: SecurityExceptionDict | None = data.get("security_exception_dict")
+        if not sec_exp_dict:
+            return []
+
+        folder_id = self.get_or_create_folder()
+        perimeter_dict = data.get("perimeter_dict")
+        asset_dict = data.get("asset_dict")
+        applied_control_dict = data.get("applied_control_dict")
+        user_dict = data.get("user_dict")
+
+        asset_id = asset_dict.get_asset_id_from_perimeter_name(app_name) if asset_dict else None
+        if not asset_id and perimeter_dict:
+            p_id = perimeter_dict.get_id_from_name(app_name)
+            if p_id and asset_dict:
+                asset_id = asset_dict.get_asset_id_from_perimeter_id(p_id)
+
+        user_email = app_spec.get("user", {}).get("email") if app_spec else None
+        user_id = user_dict.get_id_from_email(user_email) if user_dict and user_email else None
+        actor_id = self.resolve_actor_id(user_id=user_id, user_email=user_email)
+
+        exceptions_specs = app_spec.get("exceptions", []) if app_spec else []
+        if not exceptions_specs:
+            exceptions_specs = [
+                {
+                    "name": f"Security Exception for {app_name}",
+                    "ref_id": f"EXC-{app_name.upper().replace(' ', '_')[:10]}-001",
+                    "description": f"Standard operational security exception for {app_name}.",
+                    "severity": 2,
+                    "status": "approved",
+                    "expiration_date": "2027-12-31",
+                    "observation": f"Compensating controls documented for {app_name}.",
+                }
+            ]
+
+        results = []
+        for exc_def in exceptions_specs:
+            exc_name = exc_def["name"]
+            if app_name not in exc_name:
+                exc_name = f"{exc_name} ({app_name})"
+
+            linked_ctrl_ids = []
+            ctrl_ref = exc_def.get("reference_control")
+            if ctrl_ref and applied_control_dict:
+                norm_ref = ctrl_ref.lower().replace("_", " ").strip()
+                for ctrl in applied_control_dict.get_controls().values():
+                    c_name = ctrl.get_name().lower()
+                    if f"on {app_name.lower()}" in c_name:
+                        if norm_ref in c_name or ctrl_ref.lower() in c_name:
+                            linked_ctrl_ids.append(ctrl.get_id())
+                # If specific ref didn't match by name, fallback to all app controls
+                if not linked_ctrl_ids:
+                    for ctrl in applied_control_dict.get_controls().values():
+                        if f"on {app_name.lower()}" in ctrl.get_name().lower():
+                            linked_ctrl_ids.append(ctrl.get_id())
+
+            assets_list = [asset_id] if asset_id else []
+            owners_list = [actor_id] if actor_id else []
+
+            created = sec_exp_dict.create_security_exception(
+                name=exc_name,
+                folder_id=folder_id or "",
+                description=exc_def.get("description"),
+                ref_id=exc_def.get("ref_id"),
+                severity=exc_def.get("severity", 2),
+                status=exc_def.get("status", "approved"),
+                expiration_date=exc_def.get("expiration_date", "2027-12-31"),
+                is_published=exc_def.get("is_published", True),
+                observation=exc_def.get("observation"),
+                link=exc_def.get("link"),
+                assets=assets_list,
+                applied_controls=linked_ctrl_ids,
+                owners=owners_list,
+            )
+            if created and isinstance(created, dict) and not created.get("error"):
+                results.append(created)
+
+        return results
+
+    def create_all_security_exceptions(self) -> dict[str, int]:
+        """Provision or update security exceptions for all deployed example applications.
+
+        Returns:
+            Dict mapping application name to count of created/updated exceptions.
+        """
+        results = {}
+        status_list = self.get_status()
+        deployed_apps = [s for s in status_list if s["exists"]]
+        for app in deployed_apps:
+            app_name = app["name"]
+            created = self.create_security_exceptions_for_application(app_name)
+            results[app_name] = len(created)
+        return results
 
     def link_controls_for_application(self, app_id_or_name: str) -> dict[str, Any]:
 
@@ -1862,6 +2120,7 @@ class ExamplesManager:
             "users_deleted": 0,
             "findings_deleted": 0,
             "findings_assessments_deleted": 0,
+            "security_exceptions_deleted": 0,
             "scenarios_deleted": 0,
             "risk_assessments_deleted": 0,
             "applied_controls_deleted": 0,
@@ -1908,6 +2167,15 @@ class ExamplesManager:
                     deleted["findings_deleted"] += f_count
                     if findings_fa_dict.delete_findings_assessment(fa.get_id()):
                         deleted["findings_assessments_deleted"] += 1
+
+        # 0e. Delete Security Exceptions
+        sec_exp_dict = data.get("security_exception_dict")
+        if sec_exp_dict:
+            for exc in list(sec_exp_dict.get_security_exceptions().values()):
+                exc_assets = exc.get_asset_ids() if hasattr(exc, "get_asset_ids") else []
+                if (asset_id and asset_id in exc_assets) or app_name in exc.get_name():
+                    if sec_exp_dict.delete_security_exception(exc.get_id()):
+                        deleted["security_exceptions_deleted"] += 1
 
 
         # 1. Delete Risk Assessment and Risk Scenarios

@@ -47,9 +47,10 @@ def print_banner():
 
 def print_status_table(status_list):
     """Print formatted deployment summary table and resource breakdown."""
-    print("\n" + "-" * 128)
-    print(f"{'#':<3} | {'Application Name':<26} | {'Status':<11} | {'TPRM Entity':<12} | {'User':<20} | {'Findings':<9} | {'Scenarios':<9} | {'Controls':<8} | {'Linked':<10}")
-    print("-" * 128)
+    sep = "-" * 141
+    print("\n" + sep)
+    print(f"{'#':<3} | {'Application Name':<26} | {'Status':<11} | {'TPRM Entity':<12} | {'User':<20} | {'Findings':<9} | {'Exceptions':<10} | {'Scenarios':<9} | {'Controls':<8} | {'Linked':<10}")
+    print(sep)
     for idx, item in enumerate(status_list, start=1):
         state_str = "DEPLOYED" if item["exists"] else "NOT CREATED"
         entity_str = "YES" if item.get("entity_id") else "NO"
@@ -57,11 +58,12 @@ def print_status_table(status_list):
         if len(user_str) > 20:
             user_str = user_str[:17] + "..."
         findings_str = str(item.get("findings_count", 0)) if item["exists"] else "-"
+        exc_str = str(item.get("security_exceptions_count", 0)) if item["exists"] else "-"
         sc_count = str(item["risk_scenarios_count"]) if item["exists"] else "-"
         ctrl_count = str(item["applied_controls_count"]) if item["exists"] else "-"
         linked_str = f"{item.get('existing_controls_linked', 0)}/{item.get('planned_controls_linked', 0)}" if item["exists"] else "-"
-        print(f"{idx:<3} | {item['name']:<26} | {state_str:<11} | {entity_str:<12} | {user_str:<20} | {findings_str:<9} | {sc_count:<9} | {ctrl_count:<8} | {linked_str:<10}")
-    print("-" * 128)
+        print(f"{idx:<3} | {item['name']:<26} | {state_str:<11} | {entity_str:<12} | {user_str:<20} | {findings_str:<9} | {exc_str:<10} | {sc_count:<9} | {ctrl_count:<8} | {linked_str:<10}")
+    print(sep)
 
     # Detailed view
     deployed = [s for s in status_list if s["exists"]]
@@ -78,6 +80,13 @@ def print_status_table(status_list):
             print(f"    - Compliance Assessment:    {s['compliance_assessment_name'] or 'None'}")
             print(f"    - Findings Assessment ID:   {s.get('findings_assessment_id') or 'None'}")
             print(f"    - Audit Findings Count:     {s.get('findings_count', 0)}")
+            print(f"    - Security Exceptions:      {s.get('security_exceptions_count', 0)}")
+            if s.get("security_exceptions"):
+                for exc in s["security_exceptions"]:
+                    status_lbl = exc.get("status", "").upper()
+                    sev = exc.get("severity", -1)
+                    exp = exc.get("expiration_date") or "No expiry"
+                    print(f"        * [{status_lbl}] {exc.get('name', 'Exception')} (Severity: {sev}, Expires: {exp})")
             print(f"    - Risk Assessment ID:       {s['risk_assessment_id'] or 'None'}")
             print(f"    - Risk Scenarios Created:   {s['risk_scenarios_count']}")
             print(f"    - Applied Controls Created: {s['applied_controls_count']}")
@@ -170,6 +179,7 @@ def create_examples_ui(manager: ExamplesManager, target="all"):
                 print(f"     [OK] Vulnerabilities Linked: {res.get('vulnerabilities_linked', 0)}")
                 print(f"     [OK] Threats Linked: {res.get('threats_linked', 0)}")
                 print(f"     [OK] Audit Findings Generated: {res.get('findings_count', 0)}")
+                print(f"     [OK] Security Exceptions: {res.get('security_exceptions_count', 0)}")
             except Exception as e:
                 print(f"     [FAILED] Error creating {app['name']}: {e}")
         print("\n[SUCCESS] Completed provisioning of all example applications.")
@@ -196,6 +206,7 @@ def create_examples_ui(manager: ExamplesManager, target="all"):
             print(f"     [OK] Vulnerabilities Linked: {res.get('vulnerabilities_linked', 0)}")
             print(f"     [OK] Threats Linked: {res.get('threats_linked', 0)}")
             print(f"     [OK] Audit Findings Generated: {res.get('findings_count', 0)}")
+            print(f"     [OK] Security Exceptions: {res.get('security_exceptions_count', 0)}")
             print(f"\n[SUCCESS] Successfully created {app['name']} in CISO Assistant!")
 
             print("Waiting 2s for CISO Assistant to finalize updates before checking status...")
@@ -420,6 +431,7 @@ def generate_controls_and_risks_ui(
         print(f" Risk Scenarios Evaluated: {res.get('scenarios_created', 0)}")
         print(f" Controls Linked:          {res.get('existing_controls_linked', 0)} active, {res.get('planned_controls_linked', 0)} planned")
         print(f" Audit Findings Created:   {res.get('findings_count', 0)}")
+        print(f" Security Exceptions:     {res.get('security_exceptions_count', 0)}")
         print("-" * 80)
 
         print(f" View the generated scenarios and controls in CISO Assistant at:")
@@ -462,6 +474,7 @@ def remove_examples_ui(manager: ExamplesManager, target="all", auto_confirm=Fals
                       f"{del_res.get('users_deleted', 0)} user(s), "
                       f"{del_res.get('findings_deleted', 0)} finding(s), "
                       f"{del_res.get('findings_assessments_deleted', 0)} findings assessment(s), "
+                      f"{del_res.get('security_exceptions_deleted', 0)} security exception(s), "
                       f"{del_res['risk_assessments_deleted']} risk assessment(s), "
                       f"{del_res['scenarios_deleted']} scenario(s), "
                       f"{del_res['compliance_assessments_deleted']} compliance assessment(s), "
@@ -482,6 +495,7 @@ def remove_examples_ui(manager: ExamplesManager, target="all", auto_confirm=Fals
                   f"{del_res.get('users_deleted', 0)} user(s), "
                   f"{del_res.get('findings_deleted', 0)} finding(s), "
                   f"{del_res.get('findings_assessments_deleted', 0)} findings assessment(s), "
+                  f"{del_res.get('security_exceptions_deleted', 0)} security exception(s), "
                   f"{del_res['risk_assessments_deleted']} risk assessment(s), "
                   f"{del_res['scenarios_deleted']} scenario(s), "
                   f"{del_res['compliance_assessments_deleted']} compliance assessment(s), "
@@ -492,6 +506,26 @@ def remove_examples_ui(manager: ExamplesManager, target="all", auto_confirm=Fals
 
         except Exception as e:
             print(f"[ERROR] Failed to remove {target_name}: {e}")
+
+
+def create_exceptions_ui(manager: ExamplesManager, target="all"):
+    """Provision security exceptions for applications."""
+    ok, msg = manager.test_connection()
+    if not ok:
+        print(f"\n[ERROR] API Connection Failed: {msg}")
+        return
+
+    if target == "all":
+        print("\nProvisioning security exceptions for all deployed applications...")
+        res = manager.create_all_security_exceptions()
+        for app_name, count in res.items():
+            print(f"     [OK] {app_name}: {count} security exception(s) created/updated")
+        print("\n[SUCCESS] Completed security exceptions provisioning.")
+    else:
+        print(f"\nProvisioning security exceptions for '{target}'...")
+        created = manager.create_security_exceptions_for_application(target)
+        print(f"     [OK] {len(created)} security exception(s) created/updated for {target}")
+    show_status(manager, wait_seconds=0)
 
 
 def run_offline_simulation():
@@ -604,10 +638,11 @@ def interactive_menu(manager: ExamplesManager):
         print(" 6) Remove ALL Examples from CISO Assistant")
         print(" 7) Remove a Specific Application")
         print(" 8) Run Offline Simulation (Local Preview without API)")
+        print(" 9) Provision / Sync Security Exceptions for Applications")
         print(" 0) Exit")
         print("=" * 80)
 
-        choice = input("Enter your choice [0-8]: ").strip()
+        choice = input("Enter your choice [0-9]: ").strip()
 
         if choice == "1":
             show_status(manager, wait_seconds=2.0)
@@ -647,11 +682,13 @@ def interactive_menu(manager: ExamplesManager):
                         remove_examples_ui(manager, target=custom_target)
         elif choice == "8":
             run_offline_simulation()
+        elif choice == "9":
+            create_exceptions_ui(manager, target="all")
         elif choice in ("0", "q", "exit"):
             print("\nGoodbye!")
             break
         else:
-            print("\n[!] Invalid choice. Please select an option from 0 to 8.")
+            print("\n[!] Invalid choice. Please select an option from 0 to 9.")
 
         input("\nPress [Enter] to return to the menu...")
 
@@ -724,6 +761,13 @@ def main():
         help="Run the full legacy orchestration pipeline.",
     )
     parser.add_argument(
+        "--create-exceptions",
+        nargs="?",
+        const="all",
+        metavar="APP_NAME",
+        help="Provision security exceptions for applications ('all' or specific name/id).",
+    )
+    parser.add_argument(
         "-y", "--yes",
         action="store_true",
         help="Auto-confirm removal prompts.",
@@ -755,6 +799,10 @@ def main():
 
     if args.create:
         create_examples_ui(manager, target=args.create)
+        return
+
+    if args.create_exceptions:
+        create_exceptions_ui(manager, target=args.create_exceptions)
         return
 
     if args.link_controls:

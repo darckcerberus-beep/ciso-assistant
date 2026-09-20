@@ -304,3 +304,24 @@ expected_risk_scenarios:
     matrix_risk_id: 4 # 5 - Very High
     risk_level: 5
     control_priority: 1 # 1 (Urgent)
+
+# ==============================================================================
+# Security Exceptions
+# ==============================================================================
+exceptions:
+  - name: "Exception: Plaintext Legacy Gateway HTTP Transport"
+    ref_id: "EXC-VULN-001"
+    description: "Temporary exception for unencrypted HTTP traffic to deprecated legacy payment provider."
+    severity: 4 # Critical
+    status: "in_review"
+    expiration_date: "2026-11-30"
+    observation: "Remediation plan submitted; security team reviewing risk mitigation."
+    reference_control: "data_encryption_in_transit"
+
+  - name: "Exception: WAF Deep Packet Inspection Waiver"
+    ref_id: "EXC-VULN-002"
+    description: "WAF payload inspection disabled on public file upload endpoints due to processing latency."
+    severity: 3 # High
+    status: "rejected"
+    expiration_date: "2026-10-15"
+    observation: "Rejected by CISO due to critical vulnerability exploitation risk."

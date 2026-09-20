@@ -804,12 +804,9 @@ class VulnerabilityDict:
         assets_list = [asset_id] if asset_id else None
 
         for v in vuln_defs:
-            name = v.get("name", "")
-            ref_id = v.get("ref_id") or v.get("urn", "").rsplit(":", 1)[-1]
             base_name = v.get("name", "")
             base_ref_id = v.get("ref_id") or v.get("urn", "").rsplit(":", 1)[-1]
             desc = v.get("description", "")
-            if not name:
             if not base_name:
                 continue
 
@@ -822,7 +819,6 @@ class VulnerabilityDict:
                 ref_id = base_ref_id
 
             created_or_found = self.create_vulnerability_if_missing(
-                name=name,
                 name=vuln_name,
                 folder_id=folder_id,
                 description=desc,
