@@ -148,3 +148,4 @@ expected_risk_scenarios:
     matrix_risk_id: 1 # 2 - Low
     risk_level: 2
     control_priority: 3 # 3 (Medium)
+

@@ -96,11 +96,14 @@ class Entity:
                     continue
                 if representative.get('user_id'):
                     representative_ids.append(str(representative.get('user_id')))
-                else:
-                    utils.log(
-                        f"Representative payload missing canonical user ID (user.id/user_id) for entity {self.get_id()}; skipping: {representative}",
-                        level=logging.WARNING,
-                    )
+                    continue
+                if representative.get('id'):
+                    representative_ids.append(str(representative.get('id')))
+                    continue
+                utils.log(
+                    f"Representative payload missing canonical user ID (user.id/user_id/id) for entity {self.get_id()}; skipping: {representative}",
+                    level=logging.WARNING,
+                )
             elif representative:
                 representative_ids.append(str(representative))
 
@@ -231,9 +234,11 @@ class EntityRepresentativeDict:
                     representative_id = user.get('id')
                 elif representative.get('user_id'):
                     representative_id = representative.get('user_id')
+                elif representative.get('id'):
+                    representative_id = representative.get('id')
                 if not representative_id:
                     utils.log(
-                        f"Representative payload missing canonical user ID (user.id/user_id) for entity {entity_id}; skipping: {representative}",
+                        f"Representative payload missing canonical user ID (user.id/user_id/id) for entity {entity_id}; skipping: {representative}",
                         level=logging.WARNING,
                     )
                     continue

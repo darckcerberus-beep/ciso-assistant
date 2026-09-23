@@ -866,6 +866,190 @@ class TestExamplesManager(unittest.TestCase):
                 threats=["threat-uuid-99"],
             )
 
+    @patch("classes.integrations.csv_import.import_compliance_answers")
+    @patch("tests.test_application_scenarios.ApplicationRiskSimulator")
+    def test_create_example_application_order_scenarios_before_applied_controls(self, mock_sim_cls, mock_import_answers):
+        """Verify that create_example_application creates risk scenarios BEFORE creating applied controls."""
+        mock_import_answers.return_value = {"updated": 1}
+        mock_sim = MagicMock()
+        mock_sim.evaluate_application.return_value = {
+            "impact_level": 4,
+            "scenarios": {
+                "Exposure of unencrypted data in transit": {
+                    "scaled_likelihood": 4,
+                    "scaled_impact": 4,
+                }
+            },
+            "requirement_scores": {},
+        }
+        mock_sim_cls.return_value = mock_sim
+
+        mock_data = {
+            "user_dict": MagicMock(),
+            "entity_dict": MagicMock(),
+            "entity_representative_dict": MagicMock(),
+            "entity_assessment_dict": MagicMock(),
+            "perimeter_dict": MagicMock(),
+            "asset_dict": MagicMock(),
+            "compliance_assessment_dict": MagicMock(),
+            "risk_assessment_dict": MagicMock(),
+            "risk_scenario_dict": MagicMock(),
+            "risk_matrix_dict": MagicMock(),
+            "reference_control_dict": MagicMock(),
+            "applied_control_dict": MagicMock(),
+            "framework_file": MagicMock(),
+        }
+
+        mock_data["user_dict"].create_user_if_missing.return_value = {"id": "u-1"}
+        mock_data["entity_dict"].create_entity.return_value = {"id": "e-1"}
+        mock_data["entity_representative_dict"].upsert_entity_representative.return_value = {"id": "rep-1"}
+        mock_data["entity_assessment_dict"].create_entity_assessment.return_value = {"id": "ea-1"}
+
+        mock_data["perimeter_dict"].get_id_from_name.return_value = "perm-1"
+        mock_data["asset_dict"].get_asset_id_from_perimeter_name.return_value = "asset-1"
+        mock_asset = MagicMock()
+        mock_asset.get_id.return_value = "asset-1"
+        mock_data["asset_dict"].get_assets.return_value = [mock_asset]
+
+        mock_fw = MagicMock()
+        mock_fw.get_id.return_value = "fw-1"
+        mock_fw.get_name.return_value = "Multi-level DPP"
+
+        mock_ca = MagicMock()
+        mock_ca.get_id.return_value = "ca-1"
+        mock_ca.get_name.return_value = "Assessment of Multi-level DPP in App-Secure-Core"
+        mock_ca.get_perimeter_id.return_value = "perm-1"
+        mock_ca.get_framework_id.return_value = "fw-1"
+        mock_data["compliance_assessment_dict"].get_compliance_assessments.return_value = {"ca-1": mock_ca}
+
+        mock_ra = MagicMock()
+        mock_ra.get_compliance_assessment_id.return_value = "ca-1"
+        mock_ra.get_urn.return_value = "urn:dpp:transit"
+        mock_ra.has_selected_answer.return_value = True
+        mock_ra.is_unassessed_result.return_value = False
+        mock_ra.get_applied_control_ids.return_value = []
+        mock_data["compliance_assessment_dict"].requirement_assessments.get_requirement_assessments.return_value = {
+            "ra-1": mock_ra
+        }
+
+        mock_data["framework_file"].get_risk_scenarios.return_value = [
+            {
+                "name": "Exposure of unencrypted data in transit",
+                "description": "Sensitive data exposed",
+                "likelihood": "urn:dpp:transit",
+            }
+        ]
+        mock_data["risk_assessment_dict"].create_risk_assessments.return_value = {"id": "ra-1"}
+
+        call_order = []
+        mock_data["risk_scenario_dict"].create_risk_scenario.side_effect = lambda *a, **kw: call_order.append("create_risk_scenario")
+        mock_data["compliance_assessment_dict"].create_missing_applied_controls.side_effect = lambda *a, **kw: call_order.append("create_missing_applied_controls")
+
+        def mock_link(app_name):
+            call_order.append("link_controls_for_application")
+            return {"existing_controls": 0, "planned_controls": 0}
+
+        self.manager.data = mock_data
+        with patch.object(self.manager, "_init_data", return_value=mock_data), \
+             patch.object(self.manager, "get_or_create_folder", return_value="folder-1"), \
+             patch.object(self.manager, "get_default_assignee_id", return_value="assignee-1"), \
+             patch.object(self.manager, "find_target_framework", return_value=mock_fw), \
+             patch.object(self.manager, "find_target_risk_matrix", return_value="matrix-1"), \
+             patch.object(self.manager, "link_controls_for_application", side_effect=mock_link), \
+             patch.object(self.manager, "create_findings_for_application", return_value={}), \
+             patch("time.sleep"):
+
+            self.manager.create_example_application("app_secure_core")
+
+            self.assertEqual(
+                call_order,
+                ["create_risk_scenario", "create_missing_applied_controls", "link_controls_for_application"],
+            )
+
+    @patch("classes.integrations.csv_import.import_compliance_answers")
+    @patch("tests.test_application_scenarios.ApplicationRiskSimulator")
+    def test_generate_controls_and_risks_order_scenarios_before_applied_controls(self, mock_sim_cls, mock_import_answers):
+        """Verify that generate_controls_and_risks_for_application creates risk scenarios BEFORE creating applied controls."""
+        mock_import_answers.return_value = {"updated": 10}
+        mock_sim = MagicMock()
+        mock_sim.evaluate_application.return_value = {
+            "impact_level": 4,
+            "scenarios": {
+                "Exposure of unencrypted data in transit": {
+                    "scaled_likelihood": 1,
+                    "scaled_impact": 4,
+                }
+            },
+            "requirement_scores": {"data_in_transit": 100},
+        }
+        mock_sim_cls.return_value = mock_sim
+
+        mock_data = {
+            "perimeter_dict": MagicMock(),
+            "asset_dict": MagicMock(),
+            "compliance_assessment_dict": MagicMock(),
+            "applied_control_dict": MagicMock(),
+            "reference_control_dict": MagicMock(),
+            "risk_assessment_dict": MagicMock(),
+            "risk_scenario_dict": MagicMock(),
+            "framework_file": MagicMock(),
+            "domain_dict": MagicMock(),
+        }
+
+        mock_data["perimeter_dict"].get_id_from_name.return_value = "perm-uuid-1"
+        mock_data["asset_dict"].get_asset_id_from_perimeter_name.return_value = "asset-uuid-1"
+
+        mock_ca = MagicMock()
+        mock_ca.get_id.return_value = "ca-uuid-1"
+        mock_ca.get_name.return_value = "Assessment of Multi-level DPP in App-Audit-Demo"
+        mock_ca.get_framework_id.return_value = "fw-uuid-1"
+        mock_data["compliance_assessment_dict"].get_compliance_assessments.return_value = {"ca-uuid-1": mock_ca}
+
+        mock_ra = MagicMock()
+        mock_ra.get_compliance_assessment_id.return_value = "ca-uuid-1"
+        mock_ra.get_urn.return_value = "data_in_transit"
+        mock_ra.has_selected_answer.return_value = True
+        mock_ra.is_unassessed_result.return_value = False
+        mock_ra.get_applied_control_ids.return_value = []
+        mock_data["compliance_assessment_dict"].requirement_assessments.get_requirement_assessments.return_value = {
+            "ra-1": mock_ra
+        }
+
+        mock_data["risk_assessment_dict"].get_risk_assessments.return_value = {}
+        mock_data["risk_assessment_dict"].create_risk_assessments.return_value = {"id": "ra-uuid-1"}
+
+        mock_data["framework_file"].get_risk_scenarios.return_value = [
+            {
+                "name": "Exposure of unencrypted data in transit",
+                "description": "Desc",
+                "likelihood": "data_in_transit",
+            }
+        ]
+
+        call_order = []
+        mock_data["risk_scenario_dict"].create_risk_scenario.side_effect = lambda *a, **kw: call_order.append("create_risk_scenario")
+        mock_data["compliance_assessment_dict"].create_missing_applied_controls.side_effect = lambda *a, **kw: call_order.append("create_missing_applied_controls")
+
+        def mock_link(app_name):
+            call_order.append("link_controls_for_application")
+            return {"existing_controls": 0, "planned_controls": 0}
+
+        with patch.object(self.manager, "_init_data", return_value=mock_data), \
+             patch.object(self.manager, "find_target_risk_matrix", return_value="matrix-uuid-1"), \
+             patch.object(self.manager, "link_controls_for_application", side_effect=mock_link), \
+             patch.object(self.manager, "create_findings_for_application", return_value={}), \
+             patch("time.sleep"):
+
+            res = self.manager.generate_controls_and_risks_for_application(
+                app_id_or_name="App-Audit-Demo",
+                csv_path="test_data/app_secure_core.csv",
+            )
+
+            self.assertEqual(
+                call_order,
+                ["create_risk_scenario", "create_missing_applied_controls", "link_controls_for_application"],
+            )
+
 
 class TestMainCLI(unittest.TestCase):
     """Test CLI flags and interactive entrypoints in main.py."""

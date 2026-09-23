@@ -160,31 +160,46 @@ The utility functions in `classes/utils.py` automatically include logging:
 The logging is configured in `classes/utils.py`:
 
 ```python
+_LOG_LEVEL_ENV = os.getenv("LOG_LEVEL", "WARNING").upper()
+_INITIAL_LOG_LEVEL = getattr(logging, _LOG_LEVEL_ENV, logging.WARNING)
+
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=_INITIAL_LOG_LEVEL,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    force=True,
 )
 ```
 
+The default log level is `WARNING` to prevent console noise from routine operations.
+
 ### Changing the Log Level
 
-To see DEBUG messages during development:
+You can change the log level in several ways:
 
-```python
-import logging
+1. **Environment Variable**:
+   ```bash
+   # Run with INFO or DEBUG messages
+   LOG_LEVEL=INFO python3 main.py
+   LOG_LEVEL=DEBUG python3 main.py
+   ```
 
-# Set to DEBUG to see all messages
-logging.basicConfig(level=logging.DEBUG)
-```
+2. **CLI Argument**:
+   ```bash
+   python3 main.py --log-level INFO
+   python3 main.py --log-level DEBUG
+   ```
 
-To reduce noise in production:
+3. **Programmatically in Code**:
+   ```python
+   from classes import utils
+   import logging
 
-```python
-import logging
+   # Set to INFO to see major milestones
+   utils.set_log_level(logging.INFO)
 
-# Set to WARNING to only see problems
-logging.basicConfig(level=logging.WARNING)
-```
+   # Or using a string
+   utils.set_log_level("DEBUG")
+   ```
 
 ## Best Practices
 

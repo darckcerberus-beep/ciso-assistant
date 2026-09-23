@@ -451,6 +451,27 @@ objects:
     # REQUIREMENT NODES - Hierarchical assessment structure
     # ====================================================================
     requirement_nodes:
+      # === INTRODUCTORY SPLASH SCREEN ===
+      - urn: urn:intuitem:risk:req_node:mls:instructions_splash
+        assessable: false
+        display_mode: splash
+        depth: 1
+        ref_id: instructions_splash
+        name: "Instructions & Guidance"
+        description: >
+          Welcome to the Multi-level Data Protection Policy (DPP) Assessment.
+
+          This questionnaire evaluates the data protection posture, cryptographic controls, and risk profile of your application.
+
+          How to complete this assessment:
+          1. Answer accurately: Select the choices that best reflect the current architecture and operational state of your application.
+          2. Dynamic sections: Questions in Chapter 1 (Data Classification and Hosting Model) dynamically determine whether advanced technical requirements (Encryption in Transit, Encryption at Rest, Non-Production Data Protection, Data Exchange, Data Destruction) or SaaS contractual compliance sections are triggered.
+          3. Evidence: For assessable requirements, ensure supporting documentation (architecture diagrams, CMDB/LeanIX entries, KMS configs, or vendor contracts) can be provided upon audit review.
+          4. Progress & Submission: You can complete this questionnaire progressively. Once all triggered requirements are answered, your assessment will be submitted for security risk analysis and control linkage.
+        annotation: >
+          Introductory splash screen explaining questionnaire navigation, answering guidelines, dynamic section triggering based on data classification and hosting model, and audit evidence expectations.
+        implementation_groups: ["info"]
+
       # === CHAPTER 1: BASIC APPLICATION INFO ===
       - urn: urn:intuitem:risk:req_node:mls:info
         assessable: false
@@ -1014,6 +1035,28 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+
+      # === COMPLETION SPLASH SCREEN ===
+      - urn: urn:intuitem:risk:req_node:mls:thank_you_splash
+        assessable: false
+        display_mode: splash
+        depth: 1
+        ref_id: thank_you_splash
+        name: "Assessment Completed - Thank You"
+        description: >
+          Thank you for completing the Multi-level Data Protection Policy (DPP) questionnaire.
+
+          Your responses have been successfully submitted and will serve as the baseline for evaluating application risk scenarios and governing data protection controls.
+
+          Next Steps:
+          1. Automated Risk Modeling: CISO Assistant will automatically calculate likelihood and impact across applicable threat scenarios based on your answers.
+          2. Controls Verification: Recommended and applied technical controls will be linked to mitigate identified risk scenarios.
+          3. Governance & Follow-Up: If any compliance gaps, findings, or security exceptions are required, the security team will reach out to coordinate remediation planning and stakeholder sign-offs.
+
+          If your application architecture, hosting model, or data sensitivity changes in the future, please re-evaluate this assessment.
+        annotation: >
+          Concluding splash screen expressing gratitude to the respondent and detailing subsequent compliance verification, risk assessment, and remediation workflows.
+        implementation_groups: ["info"]
 
 # ============================================================================
 # AUDIT CONFIGURATION

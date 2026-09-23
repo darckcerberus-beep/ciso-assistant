@@ -226,6 +226,29 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertIn("extended_result", score_vis)
         self.assertEqual(score_vis["extended_result"].get("respondent"), "hidden")
 
+    def test_splash_screens_configuration(self):
+        """Ensure splash screens exist at beginning (instructions) and end (thank you) of requirement_nodes."""
+        nodes = self.framework.get("requirement_nodes", [])
+        self.assertGreaterEqual(len(nodes), 2, "requirement_nodes must contain at least 2 nodes")
+
+        # 1. Introductory splash screen at the beginning
+        first_node = nodes[0]
+        self.assertEqual(first_node.get("ref_id"), "instructions_splash")
+        self.assertEqual(first_node.get("display_mode"), "splash")
+        self.assertFalse(first_node.get("assessable"))
+        self.assertEqual(first_node.get("depth"), 1)
+        self.assertIn("info", first_node.get("implementation_groups", []))
+        self.assertIn("how to", first_node.get("description", "").lower())
+
+        # 2. Concluding splash screen at the end
+        last_node = nodes[-1]
+        self.assertEqual(last_node.get("ref_id"), "thank_you_splash")
+        self.assertEqual(last_node.get("display_mode"), "splash")
+        self.assertFalse(last_node.get("assessable"))
+        self.assertEqual(last_node.get("depth"), 1)
+        self.assertIn("info", last_node.get("implementation_groups", []))
+        self.assertIn("thank you", last_node.get("description", "").lower())
+
 
 if __name__ == "__main__":
     unittest.main()

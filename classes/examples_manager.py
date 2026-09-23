@@ -16,7 +16,6 @@ from classes.core.risk import RiskAssessmentDict, RiskMatrixDict, RiskScenarioDi
 from classes.core.user import UserDict
 from classes.controls.applied import AppliedControlDict
 from classes.controls.reference import ReferenceControlDict
-from classes.controls.security_exception import SecurityExceptionDict
 from classes.audits.compliance import ComplianceAssessmentDict, AUDITOR_SCORE_METHOD, AUDITOR_SCORE_VISIBILITY
 from classes.audits.entity_assessment import EntityAssessmentDict
 from classes.audits.finding import FindingDict, FindingsAssessmentDict
@@ -27,6 +26,7 @@ from classes.organization.domain import DomainDict, criticality_mapping
 from classes.organization.entity import EntityDict, EntityRepresentativeDict
 from classes.organization.perimeter import PerimeterDict
 from classes.integrations import csv_import
+from classes.integrations.backup import BackupManager
 
 LOGGER = logging.getLogger(__name__)
 
@@ -52,18 +52,6 @@ EXAMPLE_APPLICATIONS = [
             "trust": 4,
             "conclusion": "ok",
         },
-        "exceptions": [
-            {
-                "name": "Exception: Emergency Break-Glass Local Console MFA Bypass",
-                "ref_id": "EXC-SEC-001",
-                "description": "Physical air-gapped server console emergency account exempt from remote MFA requirements.",
-                "severity": 1,
-                "status": "approved",
-                "expiration_date": "2027-12-31",
-                "observation": "Compensating control: Console locked in physical vault requiring dual key authorization.",
-                "reference_control": "access_control",
-            },
-        ],
     },
     {
         "id": "app_vulnerable_portal",
@@ -85,27 +73,6 @@ EXAMPLE_APPLICATIONS = [
             "trust": 1,
             "conclusion": "blocker",
         },
-        "exceptions": [
-            {
-                "name": "Exception: Plaintext Legacy Gateway HTTP Transport",
-                "ref_id": "EXC-VULN-001",
-                "description": "Temporary exception for unencrypted HTTP traffic to deprecated legacy payment provider.",
-                "severity": 4,
-                "status": "in_review",
-                "expiration_date": "2026-11-30",
-                "observation": "Remediation plan submitted; security team reviewing risk mitigation.",
-                "reference_control": "data_encryption_in_transit",
-            },
-            {
-                "name": "Exception: WAF Deep Packet Inspection Waiver",
-                "ref_id": "EXC-VULN-002",
-                "description": "WAF payload inspection disabled on public file upload endpoints due to processing latency.",
-                "severity": 3,
-                "status": "rejected",
-                "expiration_date": "2026-10-15",
-                "observation": "Rejected by CISO due to critical vulnerability exploitation risk.",
-            },
-        ],
     },
     {
         "id": "app_internal_tool",
@@ -127,18 +94,6 @@ EXAMPLE_APPLICATIONS = [
             "trust": 2,
             "conclusion": "warning",
         },
-        "exceptions": [
-            {
-                "name": "Exception: Trusted LAN Multi-Factor Authentication Exemption",
-                "ref_id": "EXC-INT-001",
-                "description": "Internal employee tool exempt from MFA when connected directly via headquarters office LAN.",
-                "severity": 2,
-                "status": "approved",
-                "expiration_date": "2027-06-30",
-                "observation": "Compensating control: Strict 802.1X network access control and certificate authentication.",
-                "reference_control": "access_control",
-            },
-        ],
     },
     {
         "id": "app_public_blog",
@@ -160,17 +115,6 @@ EXAMPLE_APPLICATIONS = [
             "trust": 3,
             "conclusion": "ok",
         },
-        "exceptions": [
-            {
-                "name": "Exception: Public Static Asset Origin Mutual TLS Exemption",
-                "ref_id": "EXC-BLOG-001",
-                "description": "Content delivery network origin for static marketing blog images does not enforce client mTLS.",
-                "severity": 0,
-                "status": "approved",
-                "expiration_date": "2028-12-31",
-                "observation": "Assets are completely public by design; residual risk accepted.",
-            },
-        ],
     },
     {
         "id": "app_hr_people_system",
@@ -192,17 +136,6 @@ EXAMPLE_APPLICATIONS = [
             "trust": 2,
             "conclusion": "warning",
         },
-        "exceptions": [
-            {
-                "name": "Exception: Extended Candidate Data Retention for Talent Analytics",
-                "ref_id": "EXC-HR-001",
-                "description": "Job applicant profiles retained beyond standard 24-month limit for longitudinal AI talent pool analysis.",
-                "severity": 2,
-                "status": "in_review",
-                "expiration_date": "2027-03-31",
-                "observation": "Data Protection Officer assessing candidate re-consent mechanisms and anonymization.",
-            },
-        ],
     },
     {
         "id": "app_customer_payment_api",
@@ -224,17 +157,6 @@ EXAMPLE_APPLICATIONS = [
             "trust": 3,
             "conclusion": "warning",
         },
-        "exceptions": [
-            {
-                "name": "Exception: Extended 48-Hour Vendor Incident Notification SLA",
-                "ref_id": "EXC-PAY-001",
-                "description": "Third-party payment clearinghouse SLA permits 48h breach notification instead of standard 24h window.",
-                "severity": 1,
-                "status": "approved",
-                "expiration_date": "2027-09-30",
-                "observation": "Vendor contract renegotiation scheduled for annual renewal cycle.",
-            },
-        ],
     },
     {
         "id": "app_legacy_erp_production",
@@ -256,18 +178,6 @@ EXAMPLE_APPLICATIONS = [
             "trust": 1,
             "conclusion": "warning",
         },
-        "exceptions": [
-            {
-                "name": "Exception: Plaintext Database Storage in Factory OT Enclave",
-                "ref_id": "EXC-ERP-001",
-                "description": "Plant manufacturing ERP database operates without encryption at rest on legacy OT physical servers.",
-                "severity": 2,
-                "status": "approved",
-                "expiration_date": "2027-12-31",
-                "observation": "Compensating control: Factory subnet is physically air-gapped from corporate LAN and Internet.",
-                "reference_control": "data_encryption_at_rest",
-            },
-        ],
     },
     {
         "id": "app_ai_analytics_workbench",
@@ -289,17 +199,6 @@ EXAMPLE_APPLICATIONS = [
             "trust": 2,
             "conclusion": "warning",
         },
-        "exceptions": [
-            {
-                "name": "Exception: Third-Party LLM Zero-Retention Audit Waiver",
-                "ref_id": "EXC-AI-001",
-                "description": "Commercial SaaS LLM provider contract does not yet include verified zero-data-retention certification.",
-                "severity": 3,
-                "status": "in_review",
-                "expiration_date": "2026-12-31",
-                "observation": "Compensating control: On-premise proxy scrubs prompts of all confidential tokens and PII.",
-            },
-        ],
     },
 ]
 
@@ -316,6 +215,7 @@ class ExamplesManager:
         self.folder_name = folder_name
         self.framework_yaml = Path(FRAMEWORK_YAML_PATH)
         self.data: dict[str, Any] | None = None
+        self.backup_manager = BackupManager()
 
     def _init_data(self, force_reload: bool = False):
         """Initialize or refresh cached API resource collections."""
@@ -338,7 +238,6 @@ class ExamplesManager:
                 "entity_representative_dict": EntityRepresentativeDict(),
                 "findings_assessment_dict": FindingsAssessmentDict(),
                 "finding_dict": FindingDict(),
-                "security_exception_dict": SecurityExceptionDict(),
                 "vulnerability_dict": VulnerabilityDict(),
                 "threat_dict": ThreatDict(),
                 "framework_file": FrameworkFile(str(self.framework_yaml)),
@@ -457,6 +356,336 @@ class ExamplesManager:
             return next(iter(matrices.keys()))
         return None
 
+    @staticmethod
+    def _extract_ra_ref_id(ra: Any) -> str:
+        """Extract requirement ref_id or URN suffix from a requirement assessment."""
+        if hasattr(ra, "get_requirement_ref_id"):
+            ref = ra.get_requirement_ref_id()
+            if ref:
+                return ref
+        if hasattr(ra, "get_urn"):
+            urn = ra.get_urn()
+            if urn:
+                return urn.rsplit(":", 1)[-1]
+        if hasattr(ra, "get_requirement_json"):
+            rjson = ra.get_requirement_json()
+            if isinstance(rjson, dict):
+                req = rjson.get("requirement")
+                if isinstance(req, dict):
+                    ref = req.get("ref_id") or req.get("urn", "").rsplit(":", 1)[-1]
+                    if ref:
+                        return ref
+        if isinstance(ra, dict):
+            req = ra.get("requirement")
+            if isinstance(req, dict):
+                ref = req.get("ref_id") or req.get("urn", "").rsplit(":", 1)[-1]
+                if ref:
+                    return ref
+            ref = ra.get("ref_id") or ra.get("urn", "").rsplit(":", 1)[-1]
+            if ref:
+                return ref
+        return ""
+
+    @staticmethod
+    def _is_ra_answered(ra: Any) -> bool:
+        """Check if a requirement assessment has a valid selected answer or assessed result."""
+        if hasattr(ra, "has_selected_answer") and ra.has_selected_answer():
+            return True
+        if hasattr(ra, "is_unassessed_result") and not ra.is_unassessed_result():
+            return True
+        if isinstance(ra, dict):
+            answers = ra.get("answers")
+            if isinstance(answers, dict) and any(v is not None for v in answers.values()):
+                return True
+            result = ra.get("result")
+            if result not in (None, "", "not_assessed", "null", "none"):
+                return True
+        return False
+
+    @staticmethod
+    def _is_ra_assessable(ra: Any) -> bool:
+        """Check if requirement is an assessable node (not a chapter header or splash screen)."""
+        non_assessable_headers = {
+            "info",
+            "advanced_reqs",
+            "advanced",
+            "saas_chapter",
+            "instructions_splash",
+            "thank_you_splash",
+        }
+        ref_id = ExamplesManager._extract_ra_ref_id(ra)
+        if ref_id in non_assessable_headers:
+            return False
+
+        if hasattr(ra, "get_requirement_json"):
+            rjson = ra.get_requirement_json()
+            if isinstance(rjson, dict):
+                req = rjson.get("requirement")
+                if isinstance(req, dict):
+                    if req.get("assessable") is False or req.get("display_mode") == "splash":
+                        return False
+                if rjson.get("assessable") is False or rjson.get("display_mode") == "splash":
+                    return False
+        elif isinstance(ra, dict):
+            req = ra.get("requirement")
+            if isinstance(req, dict):
+                if req.get("assessable") is False or req.get("display_mode") == "splash":
+                    return False
+            if ra.get("assessable") is False or ra.get("display_mode") == "splash":
+                return False
+
+        if hasattr(ra, "get_questions"):
+            questions = ra.get_questions()
+            if isinstance(questions, dict) and len(questions) == 0:
+                return False
+
+        return True
+
+    @staticmethod
+    def _resolve_triggered_requirements(
+        ca_reqs: list[Any],
+        csv_path: str = "",
+    ) -> tuple[int, int]:
+        """Determine (answered_count, triggered_count) for compliance assessment requirements.
+
+        Excludes non-assessable chapter headers and requirements that were never triggered
+        (e.g., Chapter 2 encryption controls for Public/Internal applications, or Chapter 3
+        SaaS contract controls for On-Premise/In-house applications).
+        """
+        if not ca_reqs:
+            return 0, 0
+
+        assessable = [ra for ra in ca_reqs if ExamplesManager._is_ra_assessable(ra)]
+        if not assessable:
+            assessable = ca_reqs
+
+        answered_ras = [ra for ra in assessable if ExamplesManager._is_ra_answered(ra)]
+        answered_count = len(answered_ras)
+
+        # Check if CSV provides the explicit list of triggered requirements
+        csv_req_refs = set()
+        if csv_path and Path(csv_path).exists():
+            try:
+                rows = csv_import.read_csv_rows(csv_path)
+                for row in rows:
+                    req_ref = row.get("requirement")
+                    if req_ref:
+                        csv_req_refs.add(req_ref.strip())
+            except Exception:
+                pass
+
+        # Identify classification and hosting from answers or CSV
+        advanced_technical_reqs = {
+            "data_in_transit",
+            "data_at_rest",
+            "non_prod_data",
+            "data_exchange",
+            "data_destruction",
+        }
+        saas_reqs = {"saas_contract_compliance", "saas_contract"}
+
+        classification_val = None
+        hosting_val = None
+
+        # 1. Inspect live answers in ca_reqs
+        for ra in assessable:
+            ref = ExamplesManager._extract_ra_ref_id(ra)
+            answers = ra.get_answers() if hasattr(ra, "get_answers") else (ra.get("answers") if isinstance(ra, dict) else {})
+            if isinstance(answers, dict):
+                ans_strs = [str(v).lower() for v in answers.values() if v is not None]
+                if ref in ("data_classification", "classification") or "data_classification" in ref:
+                    for v in ans_strs:
+                        if "secret" in v or v.endswith(":c4"):
+                            classification_val = "secret"
+                            break
+                        elif "confidential" in v or v.endswith(":c3"):
+                            classification_val = "confidential"
+                            break
+                        elif "internal" in v or v.endswith(":c2"):
+                            classification_val = "internal"
+                            break
+                        elif "public" in v or v.endswith(":c1"):
+                            classification_val = "public"
+                            break
+                elif ref in ("hosting", "hosting_model") or "hosting" in ref:
+                    for v in ans_strs:
+                        if "saas" in v or v.endswith(":c2"):
+                            hosting_val = "saas"
+                            break
+                        elif "in-house" in v or "in_house" in v or v.endswith(":c1"):
+                            hosting_val = "in-house"
+                            break
+
+        # 2. If not found in live answers, inspect CSV if available
+        if csv_path and Path(csv_path).exists():
+            try:
+                rows = csv_import.read_csv_rows(csv_path)
+                for row in rows:
+                    req = row.get("requirement", "").strip()
+                    ans = row.get("answer", "").strip().lower()
+                    if req == "data_classification" and not classification_val:
+                        if "secret" in ans:
+                            classification_val = "secret"
+                        elif "confidential" in ans:
+                            classification_val = "confidential"
+                        elif "internal" in ans:
+                            classification_val = "internal"
+                        elif "public" in ans:
+                            classification_val = "public"
+                    elif req == "hosting" and not hosting_val:
+                        if "saas" in ans:
+                            hosting_val = "saas"
+                        elif "in-house" in ans or "in_house" in ans:
+                            hosting_val = "in-house"
+            except Exception:
+                pass
+
+        # Determine which assessable requirements are triggered
+        # If we have no indication of DPP conditional requirements in this assessment
+        # (e.g. mock objects in unit tests), keep all assessable requirements
+        has_conditional_reqs = any(
+            ExamplesManager._extract_ra_ref_id(ra) in (advanced_technical_reqs | saas_reqs)
+            for ra in assessable
+        )
+
+        if not has_conditional_reqs and not csv_req_refs:
+            return answered_count, len(assessable)
+
+        triggered_ras = []
+        for ra in assessable:
+            ref = ExamplesManager._extract_ra_ref_id(ra)
+            is_answered = ExamplesManager._is_ra_answered(ra)
+
+            # An already answered requirement is always considered triggered
+            if is_answered:
+                triggered_ras.append(ra)
+                continue
+
+            # If CSV explicitly specifies this requirement, it is expected/triggered
+            if csv_req_refs and ref in csv_req_refs:
+                triggered_ras.append(ra)
+                continue
+
+            # Check conditional rules:
+            if ref in advanced_technical_reqs:
+                if classification_val in ("confidential", "secret"):
+                    triggered_ras.append(ra)
+            elif ref in saas_reqs:
+                if hosting_val == "saas":
+                    triggered_ras.append(ra)
+            else:
+                triggered_ras.append(ra)
+
+        triggered_count = max(len(triggered_ras), answered_count)
+        return answered_count, triggered_count
+
+    @staticmethod
+    def _build_status_dict(
+        app_id: str,
+        app_name: str,
+        label: str,
+        csv_path: str,
+        perimeter_id: str | None,
+        asset_id: str | None,
+        ca_obj: Any,
+        ra_obj: Any,
+        ra_scenarios_count: int,
+        ctrl_count: int,
+        existing_ctrls_linked: int,
+        planned_ctrls_linked: int,
+        vulns_linked: int,
+        threats_linked: int,
+        fa_id: str | None,
+        findings_count: int,
+        entity_id: str | None,
+        ea_obj: Any,
+        user_email: str | None,
+        user_id: str | None,
+        req_by_ca: dict[str, list[Any]],
+    ) -> dict[str, Any]:
+        """Construct a standardized status dictionary for an application."""
+        total_reqs = 0
+        answered_reqs = 0
+        all_reqs_count = 0
+        if ca_obj:
+            ca_id = ca_obj.get_id() if hasattr(ca_obj, "get_id") else str(ca_obj)
+            ca_reqs = req_by_ca.get(ca_id, [])
+            all_reqs_count = len(ca_reqs)
+            answered_reqs, total_reqs = ExamplesManager._resolve_triggered_requirements(ca_reqs, csv_path=csv_path)
+
+        item_exists = bool(perimeter_id or ca_obj or ra_obj or entity_id or ea_obj)
+        app_created = bool(perimeter_id or asset_id or (ea_obj and entity_id) or item_exists)
+        audit_created = bool(ca_obj)
+        ca_status_val = (ca_obj.get_status() or "") if (ca_obj and hasattr(ca_obj, "get_status")) else ""
+        audit_status = ca_status_val.lower() if isinstance(ca_status_val, str) else ""
+        audit_answered = bool(ca_obj and (answered_reqs > 0 or audit_status == "completed"))
+        completion_pct = min(100, round(answered_reqs / total_reqs * 100)) if total_reqs > 0 else (100 if audit_answered else 0)
+        risks_created = bool(ra_obj and ra_scenarios_count > 0)
+        controls_created = bool(ctrl_count > 0)
+        controls_linked = bool(existing_ctrls_linked > 0 or planned_ctrls_linked > 0)
+
+        # Lifecycle status determination (granular, specific progression stages)
+        if not item_exists:
+            lifecycle_status = "NOT CREATED"
+        elif not ca_obj:
+            lifecycle_status = "APP ONLY (NO AUDIT)"
+        elif total_reqs > 0 and answered_reqs == 0:
+            lifecycle_status = f"AUDIT PENDING (0/{total_reqs})"
+        elif total_reqs > 0 and answered_reqs < total_reqs and audit_status != "completed":
+            lifecycle_status = f"AUDIT PARTIAL ({answered_reqs}/{total_reqs})"
+        elif not audit_answered:
+            lifecycle_status = "AUDIT PENDING"
+        elif not risks_created:
+            lifecycle_status = "RISKS PENDING"
+        elif not controls_created:
+            lifecycle_status = "CONTROLS PENDING"
+        elif not controls_linked:
+            lifecycle_status = "LINKING PENDING"
+        else:
+            lifecycle_status = "FULLY CONFIGURED"
+
+        return {
+            "id": app_id,
+            "name": app_name,
+            "label": label,
+            "csv_path": csv_path,
+            "exists": item_exists,
+            "app_created": app_created,
+            "audit_created": audit_created,
+            "audit_answered": audit_answered,
+            "total_requirements_count": total_reqs,
+            "triggered_requirements_count": total_reqs,
+            "all_requirements_count": all_reqs_count,
+            "answered_requirements_count": answered_reqs,
+            "audit_completion_pct": completion_pct,
+            "risks_created": risks_created,
+            "controls_created": controls_created,
+            "controls_linked": controls_linked,
+            "lifecycle_status": lifecycle_status,
+            "status": lifecycle_status,
+            "perimeter_id": perimeter_id,
+            "asset_id": asset_id,
+            "compliance_assessment_id": ca_obj.get_id() if (ca_obj and hasattr(ca_obj, "get_id")) else None,
+            "compliance_assessment_name": ca_obj.get_name() if (ca_obj and hasattr(ca_obj, "get_name")) else None,
+            "compliance_status": ca_obj.get_status() if (ca_obj and hasattr(ca_obj, "get_status")) else None,
+            "risk_assessment_id": ra_obj.get_id() if (ra_obj and hasattr(ra_obj, "get_id")) else None,
+            "risk_scenarios_count": ra_scenarios_count,
+            "applied_controls_count": ctrl_count,
+            "existing_controls_linked": existing_ctrls_linked,
+            "planned_controls_linked": planned_ctrls_linked,
+            "vulnerabilities_linked": vulns_linked,
+            "threats_linked": threats_linked,
+            "findings_assessment_id": fa_id,
+            "findings_count": findings_count,
+            "entity_id": entity_id,
+            "entity_assessment_id": ea_obj.get_id() if (ea_obj and hasattr(ea_obj, "get_id")) else None,
+            "entity_assessment_name": ea_obj.get_name() if (ea_obj and hasattr(ea_obj, "get_name")) else None,
+            "user_email": user_email,
+            "user_id": user_id,
+            "user_exists": bool(user_id),
+            "tprm_conclusion": ea_obj.json_object.get("conclusion") if ea_obj and isinstance(getattr(ea_obj, "json_object", None), dict) else None,
+        }
+
     def get_status(self, wait_seconds: float = 0) -> list[dict[str, Any]]:
         """Return the current deployment status of all example applications.
 
@@ -475,6 +704,21 @@ class ExamplesManager:
         entity_dict: EntityDict = data["entity_dict"]
         entity_assessment_dict: EntityAssessmentDict = data["entity_assessment_dict"]
         user_dict: UserDict = data["user_dict"]
+
+        # Index requirement assessments by compliance assessment ID for quick lookup
+        req_by_ca: dict[str, list[Any]] = {}
+        req_assessments_obj = getattr(compliance_dict, "requirement_assessments", None)
+        if req_assessments_obj and hasattr(req_assessments_obj, "get_requirement_assessments"):
+            try:
+                ras_dict = req_assessments_obj.get_requirement_assessments()
+                if isinstance(ras_dict, dict):
+                    for ra in ras_dict.values():
+                        if hasattr(ra, "get_compliance_assessment_id"):
+                            ca_id = ra.get_compliance_assessment_id()
+                            if ca_id:
+                                req_by_ca.setdefault(ca_id, []).append(ra)
+            except Exception as e:
+                utils.log(f"Error indexing requirement assessments: {e}", level=logging.DEBUG)
 
         status_list = []
         known_names = set()
@@ -551,45 +795,29 @@ class ExamplesManager:
                         findings_count = len(finding_dict.get_findings_for_assessment(fa_id))
                         break
 
-            sec_exp_dict = data.get("security_exception_dict")
-            app_exceptions = []
-            if sec_exp_dict:
-                for exc in sec_exp_dict.get_security_exceptions().values():
-                    if (asset_id and asset_id in exc.get_asset_ids()) or app_name in exc.get_name():
-                        app_exceptions.append(exc)
-            exceptions_count = len(app_exceptions)
-
-            status_list.append({
-                "id": app["id"],
-                "name": app_name,
-                "label": app["label"],
-                "csv_path": app["csv_path"],
-                "exists": bool(perimeter_id or ca_obj or ra_obj or entity_id or ea_obj),
-                "perimeter_id": perimeter_id,
-                "asset_id": asset_id,
-                "compliance_assessment_id": ca_obj.get_id() if ca_obj else None,
-                "compliance_assessment_name": ca_obj.get_name() if ca_obj else None,
-                "compliance_status": ca_obj.get_status() if ca_obj else None,
-                "risk_assessment_id": ra_obj.get_id() if ra_obj else None,
-                "risk_scenarios_count": ra_scenarios_count,
-                "applied_controls_count": ctrl_count,
-                "existing_controls_linked": existing_ctrls_linked,
-                "planned_controls_linked": planned_ctrls_linked,
-                "vulnerabilities_linked": vulns_linked,
-                "threats_linked": threats_linked,
-                "findings_assessment_id": fa_id,
-                "findings_count": findings_count,
-                "security_exceptions_count": exceptions_count,
-                "security_exceptions": [e.get_json() for e in app_exceptions],
-                "entity_id": entity_id,
-                "entity_assessment_id": ea_obj.get_id() if ea_obj else None,
-                "entity_assessment_name": ea_obj.get_name() if ea_obj else None,
-                "user_email": user_email,
-                "user_id": user_id,
-                "user_exists": bool(user_id),
-                "tprm_conclusion": ea_obj.json_object.get("conclusion") if ea_obj and isinstance(ea_obj.json_object, dict) else None,
-            })
-
+            status_list.append(self._build_status_dict(
+                app_id=app["id"],
+                app_name=app_name,
+                label=app["label"],
+                csv_path=app["csv_path"],
+                perimeter_id=perimeter_id,
+                asset_id=asset_id,
+                ca_obj=ca_obj,
+                ra_obj=ra_obj,
+                ra_scenarios_count=ra_scenarios_count,
+                ctrl_count=ctrl_count,
+                existing_ctrls_linked=existing_ctrls_linked,
+                planned_ctrls_linked=planned_ctrls_linked,
+                vulns_linked=vulns_linked,
+                threats_linked=threats_linked,
+                fa_id=fa_id,
+                findings_count=findings_count,
+                entity_id=entity_id,
+                ea_obj=ea_obj,
+                user_email=user_email,
+                user_id=user_id,
+                req_by_ca=req_by_ca,
+            ))
 
         # Discover custom applications created in the example folder
         folder_id = None
@@ -689,45 +917,29 @@ class ExamplesManager:
                             findings_count = len(finding_dict.get_findings_for_assessment(fa_id))
                             break
 
-                sec_exp_dict = data.get("security_exception_dict")
-                app_exceptions = []
-                if sec_exp_dict:
-                    for exc in sec_exp_dict.get_security_exceptions().values():
-                        if (asset_id and asset_id in exc.get_asset_ids()) or app_name in exc.get_name():
-                            app_exceptions.append(exc)
-                exceptions_count = len(app_exceptions)
-
-                status_list.append({
-                    "id": f"custom_{app_name.lower().replace(' ', '_')}",
-                    "name": app_name,
-                    "label": f"{app_name} (Custom Audit Demo)",
-                    "csv_path": "-",
-                    "exists": bool(perimeter_id or ca_obj or ra_obj or entity_id or ea_obj),
-                    "perimeter_id": perimeter_id,
-                    "asset_id": asset_id,
-                    "compliance_assessment_id": ca_obj.get_id() if ca_obj else None,
-                    "compliance_assessment_name": ca_obj.get_name() if ca_obj else None,
-                    "compliance_status": ca_obj.get_status() if ca_obj else None,
-                    "risk_assessment_id": ra_obj.get_id() if ra_obj else None,
-                    "risk_scenarios_count": ra_scenarios_count,
-                    "applied_controls_count": ctrl_count,
-                    "existing_controls_linked": existing_ctrls_linked,
-                    "planned_controls_linked": planned_ctrls_linked,
-                    "vulnerabilities_linked": vulns_linked,
-                    "threats_linked": threats_linked,
-                    "findings_assessment_id": fa_id,
-                    "findings_count": findings_count,
-                    "security_exceptions_count": exceptions_count,
-                    "security_exceptions": [e.get_json() for e in app_exceptions],
-                    "entity_id": entity_id,
-                    "entity_assessment_id": ea_obj.get_id() if ea_obj else None,
-                    "entity_assessment_name": ea_obj.get_name() if ea_obj else None,
-                    "user_email": user_email,
-                    "user_id": user_id,
-                    "user_exists": bool(user_id),
-                    "tprm_conclusion": ea_obj.json_object.get("conclusion") if ea_obj and isinstance(ea_obj.json_object, dict) else None,
-                })
-
+                status_list.append(self._build_status_dict(
+                    app_id=f"custom_{app_name.lower().replace(' ', '_')}",
+                    app_name=app_name,
+                    label=f"{app_name} (Custom Audit Demo)",
+                    csv_path="-",
+                    perimeter_id=perimeter_id,
+                    asset_id=asset_id,
+                    ca_obj=ca_obj,
+                    ra_obj=ra_obj,
+                    ra_scenarios_count=ra_scenarios_count,
+                    ctrl_count=ctrl_count,
+                    existing_ctrls_linked=existing_ctrls_linked,
+                    planned_ctrls_linked=planned_ctrls_linked,
+                    vulns_linked=vulns_linked,
+                    threats_linked=threats_linked,
+                    fa_id=fa_id,
+                    findings_count=findings_count,
+                    entity_id=entity_id,
+                    ea_obj=ea_obj,
+                    user_email=user_email,
+                    user_id=user_id,
+                    req_by_ca=req_by_ca,
+                ))
 
         return status_list
 
@@ -940,24 +1152,10 @@ class ExamplesManager:
         # Reload after importing answers
         compliance_dict.requirement_assessments.reload()
 
-        # Step 6: Create Applied Controls with calculated priorities
-        compliance_dict.create_missing_applied_controls(
-            applied_control_dict,
-            perimeter_dict,
-            reference_control_dict,
-        )
-        applied_control_dict.reload()
-
-        # Ensure applied controls have asset linked
-        if asset_id:
-            for c in applied_control_dict.get_controls().values():
-                if f"on {app_name}" in c.get_name():
-                    applied_control_dict.ensure_assets_for_control(c.get_name(), [asset_id])
-
-        # Step 7: Update Asset Criticality
+        # Step 6: Update Asset Criticality
         compliance_dict.update_asset_criticality(criticality_mapping, asset_dict)
 
-        # Step 8: Create Risk Assessment & evaluate Risk Scenarios
+        # Step 7: Create Risk Assessment & evaluate Risk Scenarios
         from tests.test_application_scenarios import ApplicationRiskSimulator
         simulator = ApplicationRiskSimulator(str(self.framework_yaml))
         sim_results = simulator.evaluate_application(csv_path)
@@ -979,7 +1177,7 @@ class ExamplesManager:
         )
         ra_id = risk_assessment.get("id") if isinstance(risk_assessment, dict) else ""
 
-        # Reload requirement assessments so their applied_controls field contains the controls
+        # Reload requirement assessments
         compliance_dict.requirement_assessments.reload()
         req_assessments = compliance_dict.requirement_assessments.get_requirement_assessments()
 
@@ -1074,15 +1272,26 @@ class ExamplesManager:
             )
             scenarios_created += 1
 
+        # Step 8: Create Applied Controls with calculated priorities (created after risk scenarios)
+        compliance_dict.create_missing_applied_controls(
+            applied_control_dict,
+            perimeter_dict,
+            reference_control_dict,
+        )
+        applied_control_dict.reload()
+
+        # Ensure applied controls have asset linked
+        if asset_id:
+            for c in applied_control_dict.get_controls().values():
+                if f"on {app_name}" in c.get_name():
+                    applied_control_dict.ensure_assets_for_control(c.get_name(), [asset_id])
+
         # Step 9: Guarantee complete control & asset link synchronization
         time.sleep(1)
         link_res = self.link_controls_for_application(app_name)
 
         # Step 10: Generate Findings from Audit Answers
         findings_res = self.create_findings_for_application(app_name)
-
-        # Step 11: Generate Security Exceptions
-        exceptions_res = self.create_security_exceptions_for_application(app_name)
 
         # Reload for fresh state
         time.sleep(1)
@@ -1108,7 +1317,6 @@ class ExamplesManager:
             "threats_linked": link_res.get("threats_linked", 0),
             "findings_assessment_id": findings_res.get("findings_assessment_id"),
             "findings_count": findings_res.get("findings_count", 0),
-            "security_exceptions_count": len(exceptions_res),
         }
 
 
@@ -1298,10 +1506,7 @@ class ExamplesManager:
         assignment_id = assignment_ids[0] if assignment_ids else None
         utils.log(f"Requirement assignment ID for {ca_name}: {assignment_id}", level=logging.INFO)
 
-        # Step 10: Generate Security Exceptions if defined
-        exceptions_res = self.create_security_exceptions_for_application(app_name)
-
-        # Step 11: Refresh cached state
+        # Step 10: Refresh cached state
         self._init_data(force_reload=True)
 
         return {
@@ -1319,7 +1524,6 @@ class ExamplesManager:
             "compliance_status": ca_obj.get_status() if ca_obj else "in_progress",
             "requirement_assessments_count": len(req_ids),
             "assignment_id": assignment_id,
-            "security_exceptions_count": len(exceptions_res),
             "direct_url": f"{utils.BASE_URL}/",
         }
 
@@ -1439,19 +1643,6 @@ class ExamplesManager:
                 f"Application '{app_name}' has 0 answered requirements in assessment '{ca_name}'. "
                 f"Please answer questions in CISO Assistant UI, or supply an answers file/profile."
             )
-
-        # Create missing applied controls
-        compliance_dict.create_missing_applied_controls(
-            applied_control_dict,
-            perimeter_dict,
-            reference_control_dict,
-        )
-        applied_control_dict.reload()
-
-        if asset_id:
-            for c in applied_control_dict.get_controls().values():
-                if f"on {app_name}" in c.get_name():
-                    applied_control_dict.ensure_assets_for_control(c.get_name(), [asset_id])
 
         # Update Asset Criticality
         compliance_dict.update_asset_criticality(criticality_mapping, asset_dict)
@@ -1598,14 +1789,31 @@ class ExamplesManager:
             )
             scenarios_created += 1
 
+        # Create missing applied controls (after risk scenarios so priorities can be computed)
+        compliance_dict.create_missing_applied_controls(
+            applied_control_dict,
+            perimeter_dict,
+            reference_control_dict,
+        )
+        applied_control_dict.reload()
+
+        if asset_id:
+            for c in applied_control_dict.get_controls().values():
+                if f"on {app_name}" in c.get_name():
+                    applied_control_dict.ensure_assets_for_control(c.get_name(), [asset_id])
+
         time.sleep(1)
         link_res = self.link_controls_for_application(app_name)
 
         # Generate Findings from Audit Answers
         findings_res = self.create_findings_for_application(app_name)
 
-        # Generate Security Exceptions
-        exceptions_res = self.create_security_exceptions_for_application(app_name)
+        applied_control_dict.reload()
+        app_controls = {
+            c.get_id(): c
+            for c in applied_control_dict.get_controls().values()
+            if f"on {app_name}" in c.get_name()
+        }
 
         time.sleep(1)
         self._init_data(force_reload=True)
@@ -1626,7 +1834,6 @@ class ExamplesManager:
             "threats_linked": link_res.get("threats_linked", 0),
             "findings_assessment_id": findings_res.get("findings_assessment_id"),
             "findings_count": findings_res.get("findings_count", 0),
-            "security_exceptions_count": len(exceptions_res),
         }
 
     def create_findings_for_application(self, app_id_or_name: str) -> dict[str, Any]:
@@ -1715,114 +1922,7 @@ class ExamplesManager:
             "findings_count": 0,
         }
 
-    def create_security_exceptions_for_application(self, app_id_or_name: str) -> list[dict[str, Any]]:
-        """Create or update example security exceptions for an application.
 
-        Args:
-            app_id_or_name: Application ID or Name.
-
-        Returns:
-            List of created or updated security exception API dictionaries.
-        """
-        app_spec = next(
-            (a for a in EXAMPLE_APPLICATIONS if a["id"] == app_id_or_name or a["name"] == app_id_or_name),
-            None,
-        )
-        app_name = app_spec["name"] if app_spec else app_id_or_name
-
-        data = self._init_data()
-        sec_exp_dict: SecurityExceptionDict | None = data.get("security_exception_dict")
-        if not sec_exp_dict:
-            return []
-
-        folder_id = self.get_or_create_folder()
-        perimeter_dict = data.get("perimeter_dict")
-        asset_dict = data.get("asset_dict")
-        applied_control_dict = data.get("applied_control_dict")
-        user_dict = data.get("user_dict")
-
-        asset_id = asset_dict.get_asset_id_from_perimeter_name(app_name) if asset_dict else None
-        if not asset_id and perimeter_dict:
-            p_id = perimeter_dict.get_id_from_name(app_name)
-            if p_id and asset_dict:
-                asset_id = asset_dict.get_asset_id_from_perimeter_id(p_id)
-
-        user_email = app_spec.get("user", {}).get("email") if app_spec else None
-        user_id = user_dict.get_id_from_email(user_email) if user_dict and user_email else None
-        actor_id = self.resolve_actor_id(user_id=user_id, user_email=user_email)
-
-        exceptions_specs = app_spec.get("exceptions", []) if app_spec else []
-        if not exceptions_specs:
-            exceptions_specs = [
-                {
-                    "name": f"Security Exception for {app_name}",
-                    "ref_id": f"EXC-{app_name.upper().replace(' ', '_')[:10]}-001",
-                    "description": f"Standard operational security exception for {app_name}.",
-                    "severity": 2,
-                    "status": "approved",
-                    "expiration_date": "2027-12-31",
-                    "observation": f"Compensating controls documented for {app_name}.",
-                }
-            ]
-
-        results = []
-        for exc_def in exceptions_specs:
-            exc_name = exc_def["name"]
-            if app_name not in exc_name:
-                exc_name = f"{exc_name} ({app_name})"
-
-            linked_ctrl_ids = []
-            ctrl_ref = exc_def.get("reference_control")
-            if ctrl_ref and applied_control_dict:
-                norm_ref = ctrl_ref.lower().replace("_", " ").strip()
-                for ctrl in applied_control_dict.get_controls().values():
-                    c_name = ctrl.get_name().lower()
-                    if f"on {app_name.lower()}" in c_name:
-                        if norm_ref in c_name or ctrl_ref.lower() in c_name:
-                            linked_ctrl_ids.append(ctrl.get_id())
-                # If specific ref didn't match by name, fallback to all app controls
-                if not linked_ctrl_ids:
-                    for ctrl in applied_control_dict.get_controls().values():
-                        if f"on {app_name.lower()}" in ctrl.get_name().lower():
-                            linked_ctrl_ids.append(ctrl.get_id())
-
-            assets_list = [asset_id] if asset_id else []
-            owners_list = [actor_id] if actor_id else []
-
-            created = sec_exp_dict.create_security_exception(
-                name=exc_name,
-                folder_id=folder_id or "",
-                description=exc_def.get("description"),
-                ref_id=exc_def.get("ref_id"),
-                severity=exc_def.get("severity", 2),
-                status=exc_def.get("status", "approved"),
-                expiration_date=exc_def.get("expiration_date", "2027-12-31"),
-                is_published=exc_def.get("is_published", True),
-                observation=exc_def.get("observation"),
-                link=exc_def.get("link"),
-                assets=assets_list,
-                applied_controls=linked_ctrl_ids,
-                owners=owners_list,
-            )
-            if created and isinstance(created, dict) and not created.get("error"):
-                results.append(created)
-
-        return results
-
-    def create_all_security_exceptions(self) -> dict[str, int]:
-        """Provision or update security exceptions for all deployed example applications.
-
-        Returns:
-            Dict mapping application name to count of created/updated exceptions.
-        """
-        results = {}
-        status_list = self.get_status()
-        deployed_apps = [s for s in status_list if s["exists"]]
-        for app in deployed_apps:
-            app_name = app["name"]
-            created = self.create_security_exceptions_for_application(app_name)
-            results[app_name] = len(created)
-        return results
 
     def link_controls_for_application(self, app_id_or_name: str) -> dict[str, Any]:
 
@@ -2120,7 +2220,6 @@ class ExamplesManager:
             "users_deleted": 0,
             "findings_deleted": 0,
             "findings_assessments_deleted": 0,
-            "security_exceptions_deleted": 0,
             "scenarios_deleted": 0,
             "risk_assessments_deleted": 0,
             "applied_controls_deleted": 0,
@@ -2167,16 +2266,6 @@ class ExamplesManager:
                     deleted["findings_deleted"] += f_count
                     if findings_fa_dict.delete_findings_assessment(fa.get_id()):
                         deleted["findings_assessments_deleted"] += 1
-
-        # 0e. Delete Security Exceptions
-        sec_exp_dict = data.get("security_exception_dict")
-        if sec_exp_dict:
-            for exc in list(sec_exp_dict.get_security_exceptions().values()):
-                exc_assets = exc.get_asset_ids() if hasattr(exc, "get_asset_ids") else []
-                if (asset_id and asset_id in exc_assets) or app_name in exc.get_name():
-                    if sec_exp_dict.delete_security_exception(exc.get_id()):
-                        deleted["security_exceptions_deleted"] += 1
-
 
         # 1. Delete Risk Assessment and Risk Scenarios
         for ra in list(risk_dict.get_risk_assessments().values()):
@@ -2235,10 +2324,94 @@ class ExamplesManager:
         return results
 
     def remove_all_examples(self) -> list[dict[str, Any]]:
-        """Remove all 4 example applications from CISO Assistant."""
+        """Remove all example applications from CISO Assistant."""
         results = []
         for app in EXAMPLE_APPLICATIONS:
             res = self.remove_example_application(app["id"])
             results.append(res)
         return results
+
+    def create_database_dump(
+        self,
+        output_dir: str | Path | None = None,
+        filename: str | None = None,
+    ) -> Path | None:
+        """Create a full database dump via CISO Assistant Serdes API (/api/serdes/dump-db/).
+
+        Args:
+            output_dir: Target directory (default: 'backups').
+            filename: Custom filename.
+
+        Returns:
+            Path to downloaded dump file, or None on failure.
+        """
+        return self.backup_manager.create_database_dump(output_dir=output_dir, filename=filename)
+
+    def restore_database_dump(self, dump_path: str | Path) -> dict[str, Any] | bool | None:
+        """Restore database from dump file via CISO Assistant Serdes API (/api/serdes/load-backup/).
+
+        Args:
+            dump_path: Path to database dump file on disk.
+
+        Returns:
+            API response or True on success, error dict or None on failure.
+        """
+        res = self.backup_manager.restore_database_dump(dump_path)
+        self._init_data(force_reload=True)
+        return res
+
+    def create_workspace_snapshot(
+        self,
+        output_dir: str | Path | None = None,
+        filename: str | None = None,
+    ) -> Path:
+        """Export current workspace resources to a structured JSON snapshot file.
+
+        Args:
+            output_dir: Target directory (default: 'backups').
+            filename: Custom filename.
+
+        Returns:
+            Path to created snapshot file.
+        """
+        data = self._init_data()
+        return self.backup_manager.create_workspace_snapshot(
+            output_dir=output_dir,
+            filename=filename,
+            folder_name=self.folder_name,
+            data=data,
+        )
+
+    def restore_workspace_snapshot(self, snapshot_path: str | Path) -> dict[str, Any]:
+        """Restore workspace resources from a JSON snapshot file.
+
+        Args:
+            snapshot_path: Path to snapshot file.
+
+        Returns:
+            Dict summary of restored items.
+        """
+        return self.backup_manager.restore_workspace_snapshot(snapshot_path, manager=self)
+
+    def list_backups(self, backup_dir: str | Path | None = None) -> list[dict[str, Any]]:
+        """List all discovered backups and snapshots.
+
+        Args:
+            backup_dir: Directory to scan (default: 'backups').
+
+        Returns:
+            List of backup summary dictionaries sorted newest first.
+        """
+        return self.backup_manager.list_backups(backup_dir=backup_dir)
+
+    def inspect_backup(self, backup_path: str | Path) -> dict[str, Any]:
+        """Inspect metadata, checksum, and contents of a specific backup file.
+
+        Args:
+            backup_path: Path to backup file on disk.
+
+        Returns:
+            Inspection metadata dictionary.
+        """
+        return self.backup_manager.inspect_backup(backup_path)
 

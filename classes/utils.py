@@ -1,5 +1,7 @@
 import logging
 import json
+import os
+from pathlib import Path
 from typing import Any
 
 import requests
@@ -14,10 +16,28 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 LOGGER = logging.getLogger(__name__)
 
 # Configure logging format and level
+_LOG_LEVEL_ENV = os.getenv("LOG_LEVEL", "WARNING").upper()
+_INITIAL_LOG_LEVEL = getattr(logging, _LOG_LEVEL_ENV, logging.WARNING)
+
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=_INITIAL_LOG_LEVEL,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    force=True,
 )
+LOGGER.setLevel(_INITIAL_LOG_LEVEL)
+
+
+def set_log_level(level: int | str) -> None:
+    """Set the logging level dynamically for the root logger and module logger.
+
+    Args:
+        level: Integer logging level (e.g. logging.WARNING) or level name string (e.g. 'INFO', 'WARNING').
+    """
+    if isinstance(level, str):
+        level = getattr(logging, level.upper(), logging.WARNING)
+    logging.getLogger().setLevel(level)
+    LOGGER.setLevel(level)
+
 
 
 def load_yaml_file(yaml_file: str) -> dict[str, Any]:
@@ -185,6 +205,99 @@ def get_return(
         return None
 
 
+def download_file(endpoint: str, target_path: str | Path, params: dict[str, Any] | None = None) -> bool:
+    """Download binary or streamed file from an API endpoint to disk.
+
+    Args:
+        endpoint: API endpoint (e.g. '/api/serdes/dump-db/')
+        target_path: Destination file path on disk
+        params: Optional query parameters
+
+    Returns:
+        True if successfully downloaded, False otherwise
+    """
+    url = endpoint if endpoint.startswith("http") else f"{BASE_URL.rstrip('/')}/{endpoint.lstrip('/')}"
+    target_path = Path(target_path)
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+
+    LOGGER.info(f"Downloading from {endpoint} to {target_path}...")
+    try:
+        response = requests.get(
+            url,
+            params=params,
+            headers=HEADERS,
+            verify=False,
+            stream=True,
+        )
+        response.raise_for_status()
+        with open(target_path, "wb") as f:
+            for chunk in response.iter_content(chunk_size=65536):
+                if chunk:
+                    f.write(chunk)
+        LOGGER.info(f"Successfully downloaded {target_path.stat().st_size} bytes to {target_path}")
+        return True
+    except Exception:
+        LOGGER.exception(f"Failed to download file from {endpoint}")
+        return False
+
+
+def upload_file(
+    endpoint: str,
+    file_path: str | Path,
+    field_name: str = "backup",
+    extra_data: dict[str, Any] | None = None,
+) -> dict[str, Any] | bool:
+    """Upload a file using multipart form-data to an API endpoint.
+
+    Args:
+        endpoint: API endpoint (e.g. '/api/serdes/load-backup/')
+        file_path: Source file path on disk
+        field_name: Form field name for file (default: 'backup')
+        extra_data: Optional form data fields
+
+    Returns:
+        Response dict or True if successful, None/error dict on failure
+    """
+    url = endpoint if endpoint.startswith("http") else f"{BASE_URL.rstrip('/')}/{endpoint.lstrip('/')}"
+    file_path = Path(file_path)
+    if not file_path.exists():
+        LOGGER.error(f"File not found for upload: {file_path}")
+        return {"error": 404, "details": f"File not found: {file_path}"}
+
+    # For multipart uploads, exclude 'Content-Type: application/json' so requests sets boundary
+    upload_headers = {k: v for k, v in HEADERS.items() if k.lower() != "content-type"}
+
+    LOGGER.info(f"Uploading {file_path} to {endpoint} (field={field_name})...")
+    try:
+        with open(file_path, "rb") as f:
+            files = {field_name: (file_path.name, f)}
+            response = requests.post(
+                url,
+                files=files,
+                data=extra_data,
+                headers=upload_headers,
+                verify=False,
+            )
+
+        if response.status_code == 400:
+            LOGGER.error(f"Error 400 uploading to {endpoint}: {response.text}")
+            try:
+                return {"error": 400, "details": response.json()}
+            except Exception:
+                return {"error": 400, "details": response.text}
+
+        response.raise_for_status()
+        if response.status_code == 204:
+            return True
+        try:
+            return response.json()
+        except Exception:
+            return True
+    except Exception:
+        LOGGER.exception(f"Failed to upload file to {endpoint}")
+        return None
+
+
 def get_all_results(endpoint: str, params: dict[str, Any] | None = None, force_reload: bool = False) -> list[dict[str, Any]]:
     """Collect all paginated results for a given endpoint.
     
@@ -260,7 +373,6 @@ def initialize_data_objects() -> dict[str, Any]:
     from classes.audits.requirement_assessment import RequirementAssessmentDict
     from classes.controls.applied import AppliedControlDict
     from classes.controls.reference import ReferenceControlDict
-    from classes.controls.security_exception import SecurityExceptionDict
     from classes.core.framework import FrameworkDict, LibraryFile
     from classes.core.risk import RiskAssessmentDict, RiskMatrixDict, RiskScenarioDict, ThreatDict, VulnerabilityDict
     from classes.core.user import UserDict
@@ -276,7 +388,6 @@ def initialize_data_objects() -> dict[str, Any]:
     framework_dict = FrameworkDict()
     reference_control_dict = ReferenceControlDict()
     applied_control_dict = AppliedControlDict()
-    security_exception_dict = SecurityExceptionDict()
     risk_assessment_dict = RiskAssessmentDict()
     risk_scenario_dict = RiskScenarioDict()
     user_dict = UserDict()
@@ -298,7 +409,6 @@ def initialize_data_objects() -> dict[str, Any]:
         "framework_dict": framework_dict,
         "reference_control_dict": reference_control_dict,
         "applied_control_dict": applied_control_dict,
-        "security_exception_dict": security_exception_dict,
         "risk_assessment_dict": risk_assessment_dict,
         "risk_scenario_dict": risk_scenario_dict,
         "user_dict": user_dict,

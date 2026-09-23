@@ -98,15 +98,3 @@ expected_risk_scenarios:
     risk_level: 2
     control_priority: 3 # 3 (Medium)
 
-# ==============================================================================
-# Security Exceptions
-# ==============================================================================
-exceptions:
-  - name: "Exception: Plaintext Database Storage in Factory OT Enclave"
-    ref_id: "EXC-ERP-001"
-    description: "Plant manufacturing ERP database operates without encryption at rest on legacy OT physical servers."
-    severity: 2 # Medium
-    status: "approved"
-    expiration_date: "2027-12-31"
-    observation: "Compensating control: Factory subnet is physically air-gapped from corporate LAN and Internet."
-    reference_control: "data_encryption_at_rest"

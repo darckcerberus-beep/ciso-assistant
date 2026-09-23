@@ -47,49 +47,90 @@ def print_banner():
 
 def print_status_table(status_list):
     """Print formatted deployment summary table and resource breakdown."""
-    sep = "-" * 141
+    sep = "-" * 168
     print("\n" + sep)
-    print(f"{'#':<3} | {'Application Name':<26} | {'Status':<11} | {'TPRM Entity':<12} | {'User':<20} | {'Findings':<9} | {'Exceptions':<10} | {'Scenarios':<9} | {'Controls':<8} | {'Linked':<10}")
+    print(f"{'#':<3} | {'Application Name':<25} | {'Status':<24} | {'App Created':<11} | {'Audit Answered':<15} | {'Risks Created':<13} | {'Controls':<8} | {'Linked':<8} | {'TPRM':<5} | {'User':<18} | {'Findings':<8}")
     print(sep)
     for idx, item in enumerate(status_list, start=1):
-        state_str = "DEPLOYED" if item["exists"] else "NOT CREATED"
-        entity_str = "YES" if item.get("entity_id") else "NO"
+        name_str = item["name"]
+        if len(name_str) > 25:
+            name_str = name_str[:22] + "..."
+
+        status_str = item.get("lifecycle_status") or item.get("status") or ("DEPLOYED" if item.get("exists") else "NOT CREATED")
+        if len(status_str) > 24:
+            status_str = status_str[:21] + "..."
+        app_str = "YES" if (item.get("app_created") or item.get("exists")) else "NO"
+
+        if not item.get("exists"):
+            audit_str = "-"
+            risks_str = "-"
+            ctrl_count = "-"
+            linked_str = "-"
+            findings_str = "-"
+        else:
+            tot = item.get("total_requirements_count", 0)
+            ans = item.get("answered_requirements_count", 0)
+            if not item.get("compliance_assessment_id"):
+                audit_str = "NO"
+            elif tot > 0:
+                if ans >= tot:
+                    audit_str = f"YES ({ans}/{tot})"
+                elif ans > 0:
+                    audit_str = f"PARTIAL ({ans}/{tot})"
+                else:
+                    audit_str = f"NO ({ans}/{tot})"
+            else:
+                audit_str = "YES" if item.get("audit_answered") else "NO"
+
+            sc_count = item.get("risk_scenarios_count", 0)
+            if sc_count > 0:
+                risks_str = f"YES ({sc_count})"
+            elif item.get("risk_assessment_id"):
+                risks_str = "NO (0)"
+            else:
+                risks_str = "NO"
+
+            ctrl_count = str(item.get("applied_controls_count", 0))
+            linked_str = f"{item.get('existing_controls_linked', 0)}/{item.get('planned_controls_linked', 0)}"
+            findings_str = str(item.get("findings_count", 0))
+
+        tprm_str = "YES" if item.get("entity_id") else "NO"
         user_str = item.get("user_email") or "-"
-        if len(user_str) > 20:
-            user_str = user_str[:17] + "..."
-        findings_str = str(item.get("findings_count", 0)) if item["exists"] else "-"
-        exc_str = str(item.get("security_exceptions_count", 0)) if item["exists"] else "-"
-        sc_count = str(item["risk_scenarios_count"]) if item["exists"] else "-"
-        ctrl_count = str(item["applied_controls_count"]) if item["exists"] else "-"
-        linked_str = f"{item.get('existing_controls_linked', 0)}/{item.get('planned_controls_linked', 0)}" if item["exists"] else "-"
-        print(f"{idx:<3} | {item['name']:<26} | {state_str:<11} | {entity_str:<12} | {user_str:<20} | {findings_str:<9} | {exc_str:<10} | {sc_count:<9} | {ctrl_count:<8} | {linked_str:<10}")
+        if len(user_str) > 18:
+            user_str = user_str[:15] + "..."
+
+        print(f"{idx:<3} | {name_str:<25} | {status_str:<24} | {app_str:<11} | {audit_str:<15} | {risks_str:<13} | {ctrl_count:<8} | {linked_str:<8} | {tprm_str:<5} | {user_str:<18} | {findings_str:<8}")
     print(sep)
 
     # Detailed view
-    deployed = [s for s in status_list if s["exists"]]
+    deployed = [s for s in status_list if s.get("exists")]
     if deployed:
         print("\nDeployed Resources Breakdown:")
         for s in deployed:
             print(f"\n  * {s['name']}:")
+            print(f"    - Lifecycle Status:         {s.get('lifecycle_status') or 'UNKNOWN'}")
+            print(f"    - App Created:              {'YES' if (s.get('app_created') or s.get('exists')) else 'NO'}")
+            tot = s.get("total_requirements_count", 0)
+            ans = s.get("answered_requirements_count", 0)
+            if tot > 0:
+                is_complete = (ans >= tot) or s.get("compliance_status") == "completed"
+                status_label = "YES" if is_complete else ("PARTIAL" if ans > 0 else "NO")
+                print(f"    - Audit Answered:           {status_label} ({ans}/{tot} requirements answered, {s.get('audit_completion_pct', 0)}% complete)")
+            else:
+                print(f"    - Audit Answered:           {'YES' if s.get('audit_answered') else 'NO'}")
+            print(f"    - Risks Created:            {'YES (' + str(s.get('risk_scenarios_count', 0)) + ' scenarios)' if s.get('risks_created') else 'NO'}")
             print(f"    - TPRM External Entity ID:  {s.get('entity_id') or 'None'}")
             print(f"    - TPRM Assessment ID:       {s.get('entity_assessment_id') or 'None'}")
             print(f"    - TPRM Conclusion:          {s.get('tprm_conclusion') or 'None'}")
             print(f"    - Representative User:      {s.get('user_email') or 'None'} (User ID: {s.get('user_id') or 'None'})")
-            print(f"    - Perimeter ID:             {s['perimeter_id'] or 'None'}")
-            print(f"    - Asset ID:                 {s['asset_id'] or 'None'}")
-            print(f"    - Compliance Assessment:    {s['compliance_assessment_name'] or 'None'}")
+            print(f"    - Perimeter ID:             {s.get('perimeter_id') or 'None'}")
+            print(f"    - Asset ID:                 {s.get('asset_id') or 'None'}")
+            print(f"    - Compliance Assessment:    {s.get('compliance_assessment_name') or 'None'}")
             print(f"    - Findings Assessment ID:   {s.get('findings_assessment_id') or 'None'}")
             print(f"    - Audit Findings Count:     {s.get('findings_count', 0)}")
-            print(f"    - Security Exceptions:      {s.get('security_exceptions_count', 0)}")
-            if s.get("security_exceptions"):
-                for exc in s["security_exceptions"]:
-                    status_lbl = exc.get("status", "").upper()
-                    sev = exc.get("severity", -1)
-                    exp = exc.get("expiration_date") or "No expiry"
-                    print(f"        * [{status_lbl}] {exc.get('name', 'Exception')} (Severity: {sev}, Expires: {exp})")
-            print(f"    - Risk Assessment ID:       {s['risk_assessment_id'] or 'None'}")
-            print(f"    - Risk Scenarios Created:   {s['risk_scenarios_count']}")
-            print(f"    - Applied Controls Created: {s['applied_controls_count']}")
+            print(f"    - Risk Assessment ID:       {s.get('risk_assessment_id') or 'None'}")
+            print(f"    - Risk Scenarios Created:   {s.get('risk_scenarios_count', 0)}")
+            print(f"    - Applied Controls Created: {s.get('applied_controls_count', 0)}")
             print(f"    - Controls Linked to Risks: {s.get('existing_controls_linked', 0)} Active (Existing), {s.get('planned_controls_linked', 0)} To Do (Planned)")
             print(f"    - Vulnerabilities Linked:   {s.get('vulnerabilities_linked', 0)}")
             print(f"    - Threats Linked:           {s.get('threats_linked', 0)}")
@@ -179,7 +220,6 @@ def create_examples_ui(manager: ExamplesManager, target="all"):
                 print(f"     [OK] Vulnerabilities Linked: {res.get('vulnerabilities_linked', 0)}")
                 print(f"     [OK] Threats Linked: {res.get('threats_linked', 0)}")
                 print(f"     [OK] Audit Findings Generated: {res.get('findings_count', 0)}")
-                print(f"     [OK] Security Exceptions: {res.get('security_exceptions_count', 0)}")
             except Exception as e:
                 print(f"     [FAILED] Error creating {app['name']}: {e}")
         print("\n[SUCCESS] Completed provisioning of all example applications.")
@@ -206,7 +246,6 @@ def create_examples_ui(manager: ExamplesManager, target="all"):
             print(f"     [OK] Vulnerabilities Linked: {res.get('vulnerabilities_linked', 0)}")
             print(f"     [OK] Threats Linked: {res.get('threats_linked', 0)}")
             print(f"     [OK] Audit Findings Generated: {res.get('findings_count', 0)}")
-            print(f"     [OK] Security Exceptions: {res.get('security_exceptions_count', 0)}")
             print(f"\n[SUCCESS] Successfully created {app['name']} in CISO Assistant!")
 
             print("Waiting 2s for CISO Assistant to finalize updates before checking status...")
@@ -354,7 +393,7 @@ def generate_controls_and_risks_ui(
         else:
             print("\nSelect target application:")
             for idx, app in enumerate(deployed_apps, start=1):
-                ans_str = "Unanswered" if app.get("compliance_status") == "in_progress" and not app.get("applied_controls_count") else "Configured"
+                ans_str = app.get("lifecycle_status") or ("Answered" if app.get("audit_answered") else "Unanswered")
                 print(f" {idx}) {app['name']:<25} ({ans_str})")
             print(f" {len(deployed_apps) + 1}) Enter custom application name manually")
 
@@ -431,7 +470,6 @@ def generate_controls_and_risks_ui(
         print(f" Risk Scenarios Evaluated: {res.get('scenarios_created', 0)}")
         print(f" Controls Linked:          {res.get('existing_controls_linked', 0)} active, {res.get('planned_controls_linked', 0)} planned")
         print(f" Audit Findings Created:   {res.get('findings_count', 0)}")
-        print(f" Security Exceptions:     {res.get('security_exceptions_count', 0)}")
         print("-" * 80)
 
         print(f" View the generated scenarios and controls in CISO Assistant at:")
@@ -474,7 +512,6 @@ def remove_examples_ui(manager: ExamplesManager, target="all", auto_confirm=Fals
                       f"{del_res.get('users_deleted', 0)} user(s), "
                       f"{del_res.get('findings_deleted', 0)} finding(s), "
                       f"{del_res.get('findings_assessments_deleted', 0)} findings assessment(s), "
-                      f"{del_res.get('security_exceptions_deleted', 0)} security exception(s), "
                       f"{del_res['risk_assessments_deleted']} risk assessment(s), "
                       f"{del_res['scenarios_deleted']} scenario(s), "
                       f"{del_res['compliance_assessments_deleted']} compliance assessment(s), "
@@ -495,7 +532,6 @@ def remove_examples_ui(manager: ExamplesManager, target="all", auto_confirm=Fals
                   f"{del_res.get('users_deleted', 0)} user(s), "
                   f"{del_res.get('findings_deleted', 0)} finding(s), "
                   f"{del_res.get('findings_assessments_deleted', 0)} findings assessment(s), "
-                  f"{del_res.get('security_exceptions_deleted', 0)} security exception(s), "
                   f"{del_res['risk_assessments_deleted']} risk assessment(s), "
                   f"{del_res['scenarios_deleted']} scenario(s), "
                   f"{del_res['compliance_assessments_deleted']} compliance assessment(s), "
@@ -508,24 +544,113 @@ def remove_examples_ui(manager: ExamplesManager, target="all", auto_confirm=Fals
             print(f"[ERROR] Failed to remove {target_name}: {e}")
 
 
-def create_exceptions_ui(manager: ExamplesManager, target="all"):
-    """Provision security exceptions for applications."""
+def backup_ui(manager: ExamplesManager, backup_type: str = "snapshot"):
+    """Create a backup (database dump or workspace snapshot)."""
     ok, msg = manager.test_connection()
     if not ok:
         print(f"\n[ERROR] API Connection Failed: {msg}")
         return
 
-    if target == "all":
-        print("\nProvisioning security exceptions for all deployed applications...")
-        res = manager.create_all_security_exceptions()
-        for app_name, count in res.items():
-            print(f"     [OK] {app_name}: {count} security exception(s) created/updated")
-        print("\n[SUCCESS] Completed security exceptions provisioning.")
+    print("\n" + "=" * 80)
+    print(f"               CREATING {backup_type.upper()} BACKUP")
+    print("=" * 80)
+
+    if backup_type == "dump":
+        print("Initiating full database dump via /api/serdes/dump-db/...")
+        dump_path = manager.create_database_dump()
+        if dump_path:
+            stat = manager.inspect_backup(dump_path)
+            print("\n[SUCCESS] Database dump successfully created!")
+            print(f" File:     {stat['path']}")
+            print(f" Size:     {stat['size_formatted']}")
+            print(f" SHA-256:  {stat['sha256']}")
+        else:
+            print("\n[ERROR] Failed to create database dump.")
     else:
-        print(f"\nProvisioning security exceptions for '{target}'...")
-        created = manager.create_security_exceptions_for_application(target)
-        print(f"     [OK] {len(created)} security exception(s) created/updated for {target}")
-    show_status(manager, wait_seconds=0)
+        print("Exporting workspace resources to JSON snapshot...")
+        snapshot_path = manager.create_workspace_snapshot()
+        stat = manager.inspect_backup(snapshot_path)
+        print("\n[SUCCESS] Workspace snapshot successfully created!")
+        print(f" File:     {stat['path']}")
+        print(f" Size:     {stat['size_formatted']}")
+        print(f" SHA-256:  {stat['sha256']}")
+        if "counts" in stat:
+            print("\nResource Breakdown:")
+            for k, v in stat["counts"].items():
+                print(f"  - {k.replace('_', ' ').capitalize():<28}: {v}")
+
+
+def restore_ui(manager: ExamplesManager, file_path: str):
+    """Restore from a backup file (database dump or workspace snapshot)."""
+    ok, msg = manager.test_connection()
+    if not ok:
+        print(f"\n[ERROR] API Connection Failed: {msg}")
+        return
+
+    path = Path(file_path)
+    if not path.exists():
+        print(f"\n[ERROR] Backup file not found: {file_path}")
+        return
+
+    stat = manager.inspect_backup(path)
+    b_type = stat.get("type", "unknown")
+
+    print("\n" + "=" * 80)
+    print("               RESTORE FROM BACKUP")
+    print("=" * 80)
+    print(f" File:     {stat['filename']}")
+    print(f" Type:     {b_type}")
+    print(f" Size:     {stat['size_formatted']}")
+    print(f" SHA-256:  {stat['sha256']}")
+    print("-" * 80)
+
+    if b_type == "database_dump" or path.suffix in (".dump", ".sql"):
+        print("---> Restoring database via /api/serdes/load-backup/...")
+        res = manager.restore_database_dump(path)
+        if res is True or (isinstance(res, dict) and not res.get("error")):
+            print("\n[SUCCESS] Database restore completed successfully!")
+            show_status(manager, wait_seconds=2)
+        else:
+            print(f"\n[ERROR] Database restore failed: {res}")
+    elif b_type == "workspace_snapshot":
+        print("---> Restoring workspace resources from JSON snapshot...")
+        res = manager.restore_workspace_snapshot(path)
+        if res.get("status") == "success":
+            print("\n[SUCCESS] Workspace snapshot restored successfully!")
+            print(f" Expected Resources: {res.get('expected_counts', {})}")
+            print(f" Restored Categories: {list(res.get('restored_counts', {}).keys())}")
+            show_status(manager, wait_seconds=2)
+        else:
+            print(f"\n[ERROR] Snapshot restore failed: {res.get('details')}")
+    else:
+        print(f"\n[ERROR] Unrecognized backup file format: {path.name}")
+
+
+def list_backups_ui(manager: ExamplesManager):
+    """Display formatted table of all discovered backups."""
+    backups = manager.list_backups()
+    print("\n" + "=" * 80)
+    print("                       DISCOVERED BACKUPS")
+    print("=" * 80)
+    if not backups:
+        print(f"No backups found in '{manager.backup_manager.backup_dir}'.")
+        print("Use option 10 or 'python3 main.py --backup' to create one.")
+        print("=" * 80)
+        return
+
+    sep = "-" * 98
+    print(sep)
+    print(f"{'#':<3} | {'Backup File':<38} | {'Type':<20} | {'Size':<10} | {'Modified (UTC)':<16}")
+    print(sep)
+    for idx, b in enumerate(backups, start=1):
+        f_name = b['filename']
+        if len(f_name) > 38:
+            f_name = f_name[:35] + "..."
+        mod_str = b['modified_at'][:19].replace("T", " ")
+        print(f"{idx:<3} | {f_name:<38} | {b['type']:<20} | {b['size_formatted']:<10} | {mod_str:<16}")
+    print(sep)
+    print(f"Total: {len(backups)} backup(s) in {manager.backup_manager.backup_dir}/")
+    print("=" * 80)
 
 
 def run_offline_simulation():
@@ -638,7 +763,7 @@ def interactive_menu(manager: ExamplesManager):
         print(" 6) Remove ALL Examples from CISO Assistant")
         print(" 7) Remove a Specific Application")
         print(" 8) Run Offline Simulation (Local Preview without API)")
-        print(" 9) Provision / Sync Security Exceptions for Applications")
+        print(" 9) Backup & Restore Management (Dumps, Snapshots, Restores, Listing)")
         print(" 0) Exit")
         print("=" * 80)
 
@@ -683,12 +808,44 @@ def interactive_menu(manager: ExamplesManager):
         elif choice == "8":
             run_offline_simulation()
         elif choice == "9":
-            create_exceptions_ui(manager, target="all")
+            print("\nSelect Backup & Restore action:")
+            print(" 1) Create Workspace Snapshot Backup (Portable JSON export)")
+            print(" 2) Create Full Database Dump (Server-side /api/serdes/dump-db/)")
+            print(" 3) Restore from Backup File (Dump or Snapshot)")
+            print(" 4) List Discovered Backups")
+            b_choice = input("Enter choice [1-4, default: 1] (or 'c' to cancel): ").strip()
+            if b_choice.lower() in ("c", "cancel"):
+                pass
+            elif b_choice == "2":
+                backup_ui(manager, backup_type="dump")
+            elif b_choice == "3":
+                backups = manager.list_backups()
+                if not backups:
+                    print("No backups found in default directory.")
+                    file_input = input("Enter backup file path (or 'c' to cancel): ").strip()
+                    if file_input and file_input.lower() not in ("c", "cancel"):
+                        restore_ui(manager, file_input)
+                else:
+                    print("\nSelect backup to restore:")
+                    for idx, b in enumerate(backups, start=1):
+                        print(f" {idx}) {b['filename']} ({b['type']}, {b['size_formatted']})")
+                    print(f" {len(backups) + 1}) Enter custom path manually")
+                    r_sub = input(f"Enter choice [1-{len(backups) + 1}] (or 'c' to cancel): ").strip()
+                    if r_sub.isdigit() and 1 <= int(r_sub) <= len(backups):
+                        restore_ui(manager, backups[int(r_sub) - 1]["path"])
+                    elif r_sub == str(len(backups) + 1):
+                        file_input = input("Enter custom backup file path: ").strip()
+                        if file_input:
+                            restore_ui(manager, file_input)
+            elif b_choice == "4":
+                list_backups_ui(manager)
+            else:
+                backup_ui(manager, backup_type="snapshot")
         elif choice in ("0", "q", "exit"):
             print("\nGoodbye!")
             break
         else:
-            print("\n[!] Invalid choice. Please select an option from 0 to 9.")
+            print("\n[!] Invalid choice. Please select an option from 0 to 10.")
 
         input("\nPress [Enter] to return to the menu...")
 
@@ -761,11 +918,27 @@ def main():
         help="Run the full legacy orchestration pipeline.",
     )
     parser.add_argument(
-        "--create-exceptions",
+        "--backup",
         nargs="?",
-        const="all",
-        metavar="APP_NAME",
-        help="Provision security exceptions for applications ('all' or specific name/id).",
+        const="snapshot",
+        choices=["snapshot", "dump"],
+        metavar="TYPE",
+        help="Create a backup ('snapshot' for JSON export or 'dump' for database dump).",
+    )
+    parser.add_argument(
+        "--restore",
+        metavar="BACKUP_PATH",
+        help="Restore CISO Assistant state from a backup file (dump or snapshot).",
+    )
+    parser.add_argument(
+        "--list-backups",
+        action="store_true",
+        help="List all discovered backup files and snapshots.",
+    )
+    parser.add_argument(
+        "--log-level",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Set logging output verbosity level (default: WARNING, or LOG_LEVEL env var).",
     )
     parser.add_argument(
         "-y", "--yes",
@@ -773,6 +946,9 @@ def main():
         help="Auto-confirm removal prompts.",
     )
     args = parser.parse_args()
+
+    if args.log_level:
+        utils.set_log_level(args.log_level)
 
     if args.pipeline:
         run_pipeline()
@@ -789,6 +965,18 @@ def main():
         show_status(manager, wait_seconds=args.wait)
         return
 
+    if args.list_backups:
+        list_backups_ui(manager)
+        return
+
+    if args.backup:
+        backup_ui(manager, backup_type=args.backup)
+        return
+
+    if args.restore:
+        restore_ui(manager, file_path=args.restore)
+        return
+
     if args.create_audit:
         create_audit_demo_ui(manager, app_name=args.create_audit, user_email=args.user)
         return
@@ -799,10 +987,6 @@ def main():
 
     if args.create:
         create_examples_ui(manager, target=args.create)
-        return
-
-    if args.create_exceptions:
-        create_exceptions_ui(manager, target=args.create_exceptions)
         return
 
     if args.link_controls:

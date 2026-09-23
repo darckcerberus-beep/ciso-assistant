@@ -327,7 +327,7 @@ class AppliedControlDict:
                 framework_file=framework_file,
             )
         except (LookupError, ValueError) as e:
-            utils.log(f"Could not determine priority for {compliance_assessment_id!r} / {requirement_urn!r}: {e}", level=logging.WARNING)
+            utils.log(f"Could not determine priority for {compliance_assessment_id!r} / {requirement_urn!r}: {e}", level=logging.DEBUG)
             return None
         for control in self.controls.values():
             if control.get_name() != name or control.get_status() != "to_do":
@@ -415,8 +415,8 @@ class AppliedControlDict:
         created = 0
 
         # Prefetch once to avoid repetitive API calls inside the loop
-        risk_assessments = utils.get_all_results("/api/risk-assessments/")
-        risk_scenarios = utils.get_all_results("/api/risk-scenarios/")
+        risk_assessments = utils.get_all_results("/api/risk-assessments/", force_reload=True)
+        risk_scenarios = utils.get_all_results("/api/risk-scenarios/", force_reload=True)
         framework_file = FrameworkFile("YML/newDPP.yml")
 
         # Determine which compliance assessments have at least one answered requirement assessment
@@ -522,7 +522,7 @@ class AppliedControlDict:
                     except (LookupError, ValueError) as e:
                         utils.log(
                             f"Could not determine priority for compliance {ra.get_compliance_assessment_id()!r} / {ra.get_urn()!r}: {e}",
-                            level=logging.WARNING,
+                            level=logging.DEBUG,
                         )
                 payload = {
                     "name": name,

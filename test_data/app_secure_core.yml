@@ -232,15 +232,3 @@ expected_risk_scenarios:
     risk_level: 2
     control_priority: 3 # 3 (Medium)
 
-# ==============================================================================
-# Security Exceptions
-# ==============================================================================
-exceptions:
-  - name: "Exception: Emergency Break-Glass Local Console MFA Bypass"
-    ref_id: "EXC-SEC-001"
-    description: "Physical air-gapped server console emergency account exempt from remote MFA requirements."
-    severity: 1 # Low
-    status: "approved"
-    expiration_date: "2027-12-31"
-    observation: "Compensating control: Console locked in physical vault requiring dual key authorization."
-    reference_control: "access_control"
