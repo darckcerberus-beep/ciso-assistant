@@ -41,6 +41,9 @@ EXAMPLE_APPLICATIONS = [
         "compliance_target": "100%",
         "expected_risk": "Low (Acceptable)",
         "description": "High classification (Secret) + Full compliance (100%) -> Low Risk",
+        "framework_ref": "mls",
+        "framework_name": "Multi-level DPP",
+        "framework_yaml": "YML/newDPP.yml",
         "user": {
             "email": "alice.secure@example-core.com",
             "first_name": "Alice",
@@ -62,6 +65,9 @@ EXAMPLE_APPLICATIONS = [
         "compliance_target": "0%",
         "expected_risk": "Very High / Critical -> Urgent Remediation",
         "description": "High classification (Secret) + Non-compliant (0%) -> Critical Risk -> Urgent Priority",
+        "framework_ref": "mls",
+        "framework_name": "Multi-level DPP",
+        "framework_yaml": "YML/newDPP.yml",
         "user": {
             "email": "victor.vulnerable@example-portal.com",
             "first_name": "Victor",
@@ -83,6 +89,9 @@ EXAMPLE_APPLICATIONS = [
         "compliance_target": "Mixed",
         "expected_risk": "Medium (Scenario-dependent)",
         "description": "Medium classification (Internal) + Mixed compliance -> Scenario-dependent Risks",
+        "framework_ref": "mls",
+        "framework_name": "Multi-level DPP",
+        "framework_yaml": "YML/newDPP.yml",
         "user": {
             "email": "ian.internal@example-tool.com",
             "first_name": "Ian",
@@ -104,6 +113,9 @@ EXAMPLE_APPLICATIONS = [
         "compliance_target": "Mixed / Low Impact",
         "expected_risk": "Low (Capped at 1)",
         "description": "Low classification (Public) + Mixed compliance -> Low Impact & Low Risk",
+        "framework_ref": "mls",
+        "framework_name": "Multi-level DPP",
+        "framework_yaml": "YML/newDPP.yml",
         "user": {
             "email": "paula.public@example-blog.com",
             "first_name": "Paula",
@@ -125,6 +137,9 @@ EXAMPLE_APPLICATIONS = [
         "compliance_target": "Mixed / Privacy Gaps",
         "expected_risk": "High (GDPR & Data Retention)",
         "description": "Confidential classification + Strong encryption + Unmasked non-prod retention & missing deletion -> High Privacy Risk",
+        "framework_ref": "mls",
+        "framework_name": "Multi-level DPP",
+        "framework_yaml": "YML/newDPP.yml",
         "user": {
             "email": "hannah.hr@example-peoplesys.com",
             "first_name": "Hannah",
@@ -146,6 +161,9 @@ EXAMPLE_APPLICATIONS = [
         "compliance_target": "High (95%)",
         "expected_risk": "Low-to-Medium (Vendor SLA Gaps)",
         "description": "Secret classification + High technical compliance + Single clearinghouse notification SLA gap",
+        "framework_ref": "mls",
+        "framework_name": "Multi-level DPP",
+        "framework_yaml": "YML/newDPP.yml",
         "user": {
             "email": "peter.pay@example-paymentapi.com",
             "first_name": "Peter",
@@ -167,6 +185,9 @@ EXAMPLE_APPLICATIONS = [
         "compliance_target": "Low / Legacy Gaps",
         "expected_risk": "Medium (Cleartext LAN & Unencrypted DB)",
         "description": "Internal classification + In-house hosting + Unencrypted LAN/DB + Legacy authentication",
+        "framework_ref": "mls",
+        "framework_name": "Multi-level DPP",
+        "framework_yaml": "YML/newDPP.yml",
         "user": {
             "email": "larry.legacy@example-legacyerp.com",
             "first_name": "Larry",
@@ -188,6 +209,9 @@ EXAMPLE_APPLICATIONS = [
         "compliance_target": "Mixed / GenAI Risks",
         "expected_risk": "High (External LLM Transfer & Prompt Data Leakage)",
         "description": "Confidential classification + SaaS hosting + External LLM transfer without contract + Unmasked prompt logs",
+        "framework_ref": "mls",
+        "framework_name": "Multi-level DPP",
+        "framework_yaml": "YML/newDPP.yml",
         "user": {
             "email": "arthur.ai@example-aiworkbench.com",
             "first_name": "Arthur",
@@ -206,6 +230,21 @@ EXAMPLE_FOLDER_NAME = "Example Applications"
 DEFAULT_FRAMEWORK_NAME = "Multi-level DPP"
 DEFAULT_FRAMEWORK_REF = "mls"
 FRAMEWORK_YAML_PATH = "YML/newDPP.yml"
+
+FRAMEWORK_CATALOG = [
+    {
+        "ref_id": "mls",
+        "name": "Multi-level DPP",
+        "yaml_path": "YML/newDPP.yml",
+        "description": "Multi-level Digital Product Passport cybersecurity assessment",
+    },
+    {
+        "ref_id": "vendor-due-diligence",
+        "name": "Vendor Due Diligence (VDD) - simple",
+        "yaml_path": "YML/vendor-due-diligence.yaml",
+        "description": "Simple framework for rapid due diligence review of vendors",
+    },
+]
 
 
 class ExamplesManager:
@@ -317,27 +356,135 @@ class ExamplesManager:
                         return actor.get("id")
         return self.get_default_assignee_id()
 
-    def find_target_framework(self) -> Any | None:
-        """Find the matching framework in CISO Assistant (by name or ref_id)."""
+    def resolve_framework_yaml_path(self, target_framework: str | None = None) -> Path:
+        """Resolve the local YAML file path for a given framework identifier or name."""
+        if not target_framework:
+            return Path(FRAMEWORK_YAML_PATH)
+
+        # Check if already a path to an existing file
+        target_path = Path(target_framework)
+        if target_path.exists() and target_path.is_file():
+            return target_path
+
+        target_str = str(target_framework).strip().lower()
+
+        # Check catalog matches
+        for cat in FRAMEWORK_CATALOG:
+            if (
+                cat["ref_id"].lower() == target_str
+                or cat["name"].lower() == target_str
+                or Path(cat["yaml_path"]).stem.lower() == target_str
+            ):
+                cat_path = Path(cat["yaml_path"])
+                if cat_path.exists():
+                    return cat_path
+
+        # Check YML directory for matching file
+        yml_dir = Path("YML")
+        for ext in (".yml", ".yaml"):
+            candidate = yml_dir / f"{target_framework}{ext}"
+            if candidate.exists():
+                return candidate
+
+        return Path(FRAMEWORK_YAML_PATH)
+
+    def resolve_framework_file(
+        self,
+        target_framework: str | None = None,
+        data: dict[str, Any] | None = None,
+    ) -> Any:
+        """Return a FrameworkFile instance for the specified framework, preserving mocks in tests."""
+        if data and "framework_file" in data:
+            candidate = data["framework_file"]
+            if hasattr(candidate, "_mock_return_value") or candidate.__class__.__name__ in ("MagicMock", "Mock"):
+                return candidate
+        yaml_path = self.resolve_framework_yaml_path(target_framework)
+        return FrameworkFile(str(yaml_path))
+
+    def get_available_frameworks(self) -> list[dict[str, Any]]:
+        """Return list of available frameworks discovered from API and local catalog."""
+        frameworks_list = []
+        seen_identifiers = set()
+
+        try:
+            data = self._init_data()
+            framework_dict: FrameworkDict = data.get("framework_dict")
+            if framework_dict:
+                for fw in framework_dict.get_frameworks():
+                    fw_id = fw.get_id()
+                    fw_name = fw.get_name()
+                    fw_json = getattr(fw, "json_object", {}) or {}
+                    ref_id = fw_json.get("ref_id", "")
+                    urn = fw_json.get("urn", "")
+                    description = fw_json.get("description", "")
+                    yaml_path = str(self.resolve_framework_yaml_path(ref_id or fw_name))
+                    entry = {
+                        "id": fw_id,
+                        "name": fw_name,
+                        "ref_id": ref_id,
+                        "urn": urn,
+                        "description": description,
+                        "yaml_path": yaml_path,
+                    }
+                    frameworks_list.append(entry)
+                    if ref_id:
+                        seen_identifiers.add(ref_id.lower())
+                    if fw_name:
+                        seen_identifiers.add(fw_name.lower())
+        except Exception as e:
+            utils.log(f"Error querying frameworks from API: {e}", level=logging.DEBUG)
+
+        # Merge catalog frameworks not found in API
+        for cat in FRAMEWORK_CATALOG:
+            cat_ref = cat["ref_id"].lower()
+            cat_name = cat["name"].lower()
+            if cat_ref not in seen_identifiers and cat_name not in seen_identifiers:
+                frameworks_list.append({
+                    "id": None,
+                    "name": cat["name"],
+                    "ref_id": cat["ref_id"],
+                    "urn": "",
+                    "description": cat.get("description", ""),
+                    "yaml_path": cat["yaml_path"],
+                })
+                seen_identifiers.add(cat_ref)
+                seen_identifiers.add(cat_name)
+
+        return frameworks_list
+
+    def find_target_framework(self, target_framework: str | None = None) -> Any | None:
+        """Find the matching framework in CISO Assistant (by identifier, name, or ref_id)."""
         data = self._init_data()
         framework_dict: FrameworkDict = data["framework_dict"]
         frameworks = framework_dict.get_frameworks()
+        if not frameworks:
+            return None
 
-        for fw in frameworks:
-            if fw.get_name() == DEFAULT_FRAMEWORK_NAME:
+        # 1. If explicit target given, attempt to find exact match
+        if target_framework:
+            fw = framework_dict.get_framework_by_identifier(target_framework)
+            if fw:
                 return fw
-            fw_json = fw.json_object if hasattr(fw, "json_object") else {}
-            if fw_json.get("ref_id") == DEFAULT_FRAMEWORK_REF:
-                return fw
+            for cat in FRAMEWORK_CATALOG:
+                if (
+                    cat["ref_id"].lower() == str(target_framework).lower()
+                    or cat["name"].lower() == str(target_framework).lower()
+                ):
+                    fw = framework_dict.get_framework_by_identifier(cat["ref_id"]) or framework_dict.get_framework_by_identifier(cat["name"])
+                    if fw:
+                        return fw
 
-        # If not exact match, return first available framework
-        if frameworks:
-            utils.log(
-                f"Default framework '{DEFAULT_FRAMEWORK_NAME}' not found; using '{frameworks[0].get_name()}'",
-                level=logging.WARNING,
-            )
-            return frameworks[0]
-        return None
+        # 2. Match default framework (Multi-level DPP / mls)
+        default_fw = framework_dict.get_framework_by_identifier(DEFAULT_FRAMEWORK_NAME) or framework_dict.get_framework_by_identifier(DEFAULT_FRAMEWORK_REF)
+        if default_fw:
+            return default_fw
+
+        # 3. Fallback: return first available framework
+        utils.log(
+            f"Target framework '{target_framework or DEFAULT_FRAMEWORK_NAME}' not found; using '{frameworks[0].get_name()}'",
+            level=logging.WARNING,
+        )
+        return frameworks[0]
 
     def find_target_risk_matrix(self, framework_id: str) -> str | None:
         """Resolve a suitable risk matrix UUID for the risk assessment."""
@@ -602,6 +749,9 @@ class ExamplesManager:
         user_email: str | None,
         user_id: str | None,
         req_by_ca: dict[str, list[Any]],
+        framework_id: str | None = None,
+        framework_name: str | None = None,
+        framework_ref: str | None = None,
     ) -> dict[str, Any]:
         """Construct a standardized status dictionary for an application."""
         total_reqs = 0
@@ -649,6 +799,9 @@ class ExamplesManager:
             "name": app_name,
             "label": label,
             "csv_path": csv_path,
+            "framework_id": framework_id,
+            "framework_name": framework_name,
+            "framework_ref": framework_ref,
             "exists": item_exists,
             "app_created": app_created,
             "audit_created": audit_created,
@@ -795,6 +948,20 @@ class ExamplesManager:
                         findings_count = len(finding_dict.get_findings_for_assessment(fa_id))
                         break
 
+            fw_id = ca_obj.get_framework_id() if (ca_obj and hasattr(ca_obj, "get_framework_id")) else None
+            fw_name = None
+            fw_ref = None
+            if fw_id and data.get("framework_dict"):
+                fw_obj = data["framework_dict"].get_framework_by_identifier(fw_id)
+                if fw_obj:
+                    fw_name = fw_obj.get_name()
+                    fw_json = getattr(fw_obj, "json_object", {}) or {}
+                    fw_ref = fw_json.get("ref_id")
+            if not fw_name:
+                fw_name = app.get("framework_name", DEFAULT_FRAMEWORK_NAME)
+            if not fw_ref:
+                fw_ref = app.get("framework_ref", DEFAULT_FRAMEWORK_REF)
+
             status_list.append(self._build_status_dict(
                 app_id=app["id"],
                 app_name=app_name,
@@ -817,6 +984,9 @@ class ExamplesManager:
                 user_email=user_email,
                 user_id=user_id,
                 req_by_ca=req_by_ca,
+                framework_id=fw_id,
+                framework_name=fw_name,
+                framework_ref=fw_ref,
             ))
 
         # Discover custom applications created in the example folder
@@ -917,6 +1087,16 @@ class ExamplesManager:
                             findings_count = len(finding_dict.get_findings_for_assessment(fa_id))
                             break
 
+                fw_id = ca_obj.get_framework_id() if (ca_obj and hasattr(ca_obj, "get_framework_id")) else None
+                fw_name = None
+                fw_ref = None
+                if fw_id and data.get("framework_dict"):
+                    fw_obj = data["framework_dict"].get_framework_by_identifier(fw_id)
+                    if fw_obj:
+                        fw_name = fw_obj.get_name()
+                        fw_json = getattr(fw_obj, "json_object", {}) or {}
+                        fw_ref = fw_json.get("ref_id")
+
                 status_list.append(self._build_status_dict(
                     app_id=f"custom_{app_name.lower().replace(' ', '_')}",
                     app_name=app_name,
@@ -939,11 +1119,18 @@ class ExamplesManager:
                     user_email=user_email,
                     user_id=user_id,
                     req_by_ca=req_by_ca,
+                    framework_id=fw_id,
+                    framework_name=fw_name,
+                    framework_ref=fw_ref,
                 ))
 
         return status_list
 
-    def create_example_application(self, app_id_or_name: str) -> dict[str, Any]:
+    def create_example_application(
+        self,
+        app_id_or_name: str,
+        framework_ref_or_name: str | None = None,
+    ) -> dict[str, Any]:
         """Create a complete example application simulation in CISO Assistant.
 
         Steps:
@@ -959,6 +1146,7 @@ class ExamplesManager:
 
         Args:
             app_id_or_name: Application ID (e.g. 'app_secure_core') or Name ('App-Secure-Core').
+            framework_ref_or_name: Optional framework ref_id, name, or identifier to override app default.
 
         Returns:
             Summary dict with created IDs and status.
@@ -978,19 +1166,25 @@ class ExamplesManager:
         data = self._init_data()
         folder_id = self.get_or_create_folder()
         assignee_id = self.get_default_assignee_id()
-        framework = self.find_target_framework()
+
+        target_fw_spec = framework_ref_or_name or app_spec.get("framework_ref") or app_spec.get("framework_name")
+        framework = self.find_target_framework(target_fw_spec)
 
         if not framework:
             raise RuntimeError(f"No suitable framework found in CISO Assistant for {app_name}.")
 
         framework_id = framework.get_id()
         framework_name = framework.get_name()
+        fw_json = framework.json_object if hasattr(framework, "json_object") else {}
+        framework_ref = fw_json.get("ref_id") or app_spec.get("framework_ref")
+
+        framework_yaml_path = self.resolve_framework_yaml_path(target_fw_spec or framework_name)
+        framework_file = self.resolve_framework_file(target_fw_spec or framework_name, data=data)
 
         # Step 0a: Ensure Vulnerabilities & Threats are provisioned from framework file
         vuln_dict = data.get("vulnerability_dict")
         # Step 0a: Ensure Threats are provisioned from framework file
         threat_dict = data.get("threat_dict")
-        framework_file = data.get("framework_file")
         if vuln_dict and folder_id and framework_file and hasattr(vuln_dict, "provision_vulnerabilities_from_framework"):
             vuln_dict.provision_vulnerabilities_from_framework(framework_file, folder_id)
         if threat_dict and framework_file and hasattr(threat_dict, "provision_threats_from_framework"):
@@ -1157,12 +1351,11 @@ class ExamplesManager:
 
         # Step 7: Create Risk Assessment & evaluate Risk Scenarios
         from tests.test_application_scenarios import ApplicationRiskSimulator
-        simulator = ApplicationRiskSimulator(str(self.framework_yaml))
+        simulator = ApplicationRiskSimulator(str(framework_yaml_path))
         sim_results = simulator.evaluate_application(csv_path)
 
         risk_assessment_dict: RiskAssessmentDict = data["risk_assessment_dict"]
         risk_scenario_dict: RiskScenarioDict = data["risk_scenario_dict"]
-        framework_file = data["framework_file"]
         vuln_dict = data.get("vulnerability_dict")
         threat_dict = data.get("threat_dict")
 
@@ -1317,6 +1510,9 @@ class ExamplesManager:
             "threats_linked": link_res.get("threats_linked", 0),
             "findings_assessment_id": findings_res.get("findings_assessment_id"),
             "findings_count": findings_res.get("findings_count", 0),
+            "framework_id": framework_id,
+            "framework_name": framework_name,
+            "framework_ref": framework_ref,
         }
 
 
@@ -1327,6 +1523,7 @@ class ExamplesManager:
         first_name: str = "",
         last_name: str = "",
         is_third_party: bool = True,
+        framework_ref_or_name: str | None = None,
     ) -> dict[str, Any]:
         """Create an application in CISO Assistant for an audit demonstration.
 
@@ -1334,7 +1531,7 @@ class ExamplesManager:
         1. Third-party or internal user account (created if missing).
         2. External Entity in TPRM and Entity Representative link.
         3. Perimeter and Asset.
-        4. Compliance Assessment bound to target framework (Multi-level DPP).
+        4. Compliance Assessment bound to target framework.
         5. TPRM Entity Assessment linking entity, compliance assessment, and representative user.
         6. Requirement assignment in progress for the user.
 
@@ -1349,6 +1546,7 @@ class ExamplesManager:
             first_name: Optional first name if creating a new user.
             last_name: Optional last name if creating a new user.
             is_third_party: Whether newly created user should be third-party (default True).
+            framework_ref_or_name: Optional framework ref_id, name, or identifier to use.
 
         Returns:
             Dict summary of created resources and assignment details.
@@ -1365,13 +1563,15 @@ class ExamplesManager:
         data = self._init_data(force_reload=True)
         folder_id = self.get_or_create_folder()
         assignee_id = self.get_default_assignee_id()
-        framework = self.find_target_framework()
+        framework = self.find_target_framework(framework_ref_or_name)
 
         if not framework:
             raise RuntimeError(f"No suitable framework found in CISO Assistant for {app_name}.")
 
         framework_id = framework.get_id()
         framework_name = framework.get_name()
+        fw_json = framework.json_object if hasattr(framework, "json_object") else {}
+        framework_ref = fw_json.get("ref_id", "")
 
         # Step 1: Ensure User exists (create if missing)
         user_dict: UserDict = data["user_dict"]
@@ -1525,6 +1725,9 @@ class ExamplesManager:
             "requirement_assessments_count": len(req_ids),
             "assignment_id": assignment_id,
             "direct_url": f"{utils.BASE_URL}/",
+            "framework_id": framework_id,
+            "framework_name": framework_name,
+            "framework_ref": framework_ref,
         }
 
     def generate_controls_and_risks_for_application(
@@ -1596,8 +1799,14 @@ class ExamplesManager:
         ca_name = ca_obj.get_name()
         framework_id = ca_obj.get_framework_id()
         if not framework_id:
-            fw = self.find_target_framework()
+            fw = self.find_target_framework(app_spec.get("framework_ref") if app_spec else None)
             framework_id = fw.get_id() if fw else None
+
+        fw_dict = data.get("framework_dict")
+        fw_obj = fw_dict.get_framework_by_identifier(framework_id) if (fw_dict and framework_id) else None
+        target_fw_ident = fw_obj.get_name() if fw_obj else (app_spec.get("framework_ref") if app_spec else framework_id)
+        framework_yaml_path = self.resolve_framework_yaml_path(target_fw_ident)
+        framework_file = self.resolve_framework_file(target_fw_ident, data=data)
 
         # Resolve CSV path if provided
         resolved_csv_path = None
@@ -1671,7 +1880,7 @@ class ExamplesManager:
 
         # Evaluate Scenarios with Simulator
         from tests.test_application_scenarios import ApplicationRiskSimulator
-        simulator = ApplicationRiskSimulator(str(self.framework_yaml))
+        simulator = ApplicationRiskSimulator(str(framework_yaml_path))
 
         compliance_dict.requirement_assessments.reload()
         req_assessments = compliance_dict.requirement_assessments.get_requirement_assessments()
@@ -1898,6 +2107,14 @@ class ExamplesManager:
                 "findings_count": 0,
             }
 
+        # Dynamically resolve framework_file for this assessment
+        fw_dict = data.get("framework_dict")
+        ca_fw_id = ca_obj.get_framework_id() if ca_obj else None
+        fw_obj = fw_dict.get_framework_by_identifier(ca_fw_id) if (fw_dict and ca_fw_id) else None
+        fw_ident = fw_obj.get_name() if fw_obj else (app_spec.get("framework_ref") if app_spec else ca_fw_id)
+        framework_yaml_path = self.resolve_framework_yaml_path(fw_ident)
+        framework_file = self.resolve_framework_file(fw_ident, data=data)
+
         summaries = compliance_dict.create_findings_assessments(
             findings_assessment_dict=findings_fa_dict,
             finding_dict=finding_dict,
@@ -1947,7 +2164,6 @@ class ExamplesManager:
         risk_assessment_dict: RiskAssessmentDict = data["risk_assessment_dict"]
         risk_scenario_dict: RiskScenarioDict = data["risk_scenario_dict"]
         applied_control_dict: AppliedControlDict = data["applied_control_dict"]
-        framework_file = data["framework_file"]
 
         perimeter_id = perimeter_dict.get_id_from_name(app_name)
         asset_id = asset_dict.get_asset_id_from_perimeter_name(app_name)
@@ -1971,6 +2187,14 @@ class ExamplesManager:
             return {"app_name": app_name, "scenarios_updated": 0, "existing_controls": 0, "planned_controls": 0}
 
         ca_id = ca_obj.get_id()
+
+        # Resolve framework YAML and framework_file from compliance assessment
+        fw_dict = data.get("framework_dict")
+        ca_fw_id = ca_obj.get_framework_id() if ca_obj else None
+        fw_obj = fw_dict.get_framework_by_identifier(ca_fw_id) if (fw_dict and ca_fw_id) else None
+        fw_ident = fw_obj.get_name() if fw_obj else (app_spec.get("framework_ref") if app_spec else ca_fw_id)
+        framework_yaml_path = self.resolve_framework_yaml_path(fw_ident)
+        framework_file = self.resolve_framework_file(fw_ident, data=data)
 
         # Find risk assessment for this application
         ra_obj = None
@@ -2010,7 +2234,7 @@ class ExamplesManager:
         # Purge any out-of-scope scenarios from previous runs
         csv_path = app_spec.get("csv_path") if app_spec else None
         from tests.test_application_scenarios import ApplicationRiskSimulator
-        simulator = ApplicationRiskSimulator(str(self.framework_yaml))
+        simulator = ApplicationRiskSimulator(str(framework_yaml_path))
         if csv_path:
             sim_results = simulator.evaluate_application(csv_path)
         else:

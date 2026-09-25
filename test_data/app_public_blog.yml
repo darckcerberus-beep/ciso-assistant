@@ -14,6 +14,8 @@ application:
   description: "Public marketing website and blog hosted on managed cloud CMS"
   classification: "Public"
   hosting: "SaaS"
+  framework_ref: "mls"
+  framework_name: "Multi-level DPP"
 
 answers:
   # ----------------------------------------------------------------------------

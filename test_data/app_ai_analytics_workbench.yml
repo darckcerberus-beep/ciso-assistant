@@ -14,6 +14,8 @@ application:
   description: "Cloud-hosted GenAI analytics workbench with uncontracted external LLM API transfer"
   classification: "Confidential"
   hosting: "SaaS"
+  framework_ref: "mls"
+  framework_name: "Multi-level DPP"
 
 answers:
   # ----------------------------------------------------------------------------

@@ -112,6 +112,27 @@ class FrameworkDict:
                 return framework.get_name()
         return None
 
+    def get_framework_by_identifier(self, identifier):
+        """Return a framework matching the given ID, name, or ref_id."""
+        if not identifier:
+            return None
+        target = str(identifier).strip().lower()
+        for framework in self.frameworks:
+            if str(framework.get_id()).strip().lower() == target:
+                return framework
+            if str(framework.get_name()).strip().lower() == target:
+                return framework
+            fw_json = framework.json_object if hasattr(framework, "json_object") else {}
+            if str(fw_json.get("ref_id", "")).strip().lower() == target:
+                return framework
+            if str(fw_json.get("urn", "")).strip().lower() == target:
+                return framework
+        return None
+
+    def get_framework_by_ref_id(self, ref_id):
+        """Return a framework matching the given ref_id."""
+        return self.get_framework_by_identifier(ref_id)
+
     def get_risk_scenarios_from_id(self, id):
         """Return the risk scenarios for the framework matching the given ID."""
         for framework in self.frameworks:
@@ -242,10 +263,11 @@ class LibraryFile:
         if not isinstance(criticality_mapping, dict):
             return {}
 
+        impact_mapping = {}
         for objective in ("confidentiality", "integrity", "availability"):
             if objective in criticality_mapping and isinstance(criticality_mapping[objective], dict):
-                return criticality_mapping[objective]
-        return {}
+                impact_mapping.update(criticality_mapping[objective])
+        return impact_mapping
 
 
 class FrameworkFile(LibraryFile):

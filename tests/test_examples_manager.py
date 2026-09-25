@@ -1084,6 +1084,183 @@ class TestMainCLI(unittest.TestCase):
                 interactive=False,
             )
 
+    @patch("main.create_audit_demo_ui")
+    @patch("main.ExamplesManager")
+    def test_cli_create_audit_with_framework(self, mock_mgr_cls, mock_audit_ui):
+        """Verify --create-audit APP --framework VENDOR calls create_audit_demo_ui with framework."""
+        from main import main
+        test_args = ["main.py", "--create-audit", "Vendor-Test", "--user", "user@example.com", "--framework", "vendor-due-diligence"]
+        with patch("sys.argv", test_args):
+            main()
+            mock_audit_ui.assert_called_once_with(
+                mock_mgr_cls.return_value,
+                app_name="Vendor-Test",
+                user_email="user@example.com",
+                framework_ref_or_name="vendor-due-diligence",
+            )
+
+    @patch("main.create_examples_ui")
+    @patch("main.ExamplesManager")
+    def test_cli_create_with_framework(self, mock_mgr_cls, mock_create_ui):
+        """Verify --create APP --framework VENDOR calls create_examples_ui with framework."""
+        from main import main
+        test_args = ["main.py", "--create", "app_secure_core", "--framework", "vendor-due-diligence"]
+        with patch("sys.argv", test_args):
+            main()
+            mock_create_ui.assert_called_once_with(
+                mock_mgr_cls.return_value,
+                target="app_secure_core",
+                framework_ref_or_name="vendor-due-diligence",
+            )
+
+
+class TestFrameworkSelection(unittest.TestCase):
+    """Test suite for multi-framework catalog, resolution, and selection workflows."""
+
+    def setUp(self):
+        self.manager = ExamplesManager()
+
+    def test_example_applications_framework_references(self):
+        """Verify each example application contains framework reference metadata."""
+        from pathlib import Path
+        for app in EXAMPLE_APPLICATIONS:
+            self.assertIn("framework_ref", app)
+            self.assertIn("framework_name", app)
+            self.assertIn("framework_yaml", app)
+            self.assertEqual(app["framework_ref"], "mls")
+            self.assertEqual(app["framework_name"], "Multi-level DPP")
+            self.assertTrue(Path(app["framework_yaml"]).exists())
+
+    def test_test_data_yaml_profiles_contain_framework(self):
+        """Verify YAML application profiles in test_data contain framework references."""
+        from pathlib import Path
+        import yaml
+        test_data_dir = Path("test_data")
+        for yml_file in test_data_dir.glob("app_*.yml"):
+            with open(yml_file, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+            app_block = data.get("application", {})
+            self.assertIn("framework_ref", app_block, f"Missing framework_ref in {yml_file.name}")
+            self.assertIn("framework_name", app_block, f"Missing framework_name in {yml_file.name}")
+            self.assertEqual(app_block["framework_ref"], "mls")
+
+    def test_get_available_frameworks_catalog(self):
+        """Verify catalog returns both DPP and Vendor Due Diligence frameworks."""
+        fws = self.manager.get_available_frameworks()
+        self.assertGreaterEqual(len(fws), 2)
+        ref_ids = [fw["ref_id"] for fw in fws]
+        names = [fw["name"] for fw in fws]
+        self.assertIn("mls", ref_ids)
+        self.assertIn("vendor-due-diligence", ref_ids)
+        self.assertIn("Multi-level DPP", names)
+        self.assertIn("Vendor Due Diligence (VDD) - simple", names)
+
+    def test_resolve_framework_yaml_path(self):
+        """Verify framework YAML resolution for ref_id, name, and default."""
+        from pathlib import Path
+        # By ref_id
+        path_mls = self.manager.resolve_framework_yaml_path("mls")
+        self.assertEqual(path_mls, Path("YML/newDPP.yml"))
+        path_vdd = self.manager.resolve_framework_yaml_path("vendor-due-diligence")
+        self.assertEqual(path_vdd, Path("YML/vendor-due-diligence.yaml"))
+
+        # By name
+        path_dpp_name = self.manager.resolve_framework_yaml_path("Multi-level DPP")
+        self.assertEqual(path_dpp_name, Path("YML/newDPP.yml"))
+        path_vdd_name = self.manager.resolve_framework_yaml_path("Vendor Due Diligence (VDD) - simple")
+        self.assertEqual(path_vdd_name, Path("YML/vendor-due-diligence.yaml"))
+
+        # Default fallback
+        path_def = self.manager.resolve_framework_yaml_path(None)
+        self.assertEqual(path_def, Path("YML/newDPP.yml"))
+
+    def test_find_target_framework_selection(self):
+        """Verify find_target_framework matches by ref_id and name."""
+        mock_fw_dpp = MagicMock()
+        mock_fw_dpp.get_id.return_value = "fw-dpp-id"
+        mock_fw_dpp.get_name.return_value = "Multi-level DPP"
+        mock_fw_dpp.json_object = {"ref_id": "mls", "urn": "urn:dpp"}
+
+        mock_fw_vdd = MagicMock()
+        mock_fw_vdd.get_id.return_value = "fw-vdd-id"
+        mock_fw_vdd.get_name.return_value = "Vendor Due Diligence (VDD) - simple"
+        mock_fw_vdd.json_object = {"ref_id": "vendor-due-diligence", "urn": "urn:vdd"}
+
+        mock_fw_dict = MagicMock()
+        mock_fw_dict.get_frameworks.return_value = [mock_fw_dpp, mock_fw_vdd]
+        mock_fw_dict.get_framework_by_identifier.side_effect = lambda ident: (
+            mock_fw_vdd if ident in ("vendor-due-diligence", "Vendor Due Diligence (VDD) - simple", "fw-vdd-id")
+            else (mock_fw_dpp if ident in ("mls", "Multi-level DPP", "fw-dpp-id") else None)
+        )
+
+        mock_data = {"framework_dict": mock_fw_dict}
+        with patch.object(self.manager, "_init_data", return_value=mock_data):
+            # Select VDD by ref_id
+            selected_vdd = self.manager.find_target_framework("vendor-due-diligence")
+            self.assertEqual(selected_vdd, mock_fw_vdd)
+
+            # Select DPP by ref_id
+            selected_dpp = self.manager.find_target_framework("mls")
+            self.assertEqual(selected_dpp, mock_fw_dpp)
+
+            # Default
+            selected_def = self.manager.find_target_framework()
+            self.assertEqual(selected_def, mock_fw_dpp)
+
+    @patch("classes.utils.get_return")
+    def test_create_application_for_audit_with_framework_selection(self, mock_get_return):
+        """Verify create_application_for_audit uses the selected framework and returns its info."""
+        mock_fw_vdd = MagicMock()
+        mock_fw_vdd.get_id.return_value = "fw-vdd-id"
+        mock_fw_vdd.get_name.return_value = "Vendor Due Diligence (VDD) - simple"
+        mock_fw_vdd.json_object = {"ref_id": "vendor-due-diligence"}
+
+        mock_data = {
+            "perimeter_dict": MagicMock(),
+            "asset_dict": MagicMock(),
+            "compliance_assessment_dict": MagicMock(),
+            "user_dict": MagicMock(),
+            "entity_dict": MagicMock(),
+            "entity_representative_dict": MagicMock(),
+            "entity_assessment_dict": MagicMock(),
+            "framework_dict": MagicMock(),
+            "framework_file": MagicMock(),
+        }
+        mock_data["perimeter_dict"].get_id_from_name.return_value = "perm-test"
+        mock_data["asset_dict"].get_asset_id_from_perimeter_name.return_value = "asset-test"
+        mock_data["user_dict"].get_id_from_email.return_value = "user-test"
+        mock_data["entity_dict"].get_id_from_name.return_value = "entity-test"
+        mock_data["entity_dict"].create_entity.return_value = {"id": "entity-test"}
+        mock_data["compliance_assessment_dict"].get_compliance_assessments.return_value = {}
+        mock_data["compliance_assessment_dict"].requirement_assignments.get_requirement_assignment_id_list_from_compliance_assessment_id.return_value = ["assign-1"]
+        mock_data["compliance_assessment_dict"].requirement_assessments.get_requirement_assessment_id_list_from_compliance_assessment_id.return_value = ["ra-1"]
+
+        mock_ca_created = MagicMock()
+        mock_ca_created.get_id.return_value = "ca-test"
+        mock_ca_created.get_name.return_value = "Assessment of Vendor Due Diligence (VDD) - simple in App-Vendor-Demo"
+        mock_ca_created.get_status.return_value = "in_progress"
+
+        mock_get_return.return_value = {"id": "ca-test"}
+
+        def reload_ca():
+            mock_data["compliance_assessment_dict"].get_compliance_assessments.return_value = {"ca-test": mock_ca_created}
+        mock_data["compliance_assessment_dict"].reload.side_effect = reload_ca
+
+        with patch.object(self.manager, "_init_data", return_value=mock_data), \
+             patch.object(self.manager, "get_or_create_folder", return_value="folder-1"), \
+             patch.object(self.manager, "get_default_assignee_id", return_value="assignee-1"), \
+             patch.object(self.manager, "find_target_framework", return_value=mock_fw_vdd):
+
+            res = self.manager.create_application_for_audit(
+                app_name="App-Vendor-Demo",
+                user_email="vendor@example.com",
+                framework_ref_or_name="vendor-due-diligence",
+            )
+            self.assertEqual(res["framework_id"], "fw-vdd-id")
+            self.assertEqual(res["framework_name"], "Vendor Due Diligence (VDD) - simple")
+            self.assertEqual(res["framework_ref"], "vendor-due-diligence")
+            self.assertEqual(res["compliance_assessment_id"], "ca-test")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -13,6 +13,8 @@ application:
   description: "Internal developer collaboration platform with mixed compliance and moderate risk"
   classification: "Internal"
   hosting: "SaaS"
+  framework_ref: "mls"
+  framework_name: "Multi-level DPP"
 
 answers:
   # ----------------------------------------------------------------------------

@@ -14,6 +14,8 @@ application:
   description: "Dedicated PCI-DSS compliant private cloud enclave processing cardholder transactions"
   classification: "Secret"
   hosting: "In-house"
+  framework_ref: "mls"
+  framework_name: "Multi-level DPP"
 
 answers:
   # ----------------------------------------------------------------------------

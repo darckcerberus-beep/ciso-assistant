@@ -1,0 +1,250 @@
+# ==============================================================================
+# Suggested Additional Requirement Nodes for Vendor Due Diligence (VDD)
+# ==============================================================================
+# This file contains 28 proposed requirement nodes formatted for direct inclusion
+# or reference in YML/vendor-due-diligence.yaml.
+#
+# Structure:
+# - Part 1: Additions to existing categories (GOV, IAM, INF, SDLC, AUD, INC, DATA, APP)
+# - Part 2: New categories (SCM, AI, EXIT)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Part 1: Proposed Additions to Existing Categories
+# ------------------------------------------------------------------------------
+
+# Additions to: GOV (Governance and organization)
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:gov.09
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:gov
+  ref_id: GOV.09
+  description: Pre-employment screening and criminal/credential background checks are conducted for all personnel with logical access to customer data or production environments.
+
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:gov.10
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:gov
+  ref_id: GOV.10
+  description: An offboarding process ensures that all logical and physical access is permanently revoked within 24 hours of employee or contractor departure.
+
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:gov.11
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:gov
+  ref_id: GOV.11
+  description: Regular phishing simulation exercises and specialized role-based security training are conducted at least semi-annually.
+
+# Additions to: IAM (Access and identity management)
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:iam.06
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:iam
+  ref_id: IAM.06
+  description: Workstations and mobile devices used by personnel to access customer data or production environments are centrally managed via MDM, with enforced full-disk encryption and active EDR.
+
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:iam.07
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:iam
+  ref_id: IAM.07
+  description: Non-human identities (API keys, service accounts, tokens, secrets) are cataloged, adhere to least privilege, and are stored in centralized key vaults with scheduled automated rotation.
+
+# Additions to: INF (Physical and infrastructure security)
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:inf.05
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:inf
+  ref_id: INF.05
+  description: Decommissioned physical servers, hard drives, and magnetic media containing customer data undergo certified sanitization or physical destruction adhering to recognized standards (e.g., NIST SP 800-88).
+
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:inf.06
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:inf
+  ref_id: INF.06
+  description: The organization enforces formal remediation SLAs for discovered vulnerabilities based on severity (e.g., Critical within 14 days, High within 30 days).
+
+# Additions to: SDLC (Development security)
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:sdlc.08
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:sdlc
+  ref_id: SDLC.08
+  description: An automated Software Bill of Materials (SBOM) is maintained to track all third-party libraries, container images, and open-source components for known vulnerabilities.
+
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:sdlc.09
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:sdlc
+  ref_id: SDLC.09
+  description: The vendor maintains a publicly documented vulnerability disclosure policy (e.g., security.txt) and intake channel for external security researchers.
+
+# Additions to: AUD (Audit, testing and assurance)
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:aud.04
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:aud
+  ref_id: AUD.04
+  description: Annual independent audit reports (such as SOC 2 Type II or ISO 27001 summary) and bridge letters are made available to clients under NDA.
+
+# Additions to: INC (Incident management)
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:inc.03
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:inc
+  ref_id: INC.03
+  description: The vendor contractually commits to notifying affected clients in writing without undue delay, and in no event later than 48 to 72 hours, after confirming a security incident affecting customer data.
+
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:inc.04
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:inc
+  ref_id: INC.04
+  description: In the event of a security incident impacting customer data, the vendor provides a comprehensive post-incident Root Cause Analysis (RCA) and cooperates with client forensic investigators.
+
+# Additions to: DATA (Data management and lifecycle)
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:data.04
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:data
+  ref_id: DATA.04
+  description: The vendor documents and contractually guarantees the geographic regions and legal jurisdictions where customer primary data, replicas, and backups are hosted and processed.
+
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:data.05
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:data
+  ref_id: DATA.05
+  description: Cross-border data transfers comply with applicable regulatory mechanisms (e.g., Standard Contractual Clauses, Transfer Impact Assessments, or Data Privacy Framework).
+
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:data.06
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:data
+  ref_id: DATA.06
+  description: The architecture supports tenant-isolated encryption keys or Customer-Managed Keys (BYOK / HYOK) integrated with enterprise cloud Key Management Services.
+
+# Additions to: APP (Application security)
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:app.09
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:app
+  ref_id: APP.09
+  description: User and administrative sessions automatically terminate or require re-authentication after a configurable period of inactivity.
+
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:app.10
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:app
+  ref_id: APP.10
+  description: All public and integration APIs implement strict rate limiting, schema validation, and protection against automated abuse (OWASP API Top 10).
+
+# ------------------------------------------------------------------------------
+# Part 2: Proposed New Categories
+# ------------------------------------------------------------------------------
+
+# New Category: SCM (Supply chain and sub-processor management)
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:scm
+  assessable: false
+  depth: 1
+  ref_id: SCM
+  name: Supply chain and sub-processor management
+
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:scm.01
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:scm
+  ref_id: SCM.01
+  description: The vendor maintains and publishes an accurate, up-to-date registry of all third-party sub-processors and cloud hosting providers processing customer data.
+
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:scm.02
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:scm
+  ref_id: SCM.02
+  description: The vendor provides at least 30 days prior written notice before onboarding or substituting sub-processors, granting clients the right to object.
+
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:scm.03
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:scm
+  ref_id: SCM.03
+  description: The vendor conducts formal security and compliance due diligence of all critical sub-processors prior to onboarding and annually thereafter.
+
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:scm.04
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:scm
+  ref_id: SCM.04
+  description: Equivalent data protection, confidentiality, and security baseline requirements are contractually flowed down to all downstream subcontractors and sub-processors.
+
+# New Category: AI (Artificial intelligence and model governance)
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:ai
+  assessable: false
+  depth: 1
+  ref_id: AI
+  name: Artificial intelligence and model governance
+
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:ai.01
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:ai
+  ref_id: AI.01
+  description: The vendor formally discloses all integrated Generative AI, machine learning models, and third-party foundation model APIs used in the solution.
+
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:ai.02
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:ai
+  ref_id: AI.02
+  description: Third-party LLM providers operate under contractual zero-data-retention (ZDR) agreements and do not persist customer prompts or outputs.
+
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:ai.03
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:ai
+  ref_id: AI.03
+  description: Customer prompts, uploaded documents, embeddings, and generated responses are contractually prohibited from being used to train, retrain, or fine-tune any AI models.
+
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:ai.04
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:ai
+  ref_id: AI.04
+  description: Active guardrails and input/output sanitization filters are implemented to mitigate prompt injection, data extraction, bias, and unauthorized data leakage.
+
+# New Category: EXIT (Service level agreements and exit management)
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:exit
+  assessable: false
+  depth: 1
+  ref_id: EXIT
+  name: Service level agreements and exit management
+
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:exit.01
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:exit
+  ref_id: EXIT.01
+  description: The vendor guarantees a defined monthly service availability (e.g., 99.9% uptime), publishes real-time system status, and provides service credit remedies for downtime.
+
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:exit.02
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:exit
+  ref_id: EXIT.02
+  description: Upon contract termination, the vendor provides comprehensive data export capabilities in non-proprietary, documented formats along with technical transition assistance.
+
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:exit.03
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:exit
+  ref_id: EXIT.03
+  description: Within 30 to 60 days of contract termination, the vendor provides formal written certification that all customer data has been permanently deleted from production and backup systems.
+
+- urn: urn:intuitem:risk:req_node:vendor-due-diligence:exit.04
+  assessable: true
+  depth: 2
+  parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:exit
+  ref_id: EXIT.04
+  description: For critical software, a software escrow agreement is maintained to release source code and build documentation in the event of vendor insolvency or failure to support.

@@ -108,6 +108,9 @@ def print_status_table(status_list):
         print("\nDeployed Resources Breakdown:")
         for s in deployed:
             print(f"\n  * {s['name']}:")
+            fw_disp = s.get('framework_name') or 'Multi-level DPP'
+            fw_ref_disp = f" ({s['framework_ref']})" if s.get('framework_ref') else ""
+            print(f"    - Framework:                {fw_disp}{fw_ref_disp}")
             print(f"    - Lifecycle Status:         {s.get('lifecycle_status') or 'UNKNOWN'}")
             print(f"    - App Created:              {'YES' if (s.get('app_created') or s.get('exists')) else 'NO'}")
             tot = s.get("total_requirements_count", 0)
@@ -196,7 +199,7 @@ def link_controls_ui(manager: ExamplesManager, target="all"):
             print(f"[ERROR] Failed to link controls for {app['name']}: {e}")
 
 
-def create_examples_ui(manager: ExamplesManager, target="all"):
+def create_examples_ui(manager: ExamplesManager, target="all", framework_ref_or_name: str | None = None):
     """Provision example applications in CISO Assistant with answers and risk scenarios."""
     ok, msg = manager.test_connection()
     if not ok:
@@ -208,7 +211,7 @@ def create_examples_ui(manager: ExamplesManager, target="all"):
         for app in EXAMPLE_APPLICATIONS:
             print(f"\n---> Provisioning {app['label']}...")
             try:
-                res = manager.create_example_application(app["id"])
+                res = manager.create_example_application(app["id"], framework_ref_or_name=framework_ref_or_name)
                 print(f"     [OK] Representative User: {res.get('user_email')} (ID: {res.get('user_id')})")
                 print(f"     [OK] TPRM External Entity: {res.get('entity_id')}")
                 print(f"     [OK] TPRM Entity Assessment: {res.get('entity_assessment_name')}")
@@ -234,7 +237,7 @@ def create_examples_ui(manager: ExamplesManager, target="all"):
             return
         print(f"\n---> Provisioning {app['label']} in CISO Assistant...")
         try:
-            res = manager.create_example_application(app["id"])
+            res = manager.create_example_application(app["id"], framework_ref_or_name=framework_ref_or_name)
             print(f"     [OK] Representative User: {res.get('user_email')} (ID: {res.get('user_id')})")
             print(f"     [OK] TPRM External Entity: {res.get('entity_id')}")
             print(f"     [OK] TPRM Entity Assessment: {res.get('entity_assessment_name')}")
@@ -255,7 +258,12 @@ def create_examples_ui(manager: ExamplesManager, target="all"):
             print(f"[ERROR] Failed to create {app['name']}: {e}")
 
 
-def create_audit_demo_ui(manager: ExamplesManager, app_name: str | None = None, user_email: str | None = None):
+def create_audit_demo_ui(
+    manager: ExamplesManager,
+    app_name: str | None = None,
+    user_email: str | None = None,
+    framework_ref_or_name: str | None = None,
+):
     """Create an application and assign its compliance assessment to a user (interactive audit demo)."""
     ok, msg = manager.test_connection()
     if not ok:
@@ -320,6 +328,24 @@ def create_audit_demo_ui(manager: ExamplesManager, app_name: str | None = None, 
         tp_input = input("  Create as Third-Party Respondent? [Y/n]: ").strip().lower()
         is_third_party = tp_input not in ("n", "no")
 
+    # 4. Prompt for Framework Selection if not provided
+    available_fws = manager.get_available_frameworks()
+    if not framework_ref_or_name and available_fws:
+        print("\nSelect Framework for Assessment:")
+        for idx, fw in enumerate(available_fws, start=1):
+            ref_str = f" ({fw['ref_id']})" if fw.get("ref_id") else ""
+            print(f" {idx}) {fw['name']}{ref_str}")
+        fw_input = input(f"Enter choice [1-{len(available_fws)}, default: 1] (or 'c' to cancel): ").strip()
+        if fw_input.lower() in ("c", "cancel"):
+            print("Operation canceled.")
+            return
+        if fw_input.isdigit() and 1 <= int(fw_input) <= len(available_fws):
+            selected_fw = available_fws[int(fw_input) - 1]
+            framework_ref_or_name = selected_fw.get("ref_id") or selected_fw.get("name")
+        else:
+            selected_fw = available_fws[0]
+            framework_ref_or_name = selected_fw.get("ref_id") or selected_fw.get("name")
+
     print(f"\n---> Provisioning application '{app_name}' and assigning audit to '{user_email}'...")
     try:
         res = manager.create_application_for_audit(
@@ -328,11 +354,15 @@ def create_audit_demo_ui(manager: ExamplesManager, app_name: str | None = None, 
             first_name=first_name,
             last_name=last_name,
             is_third_party=is_third_party,
+            framework_ref_or_name=framework_ref_or_name,
         )
         print("\n" + "=" * 80)
         print("          AUDIT DEMONSTRATION APPLICATION READY")
         print("=" * 80)
         print(f" Application Name:         {res['app_name']}")
+        fw_display = res.get("framework_name", "Multi-level DPP")
+        fw_ref_disp = f" ({res['framework_ref']})" if res.get("framework_ref") else ""
+        print(f" Target Framework:         {fw_display}{fw_ref_disp}")
         print(f" Assigned User:            {res['user_email']} (ID: {res['user_id']})")
         print(f" User Status:              {'Newly Created' if res.get('user_created') else 'Existing User Reused'}")
         print(f" TPRM External Entity:     {res['entity_id']}")
@@ -780,7 +810,21 @@ def interactive_menu(manager: ExamplesManager):
             sub_choice = input(f"Enter choice [1-{len(EXAMPLE_APPLICATIONS)}] (or 'c' to cancel): ").strip()
             if sub_choice.isdigit() and 1 <= int(sub_choice) <= len(EXAMPLE_APPLICATIONS):
                 selected = EXAMPLE_APPLICATIONS[int(sub_choice) - 1]
-                create_examples_ui(manager, target=selected["id"])
+                available_fws = manager.get_available_frameworks()
+                default_fw_name = selected.get("framework_name", "Multi-level DPP")
+                default_fw_ref = selected.get("framework_ref", "mls")
+                print(f"\nSelect Framework for {selected['name']} [default: {default_fw_name} ({default_fw_ref})]:")
+                for idx, fw in enumerate(available_fws, start=1):
+                    ref_str = f" ({fw['ref_id']})" if fw.get("ref_id") else ""
+                    print(f" {idx}) {fw['name']}{ref_str}")
+                fw_sub = input(f"Enter choice [1-{len(available_fws)}, press Enter for default] (or 'c' to cancel): ").strip()
+                if fw_sub.lower() in ("c", "cancel"):
+                    pass
+                else:
+                    chosen_fw = None
+                    if fw_sub.isdigit() and 1 <= int(fw_sub) <= len(available_fws):
+                        chosen_fw = available_fws[int(fw_sub) - 1].get("ref_id") or available_fws[int(fw_sub) - 1].get("name")
+                    create_examples_ui(manager, target=selected["id"], framework_ref_or_name=chosen_fw)
         elif choice == "4":
             create_audit_demo_ui(manager)
         elif choice == "5":
@@ -884,6 +928,11 @@ def main():
         help="User email to assign the compliance assessment to (used with --create-audit).",
     )
     parser.add_argument(
+        "--framework",
+        metavar="FRAMEWORK",
+        help="Framework reference ID or name to use ('mls', 'vendor-due-diligence', or custom).",
+    )
+    parser.add_argument(
         "--generate-risks",
         nargs="?",
         const="App-Audit-Demo",
@@ -978,7 +1027,12 @@ def main():
         return
 
     if args.create_audit:
-        create_audit_demo_ui(manager, app_name=args.create_audit, user_email=args.user)
+        create_audit_demo_ui(
+            manager,
+            app_name=args.create_audit,
+            user_email=args.user,
+            framework_ref_or_name=args.framework,
+        )
         return
 
     if args.generate_risks:
@@ -986,7 +1040,11 @@ def main():
         return
 
     if args.create:
-        create_examples_ui(manager, target=args.create)
+        create_examples_ui(
+            manager,
+            target=args.create,
+            framework_ref_or_name=args.framework,
+        )
         return
 
     if args.link_controls:

@@ -15,6 +15,8 @@ application:
   description: "On-premise legacy plant ERP running in factory datacenter with unencrypted LAN and database"
   classification: "Internal"
   hosting: "In-house"
+  framework_ref: "mls"
+  framework_name: "Multi-level DPP"
 
 answers:
   # ----------------------------------------------------------------------------

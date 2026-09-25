@@ -13,6 +13,8 @@ application:
   description: "Core banking ledger processing secret transaction records in on-premises datacenters"
   classification: "Secret"
   hosting: "In-house"
+  framework_ref: "mls"
+  framework_name: "Multi-level DPP"
 
 answers:
   # ----------------------------------------------------------------------------

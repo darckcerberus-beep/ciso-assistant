@@ -13,6 +13,8 @@ application:
   description: "Unvetted third-party SaaS portal processing secret customer data with 0% compliance"
   classification: "Secret"
   hosting: "SaaS"
+  framework_ref: "mls"
+  framework_name: "Multi-level DPP"
 
 answers:
   # ----------------------------------------------------------------------------

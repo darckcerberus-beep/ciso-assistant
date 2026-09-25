@@ -14,6 +14,8 @@ application:
   description: "Enterprise HR and payroll SaaS platform with privacy and retention gaps"
   classification: "Confidential"
   hosting: "SaaS"
+  framework_ref: "mls"
+  framework_name: "Multi-level DPP"
 
 answers:
   # ----------------------------------------------------------------------------
