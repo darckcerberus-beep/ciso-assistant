@@ -10,13 +10,27 @@
 # ==============================================================================
 
 application:
+  order: 7
   id: "app_legacy_erp_production"
   name: "App-Legacy-ERP-Production"
-  description: "On-premise legacy plant ERP running in factory datacenter with unencrypted LAN and database"
+  label: "App-Legacy-ERP-Production (Internal / On-Prem Legacy)"
+  description: "Internal classification + In-house hosting + Unencrypted LAN/DB + Legacy authentication"
   classification: "Internal"
   hosting: "In-house"
+  compliance_target: "Low / Legacy Gaps"
+  expected_risk: "Medium (Cleartext LAN & Unencrypted DB)"
   framework_ref: "mls"
   framework_name: "Multi-level DPP"
+  framework_yaml: "YML/newDPP.yml"
+  user:
+    email: "larry.legacy@example-legacyerp.com"
+    first_name: "Larry"
+    last_name: "Legacy"
+  tprm:
+    criticality: 2
+    maturity: 2
+    trust: 1
+    conclusion: "warning"
 
 answers:
   # ----------------------------------------------------------------------------
@@ -90,6 +104,19 @@ expected_controls:
 # In-House Application with Internal data -> 1 in-scope scenario (Missing application stakeholders).
 # Impact Level: 2 (Internal). Untriggered Chapter 2 and 3 scenarios are omitted.
 # ==============================================================================
+expected_evaluation:
+  impact_level: 2
+  confidentiality_impact: 2
+  availability_impact: 2
+  scenario_count: 1
+  excluded_scenarios:
+    - "Exposure of unencrypted data in transit"
+    - "Exposure of unencrypted data at rest"
+    - "Disclosure of production data in non-production environments"
+    - "Third-party data leakage"
+    - "SaaS provider data leakage"
+    - "Excessive retention of sensitive data"
+
 expected_risk_scenarios:
   - scenario: "Missing application stakeholders"
     likelihood_requirement: "stakeholder_identification"

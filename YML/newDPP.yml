@@ -1091,3 +1091,20 @@ criticality_mapping:
     urn:intuitem:risk:req_node:mls:data_classification:q1:c4: 3  # Secret
   integrity: {}
   availability: {}
+
+# ============================================================================
+# TEST METADATA & INTEGRITY SPECIFICATION
+# ============================================================================
+# Defines baseline expectations for automated relational and logic integrity tests.
+# Framework-independent test runners validate framework consistency against these specs.
+test_metadata:
+  expected_risk_scenarios_count: 7
+  expected_threats_count: 3
+  expected_vulnerabilities_count: 6
+  expected_reference_controls_count: 8
+  expected_requirement_nodes_count: 14
+  matrix_dimensions:
+    likelihood_levels: 4
+    impact_levels: 4
+  classification_node_ref: "data_classification"
+  availability_node_ref: null

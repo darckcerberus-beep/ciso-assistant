@@ -8,13 +8,27 @@
 # ==============================================================================
 
 application:
+  order: 3
   id: "app_internal_tool"
   name: "App-Internal-Tool"
-  description: "Internal developer collaboration platform with mixed compliance and moderate risk"
+  label: "App-Internal-Tool (Internal / Mixed Compliance)"
+  description: "Medium classification (Internal) + Mixed compliance -> Scenario-dependent Risks"
   classification: "Internal"
   hosting: "SaaS"
+  compliance_target: "Mixed"
+  expected_risk: "Medium (Scenario-dependent)"
   framework_ref: "mls"
   framework_name: "Multi-level DPP"
+  framework_yaml: "YML/newDPP.yml"
+  user:
+    email: "ian.internal@example-tool.com"
+    first_name: "Ian"
+    last_name: "Internal"
+  tprm:
+    criticality: 2
+    maturity: 2
+    trust: 2
+    conclusion: "warning"
 
 answers:
   # ----------------------------------------------------------------------------
@@ -128,6 +142,18 @@ expected_controls:
 # Only 2 in-scope scenarios evaluated for Internal SaaS tool.
 # Impact Level: 2 (Internal). Out-of-scope Chapter 2 scenarios are omitted.
 # ==============================================================================
+expected_evaluation:
+  impact_level: 2
+  confidentiality_impact: 2
+  availability_impact: 2
+  scenario_count: 2
+  excluded_scenarios:
+    - "Exposure of unencrypted data in transit"
+    - "Exposure of unencrypted data at rest"
+    - "Disclosure of production data in non-production environments"
+    - "Third-party data leakage"
+    - "Excessive retention of sensitive data"
+
 expected_risk_scenarios:
   - scenario: "SaaS provider data leakage"
     likelihood_requirement: "saas_contract_compliance"

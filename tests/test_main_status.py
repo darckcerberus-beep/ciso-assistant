@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from classes.examples_manager import ExamplesManager
-from main import print_status_table
+from main import print_status_table, remove_examples_ui
 
 
 class TestMainStatus(unittest.TestCase):
@@ -189,7 +189,7 @@ class TestMainStatus(unittest.TestCase):
             app_id="app_1",
             app_name="App-1",
             label="App 1",
-            csv_path="",
+            yaml_path="",
             perimeter_id=None,
             asset_id=None,
             ca_obj=None,
@@ -221,7 +221,7 @@ class TestMainStatus(unittest.TestCase):
             app_id="app_2",
             app_name="App-2",
             label="App 2",
-            csv_path="",
+            yaml_path="",
             perimeter_id="perm-2",
             asset_id="asset-2",
             ca_obj=None,
@@ -266,7 +266,7 @@ class TestMainStatus(unittest.TestCase):
             app_id="app_3",
             app_name="App-3",
             label="App 3",
-            csv_path="",
+            yaml_path="",
             perimeter_id="perm-3",
             asset_id="asset-3",
             ca_obj=mock_ca,
@@ -303,7 +303,7 @@ class TestMainStatus(unittest.TestCase):
             app_id="app_4",
             app_name="App-4",
             label="App 4",
-            csv_path="",
+            yaml_path="",
             perimeter_id="perm-4",
             asset_id="asset-4",
             ca_obj=mock_ca,
@@ -335,7 +335,7 @@ class TestMainStatus(unittest.TestCase):
             app_id="app_5",
             app_name="App-5",
             label="App 5",
-            csv_path="",
+            yaml_path="",
             perimeter_id="perm-5",
             asset_id="asset-5",
             ca_obj=mock_ca,
@@ -366,7 +366,7 @@ class TestMainStatus(unittest.TestCase):
             app_id="app_6",
             app_name="App-6",
             label="App 6",
-            csv_path="",
+            yaml_path="",
             perimeter_id="perm-6",
             asset_id="asset-6",
             ca_obj=mock_ca,
@@ -392,7 +392,7 @@ class TestMainStatus(unittest.TestCase):
             app_id="app_7",
             app_name="App-7",
             label="App 7",
-            csv_path="",
+            yaml_path="",
             perimeter_id="perm-7",
             asset_id="asset-7",
             ca_obj=mock_ca,
@@ -418,7 +418,7 @@ class TestMainStatus(unittest.TestCase):
             app_id="app_8",
             app_name="App-8",
             label="App 8",
-            csv_path="",
+            yaml_path="",
             perimeter_id="perm-8",
             asset_id="asset-8",
             ca_obj=mock_ca,
@@ -474,7 +474,7 @@ class TestMainStatus(unittest.TestCase):
             app_id="app_public_blog",
             app_name="App-Public-Blog",
             label="App-Public-Blog",
-            csv_path="test_data/app_public_blog.csv",
+            yaml_path="test_data/app_public_blog.yml",
             perimeter_id="perm-pub",
             asset_id="asset-pub",
             ca_obj=mock_ca,
@@ -547,7 +547,7 @@ class TestMainStatus(unittest.TestCase):
             app_id="app_legacy_erp_production",
             app_name="App-Legacy-ERP-Production",
             label="App-Legacy-ERP-Production",
-            csv_path="test_data/app_legacy_erp_production.csv",
+            yaml_path="test_data/app_legacy_erp_production.yml",
             perimeter_id="perm-erp",
             asset_id="asset-erp",
             ca_obj=mock_ca,
@@ -613,7 +613,7 @@ class TestMainStatus(unittest.TestCase):
             app_id="app_public_blog",
             app_name="App-Public-Blog",
             label="App-Public-Blog",
-            csv_path="test_data/app_public_blog.csv",
+            yaml_path="test_data/app_public_blog.yml",
             perimeter_id="perm-pb",
             asset_id="asset-pb",
             ca_obj=mock_ca,
@@ -685,7 +685,7 @@ class TestMainStatus(unittest.TestCase):
             app_id="custom_app-rom",
             app_name="App-Rom",
             label="App-Rom (Custom Audit Demo)",
-            csv_path="-",
+            yaml_path="-",
             perimeter_id="perm-rom",
             asset_id="asset-rom",
             ca_obj=mock_ca,
@@ -716,6 +716,179 @@ class TestMainStatus(unittest.TestCase):
         output = buf.getvalue()
         self.assertIn("YES (3/3)", output)
         self.assertNotIn("PARTIAL", output)
+
+    @patch("main.create_audit_demo_ui")
+    def test_create_audit_demo_ui_called_from_cli(self, mock_create_audit_demo_ui):
+        """Verify CLI --create-audit dispatches to create_audit_demo_ui."""
+        from main import main
+        with patch("sys.argv", ["main.py", "--create-audit", "App-Cli-Demo", "--user", "cli@example.com", "--framework", "mls"]):
+            main()
+            mock_create_audit_demo_ui.assert_called_once()
+            _args, kwargs = mock_create_audit_demo_ui.call_args
+            self.assertEqual(kwargs.get("app_name"), "App-Cli-Demo")
+            self.assertEqual(kwargs.get("user_email"), "cli@example.com")
+            self.assertEqual(kwargs.get("framework_ref_or_name"), "mls")
+
+    def test_create_audit_demo_ui_aborts_when_no_frameworks_in_ciso_assistant(self):
+        """Verify create_audit_demo_ui checks CISO Assistant and aborts if no frameworks are installed."""
+        from main import create_audit_demo_ui
+        mock_manager = MagicMock()
+        mock_manager.test_connection.return_value = (True, "OK")
+        mock_manager.get_installed_frameworks.return_value = []
+
+        buf = io.StringIO()
+        with patch("sys.stdout", buf):
+            create_audit_demo_ui(mock_manager, app_name="App-Demo", user_email="test@example.com")
+
+        output = buf.getvalue()
+        self.assertIn("No frameworks found in CISO Assistant", output)
+        mock_manager.create_application_for_audit.assert_not_called()
+
+    def test_create_audit_demo_ui_aborts_when_specified_framework_not_in_ciso_assistant(self):
+        """Verify create_audit_demo_ui checks CISO Assistant and rejects uninstalled framework."""
+        from main import create_audit_demo_ui
+        mock_manager = MagicMock()
+        mock_manager.test_connection.return_value = (True, "OK")
+        mock_manager.get_installed_frameworks.return_value = [
+            {"id": "fw-1", "name": "Data protection policy of ACME Corp", "ref_id": "mls"}
+        ]
+        mock_manager.find_target_framework.return_value = None
+
+        buf = io.StringIO()
+        with patch("sys.stdout", buf):
+            create_audit_demo_ui(
+                mock_manager,
+                app_name="App-Demo",
+                user_email="test@example.com",
+                framework_ref_or_name="vendor-due-diligence",
+            )
+
+        output = buf.getvalue()
+        self.assertIn("Framework 'vendor-due-diligence' is not installed in CISO Assistant", output)
+        self.assertIn("Data protection policy of ACME Corp (mls)", output)
+        mock_manager.create_application_for_audit.assert_not_called()
+
+    def test_create_audit_demo_ui_only_offers_installed_frameworks_in_selection(self):
+        """Verify create_audit_demo_ui only offers frameworks verified in CISO Assistant."""
+        from main import create_audit_demo_ui
+        mock_manager = MagicMock()
+        mock_manager.test_connection.return_value = (True, "OK")
+        mock_manager.get_installed_frameworks.return_value = [
+            {"id": "fw-1", "name": "Data protection policy of ACME Corp", "ref_id": "mls"}
+        ]
+        mock_manager._init_data.return_value = {"user_dict": MagicMock(get_id_from_email=MagicMock(return_value="user-1"))}
+        mock_manager.create_application_for_audit.return_value = {
+            "app_name": "App-Audit-Demo",
+            "user_email": "auditor@example.com",
+            "user_id": "u-1",
+            "entity_id": "e-1",
+            "entity_assessment_name": "EA-1",
+            "entity_assessment_id": "ea-1",
+            "compliance_assessment_name": "CA-1",
+            "compliance_assessment_id": "ca-1",
+            "framework_name": "Data protection policy of ACME Corp",
+            "framework_ref": "mls",
+        }
+
+        buf = io.StringIO()
+        # Feed selection '1' for framework choice
+        with (
+            patch("sys.stdout", buf),
+            patch("builtins.input", side_effect=["1"]),
+            patch("time.sleep"),
+            patch("main.show_status"),
+        ):
+            create_audit_demo_ui(
+                mock_manager,
+                app_name="App-Audit-Demo",
+                user_email="auditor@example.com",
+            )
+
+        output = buf.getvalue()
+        self.assertIn("Select Framework for Assessment (verified in CISO Assistant):", output)
+        self.assertIn("1) Data protection policy of ACME Corp (mls)", output)
+        # Should NOT offer option 2) for Vendor Due Diligence as an installed choice
+        self.assertNotIn("2) Vendor Due Diligence", output)
+        mock_manager.create_application_for_audit.assert_called_once()
+
+    def test_remove_examples_ui_when_no_examples_exist(self):
+        """Verify remove_examples_ui detects that no examples exist and exits without attempting deletion."""
+        mock_manager = MagicMock(spec=ExamplesManager)
+        mock_manager.test_connection.return_value = (True, "OK")
+        mock_manager.get_status.return_value = [
+            {"id": "app_secure_core", "name": "App-Secure-Core", "exists": False},
+            {"id": "vendor_cloud_crm", "name": "Vendor-Cloud-CRM", "exists": False},
+        ]
+
+        buf = io.StringIO()
+        with patch("sys.stdout", buf):
+            remove_examples_ui(mock_manager, target="all")
+
+        output = buf.getvalue()
+        self.assertIn("No example applications currently exist in CISO Assistant. Nothing to remove.", output)
+        mock_manager.remove_example_application.assert_not_called()
+
+    def test_remove_examples_ui_only_removes_created_examples(self):
+        """Verify remove_examples_ui lists and deletes ONLY the examples that have actually been created."""
+        mock_manager = MagicMock(spec=ExamplesManager)
+        mock_manager.test_connection.return_value = (True, "OK")
+        mock_manager.get_status.return_value = [
+            {"id": "app_secure_core", "name": "App-Secure-Core", "exists": True, "status": "FULLY CONFIGURED"},
+            {"id": "app_vulnerable_portal", "name": "App-Vulnerable-Portal", "exists": False},
+            {"id": "vendor_cloud_crm", "name": "Vendor-Cloud-CRM", "exists": True, "status": "FULLY CONFIGURED"},
+            {"id": "vendor_shadow_payroll", "name": "Vendor-Shadow-Payroll", "exists": False},
+        ]
+        mock_manager.remove_example_application.return_value = {"perimeters_deleted": 1}
+
+        buf = io.StringIO()
+        with patch("sys.stdout", buf):
+            remove_examples_ui(mock_manager, target="all", auto_confirm=True)
+
+        output = buf.getvalue()
+        self.assertIn("Found 2 example application(s) currently created in CISO Assistant:", output)
+        self.assertIn("- App-Secure-Core (FULLY CONFIGURED)", output)
+        self.assertIn("- Vendor-Cloud-CRM (FULLY CONFIGURED)", output)
+        self.assertNotIn("- App-Vulnerable-Portal", output)
+        self.assertNotIn("- Vendor-Shadow-Payroll", output)
+
+        # Ensure remove_example_application was called ONLY for the 2 created apps
+        self.assertEqual(mock_manager.remove_example_application.call_count, 2)
+        mock_manager.remove_example_application.assert_any_call("app_secure_core")
+        mock_manager.remove_example_application.assert_any_call("vendor_cloud_crm")
+
+    def test_remove_examples_ui_specific_app_not_created(self):
+        """Verify removing a specific app that was not created is blocked with an informative message."""
+        mock_manager = MagicMock(spec=ExamplesManager)
+        mock_manager.test_connection.return_value = (True, "OK")
+        mock_manager.get_status.return_value = [
+            {"id": "app_secure_core", "name": "App-Secure-Core", "exists": False},
+            {"id": "app_vulnerable_portal", "name": "App-Vulnerable-Portal", "exists": False},
+        ]
+
+        buf = io.StringIO()
+        with patch("sys.stdout", buf):
+            remove_examples_ui(mock_manager, target="app_vulnerable_portal", auto_confirm=True)
+
+        output = buf.getvalue()
+        self.assertIn("Application 'App-Vulnerable-Portal' is not currently created in CISO Assistant. Nothing to remove.", output)
+        mock_manager.remove_example_application.assert_not_called()
+
+    def test_manager_remove_all_examples_only_removes_created(self):
+        """Verify ExamplesManager.remove_all_examples checks get_status and only removes created applications."""
+        manager = ExamplesManager()
+        mock_status = [
+            {"id": "app_secure_core", "name": "App-Secure-Core", "exists": True},
+            {"id": "app_vulnerable_portal", "name": "App-Vulnerable-Portal", "exists": False},
+            {"id": "app_internal_tool", "name": "App-Internal-Tool", "exists": False},
+        ]
+        with (
+            patch.object(manager, "get_status", return_value=mock_status),
+            patch.object(manager, "remove_example_application", return_value={"perimeters_deleted": 1}) as mock_remove,
+        ):
+            results = manager.remove_all_examples()
+
+            self.assertEqual(len(results), 1)
+            mock_remove.assert_called_once_with("app_secure_core")
 
 
 if __name__ == "__main__":

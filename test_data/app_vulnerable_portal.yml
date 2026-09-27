@@ -8,13 +8,27 @@
 # ==============================================================================
 
 application:
+  order: 2
   id: "app_vulnerable_portal"
   name: "App-Vulnerable-Portal"
-  description: "Unvetted third-party SaaS portal processing secret customer data with 0% compliance"
+  label: "App-Vulnerable-Portal (Secret / 0% Non-Compliant)"
+  description: "High classification (Secret) + Non-compliant (0%) -> Critical Risk -> Urgent Priority"
   classification: "Secret"
   hosting: "SaaS"
+  compliance_target: "0%"
+  expected_risk: "Very High / Critical -> Urgent Remediation"
   framework_ref: "mls"
   framework_name: "Multi-level DPP"
+  framework_yaml: "YML/newDPP.yml"
+  user:
+    email: "victor.vulnerable@example-portal.com"
+    first_name: "Victor"
+    last_name: "Vulnerable"
+  tprm:
+    criticality: 4
+    maturity: 1
+    trust: 1
+    conclusion: "blocker"
 
 answers:
   # ----------------------------------------------------------------------------
@@ -243,6 +257,13 @@ expected_controls:
 # Impact Level: 4 (Secret). All likelihoods: 4 (Very likely, 0% compliance).
 # Grid[3][3] (Likelihood 4, Impact 4) = 4 (Very High Risk, Level 5) -> Priority 1 (Urgent)
 # ==============================================================================
+expected_evaluation:
+  impact_level: 4
+  confidentiality_impact: 4
+  availability_impact: 4
+  scenario_count: 7
+  excluded_scenarios: []
+
 expected_risk_scenarios:
   - scenario: "Exposure of unencrypted data in transit"
     likelihood_requirement: "data_in_transit"

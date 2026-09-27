@@ -163,6 +163,13 @@ class RequirementAssessment:
             return requirement.get('questions', {}) or {}
         return {}
 
+    def get_implementation_groups(self):
+        """Return the implementation groups for this requirement."""
+        requirement = self.json_object.get('requirement', {})
+        if isinstance(requirement, dict):
+            return requirement.get('implementation_groups', []) or []
+        return []
+
     def update_answers(self, answers, result=None, observation=None, merge=True):
         """PATCH this requirement assessment's answers (and optionally result/observation).
 

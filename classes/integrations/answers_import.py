@@ -1,25 +1,22 @@
-"""Import questionnaire answers from a CSV file into a compliance assessment.
+"""Import questionnaire answers from a YAML profile into a compliance assessment.
 
-Expected CSV columns (header names are case-insensitive, extra columns are ignored):
-
-- ``requirement`` (required): the requirement's URN or ref_id (e.g. "GV.OC-01") used
-  to locate the target requirement assessment within the compliance assessment.
-- ``question`` (optional): the question's URN or its exact question text. Can be left
-  empty when the requirement has exactly one question.
-- ``answer`` (required unless the row only sets result/observation): the answer value.
-  For choice questions, match against the choice's display value (e.g. "Yes"/"No") or
-  its URN directly. Multiple choices (for multiple_choice questions) can be separated
-  with "|" or ";".
-- ``result`` (optional): requirement assessment result, e.g. "compliant",
-  "non_compliant", "partially_compliant", "not_applicable".
-- ``observation`` (optional): free text comment set on the requirement assessment.
+Expected answers YAML format:
+application:
+  ...
+answers:
+  - requirement: "data_classification"
+    question: "What is the maximum classification level handled?"
+    answer: "Secret"
+    result: "compliant"
+    observation: "Secret banking transaction records"
 
 Rows referencing the same requirement (and different questions) are merged into a
 single PATCH per requirement assessment.
 """
 
-import csv
 import logging
+from pathlib import Path
+import yaml
 
 from .. import utils
 
@@ -58,54 +55,27 @@ def _normalize_row(row):
     return normalized
 
 
-def read_answers_file(file_path, delimiter=None):
-    """Read a YAML or CSV file containing assessment answers and return normalized rows.
-
-    Supports:
-    - .yaml / .yml: Structured YAML files containing an 'answers' list of dicts.
-    - .csv: Delimited CSV files with standard header columns.
+def read_answers_file(file_path):
+    """Read a YAML file containing assessment answers and return normalized rows.
 
     Args:
-        file_path: Path to the YAML or CSV file.
-        delimiter: Optional explicit delimiter for CSV files. Auto-detected when omitted.
+        file_path: Path to the YAML answers file.
+
+    Returns:
+        List of normalized answer dictionaries.
     """
-    path_str = str(file_path)
-    if path_str.endswith(".yaml") or path_str.endswith(".yml"):
-        import yaml
-        with open(file_path, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f)
-        if isinstance(data, dict):
-            raw_rows = data.get("answers", [])
-        elif isinstance(data, list):
-            raw_rows = data
-        else:
-            raw_rows = []
-        return [_normalize_row(row) for row in raw_rows if isinstance(row, dict)]
+    path = Path(file_path)
+    with open(path, "r", encoding="utf-8") as f:
+        data = yaml.safe_load(f)
 
-    return read_csv_rows(file_path, delimiter=delimiter)
+    if isinstance(data, dict):
+        raw_rows = data.get("answers", [])
+    elif isinstance(data, list):
+        raw_rows = data
+    else:
+        raw_rows = []
 
-
-def read_csv_rows(csv_path, delimiter=None):
-    """Read a CSV or YAML file and return a list of normalized row dicts.
-
-    Args:
-        csv_path: Path to the CSV or YAML file.
-        delimiter: Optional explicit delimiter. Auto-detected (',' or ';') when omitted.
-    """
-    path_str = str(csv_path)
-    if path_str.endswith(".yaml") or path_str.endswith(".yml"):
-        return read_answers_file(csv_path)
-
-    with open(csv_path, "r", encoding="utf-8-sig", newline="") as csv_file:
-        sample = csv_file.read(4096)
-        csv_file.seek(0)
-        if delimiter is None:
-            try:
-                delimiter = csv.Sniffer().sniff(sample, delimiters=",;\t").delimiter
-            except csv.Error:
-                delimiter = ","
-        reader = csv.DictReader(csv_file, delimiter=delimiter)
-        return [_normalize_row(row) for row in reader]
+    return [_normalize_row(row) for row in raw_rows if isinstance(row, dict)]
 
 
 def _split_multi_values(answer):
@@ -148,6 +118,15 @@ def _resolve_choice_value(question, raw_answer):
             if str(choice.get("value", "")).strip().lower() == raw_value_normalized:
                 match = choice.get("urn")
                 break
+        if not match:
+            candidates = [
+                choice.get("urn")
+                for choice in choices
+                if raw_value_normalized in str(choice.get("value", "")).strip().lower()
+                or str(choice.get("value", "")).strip().lower().startswith(raw_value_normalized)
+            ]
+            if len(candidates) == 1:
+                match = candidates[0]
         if match:
             resolved_urns.append(match)
         else:
@@ -161,30 +140,29 @@ def _resolve_choice_value(question, raw_answer):
     return resolved_urns[0] if resolved_urns else None, []
 
 
-def import_compliance_answers(csv_path, compliance_assessment_id, requirement_assessment_dict, delimiter=None):
-    """Import questionnaire answers from a CSV file into a compliance assessment.
+def import_compliance_answers(answers_path, compliance_assessment_id, requirement_assessment_dict):
+    """Import questionnaire answers from a YAML file into a compliance assessment.
 
     Args:
-        csv_path: Path to the CSV file containing the answers.
+        answers_path: Path to the YAML file containing the answers.
         compliance_assessment_id: ID of the target compliance assessment.
         requirement_assessment_dict: An audit.RequirementAssessmentDict instance.
-        delimiter: Optional explicit CSV delimiter (auto-detected when omitted).
 
     Returns:
         A summary dict: {"updated": int, "errors": [{"row": int, "reason": str}, ...]}.
     """
-    rows = read_csv_rows(csv_path, delimiter=delimiter)
-    utils.log(f"Loaded {len(rows)} rows from CSV file: {csv_path}")
+    rows = read_answers_file(answers_path)
+    utils.log(f"Loaded {len(rows)} answers from: {answers_path}")
 
     # Accumulate per-requirement-assessment updates so multiple question rows
     # for the same requirement are merged into a single PATCH.
     pending = {}
     errors = []
 
-    for row_index, row in enumerate(rows, start=2):  # header is row 1
+    for row_index, row in enumerate(rows, start=1):
         requirement_identifier = row.get("requirement")
         if not requirement_identifier:
-            errors.append({"row": row_index, "reason": "Missing 'requirement' column value"})
+            errors.append({"row": row_index, "reason": "Missing 'requirement' value"})
             continue
 
         ra = requirement_assessment_dict.get_requirement_assessment_by_identifier(
@@ -263,7 +241,7 @@ def import_compliance_answers(csv_path, compliance_assessment_id, requirement_as
                 "reason": f"Failed to update requirement assessment '{ra.get_name()}' ({ra.get_id()})",
             })
 
-    # Reset any requirement assessments belonging to this compliance assessment that are NOT in the CSV
+    # Reset any requirement assessments belonging to this compliance assessment that are NOT in the answers file
     all_ra_ids = requirement_assessment_dict.get_requirement_assessment_id_list_from_compliance_assessment_id(compliance_assessment_id)
     cleared = 0
     for ra_id in all_ra_ids:
@@ -284,7 +262,7 @@ def import_compliance_answers(csv_path, compliance_assessment_id, requirement_as
         utils.log(f"Reset {cleared} untriggered/unmentioned requirement assessment(s) to not_assessed")
 
     for error in errors:
-        utils.log(f"CSV import issue: {error}", level=logging.WARNING)
-    utils.log(f"CSV import complete: {updated} requirement assessment(s) updated, {len(errors)} issue(s)")
+        utils.log(f"Answers import issue: {error}", level=logging.WARNING)
+    utils.log(f"Answers import complete: {updated} requirement assessment(s) updated, {len(errors)} issue(s)")
 
     return {"updated": updated, "errors": errors}

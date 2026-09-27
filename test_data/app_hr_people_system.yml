@@ -9,13 +9,27 @@
 # ==============================================================================
 
 application:
+  order: 5
   id: "app_hr_people_system"
   name: "App-HR-People-System"
-  description: "Enterprise HR and payroll SaaS platform with privacy and retention gaps"
+  label: "App-HR-People-System (Confidential / HR & Privacy Gaps)"
+  description: "Confidential classification + Strong encryption + Unmasked non-prod retention & missing deletion -> High Privacy Risk"
   classification: "Confidential"
   hosting: "SaaS"
+  compliance_target: "Mixed / Privacy Gaps"
+  expected_risk: "High (GDPR & Data Retention)"
   framework_ref: "mls"
   framework_name: "Multi-level DPP"
+  framework_yaml: "YML/newDPP.yml"
+  user:
+    email: "hannah.hr@example-peoplesys.com"
+    first_name: "Hannah"
+    last_name: "HR"
+  tprm:
+    criticality: 3
+    maturity: 2
+    trust: 2
+    conclusion: "warning"
 
 answers:
   # ----------------------------------------------------------------------------
@@ -236,6 +250,13 @@ expected_controls:
 # Impact Level: 3 (Confidential).
 # Privacy gaps trigger High Risk (Level 4) and Urgent Priority (Priority 1).
 # ==============================================================================
+expected_evaluation:
+  impact_level: 3
+  confidentiality_impact: 3
+  availability_impact: 3
+  scenario_count: 7
+  excluded_scenarios: []
+
 expected_risk_scenarios:
   - scenario: "Exposure of unencrypted data in transit"
     likelihood_requirement: "data_in_transit"

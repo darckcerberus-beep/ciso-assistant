@@ -1,26 +1,32 @@
-"""Multi-application integration test suite for risk scenario evaluation.
+"""Framework and application independent integration test suite for risk scenario evaluation.
 
-Tests 4 distinct application profiles with different security postures and classifications:
-1. App-Secure-Core: High classification (Secret) + Full compliance (100%) -> Low Risk.
-2. App-Vulnerable-Portal: High classification (Secret) + Non-compliant (0%) -> Critical/Very High Risk -> Urgent Priority.
-3. App-Internal-Tool: Medium classification (Internal) + Mixed compliance -> Scenario-dependent Risks.
-4. App-Public-Blog: Low classification (Public) + Mixed compliance -> Low Impact & Low Risk.
+Tests relational integrity, schema consistency, and risk scenario derivation dynamically:
+1. Framework Integrity & Consistency:
+   - Validates schema, foreign keys, risk matrix dimensions, and criticality mappings
+     against each framework's embedded test_metadata in YML/*.
+2. Application Scenario Evaluation Consistency:
+   - Evaluates each application profile against its associated framework.
+   - Validates computed impact levels, scenario counts, likelihoods, matrix risks,
+     and control priorities against expected_evaluation and expected_risk_scenarios in test_data/*.
+   - Validates that evaluating live RequirementAssessment objects yields identical results.
 """
 
-import csv
 from pathlib import Path
 import unittest
 import yaml
 
+from classes.audits.requirement_assessment import RequirementAssessment
 from classes.controls.applied import AppliedControlDict
-from classes.integrations.csv_import import read_answers_file
+from classes.examples_manager import FRAMEWORK_CATALOG
+from classes.integrations.answers_import import read_answers_file
 
 
 class ApplicationRiskSimulator:
     """Simulates compliance questionnaire scoring and risk scenario derivation."""
 
     def __init__(self, framework_yaml_path="YML/newDPP.yml"):
-        with open(framework_yaml_path, "r", encoding="utf-8") as f:
+        self.framework_yaml_path = Path(framework_yaml_path)
+        with open(self.framework_yaml_path, "r", encoding="utf-8") as f:
             self.framework_data = yaml.safe_load(f)
 
         self.req_nodes = {
@@ -34,10 +40,11 @@ class ApplicationRiskSimulator:
         self.risk_scenarios = self.framework_data["objects"]["risk_scenarios"]
         self.risk_matrix = self.framework_data["objects"]["risk_matrix"][0]
         self.criticality_mapping = self.framework_data.get("criticality_mapping", {})
+        self.test_metadata = self.framework_data.get("test_metadata", {})
         self.applied_control_dict = AppliedControlDict.__new__(AppliedControlDict)
 
-    def load_answers_from_csv(self, file_path):
-        """Read CSV or YAML answers into a dictionary grouped by requirement ref_id."""
+    def load_answers_from_file(self, file_path):
+        """Read YAML answers profile into a dictionary grouped by requirement ref_id."""
         answers_by_req = {}
         rows = read_answers_file(file_path)
         for row in rows:
@@ -49,12 +56,73 @@ class ApplicationRiskSimulator:
             answers_by_req[req].append({"question": question, "answer": answer})
         return answers_by_req
 
+    def build_mock_requirement_assessments(self, yml_path_or_dict):
+        """Construct RequirementAssessment objects from a YAML application profile's answers."""
+        if isinstance(yml_path_or_dict, (str, Path)):
+            with open(yml_path_or_dict, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+        else:
+            data = yml_path_or_dict
+
+        answers_by_req = {}
+        for a in data.get("answers", []):
+            req = a.get("requirement")
+            if req:
+                answers_by_req.setdefault(req, []).append(a)
+
+        ras = []
+        for idx, (req_ref, ans_list) in enumerate(answers_by_req.items(), 1):
+            rn = self.req_nodes.get(req_ref) or self.req_nodes_by_urn.get(req_ref)
+            if not rn:
+                for cand in self.req_nodes.values():
+                    if cand.get("ref_id", "").lower() == req_ref.lower():
+                        rn = cand
+                        break
+
+            rn_urn = rn.get("urn") if rn else f"urn:mock:{req_ref}"
+            rn_ref_id = rn.get("ref_id") if rn else req_ref
+            q_dict = rn.get("questions", {}) if rn else {}
+
+            answers_dict = {}
+            total_score = 0
+            has_score = False
+
+            for a in ans_list:
+                ans_text = str(a.get("answer", "")).strip().lower()
+                q_text = str(a.get("question", "")).strip().lower()
+
+                matched = False
+                for q_urn, q_def in q_dict.items():
+                    if q_def.get("text", "").strip().lower() == q_text or len(q_dict) == 1:
+                        for choice in q_def.get("choices", []):
+                            c_val = str(choice.get("value", "")).strip().lower()
+                            c_urn = str(choice.get("urn", "")).strip().lower()
+                            if c_val == ans_text or c_urn == ans_text or (ans_text and (ans_text in c_val or c_val in ans_text)):
+                                answers_dict[q_urn] = choice.get("urn")
+                                add_score = choice.get("add_score")
+                                if add_score is not None:
+                                    total_score += int(add_score)
+                                    has_score = True
+                                matched = True
+                                break
+                        if matched:
+                            break
+
+            ras.append(RequirementAssessment({
+                "id": f"ra-{idx}",
+                "requirement": {"ref_id": rn_ref_id, "urn": rn_urn},
+                "answers": answers_dict,
+                "score": total_score if has_score else 0,
+                "result": "compliant" if total_score > 0 else "not_assessed",
+            }))
+        return ras
+
     def evaluate_application(self, source):
-        """Evaluate an application from a CSV/YAML file path or live RequirementAssessment objects."""
+        """Evaluate an application from a YAML file path or live RequirementAssessment objects."""
         if isinstance(source, (list, tuple, dict)):
             items = list(source.values()) if isinstance(source, dict) else list(source)
             return self.evaluate_from_requirement_assessments(items)
-        return self.evaluate_from_csv(source)
+        return self.evaluate_from_file(source)
 
     def evaluate_from_requirement_assessments(self, req_assessments):
         """Evaluate dynamic risk scenarios directly from a collection of RequirementAssessment objects."""
@@ -62,8 +130,13 @@ class ApplicationRiskSimulator:
         answers_present_by_urn = set()
         answers_present_by_ref = set()
         data_class_choice_urn = None
+        data_avail_choice_urn = None
 
         confidentiality_map = self.criticality_mapping.get("confidentiality", {})
+        availability_map = self.criticality_mapping.get("availability", {})
+
+        conf_node_ref = self.test_metadata.get("classification_node_ref")
+        avail_node_ref = self.test_metadata.get("availability_node_ref")
 
         for ra in req_assessments:
             urn = ra.get_urn() if hasattr(ra, "get_urn") else (ra.get("urn") if isinstance(ra, dict) else None)
@@ -90,17 +163,34 @@ class ApplicationRiskSimulator:
 
             if urn:
                 answers_present_by_urn.add(urn)
+                answers_present_by_urn.add(urn.lower())
             if rn_ref:
                 answers_present_by_ref.add(rn_ref)
+                answers_present_by_ref.add(rn_ref.lower())
 
-            # Check for data classification
-            if (rn_ref == "data_classification" or (urn and "data_classification" in urn)) and answers_dict:
+            # Check for data / vendor classification (confidentiality)
+            is_conf_node = (
+                rn_ref in (conf_node_ref, "data_classification", "PROF.01", "vendor_classification")
+                or (urn and any(k in urn.lower() for k in ["data_classification", "vendor_classification", "prof.01"]))
+            )
+            if is_conf_node and answers_dict:
                 for a_val in answers_dict.values():
                     if a_val:
                         data_class_choice_urn = a_val
                         break
 
-            # Get score
+            # Check for vendor availability
+            is_avail_node = (
+                rn_ref in (avail_node_ref, "vendor_availability", "PROF.02")
+                or (urn and any(k in urn.lower() for k in ["vendor_availability", "prof.02"]))
+            )
+            if is_avail_node and answers_dict:
+                for a_val in answers_dict.values():
+                    if a_val:
+                        data_avail_choice_urn = a_val
+                        break
+
+            # Score calculation
             score_val = ra.get_score() if hasattr(ra, "get_score") else (ra.get("score") if isinstance(ra, dict) else None)
             if score_val is not None and score_val != "":
                 try:
@@ -109,12 +199,17 @@ class ApplicationRiskSimulator:
                         scores[urn] = num_score
                     if rn_ref:
                         scores[rn_ref] = num_score
+                        scores[rn_ref.lower()] = num_score
                     continue
                 except (ValueError, TypeError):
                     pass
 
-            # Otherwise compute score from choices
             rn = self.req_nodes_by_urn.get(urn) or self.req_nodes.get(rn_ref)
+            if not rn and rn_ref:
+                for cand in self.req_nodes.values():
+                    if cand.get("ref_id", "").lower() == rn_ref.lower():
+                        rn = cand
+                        break
             if rn:
                 total_score = 0
                 questions_dict = rn.get("questions", {})
@@ -130,19 +225,30 @@ class ApplicationRiskSimulator:
                     scores[urn] = total_score
                 if rn_ref:
                     scores[rn_ref] = total_score
+                    scores[rn_ref.lower()] = total_score
 
-        # 2. Determine Data Classification Impact
-        impact_level = 1
+        # Determine Impact Levels
+        conf_impact = 1
         if data_class_choice_urn:
             if data_class_choice_urn in confidentiality_map:
-                impact_level = confidentiality_map[data_class_choice_urn] + 1
+                conf_impact = confidentiality_map[data_class_choice_urn] + 1
             else:
                 for k, v in confidentiality_map.items():
                     if k in str(data_class_choice_urn) or str(data_class_choice_urn).lower() in k.lower():
-                        impact_level = v + 1
+                        conf_impact = v + 1
                         break
 
-        # 3. Evaluate each Risk Scenario
+        avail_impact = conf_impact
+        if data_avail_choice_urn and availability_map:
+            if data_avail_choice_urn in availability_map:
+                avail_impact = availability_map[data_avail_choice_urn] + 1
+            else:
+                for k, v in availability_map.items():
+                    if k in str(data_avail_choice_urn) or str(data_avail_choice_urn).lower() in k.lower():
+                        avail_impact = v + 1
+                        break
+
+        # Evaluate each Risk Scenario
         scenario_results = {}
         for scenario in self.risk_scenarios:
             sc_name = scenario.get("name")
@@ -152,18 +258,44 @@ class ApplicationRiskSimulator:
             rn = self.req_nodes_by_urn.get(likelihood_urn)
             lh_ref_id = rn.get("ref_id") if rn else (likelihood_urn.rsplit(":", 1)[-1] if likelihood_urn else None)
 
-            if likelihood_urn not in answers_present_by_urn and lh_ref_id not in answers_present_by_ref:
+            lh_present = (
+                likelihood_urn in answers_present_by_urn
+                or (likelihood_urn and likelihood_urn.lower() in answers_present_by_urn)
+                or lh_ref_id in answers_present_by_ref
+                or (lh_ref_id and lh_ref_id.lower() in answers_present_by_ref)
+            )
+            if not lh_present:
                 continue
 
-            if "data_classification" not in answers_present_by_ref and (impact_urn and impact_urn not in answers_present_by_urn):
+            is_avail_impact = (
+                impact_urn and ("vendor_availability" in impact_urn.lower() or "availability" in impact_urn.lower())
+            )
+            sc_impact = avail_impact if is_avail_impact else conf_impact
+
+            impact_present = False
+            if is_avail_impact:
+                impact_present = (
+                    "vendor_availability" in answers_present_by_ref
+                    or "prof.02" in answers_present_by_ref
+                    or (impact_urn and (impact_urn in answers_present_by_urn or impact_urn.lower() in answers_present_by_urn))
+                )
+            else:
+                impact_present = (
+                    "data_classification" in answers_present_by_ref
+                    or "vendor_classification" in answers_present_by_ref
+                    or "prof.01" in answers_present_by_ref
+                    or (impact_urn and (impact_urn in answers_present_by_urn or impact_urn.lower() in answers_present_by_urn))
+                )
+
+            if not impact_present:
                 continue
 
-            lh_score = scores.get(likelihood_urn, scores.get(lh_ref_id, 0))
+            lh_score = scores.get(likelihood_urn, scores.get(lh_ref_id, scores.get(lh_ref_id.lower() if lh_ref_id else None, 0)))
             scaled_score = max(0, min(100, int(lh_score)))
             scaled_likelihood = min(4, max(1, 4 - ((scaled_score - 1) // 25)))
 
             proba_idx = scaled_likelihood - 1
-            impact_idx = impact_level - 1
+            impact_idx = sc_impact - 1
             risk_grid = self.risk_matrix["grid"]
             matrix_risk_id = risk_grid[proba_idx][impact_idx]
             risk_level_1_based = matrix_risk_id + 1
@@ -172,30 +304,41 @@ class ApplicationRiskSimulator:
             scenario_results[sc_name] = {
                 "likelihood_score": lh_score,
                 "scaled_likelihood": scaled_likelihood,
-                "scaled_impact": impact_level,
+                "scaled_impact": sc_impact,
                 "matrix_risk_id": matrix_risk_id,
                 "risk_level_1_based": risk_level_1_based,
                 "control_priority": control_priority,
             }
 
         return {
-            "impact_level": impact_level,
+            "impact_level": conf_impact,
+            "confidentiality_impact": conf_impact,
+            "availability_impact": avail_impact,
             "requirement_scores": scores,
             "scenarios": scenario_results,
         }
 
-    def evaluate_from_csv(self, csv_path):
-        """Evaluate an application CSV and return computed scores, scenarios, and priorities."""
-        answers_by_req = self.load_answers_from_csv(csv_path)
+    def evaluate_from_file(self, file_path):
+        """Evaluate an application YAML file and return computed scores and scenarios."""
+        answers_by_req = self.load_answers_from_file(file_path)
 
-        # 1. Compute compliance scores for each requirement
         scores = {}
+        confidentiality_map = self.criticality_mapping.get("confidentiality", {})
+        availability_map = self.criticality_mapping.get("availability", {})
+        data_class_choice_urn = None
+        data_avail_choice_urn = None
+
         for req_id, answers in answers_by_req.items():
-            rn = self.req_nodes.get(req_id) or self.req_nodes_by_urn.get(req_id)
+            req_id_clean = req_id.strip()
+            req_id_lower = req_id_clean.lower()
+            rn = self.req_nodes.get(req_id_clean) or self.req_nodes_by_urn.get(req_id_clean)
             if not rn:
-                # Try finding by partial match
                 for node in self.req_nodes.values():
-                    if req_id in node.get("urn", "") or req_id in node.get("ref_id", ""):
+                    if (
+                        node.get("ref_id", "").lower() == req_id_lower
+                        or node.get("urn", "").lower() == req_id_lower
+                        or req_id_lower in node.get("urn", "").lower()
+                    ):
                         rn = node
                         break
             if not rn:
@@ -207,361 +350,391 @@ class ApplicationRiskSimulator:
                 q_text = ans_item["question"].strip().lower()
                 ans_text = ans_item["answer"].strip().lower()
 
-                # Find matching question in definition
                 for q_urn, q_def in questions_dict.items():
-                    if q_def.get("text", "").strip().lower() == q_text or len(questions_dict) == 1:
-                        # Find matching choice
+                    if q_def.get("text", "").strip().lower() == q_text or len(questions_dict) == 1 or q_urn.strip().lower() == q_text:
                         for choice in q_def.get("choices", []):
-                            if choice.get("value", "").strip().lower() == ans_text:
+                            c_val = choice.get("value", "").strip().lower()
+                            c_urn = choice.get("urn", "").strip().lower()
+                            if c_val == ans_text or c_urn == ans_text or (ans_text and (ans_text in c_val or c_val in ans_text)):
                                 add_score = choice.get("add_score")
                                 if add_score is not None:
                                     total_score += int(add_score)
+
+                                if choice.get("urn") in confidentiality_map:
+                                    data_class_choice_urn = choice.get("urn")
+                                elif choice.get("urn") in availability_map:
+                                    data_avail_choice_urn = choice.get("urn")
                                 break
                         break
 
-            scores[rn.get("ref_id")] = total_score
-            scores[rn.get("urn")] = total_score
+            node_ref = rn.get("ref_id")
+            node_urn = rn.get("urn")
+            if node_ref:
+                scores[node_ref] = total_score
+                scores[node_ref.lower()] = total_score
+            if node_urn:
+                scores[node_urn] = total_score
+                scores[node_urn.lower()] = total_score
 
-        # 2. Determine Data Classification Impact
-        impact_level = 1
-        confidentiality_map = self.criticality_mapping.get("confidentiality", {})
-        data_class_answers = answers_by_req.get("data_classification", [])
-        if data_class_answers:
-            chosen_class_text = data_class_answers[0]["answer"].strip().lower()
-            rn = self.req_nodes.get("data_classification", {})
-            for q_urn, q_def in rn.get("questions", {}).items():
-                for choice in q_def.get("choices", []):
-                    if choice.get("value", "").strip().lower() == chosen_class_text:
-                        choice_urn = choice.get("urn")
-                        if choice_urn in confidentiality_map:
-                            impact_level = confidentiality_map[choice_urn] + 1
-                        break
+        # Determine Impact Levels
+        conf_impact = 1
+        if data_class_choice_urn and confidentiality_map:
+            conf_impact = confidentiality_map.get(data_class_choice_urn, 0) + 1
+        else:
+            for k in ["data_classification", "PROF.01", "prof.01", "vendor_classification"]:
+                ans_list = answers_by_req.get(k)
+                if ans_list:
+                    chosen_text = ans_list[0]["answer"].strip().lower()
+                    for c_urn, c_idx in confidentiality_map.items():
+                        if chosen_text in c_urn.lower():
+                            conf_impact = c_idx + 1
+                            break
+                    break
 
-        # 3. Evaluate each Risk Scenario
+        avail_impact = conf_impact
+        if data_avail_choice_urn and availability_map:
+            avail_impact = availability_map.get(data_avail_choice_urn, 0) + 1
+        elif availability_map:
+            for k in ["vendor_availability", "PROF.02", "prof.02"]:
+                ans_list = answers_by_req.get(k)
+                if ans_list:
+                    chosen_text = ans_list[0]["answer"].strip().lower()
+                    for c_urn, c_idx in availability_map.items():
+                        if chosen_text in c_urn.lower():
+                            avail_impact = c_idx + 1
+                            break
+                    break
+
+        # Evaluate each Risk Scenario
         scenario_results = {}
         for scenario in self.risk_scenarios:
             sc_name = scenario.get("name")
             likelihood_urn = scenario.get("likelihood")
             impact_urn = scenario.get("impact")
 
-            # Skip scenario if likelihood requirement was not answered in the CSV
             rn = self.req_nodes_by_urn.get(likelihood_urn)
-            lh_ref_id = rn.get("ref_id") if rn else None
-            lh_answers = answers_by_req.get(lh_ref_id) or answers_by_req.get(likelihood_urn) or []
+            lh_ref_id = rn.get("ref_id") if rn else (likelihood_urn.rsplit(":", 1)[-1] if likelihood_urn else None)
+
+            lh_answers = (
+                answers_by_req.get(lh_ref_id)
+                or answers_by_req.get(lh_ref_id.lower() if lh_ref_id else None)
+                or answers_by_req.get(likelihood_urn)
+                or answers_by_req.get(likelihood_urn.lower() if likelihood_urn else None)
+                or []
+            )
             if not lh_answers or not any(a.get("answer") for a in lh_answers):
                 continue
 
-            # Skip scenario if impact requirement was not answered in the CSV
-            if "data_classification" not in answers_by_req and impact_urn not in answers_by_req:
+            is_avail_impact = (
+                impact_urn and ("vendor_availability" in impact_urn.lower() or "availability" in impact_urn.lower())
+            )
+            sc_impact = avail_impact if is_avail_impact else conf_impact
+
+            impact_answered = False
+            if is_avail_impact:
+                impact_answered = (
+                    "vendor_availability" in answers_by_req
+                    or "prof.02" in answers_by_req
+                    or "PROF.02" in answers_by_req
+                    or (impact_urn and impact_urn in answers_by_req)
+                )
+            else:
+                impact_answered = (
+                    "data_classification" in answers_by_req
+                    or "vendor_classification" in answers_by_req
+                    or "prof.01" in answers_by_req
+                    or "PROF.01" in answers_by_req
+                    or (impact_urn and impact_urn in answers_by_req)
+                )
+
+            if not impact_answered:
                 continue
 
-            # Get likelihood requirement score
-            lh_score = scores.get(likelihood_urn, scores.get(lh_ref_id, 0))
+            lh_score = scores.get(likelihood_urn, scores.get(lh_ref_id, scores.get(lh_ref_id.lower() if lh_ref_id else None, 0)))
             scaled_score = max(0, min(100, int(lh_score)))
             scaled_likelihood = min(4, max(1, 4 - ((scaled_score - 1) // 25)))
 
-            # Look up Risk in 4x4 Grid (0-based indexing for probability and impact)
             proba_idx = scaled_likelihood - 1
-            impact_idx = impact_level - 1
+            impact_idx = sc_impact - 1
             risk_grid = self.risk_matrix["grid"]
             matrix_risk_id = risk_grid[proba_idx][impact_idx]
-
-            # Convert matrix risk id to 1-based risk level (1 to 5)
-            # Risk Matrix: 0=very low(1), 1=low(2), 2=medium(3), 3=high(4), 4=very high(5)
             risk_level_1_based = matrix_risk_id + 1
-
-            # Determine Applied Control Priority
             control_priority = self.applied_control_dict.get_priority_from_risk_level(risk_level_1_based)
 
             scenario_results[sc_name] = {
                 "likelihood_score": lh_score,
                 "scaled_likelihood": scaled_likelihood,
-                "scaled_impact": impact_level,
+                "scaled_impact": sc_impact,
                 "matrix_risk_id": matrix_risk_id,
                 "risk_level_1_based": risk_level_1_based,
                 "control_priority": control_priority,
             }
 
         return {
-            "impact_level": impact_level,
+            "impact_level": conf_impact,
+            "confidentiality_impact": conf_impact,
+            "availability_impact": avail_impact,
             "requirement_scores": scores,
             "scenarios": scenario_results,
         }
 
 
-class TestApplicationScenarios(unittest.TestCase):
-    """Test suite running multi-application profiles against the risk calculation engine."""
+class TestFrameworkIntegrityAndConsistency(unittest.TestCase):
+    """Verifies relational integrity, foreign keys, and logic consistency across all frameworks."""
 
     @classmethod
-    def setUpClass(cls):
-        cls.simulator = ApplicationRiskSimulator("YML/newDPP.yml")
+    def _assert_framework_integrity(cls, test_case, framework_yaml_path):
+        """Generic assertion verifying schema, counts, and relational integrity of any framework."""
+        yaml_file = Path(framework_yaml_path)
+        test_case.assertTrue(yaml_file.exists(), f"Framework file {yaml_file} does not exist")
 
-    def test_app_secure_core(self):
-        """Test App-Secure-Core: Secret data (Impact=4) with 100% compliance across all in-scope controls.
+        with open(yaml_file, "r", encoding="utf-8") as f:
+            fw_data = yaml.safe_load(f)
 
-        Expected:
-        - Impact: 4 (Critical)
-        - In-house app -> SaaS scenario is not evaluated (6 scenarios total)
-        - All likelihoods: 1 (Unlikely)
-        - Residual risk: Low / Acceptable
-        - Control priorities: 3 or 4 (Low urgency for additional action)
-        """
-        results = self.simulator.evaluate_application("test_data/app_secure_core.csv")
-        self.assertEqual(results["impact_level"], 4, "Impact for Secret data should be 4")
+        # 1. Required top-level fields
+        for field in ["urn", "locale", "ref_id", "name", "objects"]:
+            test_case.assertIn(field, fw_data, f"Missing required top-level key '{field}' in {yaml_file.name}")
 
-        scenarios = results["scenarios"]
-        self.assertEqual(len(scenarios), 6, "6 in-scope scenarios must be evaluated (SaaS excluded)")
-        self.assertNotIn("SaaS provider data leakage", scenarios)
+        objects = fw_data.get("objects", {})
+        test_case.assertIn("framework", objects, f"Missing 'framework' object in {yaml_file.name}")
+        framework = objects["framework"]
+        test_case.assertIn("requirement_nodes", framework, f"Missing 'requirement_nodes' in {yaml_file.name}")
 
-        for sc_name, sc_data in scenarios.items():
-            self.assertEqual(
-                sc_data["scaled_likelihood"], 1,
-                f"Scenario '{sc_name}' should have likelihood 1 with 100% compliance"
+        req_nodes = {rn["urn"]: rn for rn in framework.get("requirement_nodes", [])}
+        req_nodes_by_ref = {rn["ref_id"]: rn for rn in framework.get("requirement_nodes", []) if rn.get("ref_id")}
+        risk_scenarios = objects.get("risk_scenarios", [])
+        threats = {t["urn"]: t for t in objects.get("threats", [])}
+        vulns = {v["urn"]: v for v in objects.get("vulnerabilities", [])}
+        ref_ctrls = {c["urn"]: c for c in objects.get("reference_controls", [])}
+        risk_matrix_list = objects.get("risk_matrix", [])
+
+        # 2. Validate against embedded test_metadata if specified
+        test_metadata = fw_data.get("test_metadata", {})
+        if test_metadata:
+            if "expected_risk_scenarios_count" in test_metadata:
+                test_case.assertEqual(
+                    len(risk_scenarios), test_metadata["expected_risk_scenarios_count"],
+                    f"Risk scenario count mismatch in {yaml_file.name}",
+                )
+            if "expected_threats_count" in test_metadata:
+                test_case.assertEqual(
+                    len(threats), test_metadata["expected_threats_count"],
+                    f"Threat count mismatch in {yaml_file.name}",
+                )
+            if "expected_vulnerabilities_count" in test_metadata:
+                test_case.assertEqual(
+                    len(vulns), test_metadata["expected_vulnerabilities_count"],
+                    f"Vulnerability count mismatch in {yaml_file.name}",
+                )
+            if "expected_reference_controls_count" in test_metadata:
+                test_case.assertEqual(
+                    len(ref_ctrls), test_metadata["expected_reference_controls_count"],
+                    f"Reference controls count mismatch in {yaml_file.name}",
+                )
+            if "expected_requirement_nodes_count" in test_metadata:
+                test_case.assertEqual(
+                    len(req_nodes), test_metadata["expected_requirement_nodes_count"],
+                    f"Requirement nodes count mismatch in {yaml_file.name}",
+                )
+
+        # 3. Risk matrix grid dimensions and consistency
+        test_case.assertGreater(len(risk_matrix_list), 0, f"No risk_matrix found in {yaml_file.name}")
+        matrix = risk_matrix_list[0]
+        grid = matrix.get("grid")
+        test_case.assertIsInstance(grid, list, f"Risk matrix grid must be a list in {yaml_file.name}")
+
+        dims = test_metadata.get("matrix_dimensions", {})
+        expected_rows = dims.get("likelihood_levels", len(grid))
+        expected_cols = dims.get("impact_levels", len(grid[0]) if grid else 0)
+        test_case.assertEqual(len(grid), expected_rows, f"Grid row count mismatch in {yaml_file.name}")
+        for r_idx, row in enumerate(grid):
+            test_case.assertEqual(len(row), expected_cols, f"Grid column count mismatch at row {r_idx} in {yaml_file.name}")
+            for cell in row:
+                test_case.assertIsInstance(cell, int, f"Matrix cell must be an int in {yaml_file.name}")
+                test_case.assertTrue(0 <= cell < max(expected_rows, expected_cols) + 1)
+
+        # 4. Criticality mapping integrity
+        crit_map = fw_data.get("criticality_mapping", {})
+        conf_map = crit_map.get("confidentiality", {})
+        test_case.assertGreater(len(conf_map), 0, f"Confidentiality criticality mapping empty in {yaml_file.name}")
+        for choice_urn, impact_idx in conf_map.items():
+            test_case.assertTrue(0 <= impact_idx < expected_cols, f"Invalid confidentiality impact index {impact_idx}")
+
+        avail_map = crit_map.get("availability", {})
+        for choice_urn, impact_idx in avail_map.items():
+            test_case.assertTrue(0 <= impact_idx < expected_cols, f"Invalid availability impact index {impact_idx}")
+
+        # 5. Risk scenarios relational integrity (foreign keys)
+        for sc in risk_scenarios:
+            sc_name = sc.get("name")
+            lh_ref = sc.get("likelihood")
+            imp_ref = sc.get("impact")
+
+            test_case.assertIsNotNone(lh_ref, f"Scenario '{sc_name}' missing likelihood reference")
+            test_case.assertIsNotNone(imp_ref, f"Scenario '{sc_name}' missing impact reference")
+
+            lh_exists = lh_ref in req_nodes or lh_ref in req_nodes_by_ref or any(lh_ref.endswith(f":{k}") for k in req_nodes_by_ref)
+            imp_exists = imp_ref in req_nodes or imp_ref in req_nodes_by_ref or any(imp_ref.endswith(f":{k}") for k in req_nodes_by_ref)
+            test_case.assertTrue(lh_exists, f"Scenario '{sc_name}' likelihood '{lh_ref}' not in requirement nodes")
+            test_case.assertTrue(imp_exists, f"Scenario '{sc_name}' impact '{imp_ref}' not in requirement nodes")
+
+            for t_urn in sc.get("threats", []):
+                test_case.assertIn(t_urn, threats, f"Scenario '{sc_name}' references unknown threat: {t_urn}")
+            for v_urn in sc.get("vulnerabilities", []):
+                test_case.assertIn(v_urn, vulns, f"Scenario '{sc_name}' references unknown vulnerability: {v_urn}")
+
+        # 6. Requirement nodes hierarchy and depth
+        for urn, rn in req_nodes.items():
+            parent_urn = rn.get("parent_urn")
+            depth = rn.get("depth")
+            if parent_urn is None:
+                test_case.assertEqual(depth, 1, f"Root requirement node {urn} must have depth=1")
+            else:
+                test_case.assertIn(parent_urn, req_nodes, f"Node {urn} has invalid parent_urn: {parent_urn}")
+                parent_depth = req_nodes[parent_urn].get("depth", 1)
+                test_case.assertEqual(depth, parent_depth + 1, f"Node {urn} depth mismatch with parent {parent_urn}")
+
+    def test_all_registered_frameworks_integrity(self):
+        """Verify schema, foreign key, and matrix integrity across all catalog frameworks."""
+        for cat in FRAMEWORK_CATALOG:
+            with self.subTest(framework=cat["ref_id"]):
+                self._assert_framework_integrity(self, cat["yaml_path"])
+
+
+class TestApplicationProfileScenarioConsistency(unittest.TestCase):
+    """Verifies that each application profile evaluates consistently with its embedded test data."""
+
+    @classmethod
+    def _assert_profile_evaluation(cls, test_case, app_yaml_path):
+        """Generic assertion verifying an application's computed risk scenarios against its test data."""
+        yaml_file = Path(app_yaml_path)
+        test_case.assertTrue(yaml_file.exists(), f"Application profile {yaml_file} missing")
+
+        with open(yaml_file, "r", encoding="utf-8") as f:
+            app_data = yaml.safe_load(f)
+
+        app_block = app_data.get("application", {})
+        fw_ref = app_block.get("framework_ref")
+        catalog_entry = next((c for c in FRAMEWORK_CATALOG if c["ref_id"] == fw_ref or c["name"] == app_block.get("framework_name")), None)
+        fw_path = catalog_entry["yaml_path"] if catalog_entry else "YML/newDPP.yml"
+
+        simulator = ApplicationRiskSimulator(fw_path)
+        eval_results = simulator.evaluate_application(str(yaml_file))
+
+        expected_eval = app_data.get("expected_evaluation", {})
+        expected_scenarios = {s["scenario"]: s for s in app_data.get("expected_risk_scenarios", [])}
+
+        # 1. Assert impact levels
+        if "impact_level" in expected_eval:
+            test_case.assertEqual(
+                eval_results["impact_level"], expected_eval["impact_level"],
+                f"Impact level mismatch in {yaml_file.name}",
             )
-            self.assertEqual(
-                sc_data["scaled_impact"], 4,
-                f"Scenario '{sc_name}' should have impact 4"
+        if "confidentiality_impact" in expected_eval:
+            test_case.assertEqual(
+                eval_results["confidentiality_impact"], expected_eval["confidentiality_impact"],
+                f"Confidentiality impact mismatch in {yaml_file.name}",
             )
-            # Grid[0][3] (Likelihood 1, Impact 4) = 1 (Low risk)
-            self.assertEqual(sc_data["matrix_risk_id"], 1, f"Scenario '{sc_name}' matrix risk should be Low (id=1)")
-            self.assertIn(sc_data["control_priority"], [3, 4])
-
-    def test_app_vulnerable_portal(self):
-        """Test App-Vulnerable-Portal: Secret data (Impact=4) with 0% compliance (Unimplemented controls).
-
-        Expected:
-        - Impact: 4 (Critical)
-        - All 7 likelihoods: 4 (Very likely)
-        - Grid[3][3] (Likelihood 4, Impact 4) = 4 (Very High / Unacceptable Risk)
-        - Control Priority: 1 (Urgent remediation required!)
-        """
-        results = self.simulator.evaluate_application("test_data/app_vulnerable_portal.csv")
-        self.assertEqual(results["impact_level"], 4, "Impact for Secret data should be 4")
-
-        scenarios = results["scenarios"]
-        self.assertEqual(len(scenarios), 7, "All 7 scenarios must be evaluated for SaaS Secret app")
-        for sc_name, sc_data in scenarios.items():
-            self.assertEqual(
-                sc_data["scaled_likelihood"], 4,
-                f"Scenario '{sc_name}' should have likelihood 4 with 0% compliance"
-            )
-            self.assertEqual(
-                sc_data["scaled_impact"], 4,
-                f"Scenario '{sc_name}' should have impact 4"
-            )
-            self.assertEqual(
-                sc_data["matrix_risk_id"], 4,
-                f"Scenario '{sc_name}' matrix risk must be Very High (id=4)"
-            )
-            self.assertEqual(
-                sc_data["control_priority"], 1,
-                f"Scenario '{sc_name}' control priority must be Priority 1 (Urgent)"
+        if "availability_impact" in expected_eval:
+            test_case.assertEqual(
+                eval_results["availability_impact"], expected_eval["availability_impact"],
+                f"Availability impact mismatch in {yaml_file.name}",
             )
 
-    def test_app_internal_tool(self):
-        """Test App-Internal-Tool: Internal data (Impact=2) with SaaS hosting.
-
-        Expected:
-        - Impact: 2 (Significant)
-        - Untriggered Chapter 2 requirements (confidential/secret) excluded -> 2 Scenarios
-        - Missing stakeholders: evaluated
-        - SaaS contract: 60% compliant (3/5 clauses) -> Likelihood 2
-        """
-        results = self.simulator.evaluate_application("test_data/app_internal_tool.csv")
-        self.assertEqual(results["impact_level"], 2, "Impact for Internal data should be 2")
-
-        scenarios = results["scenarios"]
-        self.assertEqual(len(scenarios), 2, "Only Stakeholders and SaaS scenarios should be evaluated for Internal tool")
-        self.assertIn("Missing application stakeholders", scenarios)
-        self.assertIn("SaaS provider data leakage", scenarios)
-        self.assertNotIn("Exposure of unencrypted data in transit", scenarios)
-        self.assertNotIn("Exposure of unencrypted data at rest", scenarios)
-
-        saas_sc = scenarios["SaaS provider data leakage"]
-        self.assertEqual(saas_sc["scaled_likelihood"], 2)
-        self.assertEqual(saas_sc["scaled_impact"], 2)
-
-    def test_app_public_blog(self):
-        """Test App-Public-Blog: Public data (Impact=1 / Minor) with minimal sensitivity.
-
-        Expected:
-        - Impact: 1 (Minor)
-        - Only applicable requirements answered (Stakeholders & SaaS Contract) -> 2 Scenarios
-        - Confidential/Secret Chapter 2 scenarios NOT evaluated
-        - Max priority is Priority 3 or 4 (No urgent priorities on public data).
-        """
-        results = self.simulator.evaluate_application("test_data/app_public_blog.csv")
-        self.assertEqual(results["impact_level"], 1, "Impact for Public data should be 1")
-
-        scenarios = results["scenarios"]
-        self.assertEqual(len(scenarios), 2, "Only Stakeholders and SaaS scenarios should be evaluated for Public blog")
-        self.assertIn("Missing application stakeholders", scenarios)
-        self.assertIn("SaaS provider data leakage", scenarios)
-        self.assertNotIn("Exposure of unencrypted data in transit", scenarios)
-        self.assertNotIn("Exposure of unencrypted data at rest", scenarios)
-        self.assertNotIn("Disclosure of production data in non-production environments", scenarios)
-        self.assertNotIn("Third-party data leakage", scenarios)
-        self.assertNotIn("Excessive retention of sensitive data", scenarios)
-
-        for sc_name, sc_data in scenarios.items():
-            self.assertEqual(sc_data["scaled_impact"], 1)
-            self.assertLessEqual(
-                sc_data["matrix_risk_id"], 1,
-                f"Public data scenario '{sc_name}' should not exceed Low Risk"
+        # 2. Assert scenario count
+        evaluated_scenarios = eval_results["scenarios"]
+        if "scenario_count" in expected_eval:
+            test_case.assertEqual(
+                len(evaluated_scenarios), expected_eval["scenario_count"],
+                f"Evaluated scenario count mismatch in {yaml_file.name}",
             )
-            self.assertIn(
-                sc_data["control_priority"], [3, 4],
-                f"Public data scenario '{sc_name}' should only generate Medium/Low control priority"
+        if expected_scenarios:
+            test_case.assertEqual(
+                len(evaluated_scenarios), len(expected_scenarios),
+                f"Scenario count does not match expected_risk_scenarios count in {yaml_file.name}",
             )
 
-    def test_app_hr_people_system(self):
-        """Test App-HR-People-System: Confidential data (Impact=3) with GDPR and non-prod gaps."""
-        results = self.simulator.evaluate_application("test_data/app_hr_people_system.csv")
-        self.assertEqual(results["impact_level"], 3, "Impact for Confidential HR data should be 3")
+        # 3. Assert detailed scenario metrics
+        for sc_name, sc_data in evaluated_scenarios.items():
+            test_case.assertIn(sc_name, expected_scenarios, f"Unexpected scenario '{sc_name}' evaluated in {yaml_file.name}")
+            exp = expected_scenarios[sc_name]
+            test_case.assertEqual(
+                sc_data["scaled_likelihood"], exp["scaled_likelihood"],
+                f"Likelihood mismatch for '{sc_name}' in {yaml_file.name}",
+            )
+            test_case.assertEqual(
+                sc_data["scaled_impact"], exp["scaled_impact"],
+                f"Impact mismatch for '{sc_name}' in {yaml_file.name}",
+            )
+            test_case.assertEqual(
+                sc_data["matrix_risk_id"], exp["matrix_risk_id"],
+                f"Matrix risk ID mismatch for '{sc_name}' in {yaml_file.name}",
+            )
+            test_case.assertEqual(
+                sc_data["control_priority"], exp["control_priority"],
+                f"Control priority mismatch for '{sc_name}' in {yaml_file.name}",
+            )
+            if "risk_level" in exp:
+                test_case.assertEqual(
+                    sc_data["risk_level_1_based"], exp["risk_level"],
+                    f"Risk level mismatch for '{sc_name}' in {yaml_file.name}",
+                )
 
-        scenarios = results["scenarios"]
-        non_prod_sc = scenarios["Disclosure of production data in non-production environments"]
-        self.assertEqual(non_prod_sc["scaled_likelihood"], 4)
-        self.assertEqual(non_prod_sc["scaled_impact"], 3)
-        self.assertEqual(non_prod_sc["matrix_risk_id"], 3)  # High Risk
-        self.assertEqual(non_prod_sc["control_priority"], 1)  # Urgent Priority
+        # 4. Assert excluded scenarios are not evaluated
+        for excluded_sc in expected_eval.get("excluded_scenarios", []):
+            test_case.assertNotIn(
+                excluded_sc, evaluated_scenarios,
+                f"Excluded scenario '{excluded_sc}' should not be evaluated in {yaml_file.name}",
+            )
 
-        retention_sc = scenarios["Excessive retention of sensitive data"]
-        self.assertEqual(retention_sc["scaled_likelihood"], 4)
-        self.assertEqual(retention_sc["control_priority"], 1)
+        # 5. Assert evaluation from live RequirementAssessment objects matches
+        mock_ras = simulator.build_mock_requirement_assessments(app_data)
+        ra_eval_results = simulator.evaluate_from_requirement_assessments(mock_ras)
+        test_case.assertEqual(
+            len(ra_eval_results["scenarios"]), len(evaluated_scenarios),
+            f"Scenario count mismatch when evaluating via RequirementAssessments in {yaml_file.name}",
+        )
+        for sc_name in evaluated_scenarios:
+            test_case.assertIn(sc_name, ra_eval_results["scenarios"], f"Scenario '{sc_name}' missing in RA evaluation")
+            ra_sc = ra_eval_results["scenarios"][sc_name]
+            file_sc = evaluated_scenarios[sc_name]
+            test_case.assertEqual(ra_sc["scaled_likelihood"], file_sc["scaled_likelihood"])
+            test_case.assertEqual(ra_sc["scaled_impact"], file_sc["scaled_impact"])
+            test_case.assertEqual(ra_sc["matrix_risk_id"], file_sc["matrix_risk_id"])
+            test_case.assertEqual(ra_sc["control_priority"], file_sc["control_priority"])
 
-    def test_app_customer_payment_api(self):
-        """Test App-Customer-Payment-API: Secret PCI data (Impact=4) with in-house deployment."""
-        results = self.simulator.evaluate_application("test_data/app_customer_payment_api.csv")
-        self.assertEqual(results["impact_level"], 4, "Impact for Secret PCI data should be 4")
+    def test_all_application_profiles_scenario_evaluations(self):
+        """Verify risk scenario evaluation consistency across all application profiles in test_data."""
+        app_files = sorted(Path("test_data").glob("*.yml"))
+        self.assertGreater(len(app_files), 0, "No application YAML profiles found in test_data")
 
-        scenarios = results["scenarios"]
-        self.assertEqual(len(scenarios), 6, "In-house app must evaluate 6 scenarios (SaaS excluded)")
-        self.assertNotIn("SaaS provider data leakage", scenarios)
+        for app_file in app_files:
+            with self.subTest(application=app_file.stem):
+                self._assert_profile_evaluation(self, app_file)
 
-        third_party_sc = scenarios["Third-party data leakage"]
-        self.assertEqual(third_party_sc["scaled_likelihood"], 1)
-        self.assertEqual(third_party_sc["scaled_impact"], 4)
-        self.assertEqual(third_party_sc["matrix_risk_id"], 1)  # Low Risk (mitigated by contract)
-        self.assertEqual(third_party_sc["control_priority"], 3)  # Medium Priority
 
-        transit_sc = scenarios["Exposure of unencrypted data in transit"]
-        self.assertEqual(transit_sc["scaled_likelihood"], 1)
+# -----------------------------------------------------------------------------
+# Dynamic test method generation
+# Enables individual test discovery and execution for every framework and profile
+# -----------------------------------------------------------------------------
 
-    def test_app_legacy_erp_production(self):
-        """Test App-Legacy-ERP-Production: Internal data (Impact=2) with in-house hosting.
+def _make_framework_test(yaml_path):
+    def test_method(self):
+        self._assert_framework_integrity(self, yaml_path)
+    return test_method
 
-        Expected:
-        - Impact: 2 (Significant)
-        - In-house app + Internal data: Chapter 2 and Chapter 3 excluded -> 1 Scenario
-        - Missing stakeholders: evaluated
-        """
-        results = self.simulator.evaluate_application("test_data/app_legacy_erp_production.csv")
-        self.assertEqual(results["impact_level"], 2, "Impact for Internal data should be 2")
+for _fw_cat in FRAMEWORK_CATALOG:
+    _method_name = f"test_framework_{_fw_cat['ref_id'].replace('-', '_')}"
+    setattr(TestFrameworkIntegrityAndConsistency, _method_name, _make_framework_test(_fw_cat["yaml_path"]))
 
-        scenarios = results["scenarios"]
-        self.assertEqual(len(scenarios), 1, "Only Missing Stakeholders scenario should be evaluated for Legacy ERP")
-        self.assertIn("Missing application stakeholders", scenarios)
-        self.assertNotIn("SaaS provider data leakage", scenarios)
-        self.assertNotIn("Exposure of unencrypted data in transit", scenarios)
-        self.assertNotIn("Exposure of unencrypted data at rest", scenarios)
+def _make_profile_test(app_path):
+    def test_method(self):
+        self._assert_profile_evaluation(self, app_path)
+    return test_method
 
-    def test_app_ai_analytics_workbench(self):
-        """Test App-AI-Analytics-Workbench: Confidential data (Impact=3) with GenAI prompt and transfer risks."""
-        results = self.simulator.evaluate_application("test_data/app_ai_analytics_workbench.csv")
-        self.assertEqual(results["impact_level"], 3, "Impact for Confidential GenAI data should be 3")
-
-        scenarios = results["scenarios"]
-        non_prod_sc = scenarios["Disclosure of production data in non-production environments"]
-        self.assertEqual(non_prod_sc["scaled_likelihood"], 4)
-        self.assertEqual(non_prod_sc["matrix_risk_id"], 3)  # High Risk
-        self.assertEqual(non_prod_sc["control_priority"], 1)
-
-        third_party_sc = scenarios["Third-party data leakage"]
-        self.assertEqual(third_party_sc["scaled_likelihood"], 4)
-        self.assertEqual(third_party_sc["control_priority"], 1)
-
-    def test_evaluate_from_requirement_assessments_with_unassessed_info_nodes(self):
-        """Test that answered informational requirements (result=not_assessed) properly generate risk scenarios."""
-        from classes.audits.requirement_assessment import RequirementAssessment
-
-        mock_ras = [
-            RequirementAssessment({
-                "id": "ra-1",
-                "requirement": {
-                    "ref_id": "stakeholder_identification",
-                    "urn": "urn:intuitem:risk:req_node:mls:stakeholder_identification",
-                },
-                "answers": {
-                    "urn:intuitem:risk:req_node:mls:stakeholder_identification:question:1": "urn:intuitem:risk:req_node:mls:stakeholder_identification:question:1:choice:1",
-                    "urn:intuitem:risk:req_node:mls:stakeholder_identification:question:2": "urn:intuitem:risk:req_node:mls:stakeholder_identification:question:2:choice:1",
-                    "urn:intuitem:risk:req_node:mls:stakeholder_identification:question:3": "urn:intuitem:risk:req_node:mls:stakeholder_identification:question:3:choice:1",
-                    "urn:intuitem:risk:req_node:mls:stakeholder_identification:question:4": "urn:intuitem:risk:req_node:mls:stakeholder_identification:question:4:choice:2",
-                },
-                "score": 75,
-                "result": "partially_compliant",
-            }),
-            RequirementAssessment({
-                "id": "ra-2",
-                "requirement": {
-                    "ref_id": "data_classification",
-                    "urn": "urn:intuitem:risk:req_node:mls:data_classification",
-                },
-                "answers": {
-                    "urn:intuitem:risk:req_node:mls:data_classification:q1": "urn:intuitem:risk:req_node:mls:data_classification:q1:c2",
-                },
-                "score": 0,
-                "result": "not_assessed",
-            }),
-            RequirementAssessment({
-                "id": "ra-3",
-                "requirement": {
-                    "ref_id": "hosting",
-                    "urn": "urn:intuitem:risk:req_node:mls:hosting",
-                },
-                "answers": {
-                    "urn:intuitem:risk:req_node:mls:hosting:q1": "urn:intuitem:risk:req_node:mls:hosting:q1:c2",
-                },
-                "score": 0,
-                "result": "not_assessed",
-            }),
-            RequirementAssessment({
-                "id": "ra-4",
-                "requirement": {
-                    "ref_id": "saas_contract_compliance",
-                    "urn": "urn:intuitem:risk:req_node:mls:saas_contract",
-                },
-                "answers": {
-                    "urn:intuitem:risk:req_node:mls:saas_contract:question:1": "urn:intuitem:risk:req_node:mls:saas_contract:question:1:choice:1",
-                    "urn:intuitem:risk:req_node:mls:saas_contract:question:2": None,
-                },
-                "score": 0,
-                "result": "non_compliant",
-            }),
-            RequirementAssessment({
-                "id": "ra-5",
-                "requirement": {
-                    "ref_id": "data_in_transit",
-                    "urn": "urn:intuitem:risk:req_node:mls:data_in_transit",
-                },
-                "answers": {
-                    "urn:intuitem:risk:req_node:mls:data_in_transit:q1": None,
-                },
-                "score": 0,
-                "result": "not_assessed",
-            }),
-        ]
-
-        results = self.simulator.evaluate_application(mock_ras)
-        self.assertEqual(results["impact_level"], 2, "Internal data classification should give impact level 2")
-        scenarios = results["scenarios"]
-        self.assertIn("Missing application stakeholders", scenarios)
-        self.assertIn("SaaS provider data leakage", scenarios)
-        self.assertNotIn("Exposure of unencrypted data in transit", scenarios)
-        self.assertEqual(scenarios["Missing application stakeholders"]["scaled_likelihood"], 2)
-        self.assertEqual(scenarios["SaaS provider data leakage"]["scaled_likelihood"], 4)
-
+for _app_path in sorted(Path("test_data").glob("*.yml")):
+    _method_name = f"test_profile_{_app_path.stem}"
+    setattr(TestApplicationProfileScenarioConsistency, _method_name, _make_profile_test(_app_path))
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -12,7 +12,7 @@
 
 The **CISO Assistant Automation & Orchestration Platform** is an enterprise-grade Governance, Risk, and Compliance (GRC) automation engine. It bridges the gap between static compliance audits and operational risk management by establishing a **continuous, automated, and mathematically rigorous workflow**:
 
-1. **Intake & Assessment:** Ingests audit questionnaires, third-party vendor reviews, and compliance answers via REST API, CSV batch imports, and YAML frameworks.
+1. **Intake & Assessment:** Ingests audit questionnaires, third-party vendor reviews, and compliance answers via REST API, YAML application profiles, and YAML frameworks.
 2. **Dynamic Risk Derivation:** Automatically calculates **Likelihood** and **Impact** scores from compliance answers, generating risk scenarios across a standardized $4 \times 4$ Risk Matrix.
 3. **Remediation & Priority Synchronization:** Dynamically provisions applied security controls and calculates urgent action priorities ($P1$ Urgent to $P4$ Low) directly tied to risk levels.
 4. **Vulnerability & Finding Provisioning:** Automatically identifies compliance gaps, generating formal audit findings linked to threats and vulnerabilities.
@@ -24,7 +24,7 @@ flowchart TD
     subgraph INTAKE ["1. Intake & Assessment"]
         Q["Compliance Questionnaires (DPP, NIST, VDD)"] --> CA["Compliance Assessment"]
         TPRM["Third-Party Risk (TPRM Entities)"] --> EA["Entity Assessment"]
-        CSV["CSV Bulk Importer"] --> CA
+        YML["YAML Profile Importer"] --> CA
     end
 
     subgraph ENGINE ["2. Dynamic Modeling Engine"]
@@ -97,9 +97,10 @@ flowchart TD
 - **TPRM Supplier Scoring:** Captures supplier criticality ($1-4$), cybersecurity maturity ($1-4$), trust level ($1-4$), and qualitative conclusion (`ok`, `warning`, `blocker`).
 - **Representative User Management:** Idempotently creates user accounts, assigns roles, and designates entity representatives for external supplier audits.
 
-### 5. Reference Application Portfolio (8 Pre-Configured Architectures)
-The platform includes 8 ready-to-deploy application profiles demonstrating diverse compliance postures, data classifications, and risk profiles:
+### 5. Reference Application & Vendor Portfolio (12 Pre-Configured Architectures)
+The platform includes 12 ready-to-deploy application and vendor profiles demonstrating diverse compliance postures, data classifications, availability tiers, and risk profiles across frameworks:
 
+#### Multi-level DPP Framework (8 Internal & Cloud Applications)
 | # | Application | Data Classification | Compliance Target | Expected Risk | Business Scenario |
 | :-: | :--- | :---: | :---: | :---: | :--- |
 | **1** | `App-Secure-Core` | **Secret** | 100% Compliant | Low (Acceptable) | Mission-critical vault with full MFA, encryption, and logging. |
@@ -111,6 +112,14 @@ The platform includes 8 ready-to-deploy application profiles demonstrating diver
 | **7** | `App-Legacy-ERP-Production` | **Internal** | Legacy Gaps | Medium (OT Enclave) | Manufacturing plant ERP with unencrypted database in isolated OT VLAN. |
 | **8** | `App-AI-Analytics-Workbench`| **Confidential** | GenAI Gaps | High (Prompt Leakage) | Cloud GenAI analytics using external LLM without zero-retention contract. |
 
+#### Vendor Due Diligence (VDD) Framework (4 Third-Party Supplier Profiles)
+| # | Vendor Profile | Data / Availability Tier | Compliance Posture | Expected Residual Risk | TPRM Conclusion & Business Scenario |
+| :-: | :--- | :---: | :---: | :---: | :--- |
+| **9** | `Vendor-Cloud-CRM` | **Tier 2 Conf. / Tier 2 Avail.** | 100% Compliant | Low (Acceptable) | **`ok`**: ISO 27001/SOC 2 certified CRM SaaS with MFA, KMS encryption, tested BCP/DR, and 48h breach notification SLA. |
+| **10** | `Vendor-Shadow-Payroll` | **Tier 1 Secret / Tier 1 Avail.** | 0% Non-Compliant | Critical / Urgent Blocker | **`blocker`**: Mission-critical payroll SaaS handling employee bank details with shared credentials, no pentest, no MFA, and no tenant isolation. |
+| **11** | `Vendor-AI-Transcription` | **Tier 2 Conf. / Tier 3 Avail.** | Mixed / GenAI Gaps | High (AI & Supply Chain) | **`warning`**: Meeting audio transcription SaaS with robust web app controls but upstream LLM retention without ZDR and unvetted subcontractors. |
+| **12** | `Vendor-Marketing-Widget` | **Tier 4 Public / Tier 4 Avail.** | Mixed / Low Sensitivity | Low / Very Low (Capped) | **`ok`**: Website analytics chat widget; lacks SOC 2 but minimal data sensitivity caps all residual risks at Low or Very Low. |
+
 ### 6. Enterprise Backup, Snapshot & Disaster Recovery
 - **Dual-Tier Backup Architecture:**
   1. **Server Database Dump:** Downloads and restores raw database dumps via CISO Assistant Serdes API (`/api/serdes/dump-db/` and `/api/serdes/load-backup/`).
@@ -119,7 +128,7 @@ The platform includes 8 ready-to-deploy application profiles demonstrating diver
 - **Backup Discovery & Inspection:** Built-in tools to list, inspect metadata, examine resource counts, and execute one-click restores.
 
 ### 7. Batch Integrations & Multi-Framework Support
-- **CSV Bulk Answer Ingestion:** Automates questionnaire responses from external spreadsheets with smart column mapping and answer normalization (`import_csv_answers.py`).
+- **YAML Profile Answer Ingestion:** Automates questionnaire responses from structured YAML application profiles with smart column/key mapping and answer normalization (`answers_import.py`).
 - **YAML Organization & Entity Loader:** Ingests department and application models directly into domains, external entities, and representatives (`import_entity_assessment_model.py`).
 - **Multi-Framework Capabilities:** Pre-configured support for:
   - Multi-level DPP (`newDPP.yml`)
@@ -132,8 +141,8 @@ The platform includes 8 ready-to-deploy application profiles demonstrating diver
 ## Quality Assurance & Verification
 
 The platform has been built with test-driven discipline:
-- **97 Automated Tests Passing:** Complete coverage across scenarios, risk calculations, control priorities, findings, CSV parsing, YAML integrity, and backups.
-- **Sub-Second Execution:** Entire test suite runs in **0.74 seconds** (`python3 -m unittest discover tests`).
+- **140 Automated Tests Passing:** Complete coverage across scenarios, risk calculations, control priorities, findings, YAML answer parsing, framework integrity, user protection, and backups.
+- **Sub-Second Execution:** Entire test suite runs in **~1.8 seconds** (`python3 -m unittest discover tests`).
 - **Offline Simulation Mode:** Includes `ApplicationRiskSimulator` allowing instant local evaluation of risk scenarios and priority mappings without live network access.
 - **Robust API Resilience:** Session-based HTTP client with exponential backoff retries, JSON pagination caching, non-destructive PATCH operations, and multipart file upload/download streaming.
 
@@ -226,7 +235,6 @@ This launches the interactive menu with options 1 through 10:
 ciso-assistant/
 ├── main.py                             # Main interactive CLI & orchestration entrypoint
 ├── manage_examples.py                  # Quick alias runner for main.py
-├── import_csv_answers.py               # Batch CSV questionnaire importer
 ├── import_entity_assessment_model.py   # YAML department & TPRM entity model importer
 ├── FEATURES_OVERVIEW.md                # Executive feature guide & boss presentation document
 ├── classes/
@@ -253,16 +261,16 @@ ciso-assistant/
 │   │   └── domain.py                   # Business domains & criticality mapping
 │   └── integrations/
 │       ├── backup.py                   # Dual-tier backup (dumps & JSON snapshots)
-│       ├── csv_import.py               # CSV parsing & normalization logic
+│       ├── answers_import.py           # YAML answer parsing & normalization logic
 │       └── entity_model_import.py      # Department & supplier model importer
-├── tests/                              # 97 Unit & Integration Tests (100% green)
+├── tests/                              # 140 Unit & Integration Tests (100% green)
+│   ├── test_answers_import.py          # YAML answer importer tests
 │   ├── test_application_scenarios.py   # End-to-end scenario simulations
 │   ├── test_backup.py                  # Backup creation, hashing, & restore tests
-│   ├── test_csv_import_answers.py      # CSV parser tests
 │   ├── test_examples_manager.py        # Lifecycle management tests
 │   ├── test_findings.py                # Finding & vulnerability tests
 │   ├── test_risk_calculations.py       # Inverse likelihood & impact math tests
-│   ├── test_vulnerability_provisioning.py # Vulnerability linkage tests
+│   ├── test_user_protection.py         # Admin user deletion protection tests
 │   └── test_yaml_integrity.py          # Framework YAML syntax & structure tests
 └── YML/                                # GRC Frameworks & Schemas
     ├── newDPP.yml                      # Multi-level DPP Framework

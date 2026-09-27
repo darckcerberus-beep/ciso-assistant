@@ -72,6 +72,9 @@ class Framework:
     def get_library_id(self):
         return self.json_object.get("library", {}).get("id", None)
 
+    def get_implementation_groups_definition(self):
+        return self.json_object.get("implementation_groups_definition", [])
+
 
 class FrameworkDict:
     """Handle a collection of frameworks loaded from the API."""
@@ -127,7 +130,21 @@ class FrameworkDict:
                 return framework
             if str(fw_json.get("urn", "")).strip().lower() == target:
                 return framework
+            lib = fw_json.get("library")
+            if isinstance(lib, dict):
+                if str(lib.get("name", "")).strip().lower() == target:
+                    return framework
+                if str(lib.get("str", "")).strip().lower() == target:
+                    return framework
+                if str(lib.get("urn", "")).strip().lower() == target:
+                    return framework
+                if str(lib.get("ref_id", "")).strip().lower() == target:
+                    return framework
         return None
+
+    def has_framework(self, identifier):
+        """Check if a framework matching the given identifier exists in CISO Assistant."""
+        return self.get_framework_by_identifier(identifier) is not None
 
     def get_framework_by_ref_id(self, ref_id):
         """Return a framework matching the given ref_id."""

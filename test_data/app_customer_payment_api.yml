@@ -9,13 +9,27 @@
 # ==============================================================================
 
 application:
+  order: 6
   id: "app_customer_payment_api"
   name: "App-Customer-Payment-API"
-  description: "Dedicated PCI-DSS compliant private cloud enclave processing cardholder transactions"
+  label: "App-Customer-Payment-API (Secret / PCI-DSS Aligned)"
+  description: "Secret classification + High technical compliance + Single clearinghouse notification SLA gap"
   classification: "Secret"
   hosting: "In-house"
+  compliance_target: "High (95%)"
+  expected_risk: "Low-to-Medium (Vendor SLA Gaps)"
   framework_ref: "mls"
   framework_name: "Multi-level DPP"
+  framework_yaml: "YML/newDPP.yml"
+  user:
+    email: "peter.pay@example-paymentapi.com"
+    first_name: "Peter"
+    last_name: "Payment"
+  tprm:
+    criticality: 4
+    maturity: 3
+    trust: 3
+    conclusion: "warning"
 
 answers:
   # ----------------------------------------------------------------------------
@@ -190,6 +204,14 @@ expected_controls:
 # Impact Level: 4 (Secret). All likelihoods: 1 (Unlikely, 100% compliance).
 # Grid[0][3] (Likelihood 1, Impact 4) = 1 (Low Risk, Level 2) -> Priority 3 (Medium)
 # ==============================================================================
+expected_evaluation:
+  impact_level: 4
+  confidentiality_impact: 4
+  availability_impact: 4
+  scenario_count: 6
+  excluded_scenarios:
+    - "SaaS provider data leakage"
+
 expected_risk_scenarios:
   - scenario: "Exposure of unencrypted data in transit"
     likelihood_requirement: "data_in_transit"

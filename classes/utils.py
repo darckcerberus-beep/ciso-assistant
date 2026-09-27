@@ -188,6 +188,24 @@ def get_return(
                 )
             return {"error": 400, "details": response.json()}
 
+        if response.status_code == 403:
+            if log_errors:
+                LOGGER.warning(f"Access forbidden (403) on {endpoint}: {response.text}")
+            try:
+                details = response.json()
+            except Exception:
+                details = response.text
+            return {"error": 403, "details": details}
+
+        if response.status_code == 401:
+            if log_errors:
+                LOGGER.error(f"Unauthorized (401) on {endpoint}: {response.text}")
+            try:
+                details = response.json()
+            except Exception:
+                details = response.text
+            return {"error": 401, "details": details}
+
         if response.status_code == 404:
             if log_errors:
                 LOGGER.warning(f"Resource not found (404) on {endpoint}")

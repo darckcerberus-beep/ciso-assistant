@@ -1,0 +1,559 @@
+application:
+  order: 11
+  id: "vendor_ai_transcription"
+  name: "Vendor-AI-Transcription"
+  label: "Vendor-AI-Transcription (Tier 2 Confidential / GenAI Supply Chain Gaps)"
+  description: "Tier 2 Confidential / Tier 3 Availability + Third-party LLM training without ZDR -> High Risk"
+  classification: "Confidential"
+  hosting: "SaaS"
+  compliance_target: "Mixed / GenAI Risks"
+  expected_risk: "High (AI Model Data Leakage & Supply Chain)"
+  framework_ref: "vendor-due-diligence"
+  framework_name: "Vendor Due Diligence (VDD) - simple"
+  framework_yaml: "YML/vendor-due-diligence.yaml"
+  user:
+    email: "toby.transcribe@example-aitranscribe.com"
+    first_name: "Toby"
+    last_name: "Transcribe"
+  tprm:
+    criticality: 3
+    maturity: 2
+    trust: 2
+    conclusion: "warning"
+answers:
+- requirement: PROF.00
+  question: What is the primary service delivery model provided by the vendor?
+  answer: SaaS / Cloud Software Platform
+  result: compliant
+  observation: 'Service model: SaaS / Cloud Software Platform'
+- requirement: PROF.00
+  question: Does the vendor service incorporate or integrate Artificial Intelligence (Generative AI, LLMs, or ML)?
+  answer: Yes - Incorporates AI or LLM features
+  result: compliant
+  observation: 'AI usage: Yes - Incorporates AI or LLM features'
+- requirement: PROF.00
+  question: Does the vendor rely on third-party sub-processors or subcontractors to process data or deliver the service?
+  answer: Yes - Relies on sub-processors or hosting subcontractors
+  result: compliant
+  observation: 'Sub-processor usage: Yes - Relies on sub-processors or hosting subcontractors'
+- requirement: PROF.00
+  question: Does the vendor develop custom code, maintain an active SDLC, or build application components for your organization?
+  answer: No - Standard off-the-shelf service without custom software development
+  result: compliant
+  observation: 'Software development: No - Standard off-the-shelf service without custom software development'
+- requirement: PROF.01
+  question: What is the highest data sensitivity level handled or confidentiality tier of this vendor?
+  answer: Tier 2 / Confidential - High Criticality
+  result: compliant
+  observation: Executive audio recordings and proprietary business discussions
+- requirement: PROF.02
+  question: What is the maximum tolerable downtime (MTD) or required availability tier for this vendor service?
+  answer: Tier 3 / Moderate - Operational support (MTD 24–72 hours, next business day)
+  result: compliant
+  observation: Asynchronous meeting transcription service with next-day SLA
+- requirement: GOV.01
+  question: 'Is the following requirement implemented and verified: The organization is certified ISO 27001 or SOC 2.'
+  answer: 'Yes'
+  result: compliant
+  observation: SOC 2 Type II certified for core web SaaS platform
+- requirement: GOV.02
+  question: 'Is the following requirement implemented and verified: A person is designated as responsible for cybersecurity.'
+  answer: 'Yes'
+  result: compliant
+  observation: Head of Security Engineering appointed
+- requirement: GOV.03
+  question: 'Is the following requirement implemented and verified: A documented, maintained, and enforced cybersecurity policy
+    is in place.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: A documented, maintained, and enforced cybersecurity policy '
+- requirement: GOV.04
+  question: 'Is the following requirement implemented and verified: A cyber risk analysis and management process is in place.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: A cyber risk analysis and management process is in place.'
+- requirement: GOV.05
+  question: 'Is the following requirement implemented and verified: Staff are aware of and trained in cybersecurity matters.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: Staff are aware of and trained in cybersecurity matters.'
+- requirement: GOV.06
+  question: 'Is the following requirement implemented and verified: Information security is managed with suppliers.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: Information security is managed with suppliers.'
+- requirement: GOV.07
+  question: 'Is the following requirement implemented and verified: The organization is compliant with GDPR.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: The organization is compliant with GDPR.'
+- requirement: GOV.08
+  question: 'Is the following requirement implemented and verified: The organisation is covered by a cyber insurance.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: The organisation is covered by a cyber insurance.'
+- requirement: GOV.09
+  question: 'Is the following requirement implemented and verified: Pre-employment screening and criminal/credential background
+    checks are conducted for all personnel with logical access to customer data or production environments.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: Pre-employment screening and criminal/credential background '
+- requirement: GOV.10
+  question: 'Is the following requirement implemented and verified: An offboarding process ensures that all logical and physical
+    access is permanently revoked within 24 hours of employee or contractor departure.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: An offboarding process ensures that all logical and physical'
+- requirement: GOV.11
+  question: 'Is the following requirement implemented and verified: Regular phishing simulation exercises and specialized
+    role-based security training are conducted at least semi-annually.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: Regular phishing simulation exercises and specialized role-b'
+- requirement: IAM.01
+  question: 'Is the following requirement implemented and verified: Accesses are controlled and regularly reviewed.'
+  answer: 'Yes'
+  result: compliant
+  observation: Role-based access control with semi-annual access certifications
+- requirement: IAM.02
+  question: 'Is the following requirement implemented and verified: MFA is enabled for sensitive operations.'
+  answer: 'Yes'
+  result: compliant
+  observation: MFA enforced across staff and administrative dashboards
+- requirement: IAM.04
+  question: 'Is the following requirement implemented and verified: Privileged accesses are restricted to a limited population.'
+  answer: 'Yes'
+  result: compliant
+  observation: Least privilege enforced with dedicated bastion hosts
+- requirement: IAM.05
+  question: 'Is the following requirement implemented and verified: A periodic review of access rights is conducted.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: A periodic review of access rights is conducted.'
+- requirement: IAM.06
+  question: 'Is the following requirement implemented and verified: Workstations and mobile devices used by personnel to access
+    customer data or production environments are centrally managed via MDM, with enforced full-disk encryption and active
+    EDR.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: Workstations and mobile devices used by personnel to access '
+- requirement: INF.01
+  question: 'Is the following requirement implemented and verified: Physical security of premises and datacenters is managed
+    (access control, monitoring, etc.).'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: Physical security of premises and datacenters is managed (ac'
+- requirement: INF.02
+  question: Are automated DDoS mitigation and network traffic filtering capabilities deployed to safeguard service availability?
+  answer: 'Yes'
+  result: compliant
+  observation: AWS Shield Standard active on public load balancers
+- requirement: INF.02
+  question: Is a Web Application Firewall (WAF) deployed in active blocking mode to protect web endpoints against application
+    disruption?
+  answer: 'Yes'
+  result: compliant
+  observation: AWS WAF with standard rulesets active
+- requirement: INF.03
+  question: 'Is the following requirement implemented and verified: Anti-malware protection is deployed across all workloads
+    (endpoints, emails, cloud, etc.).'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: Anti-malware protection is deployed across all workloads (en'
+- requirement: INF.04
+  question: 'Is the following requirement implemented and verified: Logs are collected and analyzed for incident detection.'
+  answer: 'Yes'
+  result: compliant
+  observation: CloudWatch and Datadog log aggregation active
+- requirement: INF.05
+  question: 'Is the following requirement implemented and verified: Decommissioned physical servers, hard drives, and magnetic
+    media containing customer data undergo certified sanitization or physical destruction adhering to recognized standards
+    (e.g., NIST SP 800-88).'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: Decommissioned physical servers, hard drives, and magnetic m'
+- requirement: INF.06
+  question: 'Is the following requirement implemented and verified: The organization enforces formal remediation SLAs for
+    discovered vulnerabilities based on severity (e.g., Critical within 14 days, High within 30 days).'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: The organization enforces formal remediation SLAs for discov'
+- requirement: SDLC.01
+  question: 'Is the following requirement implemented and verified: A security process is integrated into the development
+    lifecycle (SDLC).'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: A security process is integrated into the development lifecy'
+- requirement: SDLC.02
+  question: 'Is the following requirement implemented and verified: Vulnerability scans (code, dependencies, infrastructure)
+    are performed regularly.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: Vulnerability scans (code, dependencies, infrastructure) are'
+- requirement: SDLC.03
+  question: 'Is the following requirement implemented and verified: Security updates are applied regularly.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: Security updates are applied regularly.'
+- requirement: SDLC.04
+  question: 'Is the following requirement implemented and verified: Developers are trained in secure coding practices.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: Developers are trained in secure coding practices.'
+- requirement: SDLC.05
+  question: 'Is the following requirement implemented and verified: Production and test environments are separated.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: Production and test environments are separated.'
+- requirement: SDLC.06
+  question: 'Is the following requirement implemented and verified: Production data are used exclusively in production.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: Production data are used exclusively in production.'
+- requirement: SDLC.07
+  question: 'Is the following requirement implemented and verified: Production application data are not used for undeclared
+    purposes (content analysis, AI training, etc.).'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: Production application data are not used for undeclared purp'
+- requirement: SDLC.08
+  question: 'Is the following requirement implemented and verified: An automated Software Bill of Materials (SBOM) is maintained
+    to track all third-party libraries, container images, and open-source components for known vulnerabilities.'
+  answer: 'No'
+  result: non_compliant
+  observation: No automated SBOM tracking third-party components
+- requirement: SDLC.09
+  question: 'Is the following requirement implemented and verified: The vendor maintains a publicly documented vulnerability
+    disclosure policy (e.g., security.txt) and intake channel for external security researchers.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: The vendor maintains a publicly documented vulnerability dis'
+- requirement: AUD.02
+  question: 'Is the following requirement implemented and verified: Penetration tests (pentests) are conducted regularly by
+    an independent entity.'
+  answer: 'Yes'
+  result: compliant
+  observation: Annual web application penetration test conducted
+- requirement: AUD.04
+  question: 'Is the following requirement implemented and verified: Annual independent audit reports (such as SOC 2 Type II
+    or ISO 27001 summary) and bridge letters are made available to clients under NDA.'
+  answer: 'Yes'
+  result: compliant
+  observation: SOC 2 report shared under NDA
+- requirement: INC.01
+  question: 'Is the following requirement implemented and verified: An incident response process (IRP) is in place.'
+  answer: 'Yes'
+  result: compliant
+  observation: Incident response playbook documented and maintained
+- requirement: INC.02
+  question: 'Is the following requirement implemented and verified: Clients are notified in case of an incident affecting
+    their data.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: Clients are notified in case of an incident affecting their '
+- requirement: INC.03
+  question: 'Is the following requirement implemented and verified: The vendor contractually commits to notifying affected
+    clients in writing without undue delay, and in no event later than 48 to 72 hours, after confirming a security incident
+    affecting customer data.'
+  answer: 'Yes'
+  result: compliant
+  observation: Contract commits to notification within 72 hours of confirmation
+- requirement: INC.04
+  question: 'Is the following requirement implemented and verified: In the event of a security incident impacting customer
+    data, the vendor provides a comprehensive post-incident Root Cause Analysis (RCA) and cooperates with client forensic
+    investigators.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: In the event of a security incident impacting customer data,'
+- requirement: BAK.01
+  question: 'Is the following requirement implemented and verified: Backups are implemented.'
+  answer: 'Yes'
+  result: compliant
+  observation: Automated daily database and object store backups active
+- requirement: BAK.02
+  question: 'Is the following requirement implemented and verified: Backups are performed at a defined frequency.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: Backups are performed at a defined frequency.'
+- requirement: BAK.03
+  question: 'Is the following requirement implemented and verified: Backups are protected against unauthorized access.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: Backups are protected against unauthorized access.'
+- requirement: BAK.04
+  question: 'Is the following requirement implemented and verified: Backup restorations are regularly tested.'
+  answer: 'Yes'
+  result: compliant
+  observation: Quarterly restore testing completed
+- requirement: BAK.05
+  question: Are Recovery Time Objectives (RTO) and Recovery Point Objectives (RPO) formally documented and communicated to
+    clients?
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: RTO and RPO of essential functions are identified and commun'
+- requirement: BAK.05
+  question: Does the vendor commit to a maximum RTO of 24 hours or less and RPO of 4 hours or less for critical services?
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: RTO and RPO of essential functions are identified and commun'
+- requirement: BAK.06
+  question: Are formal Business Continuity Plans (BCP) and Disaster Recovery Plans (DRP) defined, documented, and approved?
+  answer: 'Yes'
+  result: compliant
+  observation: Documented BCP/DRP plans approved by engineering leadership
+- requirement: BAK.06
+  question: Are disaster recovery failover exercises and scenario simulations conducted and validated at least annually?
+  answer: 'Yes'
+  result: compliant
+  observation: Annual DR tabletop and recovery testing executed
+- requirement: DATA.01
+  question: 'Is the following requirement implemented and verified: A secure data destruction process is in place.'
+  answer: 'Yes'
+  result: compliant
+  observation: Customer audio and transcripts deleted upon request or 30-day expiry
+- requirement: DATA.02
+  question: 'Is the following requirement implemented and verified: Data portability is provided upon client request.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: Data portability is provided upon client request.'
+- requirement: DATA.03
+  question: 'Is the following requirement implemented and verified: Customer data are clearly separated between tenants (multi-tenant
+    isolation).'
+  answer: 'Yes'
+  result: compliant
+  observation: Database row-level security and segregated S3 prefixes per customer
+- requirement: DATA.04
+  question: 'Is the following requirement implemented and verified: The vendor documents and contractually guarantees the
+    geographic regions and legal jurisdictions where customer primary data, replicas, and backups are hosted and processed.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: The vendor documents and contractually guarantees the geogra'
+- requirement: DATA.05
+  question: 'Is the following requirement implemented and verified: Cross-border data transfers comply with applicable regulatory
+    mechanisms (e.g., Standard Contractual Clauses, Transfer Impact Assessments, or Data Privacy Framework).'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: Cross-border data transfers comply with applicable regulator'
+- requirement: APP.01
+  question: 'Is the following requirement implemented and verified: The application is compatible with SSO (Single Sign-On).'
+  answer: 'Yes'
+  result: compliant
+  observation: SAML 2.0 SSO enabled for enterprise tier
+- requirement: APP.02
+  question: 'Is the following requirement implemented and verified: MFA can be enabled locally.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: MFA can be enabled locally.'
+- requirement: APP.03
+  question: 'Is the following requirement implemented and verified: Data are encrypted at rest.'
+  answer: 'Yes'
+  result: compliant
+  observation: AES-256 encryption on all S3 buckets and RDS databases
+- requirement: APP.04
+  question: 'Is the following requirement implemented and verified: Communications are encrypted in transit.'
+  answer: 'Yes'
+  result: compliant
+  observation: TLS 1.3 enforced for audio streaming and REST APIs
+- requirement: APP.05
+  question: 'Is the following requirement implemented and verified: A role-based access control (RBAC) system is implemented
+    in the application.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: A role-based access control (RBAC) system is implemented in '
+- requirement: APP.06
+  question: 'Is the following requirement implemented and verified: An audit log ensures traceability of operations.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: An audit log ensures traceability of operations.'
+- requirement: APP.07
+  question: 'Is the following requirement implemented and verified: The source code is accessible and auditable.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: The source code is accessible and auditable.'
+- requirement: APP.08
+  question: 'Is the following requirement implemented and verified: Password strength and complexity rules are enforced for
+    users.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: Password strength and complexity rules are enforced for user'
+- requirement: APP.09
+  question: 'Is the following requirement implemented and verified: User and administrative sessions automatically terminate
+    or require re-authentication after a configurable period of inactivity.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: User and administrative sessions automatically terminate or '
+- requirement: APP.10
+  question: 'Is the following requirement implemented and verified: All public and integration APIs implement strict rate
+    limiting, schema validation, and protection against automated abuse (OWASP API Top 10).'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: All public and integration APIs implement strict rate limiti'
+- requirement: SCM.01
+  question: 'Is the following requirement implemented and verified: The vendor maintains and publishes an accurate, up-to-date
+    registry of all third-party sub-processors and cloud hosting providers processing customer data.'
+  answer: 'Yes'
+  result: compliant
+  observation: Sub-processor list published on vendor security portal
+- requirement: SCM.02
+  question: 'Is the following requirement implemented and verified: The vendor provides at least 30 days prior written notice
+    before onboarding or substituting sub-processors, granting clients the right to object.'
+  answer: 'No'
+  result: non_compliant
+  observation: Vendor reserves right to add upstream AI model providers without notice
+- requirement: SCM.03
+  question: 'Is the following requirement implemented and verified: The vendor conducts formal security and compliance due
+    diligence of all critical sub-processors prior to onboarding and annually thereafter.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: The vendor conducts formal security and compliance due dilig'
+- requirement: SCM.04
+  question: 'Is the following requirement implemented and verified: Equivalent data protection, confidentiality, and security
+    baseline requirements are contractually flowed down to all downstream subcontractors and sub-processors.'
+  answer: 'No'
+  result: non_compliant
+  observation: Subcontracted offshore transcriptionists operate without strict DPA flowdowns
+- requirement: AI.01
+  question: 'Is the following requirement implemented and verified: The vendor formally discloses all integrated Generative
+    AI, machine learning models, and third-party foundation model APIs used in the solution.'
+  answer: 'Yes'
+  result: compliant
+  observation: Vendor documentation outlines use of foundation LLM APIs
+- requirement: AI.02
+  question: 'Is the following requirement implemented and verified: Third-party LLM providers operate under contractual zero-data-retention
+    (ZDR) agreements and do not persist customer prompts or outputs.'
+  answer: 'No'
+  result: non_compliant
+  observation: Vendor lacks Zero-Data-Retention agreement; upstream LLM retains transcripts for 30 days
+- requirement: AI.03
+  question: 'Is the following requirement implemented and verified: Customer prompts, uploaded documents, embeddings, and
+    generated responses are contractually prohibited from being used to train, retrain, or fine-tune any AI models.'
+  answer: 'No'
+  result: non_compliant
+  observation: Vendor terms permit upstream LLMs to utilize audio and transcripts to train foundation models
+- requirement: AI.04
+  question: 'Is the following requirement implemented and verified: Active guardrails and input/output sanitization filters
+    are implemented to mitigate prompt injection, data extraction, bias, and unauthorized data leakage.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Evaluated for AI transcription platform: Active guardrails and input/output sanitization filters are '
+- requirement: EXIT.01
+  question: Does the vendor contractually commit to a minimum monthly service availability SLA (e.g., 99.9% uptime or higher)?
+  answer: 'Yes'
+  result: compliant
+  observation: 99.5% monthly availability commitment for transcription pipeline
+- requirement: EXIT.01
+  question: Does the vendor maintain and publish a real-time public or customer system status page with incident history?
+  answer: 'Yes'
+  result: compliant
+  observation: Public status page with operational uptime metrics
+- requirement: EXIT.01
+  question: Are financial remedies or service credits provided if service availability drops below agreed thresholds?
+  answer: 'Yes'
+  result: compliant
+  observation: Service credits available for monthly uptime breaches
+- requirement: EXIT.01
+  question: Are historical availability reports and SLA performance metrics provided to the customer on at least a quarterly
+    basis?
+  answer: 'Yes'
+  result: compliant
+  observation: Quarterly availability reporting available upon request
+- requirement: EXIT.02
+  question: 'Is the following requirement implemented and verified: Upon contract termination, the vendor provides comprehensive
+    data export capabilities in non-proprietary, documented formats along with technical transition assistance.'
+  answer: 'Yes'
+  result: compliant
+  observation: Bulk export of transcript text, JSON metadata, and audio files supported
+- requirement: EXIT.03
+  question: Within 30 to 60 days of contract termination, the vendor provides formal written certification that all customer
+    data has been permanently deleted from production and backup systems.
+  answer: 'Yes'
+  result: compliant
+  observation: Data deletion confirmation provided within 30 days of offboarding
+expected_evaluation:
+  impact_level: 3
+  confidentiality_impact: 3
+  availability_impact: 2
+  scenario_count: 10
+  excluded_scenarios: []
+
+expected_risk_scenarios:
+- scenario: Vendor data compromise and unauthorized disclosure
+  likelihood_requirement: DATA.03
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Prolonged vendor service outage and downtime
+  likelihood_requirement: BAK.06
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 2
+  matrix_risk_id: 0
+  risk_level: 1
+  control_priority: 4
+- scenario: Software supply chain compromise and tampering
+  likelihood_requirement: SDLC.08
+  likelihood_score: 0
+  scaled_likelihood: 4
+  scaled_impact: 3
+  matrix_risk_id: 3
+  risk_level: 4
+  control_priority: 1
+- scenario: Unauthorized access via compromised vendor credentials
+  likelihood_requirement: IAM.02
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Sub-processor data leakage and supply chain failure
+  likelihood_requirement: SCM.04
+  likelihood_score: 0
+  scaled_likelihood: 4
+  scaled_impact: 3
+  matrix_risk_id: 3
+  risk_level: 4
+  control_priority: 1
+- scenario: Intellectual property and data leakage via vendor AI features
+  likelihood_requirement: AI.03
+  likelihood_score: 0
+  scaled_likelihood: 4
+  scaled_impact: 3
+  matrix_risk_id: 3
+  risk_level: 4
+  control_priority: 1
+- scenario: Delayed incident notification and regulatory liability
+  likelihood_requirement: INC.03
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Vendor lock-in and unrecoverable data loss on contract exit
+  likelihood_requirement: EXIT.02
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 2
+  matrix_risk_id: 0
+  risk_level: 1
+  control_priority: 4
+- scenario: Vendor governance and compliance assurance failure
+  likelihood_requirement: GOV.01
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Exploitation of undiscovered vulnerabilities due to lack of penetration testing
+  likelihood_requirement: AUD.02
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3

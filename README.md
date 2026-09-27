@@ -12,7 +12,7 @@ It includes:
 - **Executive Summary & Business ROI**
 - **Core Architecture & Flowchart**
 - **Detailed Feature Breakdown**
-- **8 Pre-Configured Reference Applications**
+- **12 Pre-Configured Reference Applications & Vendor Profiles**
 - **Live 5-Step Demonstration Script for Leadership**
 - **Command-Line & Interactive Menu Reference**
 - **Architecture File Map**
@@ -35,11 +35,12 @@ python3 main.py --status
 
 ### 3. Provision Example Applications
 ```bash
-# Provision all 8 reference applications
+# Provision all reference applications
 python3 main.py --create all
 
-# Or provision a specific application
+# Or provision a specific application or vendor profile
 python3 main.py --create app_secure_core
+python3 main.py --create vendor_cloud_crm
 ```
 
 ### 4. Interactive Audit Demo (Unanswered Workflow)
@@ -68,9 +69,9 @@ python3 main.py --list-backups
 
 ## 🧪 Testing & Verification
 
-Run the comprehensive automated test suite (97 unit & integration tests):
+Run the comprehensive automated test suite (129 unit & integration tests):
 ```bash
 python3 -m unittest discover tests
 ```
-*All 97 tests pass in < 1 second.*
+*All 129 tests pass in ~1.8 seconds.*
 

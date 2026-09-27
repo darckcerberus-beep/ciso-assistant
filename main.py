@@ -28,8 +28,8 @@ from pathlib import Path
 
 from classes import utils
 from classes.examples_manager import (
-    EXAMPLE_APPLICATIONS,
     EXAMPLE_FOLDER_NAME,
+    FRAMEWORK_CATALOG,
     ExamplesManager,
 )
 from classes.organization.domain import criticality_mapping
@@ -168,7 +168,8 @@ def link_controls_ui(manager: ExamplesManager, target="all"):
         return
 
     if target == "all":
-        print(f"\nLinking existing and planned controls across all {len(EXAMPLE_APPLICATIONS)} example applications...")
+        example_apps = manager.get_example_applications()
+        print(f"\nLinking existing and planned controls across all {len(example_apps)} example applications...")
         results = manager.link_all_controls_to_risk_scenarios()
         print("\nLinking Summary:")
         for r in results:
@@ -182,7 +183,7 @@ def link_controls_ui(manager: ExamplesManager, target="all"):
                       f"{r.get('threats_linked', 0)} threats linked")
         print("\n[SUCCESS] Completed linking controls to risk scenarios.")
     else:
-        app = next((a for a in EXAMPLE_APPLICATIONS if a["id"] == target or a["name"] == target), None)
+        app = manager.find_example_application(target)
         if not app:
             print(f"[ERROR] Unknown application: {target}")
             return
@@ -204,20 +205,38 @@ def create_examples_ui(manager: ExamplesManager, target="all", framework_ref_or_
     ok, msg = manager.test_connection()
     if not ok:
         print(f"\n[ERROR] API Connection Failed: {msg}")
-        return
+    if framework_ref_or_name:
+        matching_fw = manager.find_target_framework(framework_ref_or_name)
+        if not matching_fw:
+            print(f"\n[ERROR] Framework '{framework_ref_or_name}' is not installed in CISO Assistant.")
+            installed_fws = manager.get_installed_frameworks()
+            if installed_fws:
+                print("Available installed frameworks in CISO Assistant:")
+                for idx, fw in enumerate(installed_fws, start=1):
+                    ref_str = f" ({fw['ref_id']})" if fw.get("ref_id") else ""
+                    print(f"  {idx}) {fw['name']}{ref_str}")
+            print("\nPlease ensure the framework is imported into CISO Assistant before creating applications.")
+            return
 
     if target == "all":
-        print(f"\nCreating all {len(EXAMPLE_APPLICATIONS)} example applications in CISO Assistant...")
-        for app in EXAMPLE_APPLICATIONS:
-            print(f"\n---> Provisioning {app['label']}...")
+        example_apps = manager.get_example_applications()
+        print(f"\nCreating all {len(example_apps)} example applications in CISO Assistant...")
+        for app in example_apps:
+            app_fw_ref = app.get("framework_ref")
+            app_fw_name = app.get("framework_name")
+            matching_fw = manager.find_target_framework(app_fw_ref or app_fw_name)
+            if not matching_fw:
+                print(f"\n---> [SKIPPED] {app['label']}: Associated framework '{app_fw_name}' ({app_fw_ref}) is not installed in CISO Assistant.")
+                continue
+            print(f"\n---> Provisioning {app['label']} (Framework: {matching_fw.get_name()})...")
             try:
-                res = manager.create_example_application(app["id"], framework_ref_or_name=framework_ref_or_name)
+                res = manager.create_example_application(app["id"], framework_ref_or_name=app_fw_ref)
                 print(f"     [OK] Representative User: {res.get('user_email')} (ID: {res.get('user_id')})")
                 print(f"     [OK] TPRM External Entity: {res.get('entity_id')}")
                 print(f"     [OK] TPRM Entity Assessment: {res.get('entity_assessment_name')}")
                 print(f"     [OK] Perimeter: {res['perimeter_id']}")
                 print(f"     [OK] Compliance Assessment: {res['compliance_assessment_name']}")
-                print(f"     [OK] Answers Imported: {res['answers_updated']} from {app['csv_path']}")
+                print(f"     [OK] Answers Imported: {res['answers_updated']} from {app.get('yaml_path')}")
                 print(f"     [OK] Risk Scenarios Evaluated: {res['scenarios_created']}")
                 print(f"     [OK] Controls Linked: {res.get('existing_controls_linked', 0)} active, {res.get('planned_controls_linked', 0)} planned")
                 print(f"     [OK] Vulnerabilities Linked: {res.get('vulnerabilities_linked', 0)}")
@@ -225,19 +244,27 @@ def create_examples_ui(manager: ExamplesManager, target="all", framework_ref_or_
                 print(f"     [OK] Audit Findings Generated: {res.get('findings_count', 0)}")
             except Exception as e:
                 print(f"     [FAILED] Error creating {app['name']}: {e}")
-        print("\n[SUCCESS] Completed provisioning of all example applications.")
+        print("\n[SUCCESS] Completed provisioning of example applications.")
         print("Waiting 2s for CISO Assistant to finalize updates before checking status...")
         time.sleep(2)
         show_status(manager, wait_seconds=0)
         print(f"You can now log in to the CISO Assistant UI at {utils.BASE_URL} to visualize the results!")
     else:
-        app = next((a for a in EXAMPLE_APPLICATIONS if a["id"] == target or a["name"] == target), None)
+        app = manager.find_example_application(target)
         if not app:
             print(f"[ERROR] Unknown application: {target}")
             return
-        print(f"\n---> Provisioning {app['label']} in CISO Assistant...")
+        app_fw_ref = app.get("framework_ref")
+        app_fw_name = app.get("framework_name")
+        target_fw = framework_ref_or_name or app_fw_ref
+        matching_fw = manager.find_target_framework(target_fw)
+        if not matching_fw:
+            print(f"\n[ERROR] Cannot create {app['name']}: Associated framework '{app_fw_name}' ({app_fw_ref}) is not installed in CISO Assistant.")
+            print("Please ensure the framework is installed in CISO Assistant before creating applications.")
+            return
+        print(f"\n---> Provisioning {app['label']} in CISO Assistant (Framework: {matching_fw.get_name()})...")
         try:
-            res = manager.create_example_application(app["id"], framework_ref_or_name=framework_ref_or_name)
+            res = manager.create_example_application(app["id"], framework_ref_or_name=target_fw)
             print(f"     [OK] Representative User: {res.get('user_email')} (ID: {res.get('user_id')})")
             print(f"     [OK] TPRM External Entity: {res.get('entity_id')}")
             print(f"     [OK] TPRM Entity Assessment: {res.get('entity_assessment_name')}")
@@ -269,6 +296,26 @@ def create_audit_demo_ui(
     if not ok:
         print(f"\n[ERROR] API Connection Failed: {msg}")
         return
+
+    # Check frameworks in CISO Assistant before offering audit creation
+    installed_fws = manager.get_installed_frameworks()
+    if not installed_fws:
+        print("\n[ERROR] No frameworks found in CISO Assistant.")
+        print("Cannot create an audit because CISO Assistant does not have any compliance frameworks installed.")
+        print("Please import or load a framework into CISO Assistant first.")
+        return
+
+    # If framework explicitly provided, check if it actually exists in CISO Assistant
+    if framework_ref_or_name:
+        matching_fw = manager.find_target_framework(framework_ref_or_name)
+        if not matching_fw:
+            print(f"\n[ERROR] Framework '{framework_ref_or_name}' is not installed in CISO Assistant.")
+            print("Available installed frameworks in CISO Assistant:")
+            for idx, fw in enumerate(installed_fws, start=1):
+                ref_str = f" ({fw['ref_id']})" if fw.get("ref_id") else ""
+                print(f"  {idx}) {fw['name']}{ref_str}")
+            print("\nPlease ensure the framework is imported into CISO Assistant before creating an audit with it.")
+            return
 
     print("\n" + "=" * 80)
     print("      CREATE APPLICATION & ASSIGN AUDIT TO USER (UNANSWERED DEMO)")
@@ -329,22 +376,42 @@ def create_audit_demo_ui(
         is_third_party = tp_input not in ("n", "no")
 
     # 4. Prompt for Framework Selection if not provided
-    available_fws = manager.get_available_frameworks()
-    if not framework_ref_or_name and available_fws:
-        print("\nSelect Framework for Assessment:")
-        for idx, fw in enumerate(available_fws, start=1):
-            ref_str = f" ({fw['ref_id']})" if fw.get("ref_id") else ""
-            print(f" {idx}) {fw['name']}{ref_str}")
-        fw_input = input(f"Enter choice [1-{len(available_fws)}, default: 1] (or 'c' to cancel): ").strip()
-        if fw_input.lower() in ("c", "cancel"):
-            print("Operation canceled.")
-            return
-        if fw_input.isdigit() and 1 <= int(fw_input) <= len(available_fws):
-            selected_fw = available_fws[int(fw_input) - 1]
-            framework_ref_or_name = selected_fw.get("ref_id") or selected_fw.get("name")
+    if not framework_ref_or_name:
+        ex_spec = manager.find_example_application(app_name) if hasattr(manager, "find_example_application") else None
+        if isinstance(ex_spec, dict) and (ex_spec.get("framework_ref") or ex_spec.get("framework_name")):
+            assoc_fw_ref = ex_spec.get("framework_ref")
+            assoc_fw_name = ex_spec.get("framework_name")
+            print(f"\n[INFO] '{app_name}' is an example application associated with framework '{assoc_fw_name}' ({assoc_fw_ref}).")
+            framework_ref_or_name = assoc_fw_ref
         else:
-            selected_fw = available_fws[0]
-            framework_ref_or_name = selected_fw.get("ref_id") or selected_fw.get("name")
+            print("\nSelect Framework for Assessment (verified in CISO Assistant):")
+            for idx, fw in enumerate(installed_fws, start=1):
+                ref_str = f" ({fw['ref_id']})" if fw.get("ref_id") else ""
+                print(f" {idx}) {fw['name']}{ref_str}")
+
+            # Show note about catalog frameworks that are not installed in CISO Assistant
+            uninstalled_fws = [
+                cat for cat in FRAMEWORK_CATALOG
+                if not any(
+                    f.get("ref_id", "").lower() == cat["ref_id"].lower()
+                    or f.get("name", "").lower() == cat["name"].lower()
+                    for f in installed_fws
+                )
+            ]
+            if uninstalled_fws:
+                uninstalled_str = ", ".join(f"{cat['name']} ({cat['ref_id']})" for cat in uninstalled_fws)
+                print(f" [Note: Not installed in CISO Assistant, unavailable for audits: {uninstalled_str}]")
+
+            fw_input = input(f"Enter choice [1-{len(installed_fws)}, default: 1] (or 'c' to cancel): ").strip()
+            if fw_input.lower() in ("c", "cancel"):
+                print("Operation canceled.")
+                return
+            if fw_input.isdigit() and 1 <= int(fw_input) <= len(installed_fws):
+                selected_fw = installed_fws[int(fw_input) - 1]
+                framework_ref_or_name = selected_fw.get("ref_id") or selected_fw.get("name")
+            else:
+                selected_fw = installed_fws[0]
+                framework_ref_or_name = selected_fw.get("ref_id") or selected_fw.get("name")
 
     print(f"\n---> Provisioning application '{app_name}' and assigning audit to '{user_email}'...")
     try:
@@ -444,15 +511,15 @@ def generate_controls_and_risks_ui(
                 return
 
     # 2. Select Answers Source if not provided
-    csv_to_use = None
+    answers_to_use = None
     if answers_source:
-        csv_to_use = answers_source
+        answers_to_use = answers_source
     elif interactive:
         # Prompt user whether to use live UI answers or an answers file
         print(f"\nSelect answers source for '{app_name}':")
         print(" 1) Evaluate live answers already submitted in CISO Assistant UI (Default)")
         print(" 2) Load answers from an Example Profile (e.g. App-Secure-Core, App-Vulnerable-Portal)")
-        print(" 3) Specify path to custom CSV/YAML file")
+        print(" 3) Specify path to custom YAML answers file")
         src_choice = input("Enter choice [1-3, default: 1] (or 'c' to cancel): ").strip()
 
         if src_choice.lower() in ("c", "cancel"):
@@ -460,33 +527,34 @@ def generate_controls_and_risks_ui(
             return
 
         if src_choice == "2":
+            example_apps = manager.get_example_applications()
             print("\nSelect example profile to load answers from:")
-            for idx, ex_app in enumerate(EXAMPLE_APPLICATIONS, start=1):
+            for idx, ex_app in enumerate(example_apps, start=1):
                 print(f" {idx}) {ex_app['label']}")
-            p_choice = input(f"Enter choice [1-{len(EXAMPLE_APPLICATIONS)}]: ").strip()
-            if p_choice.isdigit() and 1 <= int(p_choice) <= len(EXAMPLE_APPLICATIONS):
-                csv_to_use = EXAMPLE_APPLICATIONS[int(p_choice) - 1]["csv_path"]
+            p_choice = input(f"Enter choice [1-{len(example_apps)}]: ").strip()
+            if p_choice.isdigit() and 1 <= int(p_choice) <= len(example_apps):
+                answers_to_use = example_apps[int(p_choice) - 1].get("yaml_path")
             else:
                 print("Invalid choice. Falling back to live UI answers.")
         elif src_choice == "3":
-            custom_path = input("Enter path to answers file (CSV/YAML): ").strip()
+            custom_path = input("Enter path to answers file (YAML): ").strip()
             if not custom_path or not Path(custom_path).exists():
                 print(f"[ERROR] File '{custom_path}' does not exist. Falling back to live UI answers.")
             else:
-                csv_to_use = custom_path
+                answers_to_use = custom_path
         else:
-            csv_to_use = None
+            answers_to_use = None
     else:
-        csv_to_use = None
+        answers_to_use = None
 
     print(f"\n---> Generating controls & risk scenarios for '{app_name}'...")
-    if csv_to_use:
-        print(f"     Source Answers: {csv_to_use}")
+    if answers_to_use:
+        print(f"     Source Answers: {answers_to_use}")
     else:
         print("     Source Answers: Live answers from CISO Assistant UI")
 
     try:
-        res = manager.generate_controls_and_risks_for_application(app_name, csv_path=csv_to_use)
+        res = manager.generate_controls_and_risks_for_application(app_name, yaml_path=answers_to_use)
         print("\n" + "=" * 80)
         print("          CONTROLS & RISK SCENARIOS SUCCESSFULLY GENERATED")
         print("=" * 80)
@@ -524,36 +592,77 @@ def remove_examples_ui(manager: ExamplesManager, target="all", auto_confirm=Fals
         print(f"\n[ERROR] API Connection Failed: {msg}")
         return
 
-    if not auto_confirm:
-        target_desc = "ALL example applications" if target == "all" else f"application '{target}'"
-        confirm = input(f"\nAre you sure you want to remove {target_desc} from CISO Assistant? [y/N]: ").strip().lower()
-        if confirm not in ("y", "yes"):
-            print("Operation canceled.")
-            return
+    status_list = manager.get_status()
+    created_examples = [s for s in status_list if s.get("exists")]
 
     if target == "all":
-        print("\nRemoving all example applications from CISO Assistant...")
-        for app in EXAMPLE_APPLICATIONS:
-            print(f"---> Deleting {app['name']}...")
+        if not created_examples:
+            print("\nNo example applications currently exist in CISO Assistant. Nothing to remove.")
+            return
+
+        print(f"\nFound {len(created_examples)} example application(s) currently created in CISO Assistant:")
+        for s in created_examples:
+            status_desc = s.get("status") or s.get("lifecycle_status") or "CREATED"
+            print(f"  - {s['name']} ({status_desc})")
+
+        if not auto_confirm:
+            confirm = input(
+                f"\nAre you sure you want to remove these {len(created_examples)} example application(s) from CISO Assistant? [y/N]: "
+            ).strip().lower()
+            if confirm not in ("y", "yes"):
+                print("Operation canceled.")
+                return
+
+        print(f"\nRemoving {len(created_examples)} example application(s) from CISO Assistant...")
+        for s in created_examples:
+            app_id = s["id"]
+            app_name = s["name"]
+            print(f"---> Deleting {app_name}...")
             try:
-                del_res = manager.remove_example_application(app["id"])
+                del_res = manager.remove_example_application(app_id)
                 print(f"     Deleted: {del_res.get('entity_assessments_deleted', 0)} entity assessment(s), "
                       f"{del_res.get('entities_deleted', 0)} entity(ies), "
                       f"{del_res.get('users_deleted', 0)} user(s), "
                       f"{del_res.get('findings_deleted', 0)} finding(s), "
                       f"{del_res.get('findings_assessments_deleted', 0)} findings assessment(s), "
-                      f"{del_res['risk_assessments_deleted']} risk assessment(s), "
-                      f"{del_res['scenarios_deleted']} scenario(s), "
-                      f"{del_res['compliance_assessments_deleted']} compliance assessment(s), "
-                      f"{del_res['applied_controls_deleted']} control(s), "
-                      f"{del_res['assets_deleted']} asset(s), "
-                      f"{del_res['perimeters_deleted']} perimeter(s).")
+                      f"{del_res.get('risk_assessments_deleted', 0)} risk assessment(s), "
+                      f"{del_res.get('scenarios_deleted', 0)} scenario(s), "
+                      f"{del_res.get('compliance_assessments_deleted', 0)} compliance assessment(s), "
+                      f"{del_res.get('applied_controls_deleted', 0)} control(s), "
+                      f"{del_res.get('assets_deleted', 0)} asset(s), "
+                      f"{del_res.get('perimeters_deleted', 0)} perimeter(s).")
             except Exception as e:
-                print(f"     [ERROR] Failed to delete {app['name']}: {e}")
+                print(f"     [ERROR] Failed to delete {app_name}: {e}")
         print("\n[SUCCESS] Completed removal of example applications.")
     else:
-        app = next((a for a in EXAMPLE_APPLICATIONS if a["id"] == target or a["name"] == target), None)
-        target_name = app["name"] if app else target
+        target_norm = target.strip().lower()
+        matching = next(
+            (s for s in status_list if s["id"].lower() == target_norm or s["name"].lower() == target_norm),
+            None,
+        )
+        target_name = matching["name"] if matching else target
+
+        app_exists = matching.get("exists") if matching else False
+        if not matching:
+            data = manager.data or manager._init_data()
+            perm_dict = data.get("perimeter_dict")
+            ent_dict = data.get("entity_dict")
+            asset_dict = data.get("asset_dict")
+            p_id = perm_dict.get_id_from_name(target_name) if perm_dict else None
+            e_id = ent_dict.get_id_from_name(target_name) if ent_dict else None
+            a_id = asset_dict.get_asset_id_from_perimeter_name(target_name) if asset_dict else None
+            app_exists = bool(p_id or e_id or a_id)
+
+        if not app_exists:
+            print(f"\n[INFO] Application '{target_name}' is not currently created in CISO Assistant. Nothing to remove.")
+            return
+
+        if not auto_confirm:
+            confirm = input(f"\nAre you sure you want to remove application '{target_name}' from CISO Assistant? [y/N]: ").strip().lower()
+            if confirm not in ("y", "yes"):
+                print("Operation canceled.")
+                return
+
         print(f"\n---> Removing {target_name} from CISO Assistant...")
         try:
             del_res = manager.remove_example_application(target)
@@ -562,12 +671,12 @@ def remove_examples_ui(manager: ExamplesManager, target="all", auto_confirm=Fals
                   f"{del_res.get('users_deleted', 0)} user(s), "
                   f"{del_res.get('findings_deleted', 0)} finding(s), "
                   f"{del_res.get('findings_assessments_deleted', 0)} findings assessment(s), "
-                  f"{del_res['risk_assessments_deleted']} risk assessment(s), "
-                  f"{del_res['scenarios_deleted']} scenario(s), "
-                  f"{del_res['compliance_assessments_deleted']} compliance assessment(s), "
-                  f"{del_res['applied_controls_deleted']} control(s), "
-                  f"{del_res['assets_deleted']} asset(s), "
-                  f"{del_res['perimeters_deleted']} perimeter(s).")
+                  f"{del_res.get('risk_assessments_deleted', 0)} risk assessment(s), "
+                  f"{del_res.get('scenarios_deleted', 0)} scenario(s), "
+                  f"{del_res.get('compliance_assessments_deleted', 0)} compliance assessment(s), "
+                  f"{del_res.get('applied_controls_deleted', 0)} control(s), "
+                  f"{del_res.get('assets_deleted', 0)} asset(s), "
+                  f"{del_res.get('perimeters_deleted', 0)} perimeter(s).")
             print(f"\n[SUCCESS] Successfully removed {target_name} from CISO Assistant!")
 
         except Exception as e:
@@ -686,24 +795,35 @@ def list_backups_ui(manager: ExamplesManager):
 def run_offline_simulation():
     """Run local calculation and matrix lookup without calling the live API."""
     print("\nRunning offline local simulation preview (no API calls)...")
-    sim = ApplicationRiskSimulator("YML/newDPP.yml")
+    simulators = {}
     risk_names = {0: "1 - Very Low", 1: "2 - Low", 2: "3 - Medium", 3: "4 - High", 4: "5 - Very High"}
     priority_names = {1: "1 (Urgent)", 2: "2 (High)", 3: "3 (Medium)", 4: "4 (Low)"}
 
-    for app in EXAMPLE_APPLICATIONS:
-        csv_path = app["csv_path"]
-        if not Path(csv_path).exists():
+    for app in ExamplesManager.load_example_applications():
+        answers_path = app.get("yaml_path")
+        if not answers_path or not Path(answers_path).exists():
             continue
         print("=" * 80)
         print(f" APPLICATION: {app['label']}")
         print(f" Profile:     {app['description']}")
         print("=" * 80)
 
-        results = sim.evaluate_application(csv_path)
-        print(f"Data Classification Impact: Level {results['impact_level']} / 4")
+        fw_yaml = app.get("framework_yaml", "YML/newDPP.yml")
+        if fw_yaml not in simulators:
+            simulators[fw_yaml] = ApplicationRiskSimulator(fw_yaml)
+        sim = simulators[fw_yaml]
+
+        results = sim.evaluate_application(answers_path)
+        conf_impact = results.get("confidentiality_impact", results.get("impact_level", 1))
+        avail_impact = results.get("availability_impact", conf_impact)
+        if conf_impact == avail_impact:
+            print(f"Data Classification Impact: Level {conf_impact} / 4")
+        else:
+            print(f"Classification Impact: Confidentiality Level {conf_impact} / 4, Availability Level {avail_impact} / 4")
+
         print("\nRequirement Compliance Scores:")
         for req, score in sorted(results["requirement_scores"].items()):
-            if not req.startswith("urn:"):
+            if req in sim.req_nodes:
                 print(f"  - {req:<30}: {score:>3}%")
 
         print("\nRisk Scenarios:")
@@ -804,27 +924,48 @@ def interactive_menu(manager: ExamplesManager):
         elif choice == "2":
             create_examples_ui(manager, target="all")
         elif choice == "3":
-            print("\nSelect application to create:")
-            for idx, app in enumerate(EXAMPLE_APPLICATIONS, start=1):
-                print(f" {idx}) {app['label']}")
-            sub_choice = input(f"Enter choice [1-{len(EXAMPLE_APPLICATIONS)}] (or 'c' to cancel): ").strip()
-            if sub_choice.isdigit() and 1 <= int(sub_choice) <= len(EXAMPLE_APPLICATIONS):
-                selected = EXAMPLE_APPLICATIONS[int(sub_choice) - 1]
-                available_fws = manager.get_available_frameworks()
-                default_fw_name = selected.get("framework_name", "Multi-level DPP")
-                default_fw_ref = selected.get("framework_ref", "mls")
-                print(f"\nSelect Framework for {selected['name']} [default: {default_fw_name} ({default_fw_ref})]:")
-                for idx, fw in enumerate(available_fws, start=1):
-                    ref_str = f" ({fw['ref_id']})" if fw.get("ref_id") else ""
-                    print(f" {idx}) {fw['name']}{ref_str}")
-                fw_sub = input(f"Enter choice [1-{len(available_fws)}, press Enter for default] (or 'c' to cancel): ").strip()
-                if fw_sub.lower() in ("c", "cancel"):
-                    pass
-                else:
-                    chosen_fw = None
-                    if fw_sub.isdigit() and 1 <= int(fw_sub) <= len(available_fws):
-                        chosen_fw = available_fws[int(fw_sub) - 1].get("ref_id") or available_fws[int(fw_sub) - 1].get("name")
-                    create_examples_ui(manager, target=selected["id"], framework_ref_or_name=chosen_fw)
+            installed_fws = manager.get_installed_frameworks()
+            if not installed_fws:
+                print("\n[ERROR] No frameworks found in CISO Assistant.")
+                print("Cannot create example applications because CISO Assistant does not have any compliance frameworks installed.")
+                continue
+
+            example_apps = manager.get_example_applications()
+            print("\nSelect example application to create:")
+            for idx, app in enumerate(example_apps, start=1):
+                fw_name = app.get("framework_name", "Multi-level DPP")
+                fw_ref = app.get("framework_ref", "mls")
+                is_fw_installed = any(
+                    f.get("ref_id", "").lower() == fw_ref.lower()
+                    or f.get("name", "").lower() == fw_name.lower()
+                    for f in installed_fws
+                )
+                fw_status = f"[{fw_name}]" if is_fw_installed else f"[{fw_name} - NOT INSTALLED]"
+                print(f" {idx}) {app['label']} {fw_status}")
+
+            sub_choice = input(f"Enter choice [1-{len(example_apps)}] (or 'c' to cancel): ").strip()
+            if sub_choice.lower() in ("c", "cancel"):
+                pass
+            elif sub_choice.isdigit() and 1 <= int(sub_choice) <= len(example_apps):
+                selected = example_apps[int(sub_choice) - 1]
+                assoc_fw_name = selected.get("framework_name", "Multi-level DPP")
+                assoc_fw_ref = selected.get("framework_ref", "mls")
+
+                matching_fw = manager.find_target_framework(assoc_fw_ref) or manager.find_target_framework(assoc_fw_name)
+                if not matching_fw:
+                    print(f"\n[ERROR] Cannot create {selected['name']}: Associated framework '{assoc_fw_name}' ({assoc_fw_ref}) is not installed in CISO Assistant.")
+                    print(f"Please install or import '{assoc_fw_name}' into CISO Assistant first.")
+                    continue
+
+                # Offer only to create with the associated framework
+                print(f"\nSelected Application:  {selected['label']}")
+                print(f"Associated Framework:  {assoc_fw_name} ({assoc_fw_ref}) [Installed in CISO Assistant]")
+                confirm = input(f"Create '{selected['name']}' with associated framework '{assoc_fw_name}'? [Y/n] (or 'c' to cancel): ").strip().lower()
+                if confirm in ("c", "cancel", "n", "no"):
+                    print("Operation canceled.")
+                    continue
+
+                create_examples_ui(manager, target=selected["id"], framework_ref_or_name=assoc_fw_ref)
         elif choice == "4":
             create_audit_demo_ui(manager)
         elif choice == "5":
@@ -942,7 +1083,7 @@ def main():
     parser.add_argument(
         "--answers",
         metavar="FILE_OR_PROFILE",
-        help="Optional CSV/YAML file or example profile name/id to load answers from when generating risks.",
+        help="Optional YAML file or example profile name/id to load answers from when generating risks.",
     )
     parser.add_argument(
         "--link-controls",

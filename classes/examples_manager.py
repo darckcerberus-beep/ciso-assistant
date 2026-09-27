@@ -7,8 +7,10 @@ applied controls, and asset criticalities can be visualized directly in the CISO
 
 import logging
 from pathlib import Path
+import re
 import time
 from typing import Any
+import yaml
 
 from classes import utils
 from classes.core.framework import FrameworkDict, FrameworkFile
@@ -25,206 +27,63 @@ from classes.organization.asset import AssetDict
 from classes.organization.domain import DomainDict, criticality_mapping
 from classes.organization.entity import EntityDict, EntityRepresentativeDict
 from classes.organization.perimeter import PerimeterDict
-from classes.integrations import csv_import
+from classes.integrations import answers_import
 from classes.integrations.backup import BackupManager
 
 LOGGER = logging.getLogger(__name__)
 
 
-EXAMPLE_APPLICATIONS = [
-    {
-        "id": "app_secure_core",
-        "name": "App-Secure-Core",
-        "label": "App-Secure-Core (Secret / 100% Compliant)",
-        "csv_path": "test_data/app_secure_core.csv",
-        "classification": "Secret",
-        "compliance_target": "100%",
-        "expected_risk": "Low (Acceptable)",
-        "description": "High classification (Secret) + Full compliance (100%) -> Low Risk",
-        "framework_ref": "mls",
-        "framework_name": "Multi-level DPP",
-        "framework_yaml": "YML/newDPP.yml",
-        "user": {
-            "email": "alice.secure@example-core.com",
-            "first_name": "Alice",
-            "last_name": "Secure",
-        },
-        "tprm": {
-            "criticality": 4,
-            "maturity": 4,
-            "trust": 4,
-            "conclusion": "ok",
-        },
-    },
-    {
-        "id": "app_vulnerable_portal",
-        "name": "App-Vulnerable-Portal",
-        "label": "App-Vulnerable-Portal (Secret / 0% Non-Compliant)",
-        "csv_path": "test_data/app_vulnerable_portal.csv",
-        "classification": "Secret",
-        "compliance_target": "0%",
-        "expected_risk": "Very High / Critical -> Urgent Remediation",
-        "description": "High classification (Secret) + Non-compliant (0%) -> Critical Risk -> Urgent Priority",
-        "framework_ref": "mls",
-        "framework_name": "Multi-level DPP",
-        "framework_yaml": "YML/newDPP.yml",
-        "user": {
-            "email": "victor.vulnerable@example-portal.com",
-            "first_name": "Victor",
-            "last_name": "Vulnerable",
-        },
-        "tprm": {
-            "criticality": 4,
-            "maturity": 1,
-            "trust": 1,
-            "conclusion": "blocker",
-        },
-    },
-    {
-        "id": "app_internal_tool",
-        "name": "App-Internal-Tool",
-        "label": "App-Internal-Tool (Internal / Mixed Compliance)",
-        "csv_path": "test_data/app_internal_tool.csv",
-        "classification": "Internal",
-        "compliance_target": "Mixed",
-        "expected_risk": "Medium (Scenario-dependent)",
-        "description": "Medium classification (Internal) + Mixed compliance -> Scenario-dependent Risks",
-        "framework_ref": "mls",
-        "framework_name": "Multi-level DPP",
-        "framework_yaml": "YML/newDPP.yml",
-        "user": {
-            "email": "ian.internal@example-tool.com",
-            "first_name": "Ian",
-            "last_name": "Internal",
-        },
-        "tprm": {
-            "criticality": 2,
-            "maturity": 2,
-            "trust": 2,
-            "conclusion": "warning",
-        },
-    },
-    {
-        "id": "app_public_blog",
-        "name": "App-Public-Blog",
-        "label": "App-Public-Blog (Public / Low Sensitivity)",
-        "csv_path": "test_data/app_public_blog.csv",
-        "classification": "Public",
-        "compliance_target": "Mixed / Low Impact",
-        "expected_risk": "Low (Capped at 1)",
-        "description": "Low classification (Public) + Mixed compliance -> Low Impact & Low Risk",
-        "framework_ref": "mls",
-        "framework_name": "Multi-level DPP",
-        "framework_yaml": "YML/newDPP.yml",
-        "user": {
-            "email": "paula.public@example-blog.com",
-            "first_name": "Paula",
-            "last_name": "Public",
-        },
-        "tprm": {
-            "criticality": 1,
-            "maturity": 3,
-            "trust": 3,
-            "conclusion": "ok",
-        },
-    },
-    {
-        "id": "app_hr_people_system",
-        "name": "App-HR-People-System",
-        "label": "App-HR-People-System (Confidential / HR & Privacy Gaps)",
-        "csv_path": "test_data/app_hr_people_system.csv",
-        "classification": "Confidential",
-        "compliance_target": "Mixed / Privacy Gaps",
-        "expected_risk": "High (GDPR & Data Retention)",
-        "description": "Confidential classification + Strong encryption + Unmasked non-prod retention & missing deletion -> High Privacy Risk",
-        "framework_ref": "mls",
-        "framework_name": "Multi-level DPP",
-        "framework_yaml": "YML/newDPP.yml",
-        "user": {
-            "email": "hannah.hr@example-peoplesys.com",
-            "first_name": "Hannah",
-            "last_name": "HR",
-        },
-        "tprm": {
-            "criticality": 3,
-            "maturity": 2,
-            "trust": 2,
-            "conclusion": "warning",
-        },
-    },
-    {
-        "id": "app_customer_payment_api",
-        "name": "App-Customer-Payment-API",
-        "label": "App-Customer-Payment-API (Secret / PCI-DSS Aligned)",
-        "csv_path": "test_data/app_customer_payment_api.csv",
-        "classification": "Secret",
-        "compliance_target": "High (95%)",
-        "expected_risk": "Low-to-Medium (Vendor SLA Gaps)",
-        "description": "Secret classification + High technical compliance + Single clearinghouse notification SLA gap",
-        "framework_ref": "mls",
-        "framework_name": "Multi-level DPP",
-        "framework_yaml": "YML/newDPP.yml",
-        "user": {
-            "email": "peter.pay@example-paymentapi.com",
-            "first_name": "Peter",
-            "last_name": "Payment",
-        },
-        "tprm": {
-            "criticality": 4,
-            "maturity": 3,
-            "trust": 3,
-            "conclusion": "warning",
-        },
-    },
-    {
-        "id": "app_legacy_erp_production",
-        "name": "App-Legacy-ERP-Production",
-        "label": "App-Legacy-ERP-Production (Internal / On-Prem Legacy)",
-        "csv_path": "test_data/app_legacy_erp_production.csv",
-        "classification": "Internal",
-        "compliance_target": "Low / Legacy Gaps",
-        "expected_risk": "Medium (Cleartext LAN & Unencrypted DB)",
-        "description": "Internal classification + In-house hosting + Unencrypted LAN/DB + Legacy authentication",
-        "framework_ref": "mls",
-        "framework_name": "Multi-level DPP",
-        "framework_yaml": "YML/newDPP.yml",
-        "user": {
-            "email": "larry.legacy@example-legacyerp.com",
-            "first_name": "Larry",
-            "last_name": "Legacy",
-        },
-        "tprm": {
-            "criticality": 2,
-            "maturity": 2,
-            "trust": 1,
-            "conclusion": "warning",
-        },
-    },
-    {
-        "id": "app_ai_analytics_workbench",
-        "name": "App-AI-Analytics-Workbench",
-        "label": "App-AI-Analytics-Workbench (Confidential / Cloud GenAI)",
-        "csv_path": "test_data/app_ai_analytics_workbench.csv",
-        "classification": "Confidential",
-        "compliance_target": "Mixed / GenAI Risks",
-        "expected_risk": "High (External LLM Transfer & Prompt Data Leakage)",
-        "description": "Confidential classification + SaaS hosting + External LLM transfer without contract + Unmasked prompt logs",
-        "framework_ref": "mls",
-        "framework_name": "Multi-level DPP",
-        "framework_yaml": "YML/newDPP.yml",
-        "user": {
-            "email": "arthur.ai@example-aiworkbench.com",
-            "first_name": "Arthur",
-            "last_name": "AI",
-        },
-        "tprm": {
-            "criticality": 3,
-            "maturity": 2,
-            "trust": 2,
-            "conclusion": "warning",
-        },
-    },
-]
+def load_example_applications(test_data_dir: str | Path | None = None) -> list[dict[str, Any]]:
+    """Load example application definitions dynamically from individual YAML files.
+
+    Scans the test_data directory for YAML files containing an 'application' block,
+    ensuring each application's configuration, metadata, framework reference,
+    user assignment, and TPRM specs are loaded directly from the individual example file.
+    """
+    if test_data_dir is None:
+        repo_root = Path(__file__).resolve().parent.parent
+        test_data_path = repo_root / "test_data"
+        if not test_data_path.exists():
+            test_data_path = Path("test_data")
+    else:
+        test_data_path = Path(test_data_dir)
+
+    apps: list[dict[str, Any]] = []
+    if not test_data_path.exists():
+        return apps
+
+    yaml_files = sorted(test_data_path.glob("*.yml")) + sorted(test_data_path.glob("*.yaml"))
+    for yaml_file in yaml_files:
+        try:
+            with open(yaml_file, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+            if not isinstance(data, dict):
+                continue
+            app_spec = data.get("application")
+            if not app_spec or not isinstance(app_spec, dict):
+                continue
+
+            entry = dict(app_spec)
+            try:
+                rel_path = yaml_file.relative_to(Path.cwd())
+                entry["yaml_path"] = str(rel_path)
+            except ValueError:
+                entry["yaml_path"] = str(yaml_file)
+
+            if "label" not in entry and "name" in entry:
+                entry["label"] = entry["name"]
+
+            apps.append(entry)
+        except Exception as e:
+            LOGGER.warning("Could not load example application from %s: %s", yaml_file, e)
+
+    # Sort applications by explicit 'order' field, then by name
+    apps.sort(key=lambda a: (a.get("order", 999), a.get("name", "")))
+    return apps
+
+
+EXAMPLE_APPLICATIONS = load_example_applications()
+
 
 EXAMPLE_FOLDER_NAME = "Example Applications"
 DEFAULT_FRAMEWORK_NAME = "Multi-level DPP"
@@ -255,6 +114,23 @@ class ExamplesManager:
         self.framework_yaml = Path(FRAMEWORK_YAML_PATH)
         self.data: dict[str, Any] | None = None
         self.backup_manager = BackupManager()
+
+    @staticmethod
+    def load_example_applications(test_data_dir: str | Path | None = None) -> list[dict[str, Any]]:
+        """Load example application definitions from individual YAML example files."""
+        return load_example_applications(test_data_dir)
+
+    def get_example_applications(self) -> list[dict[str, Any]]:
+        """Return all example applications loaded dynamically from individual YAML example files."""
+        return load_example_applications()
+
+    def find_example_application(self, app_id_or_name: str) -> dict[str, Any] | None:
+        """Find an example application specification by ID or name (case-insensitive)."""
+        target = app_id_or_name.lower().strip()
+        for app in self.get_example_applications():
+            if app.get("id", "").lower() == target or app.get("name", "").lower() == target:
+                return app
+        return None
 
     def _init_data(self, force_reload: bool = False):
         """Initialize or refresh cached API resource collections."""
@@ -356,7 +232,8 @@ class ExamplesManager:
                         return actor.get("id")
         return self.get_default_assignee_id()
 
-    def resolve_framework_yaml_path(self, target_framework: str | None = None) -> Path:
+    @staticmethod
+    def resolve_framework_yaml_path(target_framework: str | None = None) -> Path:
         """Resolve the local YAML file path for a given framework identifier or name."""
         if not target_framework:
             return Path(FRAMEWORK_YAML_PATH)
@@ -365,6 +242,10 @@ class ExamplesManager:
         target_path = Path(target_framework)
         if target_path.exists() and target_path.is_file():
             return target_path
+
+        yml_dir = Path("YML")
+        if (yml_dir / target_path.name).exists() and (yml_dir / target_path.name).is_file():
+            return yml_dir / target_path.name
 
         target_str = str(target_framework).strip().lower()
 
@@ -380,7 +261,6 @@ class ExamplesManager:
                     return cat_path
 
         # Check YML directory for matching file
-        yml_dir = Path("YML")
         for ext in (".yml", ".yaml"):
             candidate = yml_dir / f"{target_framework}{ext}"
             if candidate.exists():
@@ -401,17 +281,17 @@ class ExamplesManager:
         yaml_path = self.resolve_framework_yaml_path(target_framework)
         return FrameworkFile(str(yaml_path))
 
-    def get_available_frameworks(self) -> list[dict[str, Any]]:
-        """Return list of available frameworks discovered from API and local catalog."""
+    def get_installed_frameworks(self) -> list[dict[str, Any]]:
+        """Return list of frameworks that are confirmed to be installed in CISO Assistant."""
         frameworks_list = []
-        seen_identifiers = set()
-
         try:
             data = self._init_data()
             framework_dict: FrameworkDict = data.get("framework_dict")
             if framework_dict:
                 for fw in framework_dict.get_frameworks():
                     fw_id = fw.get_id()
+                    if not fw_id:
+                        continue
                     fw_name = fw.get_name()
                     fw_json = getattr(fw, "json_object", {}) or {}
                     ref_id = fw_json.get("ref_id", "")
@@ -425,14 +305,45 @@ class ExamplesManager:
                         "urn": urn,
                         "description": description,
                         "yaml_path": yaml_path,
+                        "installed": True,
+                        "in_ciso_assistant": True,
                     }
+                    for cat in FRAMEWORK_CATALOG:
+                        if cat["ref_id"].lower() == ref_id.lower() or cat["name"].lower() == fw_name.lower():
+                            entry["catalog_name"] = cat["name"]
+                            break
                     frameworks_list.append(entry)
-                    if ref_id:
-                        seen_identifiers.add(ref_id.lower())
-                    if fw_name:
-                        seen_identifiers.add(fw_name.lower())
         except Exception as e:
-            utils.log(f"Error querying frameworks from API: {e}", level=logging.DEBUG)
+            utils.log(f"Error querying installed frameworks from CISO Assistant: {e}", level=logging.DEBUG)
+
+        return frameworks_list
+
+    def is_framework_in_ciso_assistant(self, framework_ref_or_name: str | None) -> bool:
+        """Check if a specific framework is actually present/installed in CISO Assistant."""
+        if not framework_ref_or_name:
+            return False
+        return self.find_target_framework(framework_ref_or_name) is not None
+
+    def get_available_frameworks(self, installed_only: bool = False) -> list[dict[str, Any]]:
+        """Return list of available frameworks discovered from CISO Assistant and local catalog.
+
+        Args:
+            installed_only: If True, only returns frameworks verified present in CISO Assistant.
+                            If False, also includes uninstalled catalog frameworks with id=None.
+        """
+        installed = self.get_installed_frameworks()
+        if installed_only:
+            return installed
+
+        frameworks_list = list(installed)
+        seen_identifiers = set()
+        for fw in installed:
+            if fw.get("ref_id"):
+                seen_identifiers.add(fw["ref_id"].lower())
+            if fw.get("name"):
+                seen_identifiers.add(fw["name"].lower())
+            if fw.get("catalog_name"):
+                seen_identifiers.add(fw["catalog_name"].lower())
 
         # Merge catalog frameworks not found in API
         for cat in FRAMEWORK_CATALOG:
@@ -446,6 +357,8 @@ class ExamplesManager:
                     "urn": "",
                     "description": cat.get("description", ""),
                     "yaml_path": cat["yaml_path"],
+                    "installed": False,
+                    "in_ciso_assistant": False,
                 })
                 seen_identifiers.add(cat_ref)
                 seen_identifiers.add(cat_name)
@@ -460,7 +373,7 @@ class ExamplesManager:
         if not frameworks:
             return None
 
-        # 1. If explicit target given, attempt to find exact match
+        # 1. If explicit target given, attempt to find exact match in CISO Assistant
         if target_framework:
             fw = framework_dict.get_framework_by_identifier(target_framework)
             if fw:
@@ -474,14 +387,22 @@ class ExamplesManager:
                     if fw:
                         return fw
 
-        # 2. Match default framework (Multi-level DPP / mls)
+            # Explicit framework was requested but NOT found in CISO Assistant.
+            # Do NOT silently fall back to a different framework!
+            utils.log(
+                f"Target framework '{target_framework}' not found in CISO Assistant.",
+                level=logging.WARNING,
+            )
+            return None
+
+        # 2. Match default framework (Multi-level DPP / mls) when no target specified
         default_fw = framework_dict.get_framework_by_identifier(DEFAULT_FRAMEWORK_NAME) or framework_dict.get_framework_by_identifier(DEFAULT_FRAMEWORK_REF)
         if default_fw:
             return default_fw
 
         # 3. Fallback: return first available framework
         utils.log(
-            f"Target framework '{target_framework or DEFAULT_FRAMEWORK_NAME}' not found; using '{frameworks[0].get_name()}'",
+            f"Default framework '{DEFAULT_FRAMEWORK_NAME}' not found; using '{frameworks[0].get_name()}'",
             level=logging.WARNING,
         )
         return frameworks[0]
@@ -588,16 +509,156 @@ class ExamplesManager:
 
         return True
 
+    _framework_metadata_cache: dict[str, Any] = {}
+
+    @classmethod
+    def _load_framework_metadata(
+        cls,
+        framework_identifier: str | None = None,
+        yaml_path: str = "",
+        ca_reqs: list[Any] | None = None,
+    ) -> dict[str, Any] | None:
+        """Load implementation groups definition and requirement nodes from local framework file or CISO Assistant API."""
+        candidate = framework_identifier
+
+        # 1. Determine framework identifier from answers YAML file header if not provided
+        if not candidate and yaml_path and Path(yaml_path).exists():
+            try:
+                with open(yaml_path, "r", encoding="utf-8") as f:
+                    doc = yaml.safe_load(f)
+                if isinstance(doc, dict):
+                    app = doc.get("application", {})
+                    if isinstance(app, dict):
+                        candidate = app.get("framework_yaml") or app.get("framework_ref") or app.get("framework")
+                    if not candidate and "objects" in doc and "framework" in doc.get("objects", {}):
+                        fw_obj = doc.get("objects", {}).get("framework", {})
+                        return {
+                            "implementation_groups_definition": fw_obj.get("implementation_groups_definition", []),
+                            "requirement_nodes": fw_obj.get("requirement_nodes", []),
+                        }
+            except Exception:
+                pass
+
+        # 2. Determine framework identifier from requirement assessment URNs or framework IDs
+        if not candidate and ca_reqs:
+            for ra in ca_reqs:
+                urn = ""
+                if hasattr(ra, "get_urn"):
+                    urn_val = ra.get_urn()
+                    if isinstance(urn_val, str):
+                        urn = urn_val
+                elif isinstance(ra, dict):
+                    raw_urn = ra.get("urn") or (ra.get("requirement", {}).get("urn") if isinstance(ra.get("requirement"), dict) else "")
+                    if isinstance(raw_urn, str):
+                        urn = raw_urn
+                if urn:
+                    m = re.search(r"urn:intuitem:risk:req_node:([^:]+):", urn)
+                    if m:
+                        candidate = m.group(1)
+                        break
+
+                if hasattr(ra, "get_framework_id"):
+                    fw_id = ra.get_framework_id()
+                    if isinstance(fw_id, str) and fw_id.strip() and not fw_id.startswith("<MagicMock"):
+                        candidate = fw_id.strip()
+                        break
+
+        cache_key = f"{candidate}:{yaml_path}"
+        if cache_key in cls._framework_metadata_cache:
+            return cls._framework_metadata_cache[cache_key]
+
+        # 3. Try resolving from local framework YAML file
+        target_path = None
+        if candidate:
+            target_path = cls.resolve_framework_yaml_path(candidate)
+        elif yaml_path:
+            target_path = cls.resolve_framework_yaml_path(None)
+
+        if target_path and target_path.exists() and target_path.is_file():
+            try:
+                fw_doc = utils.load_yaml_file(str(target_path))
+                if isinstance(fw_doc, dict):
+                    fw_obj = fw_doc.get("objects", {}).get("framework", {})
+                    if not fw_obj:
+                        fw_obj = fw_doc.get("framework", {}) or fw_doc
+                    ig_defs = fw_obj.get("implementation_groups_definition", [])
+                    nodes = fw_obj.get("requirement_nodes", [])
+                    if ig_defs or nodes:
+                        res = {
+                            "implementation_groups_definition": ig_defs,
+                            "requirement_nodes": nodes or [],
+                        }
+                        cls._framework_metadata_cache[cache_key] = res
+                        return res
+            except Exception:
+                pass
+
+        # 4. Try resolving via CISO Assistant API
+        try:
+            fw_obj = None
+            if candidate:
+                if len(candidate) == 36 and "-" in candidate:
+                    fw_obj = utils.get_return(f"/api/frameworks/{candidate}/", log_errors=False)
+                else:
+                    all_fws = utils.get_all_results("/api/frameworks/", force_reload=False)
+                    for fw in all_fws or []:
+                        if isinstance(fw, dict):
+                            if (
+                                str(fw.get("id")) == candidate
+                                or str(fw.get("ref_id", "")).lower() == candidate.lower()
+                                or str(fw.get("name", "")).lower() == candidate.lower()
+                            ):
+                                fw_obj = fw
+                                break
+            if fw_obj and isinstance(fw_obj, dict):
+                fw_id = fw_obj.get("id")
+                ig_defs = fw_obj.get("implementation_groups_definition", [])
+                nodes = utils.get_all_results(f"/api/requirement-nodes/?framework={fw_id}", force_reload=False)
+                if ig_defs or nodes:
+                    res = {
+                        "implementation_groups_definition": ig_defs,
+                        "requirement_nodes": nodes or [],
+                    }
+                    cls._framework_metadata_cache[cache_key] = res
+                    return res
+        except Exception:
+            pass
+
+        # 5. Fallback to default framework YAML file only if no specific non-default candidate was specified
+        if not candidate or candidate.lower() in ("mls", "newdpp", "default"):
+            default_path = Path(FRAMEWORK_YAML_PATH)
+            if default_path.exists():
+                try:
+                    fw_doc = utils.load_yaml_file(str(default_path))
+                    if isinstance(fw_doc, dict):
+                        fw_obj = fw_doc.get("objects", {}).get("framework", {})
+                        if not fw_obj:
+                            fw_obj = fw_doc.get("framework", {}) or fw_doc
+                        ig_defs = fw_obj.get("implementation_groups_definition", [])
+                        nodes = fw_obj.get("requirement_nodes", [])
+                        res = {
+                            "implementation_groups_definition": ig_defs,
+                            "requirement_nodes": nodes or [],
+                        }
+                        cls._framework_metadata_cache[cache_key] = res
+                        return res
+                except Exception:
+                    pass
+
+        return None
+
     @staticmethod
     def _resolve_triggered_requirements(
         ca_reqs: list[Any],
-        csv_path: str = "",
+        yaml_path: str = "",
+        framework_ref: str | None = None,
     ) -> tuple[int, int]:
         """Determine (answered_count, triggered_count) for compliance assessment requirements.
 
-        Excludes non-assessable chapter headers and requirements that were never triggered
-        (e.g., Chapter 2 encryption controls for Public/Internal applications, or Chapter 3
-        SaaS contract controls for On-Premise/In-house applications).
+        Framework-independent: dynamically inspects the framework definition (via framework file or
+        API) to identify default implementation groups and evaluates questionnaire answers (from live
+        requirements or answers profile) to activate implementation groups. Only requirements
+        belonging to active groups (or with no group restrictions, or already answered) are triggered.
         """
         if not ca_reqs:
             return 0, 0
@@ -609,118 +670,180 @@ class ExamplesManager:
         answered_ras = [ra for ra in assessable if ExamplesManager._is_ra_answered(ra)]
         answered_count = len(answered_ras)
 
-        # Check if CSV provides the explicit list of triggered requirements
-        csv_req_refs = set()
-        if csv_path and Path(csv_path).exists():
-            try:
-                rows = csv_import.read_csv_rows(csv_path)
-                for row in rows:
-                    req_ref = row.get("requirement")
-                    if req_ref:
-                        csv_req_refs.add(req_ref.strip())
-            except Exception:
-                pass
-
-        # Identify classification and hosting from answers or CSV
-        advanced_technical_reqs = {
-            "data_in_transit",
-            "data_at_rest",
-            "non_prod_data",
-            "data_exchange",
-            "data_destruction",
-        }
-        saas_reqs = {"saas_contract_compliance", "saas_contract"}
-
-        classification_val = None
-        hosting_val = None
-
-        # 1. Inspect live answers in ca_reqs
-        for ra in assessable:
-            ref = ExamplesManager._extract_ra_ref_id(ra)
-            answers = ra.get_answers() if hasattr(ra, "get_answers") else (ra.get("answers") if isinstance(ra, dict) else {})
-            if isinstance(answers, dict):
-                ans_strs = [str(v).lower() for v in answers.values() if v is not None]
-                if ref in ("data_classification", "classification") or "data_classification" in ref:
-                    for v in ans_strs:
-                        if "secret" in v or v.endswith(":c4"):
-                            classification_val = "secret"
-                            break
-                        elif "confidential" in v or v.endswith(":c3"):
-                            classification_val = "confidential"
-                            break
-                        elif "internal" in v or v.endswith(":c2"):
-                            classification_val = "internal"
-                            break
-                        elif "public" in v or v.endswith(":c1"):
-                            classification_val = "public"
-                            break
-                elif ref in ("hosting", "hosting_model") or "hosting" in ref:
-                    for v in ans_strs:
-                        if "saas" in v or v.endswith(":c2"):
-                            hosting_val = "saas"
-                            break
-                        elif "in-house" in v or "in_house" in v or v.endswith(":c1"):
-                            hosting_val = "in-house"
-                            break
-
-        # 2. If not found in live answers, inspect CSV if available
-        if csv_path and Path(csv_path).exists():
-            try:
-                rows = csv_import.read_csv_rows(csv_path)
-                for row in rows:
-                    req = row.get("requirement", "").strip()
-                    ans = row.get("answer", "").strip().lower()
-                    if req == "data_classification" and not classification_val:
-                        if "secret" in ans:
-                            classification_val = "secret"
-                        elif "confidential" in ans:
-                            classification_val = "confidential"
-                        elif "internal" in ans:
-                            classification_val = "internal"
-                        elif "public" in ans:
-                            classification_val = "public"
-                    elif req == "hosting" and not hosting_val:
-                        if "saas" in ans:
-                            hosting_val = "saas"
-                        elif "in-house" in ans or "in_house" in ans:
-                            hosting_val = "in-house"
-            except Exception:
-                pass
-
-        # Determine which assessable requirements are triggered
-        # If we have no indication of DPP conditional requirements in this assessment
-        # (e.g. mock objects in unit tests), keep all assessable requirements
-        has_conditional_reqs = any(
-            ExamplesManager._extract_ra_ref_id(ra) in (advanced_technical_reqs | saas_reqs)
-            for ra in assessable
+        fw_meta = ExamplesManager._load_framework_metadata(
+            framework_identifier=framework_ref,
+            yaml_path=yaml_path,
+            ca_reqs=ca_reqs,
         )
 
-        if not has_conditional_reqs and not csv_req_refs:
+        if not fw_meta:
+            return answered_count, len(assessable)
+
+        answered_req_refs: set[str] = set()
+        active_groups: set[str] = set()
+
+        ig_defs = fw_meta.get("implementation_groups_definition", []) or []
+        for g in ig_defs:
+            if isinstance(g, dict) and g.get("default_selected"):
+                if g.get("ref_id"):
+                    active_groups.add(str(g.get("ref_id")).strip())
+                if g.get("name"):
+                    active_groups.add(str(g.get("name")).strip())
+                if g.get("urn"):
+                    active_groups.add(str(g.get("urn")).strip())
+
+        fw_nodes = fw_meta.get("requirement_nodes", []) or []
+        nodes_by_ref: dict[str, dict[str, Any]] = {}
+        nodes_by_urn: dict[str, dict[str, Any]] = {}
+        for n in fw_nodes:
+            if not isinstance(n, dict):
+                continue
+            ref = n.get("ref_id")
+            urn = n.get("urn")
+            if ref:
+                nodes_by_ref[str(ref).strip()] = n
+            if urn:
+                nodes_by_urn[str(urn).strip()] = n
+
+        def _get_node_choices(node_dict: dict[str, Any], question_key_or_text: str = "") -> list[dict[str, Any]]:
+            qs = node_dict.get("questions", {})
+            q_items: list[dict[str, Any]] = []
+            if isinstance(qs, dict):
+                q_items = [v for v in qs.values() if isinstance(v, dict)]
+            elif isinstance(qs, list):
+                q_items = [v for v in qs if isinstance(v, dict)]
+
+            norm_q = str(question_key_or_text).strip().lower()
+            target_q = None
+            if norm_q:
+                for q in q_items:
+                    q_ref = str(q.get("ref_id", "")).strip().lower()
+                    q_urn = str(q.get("urn", "")).strip().lower()
+                    q_text = str(q.get("text", "")).strip().lower()
+                    if (
+                        norm_q == q_ref
+                        or norm_q == q_urn
+                        or norm_q == q_text
+                        or (q_ref and norm_q.endswith(f":{q_ref}"))
+                        or (q_ref and norm_q.endswith(q_ref))
+                        or (q_urn and norm_q in q_urn)
+                        or (q_text and (norm_q in q_text or q_text in norm_q))
+                    ):
+                        target_q = q
+                        break
+
+            if target_q and isinstance(target_q, dict):
+                return [c for c in target_q.get("choices", []) if isinstance(c, dict)]
+
+            all_choices: list[dict[str, Any]] = []
+            for q in q_items:
+                all_choices.extend([c for c in q.get("choices", []) if isinstance(c, dict)])
+            return all_choices
+
+        def _match_choice(choice: dict[str, Any], answer_val: Any) -> bool:
+            if answer_val is None:
+                return False
+            if isinstance(answer_val, (list, tuple, set)):
+                return any(_match_choice(choice, single_val) for single_val in answer_val)
+
+            a_str = str(answer_val).strip()
+            if not a_str:
+                return False
+
+            norm_ans = a_str.lower()
+            c_urn = str(choice.get("urn", "")).strip().lower()
+            c_ref = str(choice.get("ref_id", "")).strip().lower()
+            c_val = str(choice.get("value", "")).strip().lower()
+
+            if c_urn and norm_ans == c_urn:
+                return True
+            if c_ref and norm_ans == c_ref:
+                return True
+            if c_val and norm_ans == c_val:
+                return True
+            if c_ref and norm_ans.endswith(f":{c_ref}"):
+                return True
+            if c_val and (norm_ans.startswith(c_val) or c_val.startswith(norm_ans)):
+                return True
+            return False
+
+        # 1. Read answers from YAML answers file if provided
+        if yaml_path and Path(yaml_path).exists():
+            try:
+                rows = answers_import.read_answers_file(yaml_path)
+                for row in rows:
+                    req_ref = row.get("requirement", "").strip()
+                    if req_ref:
+                        answered_req_refs.add(req_ref)
+                    q_key = row.get("question", "").strip()
+                    ans_val = row.get("answer")
+                    node = nodes_by_ref.get(req_ref) or nodes_by_urn.get(req_ref)
+                    if node:
+                        choices = _get_node_choices(node, q_key)
+                        for c in choices:
+                            if _match_choice(c, ans_val):
+                                for grp in c.get("select_implementation_groups", []) or []:
+                                    active_groups.add(str(grp).strip())
+            except Exception:
+                pass
+
+        # 2. Read live answers from ca_reqs
+        for ra in assessable:
+            ra_ref = ExamplesManager._extract_ra_ref_id(ra)
+            ra_urn = ra.get_urn() if hasattr(ra, "get_urn") else (ra.get("urn", "") if isinstance(ra, dict) else "")
+            node = nodes_by_ref.get(ra_ref) or nodes_by_urn.get(ra_urn) or nodes_by_ref.get(ra_urn)
+            answers = ra.get_answers() if hasattr(ra, "get_answers") else (ra.get("answers") if isinstance(ra, dict) else {})
+            if isinstance(answers, dict):
+                for q_key, ans_val in answers.items():
+                    if ans_val is None:
+                        continue
+                    if node:
+                        choices = _get_node_choices(node, str(q_key))
+                    elif hasattr(ra, "get_questions"):
+                        qs = ra.get_questions()
+                        q_def = qs.get(q_key, {}) if isinstance(qs, dict) else {}
+                        choices = [c for c in q_def.get("choices", []) if isinstance(c, dict)]
+                    else:
+                        choices = []
+
+                    for c in choices:
+                        if _match_choice(c, ans_val):
+                            for grp in c.get("select_implementation_groups", []) or []:
+                                active_groups.add(str(grp).strip())
+
+        # Check if assessable requirements match any framework node
+        has_matching_nodes = any(
+            (ExamplesManager._extract_ra_ref_id(ra) in nodes_by_ref)
+            or (hasattr(ra, "get_urn") and ra.get_urn() in nodes_by_urn)
+            for ra in assessable
+        )
+        if not has_matching_nodes and not answered_req_refs:
             return answered_count, len(assessable)
 
         triggered_ras = []
         for ra in assessable:
             ref = ExamplesManager._extract_ra_ref_id(ra)
+            urn = ra.get_urn() if hasattr(ra, "get_urn") else (ra.get("urn", "") if isinstance(ra, dict) else "")
             is_answered = ExamplesManager._is_ra_answered(ra)
 
-            # An already answered requirement is always considered triggered
             if is_answered:
                 triggered_ras.append(ra)
                 continue
 
-            # If CSV explicitly specifies this requirement, it is expected/triggered
-            if csv_req_refs and ref in csv_req_refs:
+            if answered_req_refs and (ref in answered_req_refs or urn in answered_req_refs):
                 triggered_ras.append(ra)
                 continue
 
-            # Check conditional rules:
-            if ref in advanced_technical_reqs:
-                if classification_val in ("confidential", "secret"):
-                    triggered_ras.append(ra)
-            elif ref in saas_reqs:
-                if hosting_val == "saas":
-                    triggered_ras.append(ra)
-            else:
+            node = nodes_by_ref.get(ref) or nodes_by_urn.get(urn) or nodes_by_ref.get(urn)
+            req_groups = None
+            if node:
+                req_groups = node.get("implementation_groups")
+            elif hasattr(ra, "get_implementation_groups"):
+                req_groups = ra.get_implementation_groups()
+
+            if not req_groups:
+                triggered_ras.append(ra)
+            elif any(str(g).strip() in active_groups for g in req_groups):
                 triggered_ras.append(ra)
 
         triggered_count = max(len(triggered_ras), answered_count)
@@ -731,27 +854,27 @@ class ExamplesManager:
         app_id: str,
         app_name: str,
         label: str,
-        csv_path: str,
-        perimeter_id: str | None,
-        asset_id: str | None,
-        ca_obj: Any,
-        ra_obj: Any,
-        ra_scenarios_count: int,
-        ctrl_count: int,
-        existing_ctrls_linked: int,
-        planned_ctrls_linked: int,
-        vulns_linked: int,
-        threats_linked: int,
-        fa_id: str | None,
-        findings_count: int,
-        entity_id: str | None,
-        ea_obj: Any,
-        user_email: str | None,
-        user_id: str | None,
-        req_by_ca: dict[str, list[Any]],
+        perimeter_id: str | None = None,
+        asset_id: str | None = None,
+        ca_obj: Any = None,
+        ra_obj: Any = None,
+        ra_scenarios_count: int = 0,
+        ctrl_count: int = 0,
+        existing_ctrls_linked: int = 0,
+        planned_ctrls_linked: int = 0,
+        vulns_linked: int = 0,
+        threats_linked: int = 0,
+        fa_id: str | None = None,
+        findings_count: int = 0,
+        entity_id: str | None = None,
+        ea_obj: Any = None,
+        user_email: str | None = None,
+        user_id: str | None = None,
+        req_by_ca: dict[str, list[Any]] | None = None,
         framework_id: str | None = None,
         framework_name: str | None = None,
         framework_ref: str | None = None,
+        yaml_path: str | None = None,
     ) -> dict[str, Any]:
         """Construct a standardized status dictionary for an application."""
         total_reqs = 0
@@ -759,9 +882,13 @@ class ExamplesManager:
         all_reqs_count = 0
         if ca_obj:
             ca_id = ca_obj.get_id() if hasattr(ca_obj, "get_id") else str(ca_obj)
-            ca_reqs = req_by_ca.get(ca_id, [])
+            ca_reqs = (req_by_ca or {}).get(ca_id, [])
             all_reqs_count = len(ca_reqs)
-            answered_reqs, total_reqs = ExamplesManager._resolve_triggered_requirements(ca_reqs, csv_path=csv_path)
+            answered_reqs, total_reqs = ExamplesManager._resolve_triggered_requirements(
+                ca_reqs,
+                yaml_path=yaml_path,
+                framework_ref=framework_ref or framework_name or framework_id,
+            )
 
         item_exists = bool(perimeter_id or ca_obj or ra_obj or entity_id or ea_obj)
         app_created = bool(perimeter_id or asset_id or (ea_obj and entity_id) or item_exists)
@@ -798,7 +925,7 @@ class ExamplesManager:
             "id": app_id,
             "name": app_name,
             "label": label,
-            "csv_path": csv_path,
+            "yaml_path": yaml_path or "",
             "framework_id": framework_id,
             "framework_name": framework_name,
             "framework_ref": framework_ref,
@@ -875,7 +1002,7 @@ class ExamplesManager:
 
         status_list = []
         known_names = set()
-        for app in EXAMPLE_APPLICATIONS:
+        for app in self.get_example_applications():
             app_name = app["name"]
             known_names.add(app_name)
             perimeter_id = perimeter_dict.get_id_from_name(app_name)
@@ -966,7 +1093,6 @@ class ExamplesManager:
                 app_id=app["id"],
                 app_name=app_name,
                 label=app["label"],
-                csv_path=app["csv_path"],
                 perimeter_id=perimeter_id,
                 asset_id=asset_id,
                 ca_obj=ca_obj,
@@ -987,6 +1113,7 @@ class ExamplesManager:
                 framework_id=fw_id,
                 framework_name=fw_name,
                 framework_ref=fw_ref,
+                yaml_path=app.get("yaml_path", ""),
             ))
 
         # Discover custom applications created in the example folder
@@ -1101,7 +1228,6 @@ class ExamplesManager:
                     app_id=f"custom_{app_name.lower().replace(' ', '_')}",
                     app_name=app_name,
                     label=f"{app_name} (Custom Audit Demo)",
-                    csv_path="-",
                     perimeter_id=perimeter_id,
                     asset_id=asset_id,
                     ca_obj=ca_obj,
@@ -1122,6 +1248,7 @@ class ExamplesManager:
                     framework_id=fw_id,
                     framework_name=fw_name,
                     framework_ref=fw_ref,
+                    yaml_path="-",
                 ))
 
         return status_list
@@ -1139,7 +1266,7 @@ class ExamplesManager:
         3. Create Asset (`App-Name`) and link to folder/owner.
         4. Create Compliance Assessment bound to target framework.
         5. Assign requirements to perimeter owner and start assignment.
-        6. Import questionnaire answers from CSV using csv_import.
+        6. Import questionnaire answers from YAML answers profile using answers_import.
         7. Create Risk Assessment and generate all Risk Scenarios.
         8. Create Applied Controls with calculated priorities.
         9. Update Asset CIA Criticality security objectives.
@@ -1151,17 +1278,14 @@ class ExamplesManager:
         Returns:
             Summary dict with created IDs and status.
         """
-        app_spec = next(
-            (a for a in EXAMPLE_APPLICATIONS if a["id"] == app_id_or_name or a["name"] == app_id_or_name),
-            None,
-        )
+        app_spec = self.find_example_application(app_id_or_name)
         if not app_spec:
             raise ValueError(f"Unknown example application: {app_id_or_name}")
 
         app_name = app_spec["name"]
-        csv_path = app_spec["csv_path"]
+        answers_path = app_spec.get("yaml_path")
 
-        utils.log(f"Starting simulation creation for {app_name} from {csv_path}...", level=logging.INFO)
+        utils.log(f"Starting simulation creation for {app_name} from {answers_path}...", level=logging.INFO)
 
         data = self._init_data()
         folder_id = self.get_or_create_folder()
@@ -1171,7 +1295,8 @@ class ExamplesManager:
         framework = self.find_target_framework(target_fw_spec)
 
         if not framework:
-            raise RuntimeError(f"No suitable framework found in CISO Assistant for {app_name}.")
+            fw_label = f"'{target_fw_spec}'" if target_fw_spec else "default framework"
+            raise RuntimeError(f"Framework {fw_label} not found in CISO Assistant for {app_name}. Please verify the framework is installed in CISO Assistant.")
 
         framework_id = framework.get_id()
         framework_name = framework.get_name()
@@ -1332,16 +1457,16 @@ class ExamplesManager:
             compliance_dict.requirement_assignments,
         )
 
-        # Step 5: Import questionnaire answers from CSV
-        if not Path(csv_path).exists():
-            raise FileNotFoundError(f"CSV answers file not found: {csv_path}")
+        # Step 5: Import questionnaire answers
+        if not Path(answers_path).exists():
+            raise FileNotFoundError(f"Answers file not found: {answers_path}")
 
-        csv_summary = csv_import.import_compliance_answers(
-            csv_path,
+        import_summary = answers_import.import_compliance_answers(
+            answers_path,
             ca_id,
             compliance_dict.requirement_assessments,
         )
-        utils.log(f"Imported {csv_summary['updated']} answers from {csv_path} into assessment {ca_name}")
+        utils.log(f"Imported {import_summary['updated']} answers from {answers_path} into assessment {ca_name}")
 
         # Reload after importing answers
         compliance_dict.requirement_assessments.reload()
@@ -1352,7 +1477,7 @@ class ExamplesManager:
         # Step 7: Create Risk Assessment & evaluate Risk Scenarios
         from tests.test_application_scenarios import ApplicationRiskSimulator
         simulator = ApplicationRiskSimulator(str(framework_yaml_path))
-        sim_results = simulator.evaluate_application(csv_path)
+        sim_results = simulator.evaluate_application(answers_path)
 
         risk_assessment_dict: RiskAssessmentDict = data["risk_assessment_dict"]
         risk_scenario_dict: RiskScenarioDict = data["risk_scenario_dict"]
@@ -1502,7 +1627,7 @@ class ExamplesManager:
             "compliance_assessment_id": ca_id,
             "compliance_assessment_name": ca_name,
             "risk_assessment_id": ra_id,
-            "answers_updated": csv_summary["updated"],
+            "answers_updated": import_summary["updated"],
             "scenarios_created": scenarios_created,
             "existing_controls_linked": link_res.get("existing_controls", 0),
             "planned_controls_linked": link_res.get("planned_controls", 0),
@@ -1566,7 +1691,8 @@ class ExamplesManager:
         framework = self.find_target_framework(framework_ref_or_name)
 
         if not framework:
-            raise RuntimeError(f"No suitable framework found in CISO Assistant for {app_name}.")
+            fw_label = f"'{framework_ref_or_name}'" if framework_ref_or_name else "default framework"
+            raise RuntimeError(f"Framework {fw_label} not found in CISO Assistant for {app_name}. Please verify the framework is installed in CISO Assistant.")
 
         framework_id = framework.get_id()
         framework_name = framework.get_name()
@@ -1733,37 +1859,34 @@ class ExamplesManager:
     def generate_controls_and_risks_for_application(
         self,
         app_id_or_name: str,
-        csv_path: str | None = None,
+        yaml_path: str | None = None,
     ) -> dict[str, Any]:
         """Generate applied controls and dynamic risk scenarios for an application.
 
         Can evaluate from either:
         1. Live requirement assessment answers already submitted in CISO Assistant UI.
-        2. A CSV answers file or example profile (e.g. 'app_secure_core', 'App-Secure-Core').
+        2. A YAML answers file or example profile (e.g. 'app_secure_core', 'App-Secure-Core').
 
         Steps:
         1. Resolve application perimeter, asset, and compliance assessment.
-        2. If csv_path provided, import answers into the compliance assessment.
+        2. If yaml_path provided, import answers into the compliance assessment.
         3. Validate that at least one requirement is answered (raise ValueError if none).
         4. Create missing applied controls and link them to the application asset.
         5. Update asset CIA criticality.
         6. Create or resolve risk assessment with target risk matrix.
-        7. Evaluate dynamic risk scenarios using ApplicationRiskSimulator (from CSV or live UI answers).
+        7. Evaluate dynamic risk scenarios using ApplicationRiskSimulator (from YAML or live UI answers).
         8. Create in-scope risk scenarios and delete out-of-scope scenarios.
         9. Synchronize control links (existing active vs. planned to_do) on risk scenarios.
 
         Args:
             app_id_or_name: Application ID or Name (e.g. 'App-Audit-Demo' or 'app_secure_core').
-            csv_path: Optional path to CSV answers file, or example application ID/name to use its CSV.
+            yaml_path: Optional path to YAML answers file, or example application ID/name to use its YAML.
 
         Returns:
             Dict summary of generated controls, risk assessment, and scenarios.
         """
         app_name = (app_id_or_name or "").strip()
-        app_spec = next(
-            (a for a in EXAMPLE_APPLICATIONS if a["id"] == app_name or a["name"] == app_name),
-            None,
-        )
+        app_spec = self.find_example_application(app_name)
         if app_spec:
             app_name = app_spec["name"]
 
@@ -1808,31 +1931,31 @@ class ExamplesManager:
         framework_yaml_path = self.resolve_framework_yaml_path(target_fw_ident)
         framework_file = self.resolve_framework_file(target_fw_ident, data=data)
 
-        # Resolve CSV path if provided
-        resolved_csv_path = None
-        if csv_path:
-            target_csv = Path(csv_path)
-            if target_csv.exists():
-                resolved_csv_path = str(target_csv)
+        # Resolve answers path if provided
+        answers_source = yaml_path
+        resolved_answers_path = None
+        if answers_source:
+            target_file = Path(answers_source)
+            if target_file.exists():
+                resolved_answers_path = str(target_file)
             else:
-                ex_profile = next(
-                    (a for a in EXAMPLE_APPLICATIONS if a["id"] == csv_path or a["name"] == csv_path),
-                    None,
-                )
-                if ex_profile and Path(ex_profile["csv_path"]).exists():
-                    resolved_csv_path = ex_profile["csv_path"]
-                else:
-                    raise FileNotFoundError(f"Specified answers file or profile not found: {csv_path}")
+                ex_profile = self.find_example_application(answers_source)
+                if ex_profile:
+                    candidate = ex_profile.get("yaml_path")
+                    if candidate and Path(candidate).exists():
+                        resolved_answers_path = candidate
+                if not resolved_answers_path:
+                    raise FileNotFoundError(f"Specified answers file or profile not found: {answers_source}")
 
         answers_updated = 0
-        if resolved_csv_path:
-            utils.log(f"Importing compliance answers from '{resolved_csv_path}' into {ca_name}...", level=logging.INFO)
-            csv_summary = csv_import.import_compliance_answers(
-                resolved_csv_path,
+        if resolved_answers_path:
+            utils.log(f"Importing compliance answers from '{resolved_answers_path}' into {ca_name}...", level=logging.INFO)
+            import_summary = answers_import.import_compliance_answers(
+                resolved_answers_path,
                 ca_id,
                 compliance_dict.requirement_assessments,
             )
-            answers_updated = csv_summary.get("updated", 0)
+            answers_updated = import_summary.get("updated", 0)
             compliance_dict.requirement_assessments.reload()
 
         # Check that we have answered requirements
@@ -1889,8 +2012,8 @@ class ExamplesManager:
             if ra.get_compliance_assessment_id() == ca_id
         ]
 
-        if resolved_csv_path:
-            sim_results = simulator.evaluate_application(resolved_csv_path)
+        if resolved_answers_path:
+            sim_results = simulator.evaluate_application(resolved_answers_path)
         else:
             sim_results = simulator.evaluate_application(app_ras)
 
@@ -2058,10 +2181,7 @@ class ExamplesManager:
         Returns:
             Dict summary of findings assessment ID, name, and count of findings.
         """
-        app_spec = next(
-            (a for a in EXAMPLE_APPLICATIONS if a["id"] == app_id_or_name or a["name"] == app_id_or_name),
-            None,
-        )
+        app_spec = self.find_example_application(app_id_or_name)
         app_name = app_spec["name"] if app_spec else app_id_or_name
 
         data = self._init_data()
@@ -2151,10 +2271,7 @@ class ExamplesManager:
         Returns:
             Dict summary of linked controls and scenarios.
         """
-        app_spec = next(
-            (a for a in EXAMPLE_APPLICATIONS if a["id"] == app_id_or_name or a["name"] == app_id_or_name),
-            None,
-        )
+        app_spec = self.find_example_application(app_id_or_name)
         app_name = app_spec["name"] if app_spec else app_id_or_name
         data = self._init_data(force_reload=True)
 
@@ -2232,11 +2349,11 @@ class ExamplesManager:
         ]
 
         # Purge any out-of-scope scenarios from previous runs
-        csv_path = app_spec.get("csv_path") if app_spec else None
+        answers_path = app_spec.get("yaml_path") if app_spec else None
         from tests.test_application_scenarios import ApplicationRiskSimulator
         simulator = ApplicationRiskSimulator(str(framework_yaml_path))
-        if csv_path:
-            sim_results = simulator.evaluate_application(csv_path)
+        if answers_path:
+            sim_results = simulator.evaluate_application(answers_path)
         else:
             sim_results = simulator.evaluate_application(app_ras)
         in_scope_scenarios = sim_results.get("scenarios", {})
@@ -2386,7 +2503,7 @@ class ExamplesManager:
     def link_all_controls_to_risk_scenarios(self) -> list[dict[str, Any]]:
         """Link existing and planned controls across all example applications."""
         results = []
-        for app in EXAMPLE_APPLICATIONS:
+        for app in self.get_example_applications():
             try:
                 res = self.link_controls_for_application(app["id"])
                 results.append(res)
@@ -2411,10 +2528,7 @@ class ExamplesManager:
         Returns:
             Summary dict of deleted resources.
         """
-        app_spec = next(
-            (a for a in EXAMPLE_APPLICATIONS if a["id"] == app_id_or_name or a["name"] == app_id_or_name),
-            None,
-        )
+        app_spec = self.find_example_application(app_id_or_name)
         app_name = app_spec["name"] if app_spec else app_id_or_name
         data = self._init_data(force_reload=True)
 
@@ -2475,10 +2589,17 @@ class ExamplesManager:
             if user_email:
                 u_id = user_dict.get_id_from_email(user_email)
                 if u_id:
-                    if user_dict.delete_user_by_id(u_id):
-                        deleted["users_deleted"] += 1
+                    if not (hasattr(user_dict, "is_protected_user") and user_dict.is_protected_user(user_id=u_id) is True):
+                        if user_dict.delete_user_by_id(u_id):
+                            deleted["users_deleted"] += 1
             elif rep_user_ids:
                 for r_uid in rep_user_ids:
+                    if hasattr(user_dict, "is_protected_user") and user_dict.is_protected_user(user_id=r_uid) is True:
+                        continue
+                    if hasattr(entity_rep_dict, "get_entity_ids_for_user"):
+                        other_entities = [eid for eid in entity_rep_dict.get_entity_ids_for_user(r_uid) if eid != entity_id]
+                        if other_entities:
+                            continue
                     if user_dict.delete_user_by_id(r_uid):
                         deleted["users_deleted"] += 1
 
@@ -2540,19 +2661,22 @@ class ExamplesManager:
         return deleted
 
     def create_all_examples(self) -> list[dict[str, Any]]:
-        """Create all 4 example applications in CISO Assistant."""
+        """Create all example applications in CISO Assistant."""
         results = []
-        for app in EXAMPLE_APPLICATIONS:
+        for app in self.get_example_applications():
             res = self.create_example_application(app["id"])
             results.append(res)
         return results
 
     def remove_all_examples(self) -> list[dict[str, Any]]:
-        """Remove all example applications from CISO Assistant."""
+        """Remove all example applications that currently exist in CISO Assistant."""
         results = []
-        for app in EXAMPLE_APPLICATIONS:
-            res = self.remove_example_application(app["id"])
-            results.append(res)
+        status_list = self.get_status()
+        existing_ids = {s["id"] for s in status_list if s.get("exists")}
+        for app in self.get_example_applications():
+            if app["id"] in existing_ids:
+                res = self.remove_example_application(app["id"])
+                results.append(res)
         return results
 
     def create_database_dump(

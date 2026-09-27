@@ -1,0 +1,408 @@
+application:
+  order: 12
+  id: "vendor_marketing_widget"
+  name: "Vendor-Marketing-Widget"
+  label: "Vendor-Marketing-Widget (Tier 4 Public / Low Sensitivity)"
+  description: "Tier 4 Public / Tier 4 Availability + Non-critical widget -> Minimal Impact & Low Risk"
+  classification: "Public"
+  hosting: "SaaS"
+  compliance_target: "Mixed / Low Impact"
+  expected_risk: "Low (Capped at 1 or 2)"
+  framework_ref: "vendor-due-diligence"
+  framework_name: "Vendor Due Diligence (VDD) - simple"
+  framework_yaml: "YML/vendor-due-diligence.yaml"
+  user:
+    email: "maya.marketing@example-widgetcorp.com"
+    first_name: "Maya"
+    last_name: "Marketing"
+  tprm:
+    criticality: 1
+    maturity: 3
+    trust: 3
+    conclusion: "ok"
+answers:
+- requirement: PROF.00
+  question: What is the primary service delivery model provided by the vendor?
+  answer: Lightweight Website Widget / Public Integration
+  result: compliant
+  observation: 'Service model: Lightweight Website Widget / Public Integration'
+- requirement: PROF.00
+  question: Does the vendor service incorporate or integrate Artificial Intelligence
+    (Generative AI, LLMs, or ML)?
+  answer: No - Does not use Artificial Intelligence
+  result: compliant
+  observation: 'AI usage: No - Does not use Artificial Intelligence'
+- requirement: PROF.00
+  question: Does the vendor rely on third-party sub-processors or subcontractors to
+    process data or deliver the service?
+  answer: No - Direct self-contained service without sub-processors
+  result: compliant
+  observation: 'Sub-processor usage: No - Direct self-contained service without sub-processors'
+- requirement: PROF.00
+  question: Does the vendor develop custom code, maintain an active SDLC, or build
+    application components for your organization?
+  answer: No - Standard off-the-shelf service without custom software development
+  result: compliant
+  observation: 'Software development: No - Standard off-the-shelf service without
+    custom software development'
+- requirement: PROF.01
+  question: What is the highest data sensitivity level handled or confidentiality
+    tier of this vendor?
+  answer: Tier 4 / Public - Low Criticality
+  result: compliant
+  observation: Public website visitor telemetry and anonymous cookie IDs
+- requirement: PROF.02
+  question: What is the maximum tolerable downtime (MTD) or required availability
+    tier for this vendor service?
+  answer: Tier 4 / Low - Non-critical (MTD > 72 hours, batch / non-urgent)
+  result: compliant
+  observation: Marketing website chat widget; non-critical to business operations
+- requirement: GOV.01
+  question: 'Is the following requirement implemented and verified: The organization
+    is certified ISO 27001 or SOC 2.'
+  answer: 'No'
+  result: non_compliant
+  observation: Small boutique vendor without ISO 27001 or SOC 2 certifications
+- requirement: GOV.02
+  question: 'Is the following requirement implemented and verified: A person is designated
+    as responsible for cybersecurity.'
+  answer: 'Yes'
+  result: compliant
+  observation: Lead web developer designated as security focal point
+- requirement: GOV.03
+  question: 'Is the following requirement implemented and verified: A documented,
+    maintained, and enforced cybersecurity policy is in place.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Verified baseline for public marketing widget: A documented, maintained,
+    and enforced cybersecurity policy '
+- requirement: GOV.04
+  question: 'Is the following requirement implemented and verified: A cyber risk analysis
+    and management process is in place.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Verified baseline for public marketing widget: A cyber risk analysis
+    and management process is in place.'
+- requirement: GOV.05
+  question: 'Is the following requirement implemented and verified: Staff are aware
+    of and trained in cybersecurity matters.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Verified baseline for public marketing widget: Staff are aware of
+    and trained in cybersecurity matters.'
+- requirement: GOV.07
+  question: 'Is the following requirement implemented and verified: The organization
+    is compliant with GDPR.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Verified baseline for public marketing widget: The organization is
+    compliant with GDPR.'
+- requirement: GOV.08
+  question: 'Is the following requirement implemented and verified: The organisation
+    is covered by a cyber insurance.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Verified baseline for public marketing widget: The organisation is
+    covered by a cyber insurance.'
+- requirement: IAM.01
+  question: 'Is the following requirement implemented and verified: Accesses are controlled
+    and regularly reviewed.'
+  answer: 'Yes'
+  result: compliant
+  observation: Access granted on need-to-know basis
+- requirement: IAM.02
+  question: 'Is the following requirement implemented and verified: MFA is enabled
+    for sensitive operations.'
+  answer: 'Yes'
+  result: compliant
+  observation: MFA required on vendor dashboard and admin logins
+- requirement: IAM.05
+  question: 'Is the following requirement implemented and verified: A periodic review
+    of access rights is conducted.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Verified baseline for public marketing widget: A periodic review of
+    access rights is conducted.'
+- requirement: INF.01
+  question: 'Is the following requirement implemented and verified: Physical security
+    of premises and datacenters is managed (access control, monitoring, etc.).'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Verified baseline for public marketing widget: Physical security of
+    premises and datacenters is managed (ac'
+- requirement: INF.02
+  question: Are automated DDoS mitigation and network traffic filtering capabilities
+    deployed to safeguard service availability?
+  answer: 'Yes'
+  result: compliant
+  observation: Cloudflare free tier DDoS mitigation enabled
+- requirement: INF.02
+  question: Is a Web Application Firewall (WAF) deployed in active blocking mode to
+    protect web endpoints against application disruption?
+  answer: 'No'
+  result: non_compliant
+  observation: No dedicated enterprise WAF deployed
+- requirement: INF.03
+  question: 'Is the following requirement implemented and verified: Anti-malware protection
+    is deployed across all workloads (endpoints, emails, cloud, etc.).'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Verified baseline for public marketing widget: Anti-malware protection
+    is deployed across all workloads (en'
+- requirement: INF.04
+  question: 'Is the following requirement implemented and verified: Logs are collected
+    and analyzed for incident detection.'
+  answer: 'Yes'
+  result: compliant
+  observation: Application access logs retained for 30 days
+- requirement: INF.06
+  question: 'Is the following requirement implemented and verified: The organization
+    enforces formal remediation SLAs for discovered vulnerabilities based on severity
+    (e.g., Critical within 14 days, High within 30 days).'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Verified baseline for public marketing widget: The organization enforces
+    formal remediation SLAs for discov'
+- requirement: INC.01
+  question: 'Is the following requirement implemented and verified: An incident response
+    process (IRP) is in place.'
+  answer: 'Yes'
+  result: compliant
+  observation: Basic incident response and notification contact defined
+- requirement: INC.02
+  question: 'Is the following requirement implemented and verified: Clients are notified
+    in case of an incident affecting their data.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Verified baseline for public marketing widget: Clients are notified
+    in case of an incident affecting their '
+- requirement: BAK.01
+  question: 'Is the following requirement implemented and verified: Backups are implemented.'
+  answer: 'Yes'
+  result: compliant
+  observation: Nightly automated snapshots taken by cloud provider
+- requirement: BAK.02
+  question: 'Is the following requirement implemented and verified: Backups are performed
+    at a defined frequency.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Verified baseline for public marketing widget: Backups are performed
+    at a defined frequency.'
+- requirement: BAK.03
+  question: 'Is the following requirement implemented and verified: Backups are protected
+    against unauthorized access.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Verified baseline for public marketing widget: Backups are protected
+    against unauthorized access.'
+- requirement: BAK.04
+  question: 'Is the following requirement implemented and verified: Backup restorations
+    are regularly tested.'
+  answer: 'No'
+  result: non_compliant
+  observation: Restores verified ad hoc only during infrastructure updates
+- requirement: BAK.05
+  question: Are Recovery Time Objectives (RTO) and Recovery Point Objectives (RPO)
+    formally documented and communicated to clients?
+  answer: 'Yes'
+  result: compliant
+  observation: 'Verified baseline for public marketing widget: RTO and RPO of essential
+    functions are identified and commun'
+- requirement: BAK.05
+  question: Does the vendor commit to a maximum RTO of 24 hours or less and RPO of
+    4 hours or less for critical services?
+  answer: 'Yes'
+  result: compliant
+  observation: 'Verified baseline for public marketing widget: RTO and RPO of essential
+    functions are identified and commun'
+- requirement: BAK.06
+  question: Are formal Business Continuity Plans (BCP) and Disaster Recovery Plans
+    (DRP) defined, documented, and approved?
+  answer: 'No'
+  result: non_compliant
+  observation: No formal BCP/DRP documentation maintained
+- requirement: BAK.06
+  question: Are disaster recovery failover exercises and scenario simulations conducted
+    and validated at least annually?
+  answer: 'No'
+  result: non_compliant
+  observation: No disaster recovery failover simulations performed
+- requirement: DATA.02
+  question: 'Is the following requirement implemented and verified: Data portability
+    is provided upon client request.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Verified baseline for public marketing widget: Data portability is
+    provided upon client request.'
+- requirement: DATA.03
+  question: 'Is the following requirement implemented and verified: Customer data
+    are clearly separated between tenants (multi-tenant isolation).'
+  answer: 'Yes'
+  result: compliant
+  observation: Multi-tenant application with separate client accounts and API tokens
+- requirement: DATA.04
+  question: 'Is the following requirement implemented and verified: The vendor documents
+    and contractually guarantees the geographic regions and legal jurisdictions where
+    customer primary data, replicas, and backups are hosted and processed.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Verified baseline for public marketing widget: The vendor documents
+    and contractually guarantees the geogra'
+- requirement: APP.01
+  question: 'Is the following requirement implemented and verified: The application
+    is compatible with SSO (Single Sign-On).'
+  answer: 'No'
+  result: not_applicable
+  observation: Standard email/password login with MFA
+- requirement: APP.02
+  question: 'Is the following requirement implemented and verified: MFA can be enabled
+    locally.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Verified baseline for public marketing widget: MFA can be enabled
+    locally.'
+- requirement: APP.03
+  question: 'Is the following requirement implemented and verified: Data are encrypted
+    at rest.'
+  answer: 'Yes'
+  result: compliant
+  observation: Cloud provider managed disk encryption enabled
+- requirement: APP.04
+  question: 'Is the following requirement implemented and verified: Communications
+    are encrypted in transit.'
+  answer: 'Yes'
+  result: compliant
+  observation: HTTPS/TLS enforced for all CDN and widget assets
+- requirement: APP.05
+  question: 'Is the following requirement implemented and verified: A role-based access
+    control (RBAC) system is implemented in the application.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Verified baseline for public marketing widget: A role-based access
+    control (RBAC) system is implemented in '
+- requirement: APP.06
+  question: 'Is the following requirement implemented and verified: An audit log ensures
+    traceability of operations.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Verified baseline for public marketing widget: An audit log ensures
+    traceability of operations.'
+- requirement: APP.08
+  question: 'Is the following requirement implemented and verified: Password strength
+    and complexity rules are enforced for users.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Verified baseline for public marketing widget: Password strength and
+    complexity rules are enforced for user'
+- requirement: APP.09
+  question: 'Is the following requirement implemented and verified: User and administrative
+    sessions automatically terminate or require re-authentication after a configurable
+    period of inactivity.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Verified baseline for public marketing widget: User and administrative
+    sessions automatically terminate or '
+- requirement: APP.10
+  question: 'Is the following requirement implemented and verified: All public and
+    integration APIs implement strict rate limiting, schema validation, and protection
+    against automated abuse (OWASP API Top 10).'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Verified baseline for public marketing widget: All public and integration
+    APIs implement strict rate limiti'
+- requirement: EXIT.01
+  question: Does the vendor contractually commit to a minimum monthly service availability
+    SLA (e.g., 99.9% uptime or higher)?
+  answer: 'No'
+  result: not_applicable
+  observation: Best-effort availability; non-critical widget
+- requirement: EXIT.01
+  question: Does the vendor maintain and publish a real-time public or customer system
+    status page with incident history?
+  answer: 'Yes'
+  result: compliant
+  observation: Uptime monitor status page publicly visible
+- requirement: EXIT.01
+  question: Are financial remedies or service credits provided if service availability
+    drops below agreed thresholds?
+  answer: 'No'
+  result: not_applicable
+  observation: No financial service credits on standard tier
+- requirement: EXIT.01
+  question: Are historical availability reports and SLA performance metrics provided
+    to the customer on at least a quarterly basis?
+  answer: 'No'
+  result: not_applicable
+  observation: Self-service status page available
+- requirement: EXIT.02
+  question: 'Is the following requirement implemented and verified: Upon contract
+    termination, the vendor provides comprehensive data export capabilities in non-proprietary,
+    documented formats along with technical transition assistance.'
+  answer: 'Yes'
+  result: compliant
+  observation: CSV export of chat logs available in administrative panel
+- requirement: EXIT.03
+  question: Within 30 to 60 days of contract termination, the vendor provides formal
+    written certification that all customer data has been permanently deleted from
+    production and backup systems.
+  answer: 'Yes'
+  result: compliant
+  observation: Account and data deleted upon subscription cancellation
+expected_evaluation:
+  impact_level: 1
+  confidentiality_impact: 1
+  availability_impact: 1
+  scenario_count: 5
+  excluded_scenarios:
+    - Software supply chain compromise and tampering
+    - Sub-processor data leakage and supply chain failure
+    - Intellectual property and data leakage via vendor AI features
+    - Delayed incident notification and regulatory liability
+    - Exploitation of undiscovered vulnerabilities due to lack of penetration testing
+
+expected_risk_scenarios:
+  - scenario: Vendor data compromise and unauthorized disclosure
+    likelihood_requirement: DATA.03
+    likelihood_score: 100
+    scaled_likelihood: 1
+    scaled_impact: 1
+    matrix_risk_id: 0
+    risk_level: 1
+    control_priority: 4
+
+  - scenario: Prolonged vendor service outage and downtime
+    likelihood_requirement: BAK.06
+    likelihood_score: 0
+    scaled_likelihood: 4
+    scaled_impact: 1
+    matrix_risk_id: 1
+    risk_level: 2
+    control_priority: 3
+
+  - scenario: Unauthorized access via compromised vendor credentials
+    likelihood_requirement: IAM.02
+    likelihood_score: 100
+    scaled_likelihood: 1
+    scaled_impact: 1
+    matrix_risk_id: 0
+    risk_level: 1
+    control_priority: 4
+
+  - scenario: Vendor lock-in and unrecoverable data loss on contract exit
+    likelihood_requirement: EXIT.02
+    likelihood_score: 100
+    scaled_likelihood: 1
+    scaled_impact: 1
+    matrix_risk_id: 0
+    risk_level: 1
+    control_priority: 4
+
+  - scenario: Vendor governance and compliance assurance failure
+    likelihood_requirement: GOV.01
+    likelihood_score: 0
+    scaled_likelihood: 4
+    scaled_impact: 1
+    matrix_risk_id: 1
+    risk_level: 2
+    control_priority: 3
+

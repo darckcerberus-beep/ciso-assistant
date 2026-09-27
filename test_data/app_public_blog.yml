@@ -9,13 +9,27 @@
 # ==============================================================================
 
 application:
+  order: 4
   id: "app_public_blog"
   name: "App-Public-Blog"
-  description: "Public marketing website and blog hosted on managed cloud CMS"
+  label: "App-Public-Blog (Public / Low Sensitivity)"
+  description: "Low classification (Public) + Mixed compliance -> Low Impact & Low Risk"
   classification: "Public"
   hosting: "SaaS"
+  compliance_target: "Mixed / Low Impact"
+  expected_risk: "Low (Capped at 1)"
   framework_ref: "mls"
   framework_name: "Multi-level DPP"
+  framework_yaml: "YML/newDPP.yml"
+  user:
+    email: "paula.public@example-blog.com"
+    first_name: "Paula"
+    last_name: "Public"
+  tprm:
+    criticality: 1
+    maturity: 3
+    trust: 3
+    conclusion: "ok"
 
 answers:
   # ----------------------------------------------------------------------------
@@ -132,6 +146,18 @@ expected_controls:
 # Only 2 in-scope scenarios evaluated for Public SaaS blog.
 # Impact Level: 1 (Public / Minor). Out-of-scope scenarios are NOT created.
 # ==============================================================================
+expected_evaluation:
+  impact_level: 1
+  confidentiality_impact: 1
+  availability_impact: 1
+  scenario_count: 2
+  excluded_scenarios:
+    - "Exposure of unencrypted data in transit"
+    - "Exposure of unencrypted data at rest"
+    - "Disclosure of production data in non-production environments"
+    - "Third-party data leakage"
+    - "Excessive retention of sensitive data"
+
 expected_risk_scenarios:
   - scenario: "SaaS provider data leakage"
     likelihood_requirement: "saas_contract_compliance"

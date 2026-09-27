@@ -6,7 +6,10 @@ Handles API operations for:
 - Actors (representatives/owners assignable to audits and controls).
 """
 
+import logging
 from .. import utils
+
+LOGGER = logging.getLogger(__name__)
 
 
 class User:
@@ -26,6 +29,25 @@ class User:
 
     def get_id(self):
         return self.json_object.get('id', '')
+
+    def is_superuser(self) -> bool:
+        """Check if user is a superuser."""
+        return bool(self.json_object.get('is_superuser', False))
+
+    def is_third_party(self) -> bool:
+        """Check if user is marked as a third-party account."""
+        return bool(self.json_object.get('is_third_party', False))
+
+    def is_admin(self) -> bool:
+        """Check if user has administrative privileges (superuser or administrator group)."""
+        if self.is_superuser():
+            return True
+        user_groups = self.json_object.get('user_groups', [])
+        for group in user_groups:
+            name = group.get('str', '') if isinstance(group, dict) else str(group)
+            if 'admin' in name.lower():
+                return True
+        return False
 
 
 class UserDict:
@@ -92,21 +114,54 @@ class UserDict:
             print(f"Failed to create user '{email}': {result}")
             return None
 
-    def delete_user(self, email):
-        # Check if the user exists
+    def get_user_by_id(self, user_id):
+        """Retrieve User instance by UUID."""
         for u in self.users:
-            if u.get_email() == email:
+            if u.get_id() == user_id:
+                return u
+        return None
+
+    def get_user_by_email(self, email):
+        """Retrieve User instance by email address."""
+        norm_email = (email or "").strip().lower()
+        for u in self.users:
+            if u.get_email().strip().lower() == norm_email:
+                return u
+        return None
+
+    def is_protected_user(self, user_id=None, email=None) -> bool:
+        """Check if a user is an administrator, superuser, or internal (non-third-party) account that must be protected."""
+        user = None
+        if user_id:
+            user = self.get_user_by_id(user_id)
+        elif email:
+            user = self.get_user_by_email(email)
+        if not user:
+            return False
+        return user.is_superuser() or user.is_admin() or not user.is_third_party()
+
+    def delete_user(self, email, allow_admin=False):
+        # Check if the user exists
+        norm_email = (email or "").strip().lower()
+        for u in self.users:
+            if u.get_email().strip().lower() == norm_email:
+                if not allow_admin and self.is_protected_user(email=norm_email) is True:
+                    LOGGER.warning(
+                        "Refusing to delete protected user '%s' (ID: %s).",
+                        u.get_email(),
+                        u.get_id(),
+                    )
+                    return False
                 user_id = u.get_id()
                 result = utils.get_return(f"/api/users/{user_id}/", method="DELETE")
-                print(f"Result: {result}")
-                if result and (not isinstance(result, dict) or not result.get("error")):
-                    print(f"User '{email}' deleted successfully.")
+                if result is True or (isinstance(result, dict) and not result.get("error")):
+                    LOGGER.info("User '%s' deleted successfully.", email)
                     self.reload()
                     return True
                 else:
-                    print(f"Failed to delete user '{email}': {result}")
+                    LOGGER.warning("Failed to delete user '%s': %s", email, result)
                     return False
-        print(f"User '{email}' does not exist.")
+        LOGGER.warning("User '%s' does not exist.", email)
         return False
 
     def upsert_user_from_user_dict(self, user_dict):
@@ -136,10 +191,23 @@ class UserDict:
             return res
         return None
 
-    def delete_user_by_id(self, user_id):
-        """Delete user account by ID."""
+    def delete_user_by_id(self, user_id, allow_admin=False):
+        """Delete user account by ID.
+        
+        Refuses to delete protected users (administrators, superusers, internal users) unless allow_admin is True.
+        """
+        if not allow_admin and self.is_protected_user(user_id=user_id) is True:
+            user = self.get_user_by_id(user_id)
+            user_label = user.get_email() if user else user_id
+            LOGGER.warning(
+                "Refusing to delete protected user '%s' (ID: %s).",
+                user_label,
+                user_id,
+            )
+            return False
+
         res = utils.get_return(f"/api/users/{user_id}/", method="DELETE")
-        if res:
+        if res is True or (isinstance(res, dict) and not res.get("error")):
             self.reload()
             return True
         return False

@@ -20,6 +20,21 @@ criticality_mapping = _framework.get("criticality_mapping", {
     "availability": {}
 })
 
+# Merge mappings from other framework files in YML directory
+_yml_dir = Path(__file__).parent.parent.parent / "YML"
+if _yml_dir.exists():
+    for _cat_path in _yml_dir.glob("*.y*ml"):
+        if _cat_path == _framework_path:
+            continue
+        try:
+            _cat_fw = utils.load_yaml_file(str(_cat_path))
+            _cm = _cat_fw.get("criticality_mapping", {}) if isinstance(_cat_fw, dict) else {}
+            for _k in ("confidentiality", "integrity", "availability"):
+                if _k in _cm and isinstance(_cm[_k], dict):
+                    criticality_mapping.setdefault(_k, {}).update(_cm[_k])
+        except Exception:
+            pass
+
 
 class Domain:
     """Represents an organizational domain/folder."""

@@ -9,13 +9,27 @@
 # ==============================================================================
 
 application:
+  order: 8
   id: "app_ai_analytics_workbench"
   name: "App-AI-Analytics-Workbench"
-  description: "Cloud-hosted GenAI analytics workbench with uncontracted external LLM API transfer"
+  label: "App-AI-Analytics-Workbench (Confidential / Cloud GenAI)"
+  description: "Confidential classification + SaaS hosting + External LLM transfer without contract + Unmasked prompt logs"
   classification: "Confidential"
   hosting: "SaaS"
+  compliance_target: "Mixed / GenAI Risks"
+  expected_risk: "High (External LLM Transfer & Prompt Data Leakage)"
   framework_ref: "mls"
   framework_name: "Multi-level DPP"
+  framework_yaml: "YML/newDPP.yml"
+  user:
+    email: "arthur.ai@example-aiworkbench.com"
+    first_name: "Arthur"
+    last_name: "AI"
+  tprm:
+    criticality: 3
+    maturity: 2
+    trust: 2
+    conclusion: "warning"
 
 answers:
   # ----------------------------------------------------------------------------
@@ -242,6 +256,13 @@ expected_controls:
 # Impact Level: 3 (Confidential).
 # Uncontracted LLM transfers and non-prod prompt dumps trigger High Risk (Level 4) -> Urgent Priority 1.
 # ==============================================================================
+expected_evaluation:
+  impact_level: 3
+  confidentiality_impact: 3
+  availability_impact: 3
+  scenario_count: 7
+  excluded_scenarios: []
+
 expected_risk_scenarios:
   - scenario: "Exposure of unencrypted data in transit"
     likelihood_requirement: "data_in_transit"

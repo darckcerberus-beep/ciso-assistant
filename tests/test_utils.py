@@ -48,6 +48,33 @@ class TestUtilsLogging(unittest.TestCase):
         self.assertIn("This is an error message", cm.output[1])
 
 
+class TestUtilsApiErrors(unittest.TestCase):
+    """Test suite for API error handling in get_return."""
+
+    @patch("requests.request")
+    def test_get_return_forbidden_403(self, mock_request):
+        """Verify 403 Forbidden returns error dictionary without raising HTTPError."""
+        mock_response = mock_request.return_value
+        mock_response.status_code = 403
+        mock_response.text = '{"error": "attemptToDeleteOnlyAdminAccountError"}'
+        mock_response.json.return_value = {"error": "attemptToDeleteOnlyAdminAccountError"}
+
+        result = utils.get_return("/api/users/admin-uuid/", method="DELETE")
+        self.assertEqual(result, {"error": 403, "details": {"error": "attemptToDeleteOnlyAdminAccountError"}})
+
+    @patch("requests.request")
+    def test_get_return_unauthorized_401(self, mock_request):
+        """Verify 401 Unauthorized returns error dictionary without raising HTTPError."""
+        mock_response = mock_request.return_value
+        mock_response.status_code = 401
+        mock_response.text = '{"error": "Invalid token"}'
+        mock_response.json.return_value = {"error": "Invalid token"}
+
+        result = utils.get_return("/api/users/", method="GET")
+        self.assertEqual(result, {"error": 401, "details": {"error": "Invalid token"}})
+
+
 if __name__ == "__main__":
     unittest.main()
+
 
