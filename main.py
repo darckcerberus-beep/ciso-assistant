@@ -6,6 +6,11 @@ simulate questionnaire responses, evaluate dynamic risk scenarios, synchronize c
 and inspect deployment status across the live instance.
 
 Usage:
+    Web UI:
+        python3 main.py --web
+        python3 main.py --web --web-port 8080 --web-open
+        python3 web_app.py
+
     Interactive menu:
         python3 main.py
 
@@ -914,10 +919,11 @@ def interactive_menu(manager: ExamplesManager):
         print(" 7) Remove a Specific Application")
         print(" 8) Run Offline Simulation (Local Preview without API)")
         print(" 9) Backup & Restore Management (Dumps, Snapshots, Restores, Listing)")
+        print(" 10) Launch Web UI & REST API Dashboard (http://127.0.0.1:5000)")
         print(" 0) Exit")
         print("=" * 80)
 
-        choice = input("Enter your choice [0-9]: ").strip()
+        choice = input("Enter your choice [0-10]: ").strip()
 
         if choice == "1":
             show_status(manager, wait_seconds=2.0)
@@ -1026,6 +1032,21 @@ def interactive_menu(manager: ExamplesManager):
                 list_backups_ui(manager)
             else:
                 backup_ui(manager, backup_type="snapshot")
+        elif choice == "10":
+            import webbrowser
+            from web import create_app
+            url = "http://127.0.0.1:5000"
+            print(f"\nLaunching CISO Assistant Web UI at {url} ...")
+            print("Press Ctrl+C in this terminal to stop the Web UI and return to the menu.\n")
+            try:
+                webbrowser.open(url)
+            except Exception:
+                pass
+            try:
+                w_app = create_app()
+                w_app.run(host="127.0.0.1", port=5000, debug=False)
+            except KeyboardInterrupt:
+                print("\nWeb UI server stopped.")
         elif choice in ("0", "q", "exit"):
             print("\nGoodbye!")
             break
@@ -1135,10 +1156,51 @@ def main():
         action="store_true",
         help="Auto-confirm removal prompts.",
     )
+    parser.add_argument(
+        "--web",
+        action="store_true",
+        help="Launch the modern CISO Assistant Web UI and REST API dashboard.",
+    )
+    parser.add_argument(
+        "--web-host",
+        default="127.0.0.1",
+        metavar="HOST",
+        help="Host interface to bind the Web UI to (default: 127.0.0.1).",
+    )
+    parser.add_argument(
+        "--web-port",
+        type=int,
+        default=5000,
+        metavar="PORT",
+        help="Port to listen on for the Web UI (default: 5000).",
+    )
+    parser.add_argument(
+        "--web-open",
+        action="store_true",
+        help="Automatically open the Web UI in the default browser upon launch.",
+    )
     args = parser.parse_args()
 
     if args.log_level:
         utils.set_log_level(args.log_level)
+
+    if args.web:
+        from web import create_app
+        import webbrowser
+        url = f"http://{args.web_host}:{args.web_port}"
+        print("\n" + "=" * 80)
+        print("           CISO ASSISTANT - WEB UI & ORCHESTRATION CONSOLE")
+        print(f" Listening on: {url}")
+        print(" Press Ctrl+C to terminate the web server")
+        print("=" * 80 + "\n")
+        if args.web_open:
+            try:
+                webbrowser.open(url)
+            except Exception:
+                pass
+        web_app = create_app()
+        web_app.run(host=args.web_host, port=args.web_port, debug=False)
+        return
 
     if args.pipeline:
         run_pipeline()

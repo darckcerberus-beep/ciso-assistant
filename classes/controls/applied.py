@@ -60,7 +60,7 @@ class AppliedControl:
 
     def get_reference_control_id(self):
         """Return the reference control UUID."""
-        c = self.json_object.get('control')
+        c = self.json_object.get('reference_control') or self.json_object.get('control')
         if isinstance(c, dict):
             return c.get('id', '')
         return c or ''

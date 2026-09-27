@@ -1858,8 +1858,9 @@ class ExamplesManager:
 
     def generate_controls_and_risks_for_application(
         self,
-        app_id_or_name: str,
+        app_id_or_name: str | None = None,
         yaml_path: str | None = None,
+        app_name: str | None = None,
     ) -> dict[str, Any]:
         """Generate applied controls and dynamic risk scenarios for an application.
 
@@ -1881,14 +1882,17 @@ class ExamplesManager:
         Args:
             app_id_or_name: Application ID or Name (e.g. 'App-Audit-Demo' or 'app_secure_core').
             yaml_path: Optional path to YAML answers file, or example application ID/name to use its YAML.
+            app_name: Alias for app_id_or_name for keyword argument compatibility.
 
         Returns:
             Dict summary of generated controls, risk assessment, and scenarios.
         """
-        app_name = (app_id_or_name or "").strip()
-        app_spec = self.find_example_application(app_name)
+        resolved_name = (app_name or app_id_or_name or "").strip()
+        app_spec = self.find_example_application(resolved_name)
         if app_spec:
             app_name = app_spec["name"]
+        else:
+            app_name = resolved_name
 
         utils.log(f"Starting controls & risk generation for {app_name}...", level=logging.INFO)
 
@@ -2406,15 +2410,32 @@ class ExamplesManager:
             existing = [cid for cid in ra_ctrl_ids if cid in app_controls and app_controls[cid].get_status() == "active"]
             planned = [cid for cid in ra_ctrl_ids if cid in app_controls and app_controls[cid].get_status() != "active"]
 
-            # Also check if any controls match by name if not in ra_ctrl_ids
-            if not existing and not planned:
-                for cid, c in app_controls.items():
-                    rc_id = c.get_reference_control_id()
-                    if rc_id and rc_id in matching_ra.get_associated_reference_control_ids():
-                        if c.get_status() == "active":
-                            existing.append(cid)
-                        else:
-                            planned.append(cid)
+            # Also check if any controls match by reference control from requirement or scenario definition
+            target_rc_ids = set(matching_ra.get_associated_reference_control_ids())
+            ref_dict = data.get("reference_control_dict")
+            if ref_dict:
+                for sc_rc_urn in sc_def.get("reference_controls", []):
+                    cand = ref_dict.get_id_from_urn(sc_rc_urn) if hasattr(ref_dict, "get_id_from_urn") else None
+                    if not cand and ":" in sc_rc_urn and hasattr(ref_dict, "get_id_by_ref_id"):
+                        cand = ref_dict.get_id_by_ref_id(sc_rc_urn.rsplit(":", 1)[-1])
+                    if not cand and hasattr(ref_dict, "controls"):
+                        ctrl_list = ref_dict.controls.values() if isinstance(ref_dict.controls, dict) else ref_dict.controls
+                        for rc_obj in ctrl_list:
+                            if getattr(rc_obj, "get_urn", lambda: "")() == sc_rc_urn or getattr(rc_obj, "get_ref_id", lambda: "")() == sc_rc_urn.rsplit(":", 1)[-1]:
+                                cand = rc_obj.get_id()
+                                break
+                    if cand:
+                        target_rc_ids.add(cand)
+
+            for cid, c in app_controls.items():
+                if cid in existing or cid in planned:
+                    continue
+                rc_id = c.get_reference_control_id()
+                if rc_id and rc_id in target_rc_ids:
+                    if c.get_status() == "active":
+                        existing.append(cid)
+                    else:
+                        planned.append(cid)
 
             patch_payload = {
                 "existing_applied_controls": existing,

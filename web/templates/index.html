@@ -1,0 +1,1795 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CISO Assistant | Orchestration & Example Applications Manager</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            },
+            surface: {
+              800: '#1e293b',
+              850: '#172033',
+              900: '#0f172a',
+              950: '#080d1a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    .terminal-font { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
+</head>
+<body class="bg-surface-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-brand-500 selection:text-white">
+
+  <!-- ========================================================================= -->
+  <!-- Top Navigation Header                                                     -->
+  <!-- ========================================================================= -->
+  <header class="bg-surface-900 border-b border-slate-800 sticky top-0 z-40 shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-cyan-500 flex items-center justify-center shadow-md shadow-brand-500/20">
+          <i data-lucide="shield-check" class="w-6 h-6 text-white"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="text-lg font-bold text-white tracking-tight">CISO Assistant</h1>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-400 font-semibold border border-brand-500/30">Orchestrator v2.0</span>
+          </div>
+          <p class="text-xs text-slate-400">Example Applications & Dynamic GRC Automation</p>
+        </div>
+      </div>
+
+      <!-- Live Connection & Instance Status -->
+      <div class="flex items-center space-x-4">
+        <div id="connection-badge" class="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700/60 text-xs">
+          <span id="conn-indicator" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span id="conn-text" class="text-slate-300 font-medium">Connecting...</span>
+          <span id="conn-url" class="text-slate-500 hidden sm:inline border-l border-slate-700 pl-2 font-mono text-[11px]">{{ base_url }}</span>
+        </div>
+
+        <!-- Terminal Console Toggle -->
+        <button onclick="toggleTerminal()" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-medium transition shadow-sm">
+          <i data-lucide="terminal" class="w-4 h-4 text-cyan-400"></i>
+          <span>Terminal</span>
+          <span id="active-task-badge" class="hidden px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-400 text-[10px] font-bold animate-pulse">Running</span>
+        </button>
+
+        <!-- Refresh Button -->
+        <button onclick="refreshAll(true)" id="refresh-btn" class="p-2 rounded-lg bg-surface-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" title="Refresh Live Data">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-slate-800/80 flex space-x-1 overflow-x-auto">
+      <button onclick="switchTab('dashboard')" id="tab-btn-dashboard" class="tab-btn flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 border-brand-500 text-brand-400 whitespace-nowrap transition">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+        <span>Dashboard & Inventory</span>
+      </button>
+      <button onclick="switchTab('audit-demo')" id="tab-btn-audit-demo" class="tab-btn flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap transition">
+        <i data-lucide="user-check" class="w-4 h-4"></i>
+        <span>Audit Demo Intake</span>
+      </button>
+      <button onclick="switchTab('generate-risks')" id="tab-btn-generate-risks" class="tab-btn flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap transition">
+        <i data-lucide="zap" class="w-4 h-4"></i>
+        <span>Risks & Controls Generator</span>
+      </button>
+      <button onclick="switchTab('offline-sim')" id="tab-btn-offline-sim" class="tab-btn flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap transition">
+        <i data-lucide="flask-conical" class="w-4 h-4"></i>
+        <span>Offline Simulation Studio</span>
+      </button>
+      <button onclick="switchTab('backups')" id="tab-btn-backups" class="tab-btn flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap transition">
+        <i data-lucide="database" class="w-4 h-4"></i>
+        <span>Disaster Recovery & Backups</span>
+      </button>
+      <button onclick="switchTab('tools')" id="tab-btn-tools" class="tab-btn flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap transition">
+        <i data-lucide="wrench" class="w-4 h-4"></i>
+        <span>Pipeline & Integrations</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- Main Content Area                                                         -->
+  <!-- ========================================================================= -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- --------------------------------------------------------------------- -->
+    <!-- TAB 1: DASHBOARD & APPLICATION INVENTORY                              -->
+    <!-- --------------------------------------------------------------------- -->
+    <div id="tab-dashboard" class="space-y-6">
+
+      <!-- Executive KPI Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div class="bg-surface-900 border border-slate-800 p-4 rounded-xl shadow-sm hover:border-slate-700 transition">
+          <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
+            <span>Catalog Profiles</span>
+            <i data-lucide="layers" class="w-4 h-4 text-brand-400"></i>
+          </div>
+          <div id="kpi-catalog" class="text-2xl font-bold text-white mt-2">12</div>
+          <p class="text-[11px] text-slate-500 mt-1">8 DPP + 4 VDD Profiles</p>
+        </div>
+
+        <div class="bg-surface-900 border border-slate-800 p-4 rounded-xl shadow-sm hover:border-slate-700 transition">
+          <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
+            <span>Deployed Apps</span>
+            <i data-lucide="server" class="w-4 h-4 text-emerald-400"></i>
+          </div>
+          <div id="kpi-deployed" class="text-2xl font-bold text-emerald-400 mt-2">0</div>
+          <p class="text-[11px] text-slate-500 mt-1">In CISO Assistant Folder</p>
+        </div>
+
+        <div class="bg-surface-900 border border-slate-800 p-4 rounded-xl shadow-sm hover:border-slate-700 transition">
+          <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
+            <span>Answered Audits</span>
+            <i data-lucide="file-check-2" class="w-4 h-4 text-cyan-400"></i>
+          </div>
+          <div id="kpi-audits" class="text-2xl font-bold text-cyan-400 mt-2">0</div>
+          <p class="text-[11px] text-slate-500 mt-1">Completed Questionnaires</p>
+        </div>
+
+        <div class="bg-surface-900 border border-slate-800 p-4 rounded-xl shadow-sm hover:border-slate-700 transition">
+          <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
+            <span>Risk Scenarios</span>
+            <i data-lucide="shield-alert" class="w-4 h-4 text-amber-400"></i>
+          </div>
+          <div id="kpi-risks" class="text-2xl font-bold text-amber-400 mt-2">0</div>
+          <p class="text-[11px] text-slate-500 mt-1">4x4 Matrix Evaluated</p>
+        </div>
+
+        <div class="bg-surface-900 border border-slate-800 p-4 rounded-xl shadow-sm hover:border-slate-700 transition">
+          <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
+            <span>Applied Controls</span>
+            <i data-lucide="sliders" class="w-4 h-4 text-indigo-400"></i>
+          </div>
+          <div id="kpi-controls" class="text-2xl font-bold text-indigo-400 mt-2">0</div>
+          <p class="text-[11px] text-slate-500 mt-1">P1-P4 Dynamic Priority</p>
+        </div>
+
+        <div class="bg-surface-900 border border-slate-800 p-4 rounded-xl shadow-sm hover:border-slate-700 transition">
+          <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
+            <span>Audit Findings</span>
+            <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-400"></i>
+          </div>
+          <div id="kpi-findings" class="text-2xl font-bold text-rose-400 mt-2">0</div>
+          <p class="text-[11px] text-slate-500 mt-1">Compliance Gaps Identified</p>
+        </div>
+      </div>
+
+      <!-- Action Toolbar & Filters -->
+      <div class="bg-surface-900 border border-slate-800 p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap items-center gap-2.5">
+          <button onclick="confirmProvisionAll()" class="px-3.5 py-2 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-medium text-xs flex items-center space-x-2 transition shadow-md shadow-brand-600/20">
+            <i data-lucide="rocket" class="w-4 h-4"></i>
+            <span>Provision ALL Examples</span>
+          </button>
+          <button onclick="triggerLinkControls('all')" class="px-3.5 py-2 rounded-lg bg-surface-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium text-xs flex items-center space-x-2 transition">
+            <i data-lucide="link" class="w-4 h-4 text-cyan-400"></i>
+            <span>Link ALL Controls</span>
+          </button>
+          <button onclick="confirmRemoveAll()" class="px-3.5 py-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-medium text-xs flex items-center space-x-2 transition">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+            <span>Purge ALL Examples</span>
+          </button>
+        </div>
+
+        <!-- Search & Filter Controls -->
+        <div class="flex items-center space-x-3">
+          <div class="relative w-full sm:w-64">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+            <input type="text" id="app-search-input" oninput="filterApplications()" placeholder="Filter applications..." class="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg bg-surface-800 border border-slate-700 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 transition">
+          </div>
+          <select id="framework-filter" onchange="filterApplications()" class="text-xs rounded-lg bg-surface-800 border border-slate-700 text-slate-200 px-3 py-1.5 focus:outline-none focus:border-brand-500">
+            <option value="all">All Frameworks</option>
+            <option value="mls">Multi-level DPP (mls)</option>
+            <option value="vendor-due-diligence">Vendor Due Diligence (VDD)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Application Inventory Table -->
+      <div class="bg-surface-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
+        <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+          <div>
+            <h2 class="text-sm font-bold text-white">Application Inventory & Deployment Grid</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Live state of example applications in target folder: <span class="text-brand-400 font-mono">{{ target_folder }}</span></p>
+          </div>
+          <span id="table-count-badge" class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 font-medium border border-slate-700">12 Profiles</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300 divide-y divide-slate-800">
+            <thead class="bg-surface-950/60 text-slate-400 uppercase tracking-wider font-semibold text-[11px]">
+              <tr>
+                <th class="py-3 px-4">#</th>
+                <th class="py-3 px-4">Application</th>
+                <th class="py-3 px-4">Framework</th>
+                <th class="py-3 px-4">Lifecycle Status</th>
+                <th class="py-3 px-4">Audit Progress</th>
+                <th class="py-3 px-4">Risk Scenarios</th>
+                <th class="py-3 px-4">Controls (Active / Planned)</th>
+                <th class="py-3 px-4">TPRM / User</th>
+                <th class="py-3 px-4">Findings</th>
+                <th class="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="applications-table-body" class="divide-y divide-slate-800/80">
+              <tr>
+                <td colspan="10" class="py-8 text-center text-slate-500">
+                  <div class="flex flex-col items-center justify-center space-y-2">
+                    <i data-lucide="loader" class="w-6 h-6 animate-spin text-brand-500"></i>
+                    <span>Loading application status from CISO Assistant...</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- --------------------------------------------------------------------- -->
+    <!-- TAB 2: AUDIT DEMO INTAKE (Workflow 4)                                 -->
+    <!-- --------------------------------------------------------------------- -->
+    <div id="tab-audit-demo" class="hidden space-y-6">
+      <div class="bg-surface-900 border border-slate-800 rounded-xl p-6 shadow-lg max-w-3xl mx-auto">
+        <div class="border-b border-slate-800 pb-4 mb-6">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+              <i data-lucide="user-plus" class="w-5 h-5 text-cyan-400"></i>
+            </div>
+            <div>
+              <h2 class="text-base font-bold text-white">Create Application & Assign Audit to User</h2>
+              <p class="text-xs text-slate-400">Interactive demonstration mode (Feature 4 of main.py)</p>
+            </div>
+          </div>
+          <div class="mt-4 p-3 bg-cyan-500/5 border border-cyan-500/20 rounded-lg text-xs text-cyan-300/90 leading-relaxed">
+            <strong>Intake Demonstration Workflow:</strong> Creates an external entity, perimeter, and asset, assigns the compliance assessment to a user email with <strong>0% completion</strong> (all questions unanswered), ready for live respondent input in the CISO Assistant web portal.
+          </div>
+        </div>
+
+        <form id="audit-demo-form" onsubmit="submitAuditDemo(event)" class="space-y-5">
+          <!-- Application Name -->
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1.5">Application / Entity Name</label>
+            <input type="text" id="audit-app-name" value="App-Audit-Demo" required class="w-full px-3.5 py-2 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 transition">
+            <div class="mt-2 flex items-center space-x-2 text-[11px] text-slate-500">
+              <span>Quick Presets:</span>
+              <button type="button" onclick="setAuditDemoPreset('App-Audit-Demo')" class="hover:text-brand-400 underline">App-Audit-Demo</button>
+              <span>•</span>
+              <button type="button" onclick="setAuditDemoPreset('Vendor-Due-Diligence-Demo')" class="hover:text-brand-400 underline">Vendor-Due-Diligence-Demo</button>
+              <span>•</span>
+              <button type="button" onclick="setAuditDemoPreset('FinTech-Core-Banking')" class="hover:text-brand-400 underline">FinTech-Core-Banking</button>
+            </div>
+          </div>
+
+          <!-- User Email -->
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1.5">Respondent User Email</label>
+            <input type="email" id="audit-user-email" placeholder="respondent@example.com" required class="w-full px-3.5 py-2 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 transition">
+            <p class="text-[11px] text-slate-500 mt-1">If this email is already registered, the assessment will be assigned to the existing user.</p>
+          </div>
+
+          <!-- New User Details (Shown if user created) -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-surface-800/50 border border-slate-700/60 rounded-lg">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">First Name (if new user)</label>
+              <input type="text" id="audit-user-first" placeholder="Audit" class="w-full px-3 py-1.5 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Last Name (if new user)</label>
+              <input type="text" id="audit-user-last" placeholder="Respondent" class="w-full px-3 py-1.5 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
+            </div>
+            <div class="sm:col-span-2 flex items-center space-x-2 pt-1">
+              <input type="checkbox" id="audit-user-tprm" checked class="w-4 h-4 rounded text-brand-500 bg-surface-800 border-slate-700 focus:ring-0">
+              <label for="audit-user-tprm" class="text-xs text-slate-300">Designate as Third-Party Respondent & Entity Representative</label>
+            </div>
+          </div>
+
+          <!-- Framework Selection -->
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1.5">Compliance Framework</label>
+            <select id="audit-framework-select" class="w-full px-3.5 py-2 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white focus:outline-none focus:border-brand-500">
+              <option value="mls">Multi-level DPP (mls) - Installed</option>
+              <option value="vendor-due-diligence">Vendor Due Diligence (VDD) - simple - Installed</option>
+            </select>
+          </div>
+
+          <!-- Submit Button -->
+          <div class="pt-3 flex items-center justify-end space-x-3">
+            <button type="submit" id="audit-submit-btn" class="px-5 py-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-medium text-xs flex items-center space-x-2 transition shadow-md shadow-brand-600/20">
+              <i data-lucide="check" class="w-4 h-4"></i>
+              <span>Create Application & Assign Audit</span>
+            </button>
+          </div>
+        </form>
+
+        <!-- Result Card -->
+        <div id="audit-result-card" class="hidden mt-6 pt-6 border-t border-slate-800 space-y-4">
+          <div class="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-2">
+            <div class="flex items-center space-x-2 text-emerald-400 font-bold text-sm">
+              <i data-lucide="check-circle" class="w-5 h-5"></i>
+              <span>Audit Demonstration Successfully Created!</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-xs text-slate-300 pt-2 font-mono">
+              <div>App Name: <span id="res-app-name" class="text-white font-semibold">-</span></div>
+              <div>Assigned User: <span id="res-user-email" class="text-white font-semibold">-</span></div>
+              <div>Perimeter ID: <span id="res-perimeter-id" class="text-white">-</span></div>
+              <div>Assessment: <span id="res-assessment-name" class="text-white">-</span></div>
+            </div>
+            <div class="pt-3 flex items-center space-x-3">
+              <a id="res-open-link" href="#" target="_blank" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center space-x-2 transition">
+                <i data-lucide="external-link" class="w-4 h-4"></i>
+                <span>Open in CISO Assistant UI</span>
+              </a>
+              <button onclick="switchTab('dashboard')" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 transition">
+                Return to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- --------------------------------------------------------------------- -->
+    <!-- TAB 3: DYNAMIC RISK & CONTROLS GENERATOR (Workflow 5)                 -->
+    <!-- --------------------------------------------------------------------- -->
+    <div id="tab-generate-risks" class="hidden space-y-6">
+      <div class="bg-surface-900 border border-slate-800 rounded-xl p-6 shadow-lg max-w-3xl mx-auto">
+        <div class="border-b border-slate-800 pb-4 mb-6">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+              <i data-lucide="zap" class="w-5 h-5 text-amber-400"></i>
+            </div>
+            <div>
+              <h2 class="text-base font-bold text-white">Generate Applied Controls & Risk Scenarios</h2>
+              <p class="text-xs text-slate-400">Automated Risk Derivation & Priority Engine (Feature 5 of main.py)</p>
+            </div>
+          </div>
+          <div class="mt-4 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg text-xs text-amber-300/90 leading-relaxed">
+            <strong>Dynamic Risk Modeling Workflow:</strong> Evaluates compliance questionnaire scores, maps data classification to impact ratings, calculates inverse likelihood, generates active risk scenarios on the <strong>4x4 Risk Matrix</strong>, and provisions applied controls with dynamic <strong>P1–P4 priorities</strong>.
+          </div>
+        </div>
+
+        <form id="generate-risks-form" onsubmit="submitGenerateRisks(event)" class="space-y-5">
+          <!-- Target Application -->
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1.5">Target Application</label>
+            <select id="gen-app-select" required class="w-full px-3.5 py-2 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white focus:outline-none focus:border-brand-500">
+              <option value="">Select an application...</option>
+            </select>
+          </div>
+
+          <!-- Answers Source -->
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-2">Questionnaire Answers Source</label>
+            <div class="space-y-2.5">
+              <label class="flex items-start space-x-3 p-3 rounded-lg bg-surface-800/60 border border-slate-700/80 cursor-pointer hover:border-slate-600 transition">
+                <input type="radio" name="answers_source" value="live" checked onchange="toggleAnswersSource()" class="mt-0.5 text-brand-500 bg-surface-800 border-slate-700 focus:ring-0">
+                <div>
+                  <div class="text-xs font-semibold text-white">Live Answers submitted in CISO Assistant UI</div>
+                  <div class="text-[11px] text-slate-400">Reads answers directly from the questionnaire answered by the respondent in the web app.</div>
+                </div>
+              </label>
+
+              <label class="flex items-start space-x-3 p-3 rounded-lg bg-surface-800/60 border border-slate-700/80 cursor-pointer hover:border-slate-600 transition">
+                <input type="radio" name="answers_source" value="profile" onchange="toggleAnswersSource()" class="mt-0.5 text-brand-500 bg-surface-800 border-slate-700 focus:ring-0">
+                <div>
+                  <div class="text-xs font-semibold text-white">Example Profile Answers (Simulated Responses)</div>
+                  <div class="text-[11px] text-slate-400">Loads standardized responses from one of the 12 pre-configured test profiles.</div>
+                </div>
+              </label>
+
+              <label class="flex items-start space-x-3 p-3 rounded-lg bg-surface-800/60 border border-slate-700/80 cursor-pointer hover:border-slate-600 transition">
+                <input type="radio" name="answers_source" value="custom" onchange="toggleAnswersSource()" class="mt-0.5 text-brand-500 bg-surface-800 border-slate-700 focus:ring-0">
+                <div>
+                  <div class="text-xs font-semibold text-white">Custom YAML Answers File / Upload</div>
+                  <div class="text-[11px] text-slate-400">Specify or paste a custom YAML answer file with questionnaire responses.</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Profile Selector (Shown when profile chosen) -->
+          <div id="gen-profile-container" class="hidden">
+            <label class="block text-xs font-medium text-slate-300 mb-1.5">Select Profile</label>
+            <select id="gen-profile-select" class="w-full px-3.5 py-2 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white focus:outline-none focus:border-brand-500">
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+
+          <!-- Custom YAML Upload / Content (Shown when custom chosen) -->
+          <div id="gen-custom-container" class="hidden space-y-2">
+            <label class="block text-xs font-medium text-slate-300">Custom YAML Content</label>
+            <textarea id="gen-custom-yaml" rows="6" placeholder="Paste YAML application and answers structure here..." class="w-full p-3 text-xs font-mono rounded-lg bg-surface-800 border border-slate-700 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500"></textarea>
+          </div>
+
+          <!-- Submit Button -->
+          <div class="pt-3 flex items-center justify-end">
+            <button type="submit" id="gen-submit-btn" class="px-5 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-medium text-xs flex items-center space-x-2 transition shadow-md shadow-amber-600/20">
+              <i data-lucide="play" class="w-4 h-4"></i>
+              <span>Evaluate Risks & Generate Controls</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- --------------------------------------------------------------------- -->
+    <!-- TAB 4: OFFLINE SIMULATION STUDIO (Workflow 8)                         -->
+    <!-- --------------------------------------------------------------------- -->
+    <div id="tab-offline-sim" class="hidden space-y-6">
+      <div class="bg-surface-900 border border-slate-800 p-6 rounded-xl shadow-lg">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5 mb-6">
+          <div>
+            <div class="flex items-center space-x-2">
+              <div class="w-8 h-8 rounded-lg bg-brand-500/10 border border-brand-500/20 flex items-center justify-center">
+                <i data-lucide="flask-conical" class="w-4 h-4 text-brand-400"></i>
+              </div>
+              <h2 class="text-base font-bold text-white">Offline Risk Matrix & Calculation Studio</h2>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Pre-flight preview of inverse likelihood, data impact, and control priorities (Zero API calls)</p>
+          </div>
+
+          <!-- Profile Filter Dropdown -->
+          <div class="flex items-center space-x-3">
+            <label class="text-xs text-slate-400 font-medium whitespace-nowrap">Select Application:</label>
+            <select id="sim-app-select" onchange="runOfflineSimulation()" class="px-3 py-1.5 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white focus:outline-none focus:border-brand-500">
+              <option value="">All Applications (Consolidated)</option>
+            </select>
+            <button onclick="runOfflineSimulation()" class="p-1.5 rounded-lg bg-surface-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" title="Re-run Simulation">
+              <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 4x4 Risk Matrix Visualization -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <!-- 4x4 Grid Heatmap -->
+          <div class="lg:col-span-6 bg-surface-950 p-5 rounded-xl border border-slate-800">
+            <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3 flex items-center justify-between">
+              <span>Standard 4x4 Risk Matrix</span>
+              <span class="text-[11px] text-slate-500 lowercase font-normal">Likelihood vs Impact</span>
+            </h3>
+
+            <!-- 4x4 Matrix Table -->
+            <div class="relative pt-4 pl-6">
+              <!-- Y-axis Label -->
+              <div class="absolute -left-2 top-1/2 -rotate-90 text-[10px] tracking-wider uppercase font-bold text-slate-500">Likelihood</div>
+
+              <div class="grid grid-cols-4 gap-1.5 text-center text-xs font-bold">
+                <!-- Row 4 (Likelihood 4 - Critical) -->
+                <div class="p-3 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 flex flex-col justify-center">
+                  <span class="text-[10px] text-amber-400/80 font-normal">Medium</span>
+                  <span id="matrix-cell-4-1" class="text-base font-extrabold mt-0.5">0</span>
+                </div>
+                <div class="p-3 rounded-lg bg-orange-500/20 text-orange-300 border border-orange-500/30 flex flex-col justify-center">
+                  <span class="text-[10px] text-orange-400/80 font-normal">High</span>
+                  <span id="matrix-cell-4-2" class="text-base font-extrabold mt-0.5">0</span>
+                </div>
+                <div class="p-3 rounded-lg bg-rose-500/25 text-rose-300 border border-rose-500/40 flex flex-col justify-center">
+                  <span class="text-[10px] text-rose-400/80 font-normal">Very High</span>
+                  <span id="matrix-cell-4-3" class="text-base font-extrabold mt-0.5">0</span>
+                </div>
+                <div class="p-3 rounded-lg bg-rose-600/30 text-rose-200 border border-rose-500/60 flex flex-col justify-center">
+                  <span class="text-[10px] text-rose-300 font-semibold">Critical</span>
+                  <span id="matrix-cell-4-4" class="text-base font-extrabold mt-0.5">0</span>
+                </div>
+
+                <!-- Row 3 (Likelihood 3 - High) -->
+                <div class="p-3 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/30 flex flex-col justify-center">
+                  <span class="text-[10px] text-blue-400/80 font-normal">Low</span>
+                  <span id="matrix-cell-3-1" class="text-base font-extrabold mt-0.5">0</span>
+                </div>
+                <div class="p-3 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 flex flex-col justify-center">
+                  <span class="text-[10px] text-amber-400/80 font-normal">Medium</span>
+                  <span id="matrix-cell-3-2" class="text-base font-extrabold mt-0.5">0</span>
+                </div>
+                <div class="p-3 rounded-lg bg-orange-500/20 text-orange-300 border border-orange-500/30 flex flex-col justify-center">
+                  <span class="text-[10px] text-orange-400/80 font-normal">High</span>
+                  <span id="matrix-cell-3-3" class="text-base font-extrabold mt-0.5">0</span>
+                </div>
+                <div class="p-3 rounded-lg bg-rose-500/25 text-rose-300 border border-rose-500/40 flex flex-col justify-center">
+                  <span class="text-[10px] text-rose-400/80 font-normal">Very High</span>
+                  <span id="matrix-cell-3-4" class="text-base font-extrabold mt-0.5">0</span>
+                </div>
+
+                <!-- Row 2 (Likelihood 2 - Medium) -->
+                <div class="p-3 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex flex-col justify-center">
+                  <span class="text-[10px] text-emerald-400/80 font-normal">Very Low</span>
+                  <span id="matrix-cell-2-1" class="text-base font-extrabold mt-0.5">0</span>
+                </div>
+                <div class="p-3 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/30 flex flex-col justify-center">
+                  <span class="text-[10px] text-blue-400/80 font-normal">Low</span>
+                  <span id="matrix-cell-2-2" class="text-base font-extrabold mt-0.5">0</span>
+                </div>
+                <div class="p-3 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 flex flex-col justify-center">
+                  <span class="text-[10px] text-amber-400/80 font-normal">Medium</span>
+                  <span id="matrix-cell-2-3" class="text-base font-extrabold mt-0.5">0</span>
+                </div>
+                <div class="p-3 rounded-lg bg-orange-500/20 text-orange-300 border border-orange-500/30 flex flex-col justify-center">
+                  <span class="text-[10px] text-orange-400/80 font-normal">High</span>
+                  <span id="matrix-cell-2-4" class="text-base font-extrabold mt-0.5">0</span>
+                </div>
+
+                <!-- Row 1 (Likelihood 1 - Low) -->
+                <div class="p-3 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex flex-col justify-center">
+                  <span class="text-[10px] text-emerald-400/80 font-normal">Very Low</span>
+                  <span id="matrix-cell-1-1" class="text-base font-extrabold mt-0.5">0</span>
+                </div>
+                <div class="p-3 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex flex-col justify-center">
+                  <span class="text-[10px] text-emerald-400/80 font-normal">Very Low</span>
+                  <span id="matrix-cell-1-2" class="text-base font-extrabold mt-0.5">0</span>
+                </div>
+                <div class="p-3 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/30 flex flex-col justify-center">
+                  <span class="text-[10px] text-blue-400/80 font-normal">Low</span>
+                  <span id="matrix-cell-1-3" class="text-base font-extrabold mt-0.5">0</span>
+                </div>
+                <div class="p-3 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 flex flex-col justify-center">
+                  <span class="text-[10px] text-amber-400/80 font-normal">Medium</span>
+                  <span id="matrix-cell-1-4" class="text-base font-extrabold mt-0.5">0</span>
+                </div>
+              </div>
+
+              <!-- X-axis Label -->
+              <div class="text-center mt-3 text-[10px] tracking-wider uppercase font-bold text-slate-500">Impact (1 = Low to 4 = Critical)</div>
+            </div>
+          </div>
+
+          <!-- Priority Legend & Dynamic Mapping Guide -->
+          <div class="lg:col-span-6 space-y-4">
+            <div class="bg-surface-950 p-5 rounded-xl border border-slate-800">
+              <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">Dynamic Priority Translation Engine</h3>
+              <p class="text-xs text-slate-400 leading-relaxed">
+                Compliance answer scores dictate likelihood via the inverse scale:
+                <code class="text-brand-400 bg-surface-800 px-1 py-0.5 rounded text-[11px]">lh = 4 - floor((score - 1) / 25)</code>.
+                Resulting scenario severities map directly to control remediation priorities:
+              </p>
+
+              <div class="grid grid-cols-2 gap-3 mt-4">
+                <div class="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 flex items-center justify-between">
+                  <div>
+                    <div class="text-xs font-bold text-rose-300">Level 4: Very High</div>
+                    <div class="text-[10px] text-rose-400/80">Immediate threat</div>
+                  </div>
+                  <span class="px-2 py-0.5 rounded text-xs font-black bg-rose-500 text-white">P1 Urgent</span>
+                </div>
+
+                <div class="p-3 rounded-lg bg-orange-500/10 border border-orange-500/30 flex items-center justify-between">
+                  <div>
+                    <div class="text-xs font-bold text-orange-300">Level 3: High</div>
+                    <div class="text-[10px] text-orange-400/80">Significant gap</div>
+                  </div>
+                  <span class="px-2 py-0.5 rounded text-xs font-black bg-orange-500 text-white">P2 High</span>
+                </div>
+
+                <div class="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-between">
+                  <div>
+                    <div class="text-xs font-bold text-amber-300">Level 2: Medium</div>
+                    <div class="text-[10px] text-amber-400/80">Standard gap</div>
+                  </div>
+                  <span class="px-2 py-0.5 rounded text-xs font-black bg-amber-500 text-white">P3 Medium</span>
+                </div>
+
+                <div class="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
+                  <div>
+                    <div class="text-xs font-bold text-emerald-300">Level 1: Low</div>
+                    <div class="text-[10px] text-emerald-400/80">Acceptable residual</div>
+                  </div>
+                  <span class="px-2 py-0.5 rounded text-xs font-black bg-emerald-600 text-white">P4 Low</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Selected Profile Summary -->
+            <div id="sim-profile-summary" class="bg-surface-950 p-5 rounded-xl border border-slate-800 text-xs space-y-2">
+              <div class="text-slate-400 font-semibold uppercase tracking-wider text-[11px]">Active Profile Metrics</div>
+              <div class="text-sm font-bold text-white" id="sim-active-title">All 12 Profiles Consolidated</div>
+              <div class="grid grid-cols-2 gap-2 text-slate-300 pt-1">
+                <div>Confidentiality Impact: <span id="sim-conf-impact" class="text-brand-400 font-mono font-bold">-</span></div>
+                <div>Availability Impact: <span id="sim-avail-impact" class="text-cyan-400 font-mono font-bold">-</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Simulation Scenarios Table -->
+        <div class="mt-6 border-t border-slate-800 pt-6">
+          <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center justify-between">
+            <span>Evaluated Risk Scenarios & Priorities</span>
+            <span id="sim-scenarios-count" class="text-[11px] text-slate-400 font-normal">Showing scenarios</span>
+          </h3>
+
+          <div class="overflow-x-auto rounded-xl border border-slate-800">
+            <table class="w-full text-left text-xs text-slate-300 divide-y divide-slate-800">
+              <thead class="bg-surface-950 text-slate-400 uppercase tracking-wider text-[11px] font-semibold">
+                <tr>
+                  <th class="py-3 px-4">Application</th>
+                  <th class="py-3 px-4">Risk Scenario</th>
+                  <th class="py-3 px-4 text-center">Likelihood</th>
+                  <th class="py-3 px-4 text-center">Impact</th>
+                  <th class="py-3 px-4">Matrix Risk Level</th>
+                  <th class="py-3 px-4 text-right">Remediation Priority</th>
+                </tr>
+              </thead>
+              <tbody id="sim-scenarios-body" class="divide-y divide-slate-800 bg-surface-900">
+                <!-- Dynamically generated rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- --------------------------------------------------------------------- -->
+    <!-- TAB 5: DISASTER RECOVERY & BACKUPS (Workflow 9)                       -->
+    <!-- --------------------------------------------------------------------- -->
+    <div id="tab-backups" class="hidden space-y-6">
+      <div class="bg-surface-900 border border-slate-800 p-6 rounded-xl shadow-lg">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5 mb-6">
+          <div>
+            <div class="flex items-center space-x-2">
+              <div class="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                <i data-lucide="database" class="w-4 h-4 text-indigo-400"></i>
+              </div>
+              <h2 class="text-base font-bold text-white">Disaster Recovery, Backups & Restores</h2>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Dual-tier backups: Server database dumps & portable workspace snapshots with SHA-256 verification</p>
+          </div>
+
+          <!-- Create Backup Actions -->
+          <div class="flex flex-wrap items-center gap-2.5">
+            <button onclick="createBackup('snapshot')" class="px-3.5 py-2 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-medium text-xs flex items-center space-x-2 transition shadow-md shadow-brand-600/20">
+              <i data-lucide="camera" class="w-4 h-4"></i>
+              <span>Create Workspace Snapshot</span>
+            </button>
+            <button onclick="createBackup('dump')" class="px-3.5 py-2 rounded-lg bg-surface-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium text-xs flex items-center space-x-2 transition">
+              <i data-lucide="hard-drive" class="w-4 h-4 text-cyan-400"></i>
+              <span>Full Database Dump</span>
+            </button>
+            <label class="px-3.5 py-2 rounded-lg bg-surface-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium text-xs flex items-center space-x-2 transition cursor-pointer">
+              <i data-lucide="upload" class="w-4 h-4 text-amber-400"></i>
+              <span>Upload Backup</span>
+              <input type="file" onchange="uploadBackup(event)" class="hidden" accept=".json,.dump,.sql">
+            </label>
+          </div>
+        </div>
+
+        <!-- Discovered Backups List -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Discovered Backups</h3>
+            <span id="backups-count-badge" class="text-xs text-slate-400 font-medium">0 Backups</span>
+          </div>
+
+          <div class="overflow-x-auto rounded-xl border border-slate-800">
+            <table class="w-full text-left text-xs text-slate-300 divide-y divide-slate-800">
+              <thead class="bg-surface-950 text-slate-400 uppercase tracking-wider text-[11px] font-semibold">
+                <tr>
+                  <th class="py-3 px-4">#</th>
+                  <th class="py-3 px-4">Filename</th>
+                  <th class="py-3 px-4">Type</th>
+                  <th class="py-3 px-4">Size</th>
+                  <th class="py-3 px-4">Modified (UTC)</th>
+                  <th class="py-3 px-4">SHA-256 Hash</th>
+                  <th class="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="backups-table-body" class="divide-y divide-slate-800 bg-surface-900">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- --------------------------------------------------------------------- -->
+    <!-- TAB 6: TOOLS & INTEGRATIONS (Workflows 10 & 11)                        -->
+    <!-- --------------------------------------------------------------------- -->
+    <div id="tab-tools" class="hidden space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- Full Legacy Orchestration Pipeline -->
+        <div class="bg-surface-900 border border-slate-800 p-6 rounded-xl shadow-lg flex flex-col justify-between">
+          <div>
+            <div class="flex items-center space-x-3 mb-3">
+              <div class="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                <i data-lucide="play-circle" class="w-5 h-5 text-emerald-400"></i>
+              </div>
+              <div>
+                <h3 class="text-sm font-bold text-white">Full Legacy Orchestration Pipeline</h3>
+                <p class="text-xs text-slate-400">Equivalent to: <code class="text-brand-400">python3 main.py --pipeline</code></p>
+              </div>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed mb-4">
+              Executes the end-to-end batch pipeline across all existing perimeters:
+              creates missing assets, generates compliance assessments, assigns requirements to perimeter owners, creates risk assessments, calculates applied controls, updates asset criticality, and creates audit findings.
+            </p>
+          </div>
+          <div class="pt-4 border-t border-slate-800 flex items-center justify-end">
+            <button onclick="runPipeline()" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs flex items-center space-x-2 transition shadow-md shadow-emerald-600/20">
+              <i data-lucide="fast-forward" class="w-4 h-4"></i>
+              <span>Execute Full Pipeline</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- TPRM Organization Model Importer -->
+        <div class="bg-surface-900 border border-slate-800 p-6 rounded-xl shadow-lg flex flex-col justify-between">
+          <div>
+            <div class="flex items-center space-x-3 mb-3">
+              <div class="w-9 h-9 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+                <i data-lucide="network" class="w-5 h-5 text-cyan-400"></i>
+              </div>
+              <div>
+                <h3 class="text-sm font-bold text-white">YAML Organization & TPRM Model Importer</h3>
+                <p class="text-xs text-slate-400">Equivalent to: <code class="text-brand-400">import_entity_assessment_model.py</code></p>
+              </div>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed mb-4">
+              Ingests departmental hierarchies as domains, models applications as external supplier entities, and establishes representative user bindings automatically from structured YAML.
+            </p>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">YAML Model Path</label>
+                <input type="text" id="model-yaml-path" value="YML/sample_entity_assessment_model.yml" class="w-full px-3 py-1.5 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white font-mono focus:outline-none focus:border-brand-500">
+              </div>
+              <div class="flex items-center space-x-2">
+                <input type="checkbox" id="model-create-assessments" class="w-4 h-4 rounded text-brand-500 bg-surface-800 border-slate-700 focus:ring-0">
+                <label for="model-create-assessments" class="text-xs text-slate-300">Also create entity assessments</label>
+              </div>
+            </div>
+          </div>
+          <div class="pt-4 border-t border-slate-800 flex items-center justify-end">
+            <button onclick="runModelImport()" class="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-xs flex items-center space-x-2 transition shadow-md shadow-cyan-600/20">
+              <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+              <span>Import TPRM Model</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Instance Configuration & Diagnostics -->
+        <div class="md:col-span-2 bg-surface-900 border border-slate-800 p-6 rounded-xl shadow-lg">
+          <h3 class="text-sm font-bold text-white mb-4 flex items-center space-x-2">
+            <i data-lucide="cpu" class="w-4 h-4 text-brand-400"></i>
+            <span>Instance Diagnostics & Verified Frameworks</span>
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div class="p-4 bg-surface-950 rounded-lg border border-slate-800 space-y-2 font-mono">
+              <div class="text-slate-400 font-bold uppercase text-[11px]">Connection Details</div>
+              <div>Base URL: <span id="diag-url" class="text-white font-semibold">{{ base_url }}</span></div>
+              <div>Target Folder: <span class="text-brand-400 font-semibold">{{ target_folder }}</span></div>
+              <div>API Status: <span id="diag-status" class="text-emerald-400 font-semibold">Active & Verified</span></div>
+            </div>
+            <div class="p-4 bg-surface-950 rounded-lg border border-slate-800 space-y-2">
+              <div class="text-slate-400 font-bold uppercase text-[11px]">Installed Frameworks</div>
+              <ul id="diag-frameworks" class="space-y-1 text-slate-300">
+                <!-- Dynamically populated -->
+              </ul>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- Real-time Live Console Drawer / Terminal                                  -->
+  <!-- ========================================================================= -->
+  <div id="terminal-drawer" class="fixed bottom-0 left-0 right-0 z-50 bg-surface-950 border-t border-slate-700 shadow-2xl transition-all duration-300 transform translate-y-full flex flex-col h-80">
+    <!-- Terminal Header -->
+    <div class="px-4 py-2 bg-surface-900 border-b border-slate-800 flex items-center justify-between select-none">
+      <div class="flex items-center space-x-2">
+        <i data-lucide="terminal" class="w-4 h-4 text-cyan-400"></i>
+        <span class="text-xs font-bold text-white uppercase tracking-wider">Live Execution Console</span>
+        <span id="term-status-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Idle</span>
+      </div>
+      <div class="flex items-center space-x-2">
+        <label class="flex items-center space-x-1 text-[11px] text-slate-400 cursor-pointer mr-2">
+          <input type="checkbox" id="term-autoscroll" checked class="w-3.5 h-3.5 rounded bg-surface-800 border-slate-700 text-cyan-500 focus:ring-0">
+          <span>Auto-scroll</span>
+        </label>
+        <button onclick="clearTerminal()" class="px-2 py-1 rounded bg-surface-800 hover:bg-slate-700 text-slate-300 text-[11px] transition">Clear</button>
+        <button onclick="downloadTerminalLog()" class="px-2 py-1 rounded bg-surface-800 hover:bg-slate-700 text-slate-300 text-[11px] transition" title="Download Log">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i>
+        </button>
+        <button onclick="toggleTerminalSize()" class="p-1 text-slate-400 hover:text-white transition" title="Maximize/Restore">
+          <i data-lucide="maximize-2" id="term-size-icon" class="w-4 h-4"></i>
+        </button>
+        <button onclick="toggleTerminal(false)" class="p-1 text-slate-400 hover:text-white transition" title="Close">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Terminal Log Stream Output -->
+    <div id="terminal-content" class="flex-1 p-4 overflow-y-auto terminal-font text-xs text-slate-300 space-y-1 bg-surface-950 select-text">
+      <div class="text-slate-600 italic">Ready for commands. Real-time stdout, API logs, and execution traces will stream here.</div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- Modals & Confirmation Dialogs                                             -->
+  <!-- ========================================================================= -->
+
+  <!-- Resource Detail Breakdown Modal -->
+  <div id="detail-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-surface-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 id="modal-title" class="text-base font-bold text-white">Application Resources Breakdown</h3>
+        <button onclick="closeModal('detail-modal')" class="text-slate-400 hover:text-white transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div id="modal-content" class="text-xs space-y-3 font-mono text-slate-300 max-h-[70vh] overflow-y-auto">
+        <!-- Populated via JS -->
+      </div>
+      <div class="pt-3 border-t border-slate-800 flex justify-end">
+        <button onclick="closeModal('detail-modal')" class="px-4 py-2 rounded-lg bg-surface-800 hover:bg-slate-700 text-white text-xs font-medium">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Backup Inspection Modal -->
+  <div id="backup-inspect-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-surface-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 id="backup-modal-title" class="text-base font-bold text-white">Backup Inspection Details</h3>
+        <button onclick="closeModal('backup-inspect-modal')" class="text-slate-400 hover:text-white transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div id="backup-modal-content" class="text-xs space-y-3 text-slate-300 max-h-[60vh] overflow-y-auto">
+        <!-- Populated via JS -->
+      </div>
+      <div class="pt-3 border-t border-slate-800 flex justify-end">
+        <button onclick="closeModal('backup-inspect-modal')" class="px-4 py-2 rounded-lg bg-surface-800 hover:bg-slate-700 text-white text-xs font-medium">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generic Confirmation Modal -->
+  <div id="confirm-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-surface-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center space-x-3 text-rose-400">
+        <div class="w-10 h-10 rounded-full bg-rose-500/10 flex items-center justify-center">
+          <i data-lucide="alert-octagon" class="w-5 h-5"></i>
+        </div>
+        <h3 id="confirm-title" class="text-base font-bold text-white">Confirm Action</h3>
+      </div>
+      <p id="confirm-message" class="text-xs text-slate-300 leading-relaxed"></p>
+      <div class="pt-4 border-t border-slate-800 flex items-center justify-end space-x-3">
+        <button onclick="closeModal('confirm-modal')" class="px-4 py-2 rounded-lg bg-surface-800 hover:bg-slate-700 text-slate-300 text-xs font-medium">Cancel</button>
+        <button id="confirm-action-btn" class="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition shadow-lg shadow-rose-600/20">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed top-20 right-6 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <!-- ========================================================================= -->
+  <!-- JavaScript Frontend Controller                                            -->
+  <!-- ========================================================================= -->
+  <script>
+    // Global State
+    let APP_STATE = {
+      connected: false,
+      applications: [],
+      catalog: [],
+      installedFrameworks: [],
+      summary: {},
+      activeTaskId: null,
+      activeEventSource: null,
+      terminalOpen: false,
+      terminalMaximized: false,
+      allLogs: []
+    };
+
+    // Initialize UI on load
+    document.addEventListener("DOMContentLoaded", () => {
+      lucide.createIcons();
+      refreshAll();
+      loadOfflineSimCatalog();
+    });
+
+    // -----------------------------------------------------------------------
+    // Navigation & Tab Switching
+    // -----------------------------------------------------------------------
+    function switchTab(tabId) {
+      document.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.classList.remove("border-brand-500", "text-brand-400");
+        btn.classList.add("border-transparent", "text-slate-400");
+      });
+      const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+      if (activeBtn) {
+        activeBtn.classList.remove("border-transparent", "text-slate-400");
+        activeBtn.classList.add("border-brand-500", "text-brand-400");
+      }
+
+      ['dashboard', 'audit-demo', 'generate-risks', 'offline-sim', 'backups', 'tools'].forEach(id => {
+        const el = document.getElementById(`tab-${id}`);
+        if (el) el.classList.toggle("hidden", id !== tabId);
+      });
+
+      if (tabId === 'backups') loadBackups();
+      if (tabId === 'offline-sim') runOfflineSimulation();
+      lucide.createIcons();
+    }
+
+    // -----------------------------------------------------------------------
+    // Data Loading & API Calls
+    // -----------------------------------------------------------------------
+    async function refreshAll(notify = false) {
+      const btn = document.getElementById("refresh-btn");
+      if (btn) btn.classList.add("animate-spin");
+
+      try {
+        const res = await fetch("/api/status");
+        const data = await res.json();
+        APP_STATE.connected = data.connected;
+        APP_STATE.applications = data.applications || [];
+        APP_STATE.catalog = data.catalog || [];
+        APP_STATE.installedFrameworks = data.installed_frameworks || [];
+        APP_STATE.summary = data.summary || {};
+
+        updateConnectionUI(data);
+        renderKpis(data.summary);
+        renderApplicationsTable(data.applications);
+        populateDropdowns();
+
+        if (notify) showToast("Dashboard refreshed successfully", "success");
+      } catch (err) {
+        console.error("Failed to load status:", err);
+        updateConnectionUI({ connected: false, message: err.toString() });
+        if (notify) showToast("Connection failed to backend API", "error");
+      } finally {
+        if (btn) setTimeout(() => btn.classList.remove("animate-spin"), 500);
+      }
+    }
+
+    function updateConnectionUI(data) {
+      const indicator = document.getElementById("conn-indicator");
+      const text = document.getElementById("conn-text");
+      const diagStatus = document.getElementById("diag-status");
+
+      if (data.connected) {
+        indicator.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
+        text.innerText = "Connected";
+        text.className = "text-emerald-400 font-medium";
+        if (diagStatus) diagStatus.innerText = "Active & Verified (OK)";
+      } else {
+        indicator.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
+        text.innerText = "Disconnected";
+        text.className = "text-rose-400 font-medium";
+        if (diagStatus) diagStatus.innerText = "Offline: " + (data.message || "Failed");
+      }
+    }
+
+    function renderKpis(sum = {}) {
+      document.getElementById("kpi-catalog").innerText = sum.total_catalog ?? 12;
+      document.getElementById("kpi-deployed").innerText = sum.deployed ?? 0;
+      document.getElementById("kpi-audits").innerText = sum.completed_audits ?? 0;
+      document.getElementById("kpi-risks").innerText = sum.total_risks ?? 0;
+      document.getElementById("kpi-controls").innerText = sum.total_controls ?? 0;
+      document.getElementById("kpi-findings").innerText = sum.total_findings ?? 0;
+    }
+
+    function renderApplicationsTable(apps = []) {
+      const tbody = document.getElementById("applications-table-body");
+      tbody.innerHTML = "";
+
+      if (!apps || apps.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="py-8 text-center text-slate-500">No applications found. Use "Provision ALL Examples" or catalog to create some.</td></tr>`;
+        return;
+      }
+
+      apps.forEach((app, idx) => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-surface-800/40 transition";
+        tr.dataset.appName = app.name.toLowerCase();
+        tr.dataset.frameworkRef = (app.framework_ref || "").toLowerCase();
+
+        // Lifecycle Badge
+        let statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-800 text-slate-400 border border-slate-700">NOT CREATED</span>`;
+        if (app.exists) {
+          if (app.lifecycle_status === "DEPLOYED" || app.audit_answered) {
+            statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">DEPLOYED</span>`;
+          } else {
+            statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">IN PROGRESS</span>`;
+          }
+        }
+
+        // Audit Progress
+        let auditProgress = `<span class="text-slate-500">-</span>`;
+        if (app.exists) {
+          const tot = app.total_requirements_count || 0;
+          const ans = app.answered_requirements_count || 0;
+          const pct = tot > 0 ? Math.round((ans / tot) * 100) : (app.audit_answered ? 100 : 0);
+          const barColor = pct === 100 ? "bg-emerald-500" : (pct > 0 ? "bg-amber-500" : "bg-slate-700");
+          auditProgress = `
+            <div class="w-32 space-y-1">
+              <div class="flex justify-between text-[11px]">
+                <span class="text-slate-300 font-semibold">${ans}/${tot}</span>
+                <span class="text-slate-400">${pct}%</span>
+              </div>
+              <div class="w-full bg-surface-950 rounded-full h-1.5 overflow-hidden">
+                <div class="${barColor} h-1.5 rounded-full" style="width: ${pct}%"></div>
+              </div>
+            </div>
+          `;
+        }
+
+        // Risks Badge
+        let risksCol = `<span class="text-slate-500">-</span>`;
+        if (app.exists) {
+          const scCount = app.risk_scenarios_count || 0;
+          risksCol = scCount > 0 
+            ? `<span class="px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 font-bold border border-amber-500/30">${scCount} Scenarios</span>`
+            : `<span class="text-slate-500">0</span>`;
+        }
+
+        // Controls
+        let ctrlCol = `<span class="text-slate-500">-</span>`;
+        if (app.exists) {
+          const active = app.existing_controls_linked || 0;
+          const planned = app.planned_controls_linked || 0;
+          const totCtrl = app.applied_controls_count || (active + planned);
+          ctrlCol = `
+            <div class="flex items-center space-x-1.5">
+              <span class="font-bold text-white">${totCtrl}</span>
+              <span class="text-[10px] text-slate-500">(${active} active / ${planned} planned)</span>
+            </div>
+          `;
+        }
+
+        // TPRM & User
+        const tprmBadge = app.entity_id 
+          ? `<span class="px-1.5 py-0.2 rounded bg-cyan-500/15 text-cyan-400 text-[10px] font-bold border border-cyan-500/30">TPRM</span>`
+          : `<span class="text-slate-600">-</span>`;
+        const userDisplay = app.user_email 
+          ? `<div class="truncate max-w-[120px] text-slate-300" title="${app.user_email}">${app.user_email}</div>`
+          : `<span class="text-slate-500">-</span>`;
+
+        // Findings
+        const findingsBadge = (app.findings_count || 0) > 0
+          ? `<span class="px-2 py-0.5 rounded bg-rose-500/15 text-rose-400 font-bold border border-rose-500/30">${app.findings_count}</span>`
+          : `<span class="text-slate-500">0</span>`;
+
+        tr.innerHTML = `
+          <td class="py-3 px-4 text-slate-500 font-mono">${idx + 1}</td>
+          <td class="py-3 px-4">
+            <div class="font-bold text-white">${app.name}</div>
+            <div class="text-[10px] text-slate-400 truncate max-w-[200px]">${app.description || app.label || ''}</div>
+          </td>
+          <td class="py-3 px-4">
+            <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-surface-800 text-slate-300 border border-slate-700 font-mono">
+              ${app.framework_name || 'Multi-level DPP'}
+            </span>
+          </td>
+          <td class="py-3 px-4">${statusBadge}</td>
+          <td class="py-3 px-4">${auditProgress}</td>
+          <td class="py-3 px-4">${risksCol}</td>
+          <td class="py-3 px-4">${ctrlCol}</td>
+          <td class="py-3 px-4">
+            <div class="space-y-0.5">
+              ${tprmBadge}
+              ${userDisplay}
+            </div>
+          </td>
+          <td class="py-3 px-4">${findingsBadge}</td>
+          <td class="py-3 px-4 text-right">
+            <div class="flex items-center justify-end space-x-1.5">
+              ${!app.exists ? `
+                <button onclick="triggerProvisionApp('${app.id}')" class="px-2 py-1 rounded bg-brand-600/80 hover:bg-brand-500 text-white text-[11px] font-medium transition" title="Provision Application">
+                  Create
+                </button>
+              ` : `
+                <button onclick="openGenerateRisksModal('${app.name}')" class="p-1.5 rounded hover:bg-surface-800 text-amber-400" title="Generate Risks & Controls">
+                  <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="triggerLinkControls('${app.id}')" class="p-1.5 rounded hover:bg-surface-800 text-cyan-400" title="Link Controls">
+                  <i data-lucide="link" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="inspectAppDetails(${idx})" class="p-1.5 rounded hover:bg-surface-800 text-slate-300" title="Inspect Full Details">
+                  <i data-lucide="info" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="confirmRemoveApp('${app.name}')" class="p-1.5 rounded hover:bg-surface-800 text-rose-400" title="Remove Application">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              `}
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById("table-count-badge").innerText = `${apps.length} Profiles`;
+      lucide.createIcons();
+    }
+
+    function filterApplications() {
+      const search = document.getElementById("app-search-input").value.toLowerCase();
+      const fwFilter = document.getElementById("framework-filter").value.toLowerCase();
+
+      document.querySelectorAll("#applications-table-body tr").forEach(tr => {
+        const name = tr.dataset.appName || "";
+        const fw = tr.dataset.frameworkRef || "";
+        const matchSearch = !search || name.includes(search);
+        const matchFw = fwFilter === "all" || fw.includes(fwFilter);
+        tr.style.display = matchSearch && matchFw ? "" : "none";
+      });
+    }
+
+    function populateDropdowns() {
+      // Deployed Apps for Risk Generator
+      const genSelect = document.getElementById("gen-app-select");
+      if (genSelect) {
+        genSelect.innerHTML = `<option value="">Select an application...</option>`;
+        APP_STATE.applications.forEach(app => {
+          const opt = document.createElement("option");
+          opt.value = app.name;
+          const statusText = app.exists ? (app.audit_answered ? "Answered" : "Deployed (Unanswered)") : "Not Created";
+          opt.innerText = `${app.name} (${statusText})`;
+          genSelect.appendChild(opt);
+        });
+      }
+
+      // Catalog Profiles for Risk Generator
+      const profileSelect = document.getElementById("gen-profile-select");
+      if (profileSelect) {
+        profileSelect.innerHTML = "";
+        APP_STATE.catalog.forEach(cat => {
+          const opt = document.createElement("option");
+          opt.value = cat.id;
+          opt.innerText = `${cat.name} (${cat.description || cat.label})`;
+          profileSelect.appendChild(opt);
+        });
+      }
+
+      // Frameworks for Diagnostics
+      const diagFwList = document.getElementById("diag-frameworks");
+      if (diagFwList) {
+        diagFwList.innerHTML = "";
+        (APP_STATE.installedFrameworks || []).forEach(fw => {
+          const li = document.createElement("li");
+          li.className = "flex items-center space-x-2";
+          li.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span><span>${fw.name} (${fw.ref_id})</span>`;
+          diagFwList.appendChild(li);
+        });
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // Action Triggers & Background Task Handling
+    // -----------------------------------------------------------------------
+    function confirmProvisionAll() {
+      showConfirmModal(
+        "Provision ALL Example Applications",
+        "This will sequentially create all 12 example applications in CISO Assistant, simulate questionnaire answers via the REST API, evaluate dynamic risk scenarios, and provision applied controls. Continue?",
+        () => {
+          closeModal('confirm-modal');
+          startTaskPost("/api/provision/all", {});
+        }
+      );
+    }
+
+    function triggerProvisionApp(appId) {
+      startTaskPost("/api/provision/app", { app_id: appId });
+    }
+
+    function submitAuditDemo(e) {
+      e.preventDefault();
+      const payload = {
+        app_name: document.getElementById("audit-app-name").value.trim(),
+        user_email: document.getElementById("audit-user-email").value.trim(),
+        first_name: document.getElementById("audit-user-first").value.trim(),
+        last_name: document.getElementById("audit-user-last").value.trim(),
+        is_third_party: document.getElementById("audit-user-tprm").checked,
+        framework: document.getElementById("audit-framework-select").value,
+      };
+
+      startTaskPost("/api/audit-demo", payload, (res) => {
+        // Display result card
+        document.getElementById("res-app-name").innerText = payload.app_name;
+        document.getElementById("res-user-email").innerText = payload.user_email;
+        document.getElementById("res-perimeter-id").innerText = res?.data?.perimeter_id || res?.perimeter_id || "Created";
+        document.getElementById("res-assessment-name").innerText = res?.data?.compliance_assessment_name || "Assigned";
+        document.getElementById("res-open-link").href = "{{ base_url }}";
+        document.getElementById("audit-result-card").classList.remove("hidden");
+        showToast("Audit demonstration successfully created!", "success");
+      });
+    }
+
+    function setAuditDemoPreset(name) {
+      document.getElementById("audit-app-name").value = name;
+    }
+
+    function toggleAnswersSource() {
+      const src = document.querySelector("input[name='answers_source']:checked").value;
+      document.getElementById("gen-profile-container").classList.toggle("hidden", src !== "profile");
+      document.getElementById("gen-custom-container").classList.toggle("hidden", src !== "custom");
+    }
+
+    function openGenerateRisksModal(appName) {
+      switchTab("generate-risks");
+      const sel = document.getElementById("gen-app-select");
+      if (sel) sel.value = appName;
+    }
+
+    function submitGenerateRisks(e) {
+      e.preventDefault();
+      const payload = {
+        app_name: document.getElementById("gen-app-select").value,
+        answers_source: document.querySelector("input[name='answers_source']:checked").value,
+        profile_id: document.getElementById("gen-profile-select").value,
+        custom_yaml_content: document.getElementById("gen-custom-yaml").value,
+      };
+      startTaskPost("/api/generate-risks", payload);
+    }
+
+    function triggerLinkControls(target = "all") {
+      startTaskPost("/api/link-controls", { target });
+    }
+
+    function confirmRemoveAll() {
+      showConfirmModal(
+        "Purge ALL Example Applications",
+        "Are you sure you want to remove ALL example applications, perimeters, assets, risk scenarios, controls, and findings from CISO Assistant? This action cannot be undone.",
+        () => {
+          closeModal('confirm-modal');
+          startTaskPost("/api/remove", { target: "all" });
+        }
+      );
+    }
+
+    function confirmRemoveApp(appName) {
+      showConfirmModal(
+        `Remove '${appName}'`,
+        `Are you sure you want to remove '${appName}' and all associated assessments, scenarios, and controls from CISO Assistant?`,
+        () => {
+          closeModal('confirm-modal');
+          startTaskPost("/api/remove", { target: appName });
+        }
+      );
+    }
+
+    function runPipeline() {
+      showConfirmModal(
+        "Execute Full Legacy Pipeline",
+        "This runs the complete orchestration pipeline across all perimeters in CISO Assistant. Proceed?",
+        () => {
+          closeModal('confirm-modal');
+          startTaskPost("/api/pipeline", {});
+        }
+      );
+    }
+
+    function runModelImport() {
+      const yamlPath = document.getElementById("model-yaml-path").value.trim();
+      const createAssessments = document.getElementById("model-create-assessments").checked;
+      startTaskPost("/api/model-import", { yaml_path: yamlPath, create_assessments: createAssessments });
+    }
+
+    // -----------------------------------------------------------------------
+    // Background Task Stream & Terminal Controller
+    // -----------------------------------------------------------------------
+    async function startTaskPost(url, payload, onSuccess) {
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Request failed");
+
+        if (data.task_id) {
+          openTerminal();
+          subscribeToTask(data.task_id, onSuccess);
+        } else {
+          showToast(data.message || "Action completed", "success");
+          refreshAll();
+        }
+      } catch (err) {
+        showToast(err.message, "error");
+      }
+    }
+
+    function subscribeToTask(taskId, onCompleteCallback) {
+      APP_STATE.activeTaskId = taskId;
+      document.getElementById("active-task-badge").classList.remove("hidden");
+      document.getElementById("term-status-badge").innerText = "Running";
+      document.getElementById("term-status-badge").className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 animate-pulse";
+
+      if (APP_STATE.activeEventSource) {
+        APP_STATE.activeEventSource.close();
+      }
+
+      const evtSource = new EventSource(`/api/tasks/${taskId}/stream`);
+      APP_STATE.activeEventSource = evtSource;
+
+      evtSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.line) {
+            appendTerminalLine(data.line);
+          }
+          if (data.done) {
+            evtSource.close();
+            document.getElementById("active-task-badge").classList.add("hidden");
+            const isOk = data.status === "completed";
+            document.getElementById("term-status-badge").innerText = isOk ? "Completed" : "Failed";
+            document.getElementById("term-status-badge").className = isOk 
+              ? "px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+              : "px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30";
+
+            if (isOk) {
+              showToast("Operation completed successfully!", "success");
+              if (onCompleteCallback) onCompleteCallback(data.result);
+              refreshAll();
+            } else {
+              showToast(`Operation failed: ${data.error}`, "error");
+            }
+          }
+        } catch (e) {
+          console.error("SSE parse error:", e);
+        }
+      };
+
+      evtSource.onerror = () => {
+        evtSource.close();
+      };
+    }
+
+    function toggleTerminal(force) {
+      const drawer = document.getElementById("terminal-drawer");
+      const shouldOpen = force !== undefined ? force : !APP_STATE.terminalOpen;
+      APP_STATE.terminalOpen = shouldOpen;
+
+      if (shouldOpen) {
+        drawer.classList.remove("translate-y-full");
+      } else {
+        drawer.classList.add("translate-y-full");
+      }
+    }
+
+    function openTerminal() {
+      toggleTerminal(true);
+    }
+
+    function toggleTerminalSize() {
+      const drawer = document.getElementById("terminal-drawer");
+      const icon = document.getElementById("term-size-icon");
+      APP_STATE.terminalMaximized = !APP_STATE.terminalMaximized;
+      if (APP_STATE.terminalMaximized) {
+        drawer.classList.remove("h-80");
+        drawer.classList.add("h-[80vh]");
+        icon.setAttribute("data-lucide", "minimize-2");
+      } else {
+        drawer.classList.remove("h-[80vh]");
+        drawer.classList.add("h-80");
+        icon.setAttribute("data-lucide", "maximize-2");
+      }
+      lucide.createIcons();
+    }
+
+    function appendTerminalLine(line) {
+      const term = document.getElementById("terminal-content");
+      const div = document.createElement("div");
+
+      // Colorize standard log levels
+      if (line.includes("[ERROR]") || line.includes("FAILED")) {
+        div.className = "text-rose-400 font-semibold";
+      } else if (line.includes("[SUCCESS]") || line.includes("[OK]")) {
+        div.className = "text-emerald-400 font-semibold";
+      } else if (line.includes("[WARNING]")) {
+        div.className = "text-amber-400";
+      } else if (line.startsWith("--->")) {
+        div.className = "text-cyan-400 font-bold";
+      } else {
+        div.className = "text-slate-300";
+      }
+
+      div.innerText = line;
+      term.appendChild(div);
+      APP_STATE.allLogs.push(line);
+
+      if (document.getElementById("term-autoscroll").checked) {
+        term.scrollTop = term.scrollHeight;
+      }
+    }
+
+    function clearTerminal() {
+      document.getElementById("terminal-content").innerHTML = `<div class="text-slate-600 italic">Terminal cleared.</div>`;
+      APP_STATE.allLogs = [];
+    }
+
+    function downloadTerminalLog() {
+      const blob = new Blob([APP_STATE.allLogs.join("\n")], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ciso_assistant_log_${Date.now()}.log`;
+      a.click();
+    }
+
+    // -----------------------------------------------------------------------
+    // Offline Simulation Studio (Workflow 8)
+    // -----------------------------------------------------------------------
+    async function loadOfflineSimCatalog() {
+      try {
+        const res = await fetch("/api/catalog");
+        const catalog = await res.json();
+        const sel = document.getElementById("sim-app-select");
+        if (sel) {
+          sel.innerHTML = `<option value="">All Applications (Consolidated)</option>`;
+          catalog.forEach(app => {
+            const opt = document.createElement("option");
+            opt.value = app.id;
+            opt.innerText = app.label || app.name;
+            sel.appendChild(opt);
+          });
+        }
+      } catch (e) {
+        console.error("Error loading simulation catalog:", e);
+      }
+    }
+
+    async function runOfflineSimulation() {
+      const selApp = document.getElementById("sim-app-select").value;
+      const url = selApp ? `/api/offline-simulation?app_id=${encodeURIComponent(selApp)}` : "/api/offline-simulation";
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        renderSimulationResults(data);
+      } catch (err) {
+        showToast("Failed to run offline simulation", "error");
+      }
+    }
+
+    function renderSimulationResults(data) {
+      // Update 4x4 Risk Matrix Cell Counts
+      const matrixCounts = data.matrix_counts || {};
+      for (let lh = 1; lh <= 4; lh++) {
+        for (let imp = 1; imp <= 4; imp++) {
+          const el = document.getElementById(`matrix-cell-${lh}-${imp}`);
+          if (el) {
+            el.innerText = matrixCounts[`${lh}_${imp}`] || 0;
+          }
+        }
+      }
+
+      // Update Summary Card
+      const apps = data.applications || [];
+      const titleEl = document.getElementById("sim-active-title");
+      const confEl = document.getElementById("sim-conf-impact");
+      const availEl = document.getElementById("sim-avail-impact");
+
+      if (apps.length === 1) {
+        titleEl.innerText = apps[0].label || apps[0].name;
+        confEl.innerText = `Level ${apps[0].confidentiality_impact} / 4`;
+        availEl.innerText = `Level ${apps[0].availability_impact} / 4`;
+      } else {
+        titleEl.innerText = `All ${apps.length} Reference Profiles Consolidated`;
+        confEl.innerText = "Multi-level (1 - 4)";
+        availEl.innerText = "Multi-tier (1 - 4)";
+      }
+
+      // Render Scenarios Table
+      const tbody = document.getElementById("sim-scenarios-body");
+      tbody.innerHTML = "";
+      let totalScenarios = 0;
+
+      apps.forEach(app => {
+        (app.scenarios || []).forEach(sc => {
+          totalScenarios++;
+          const tr = document.createElement("tr");
+          tr.className = "hover:bg-surface-800/40 transition";
+
+          // Priority Badge
+          let pBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-800 text-slate-400">P4 Low</span>`;
+          if (sc.control_priority === 1) pBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-extrabold bg-rose-500 text-white">P1 Urgent</span>`;
+          else if (sc.control_priority === 2) pBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-orange-500 text-white">P2 High</span>`;
+          else if (sc.control_priority === 3) pBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500 text-white">P3 Medium</span>`;
+
+          tr.innerHTML = `
+            <td class="py-2.5 px-4 font-semibold text-white font-mono text-[11px]">${app.name}</td>
+            <td class="py-2.5 px-4 text-slate-200 font-medium">${sc.name}</td>
+            <td class="py-2.5 px-4 text-center font-bold font-mono text-cyan-400">${sc.likelihood}</td>
+            <td class="py-2.5 px-4 text-center font-bold font-mono text-amber-400">${sc.impact}</td>
+            <td class="py-2.5 px-4"><span class="font-semibold text-slate-300">${sc.matrix_risk_label}</span></td>
+            <td class="py-2.5 px-4 text-right">${pBadge}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      });
+
+      document.getElementById("sim-scenarios-count").innerText = `${totalScenarios} Evaluated Scenarios`;
+    }
+
+    // -----------------------------------------------------------------------
+    // Disaster Recovery & Backup Management (Workflow 9)
+    // -----------------------------------------------------------------------
+    async function loadBackups() {
+      try {
+        const res = await fetch("/api/backups");
+        const backups = await res.json();
+        renderBackupsTable(backups);
+      } catch (err) {
+        showToast("Failed to load backups list", "error");
+      }
+    }
+
+    function renderBackupsTable(backups = []) {
+      const tbody = document.getElementById("backups-table-body");
+      tbody.innerHTML = "";
+      document.getElementById("backups-count-badge").innerText = `${backups.length} Backups`;
+
+      if (!backups || backups.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-500">No backups found. Use "Create Workspace Snapshot" or "Full Database Dump" above.</td></tr>`;
+        return;
+      }
+
+      backups.forEach((b, idx) => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-surface-800/40 transition";
+
+        const typeBadge = b.type === "workspace_snapshot"
+          ? `<span class="px-2 py-0.5 rounded bg-brand-500/15 text-brand-300 font-bold border border-brand-500/30 text-[10px]">JSON Snapshot</span>`
+          : `<span class="px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 font-bold border border-cyan-500/30 text-[10px]">DB Dump</span>`;
+
+        const shortHash = b.sha256 ? `${b.sha256.substring(0, 12)}...` : "-";
+
+        tr.innerHTML = `
+          <td class="py-3 px-4 text-slate-500 font-mono">${idx + 1}</td>
+          <td class="py-3 px-4 font-mono font-bold text-white">${b.filename}</td>
+          <td class="py-3 px-4">${typeBadge}</td>
+          <td class="py-3 px-4 text-slate-300 font-mono">${b.size_formatted}</td>
+          <td class="py-3 px-4 text-slate-400 font-mono text-[11px]">${b.modified_at ? b.modified_at.substring(0, 19).replace('T', ' ') : '-'}</td>
+          <td class="py-3 px-4 font-mono text-[11px] text-slate-500" title="${b.sha256}">${shortHash}</td>
+          <td class="py-3 px-4 text-right">
+            <div class="flex items-center justify-end space-x-2">
+              <button onclick="inspectBackupFile('${b.filename}')" class="p-1.5 rounded hover:bg-surface-800 text-slate-300" title="Inspect Resource Breakdown">
+                <i data-lucide="info" class="w-3.5 h-3.5"></i>
+              </button>
+              <a href="/api/backups/download/${encodeURIComponent(b.filename)}" class="p-1.5 rounded hover:bg-surface-800 text-cyan-400" title="Download File">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+              </a>
+              <button onclick="confirmRestoreBackup('${b.filename}')" class="p-1.5 rounded hover:bg-surface-800 text-emerald-400" title="Restore From This Backup">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+              </button>
+              <button onclick="confirmDeleteBackup('${b.filename}')" class="p-1.5 rounded hover:bg-surface-800 text-rose-400" title="Delete Backup">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      lucide.createIcons();
+    }
+
+    function createBackup(type = "snapshot") {
+      startTaskPost("/api/backups/create", { type }, () => {
+        loadBackups();
+      });
+    }
+
+    async function uploadBackup(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const res = await fetch("/api/backups/upload", { method: "POST", body: formData });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Upload failed");
+        showToast(`Uploaded '${file.name}' successfully!`, "success");
+        loadBackups();
+      } catch (e) {
+        showToast(e.message, "error");
+      }
+      event.target.value = "";
+    }
+
+    async function inspectBackupFile(filename) {
+      try {
+        const res = await fetch(`/api/backups/inspect/${encodeURIComponent(filename)}`);
+        const stat = await res.json();
+
+        document.getElementById("backup-modal-title").innerText = `Inspect: ${stat.filename}`;
+        let html = `
+          <div class="space-y-2 p-3 bg-surface-950 rounded-lg border border-slate-800 font-mono text-[11px]">
+            <div><strong>Type:</strong> ${stat.type}</div>
+            <div><strong>Size:</strong> ${stat.size_formatted} (${stat.size} bytes)</div>
+            <div><strong>SHA-256:</strong> <span class="break-all text-cyan-400">${stat.sha256}</span></div>
+            <div><strong>Modified:</strong> ${stat.modified_at}</div>
+          </div>
+        `;
+
+        if (stat.counts) {
+          html += `
+            <div class="mt-4">
+              <h4 class="font-bold text-white mb-2 uppercase text-[10px] tracking-wider">Resource Breakdown</h4>
+              <div class="grid grid-cols-2 gap-2 font-mono">
+                ${Object.entries(stat.counts).map(([k, v]) => `
+                  <div class="p-2 bg-surface-800 rounded border border-slate-700 flex justify-between">
+                    <span class="text-slate-400">${k.replace(/_/g, ' ')}:</span>
+                    <span class="font-bold text-white">${v}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }
+
+        document.getElementById("backup-modal-content").innerHTML = html;
+        openModal("backup-inspect-modal");
+      } catch (e) {
+        showToast("Failed to inspect backup file", "error");
+      }
+    }
+
+    function confirmRestoreBackup(filename) {
+      showConfirmModal(
+        `Restore from ${filename}`,
+        `Are you sure you want to restore CISO Assistant state from backup file '${filename}'? This will update workspace resources and overwrite current conflicting data.`,
+        () => {
+          closeModal('confirm-modal');
+          startTaskPost("/api/backups/restore", { filename });
+        }
+      );
+    }
+
+    async function confirmDeleteBackup(filename) {
+      showConfirmModal(
+        `Delete ${filename}`,
+        `Are you sure you want to delete backup file '${filename}' from the server?`,
+        async () => {
+          closeModal('confirm-modal');
+          try {
+            const res = await fetch(`/api/backups/${encodeURIComponent(filename)}`, { method: "DELETE" });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            showToast("Backup deleted successfully", "success");
+            loadBackups();
+          } catch (e) {
+            showToast(e.message, "error");
+          }
+        }
+      );
+    }
+
+    // -----------------------------------------------------------------------
+    // Modals & Detailed Inspection View
+    // -----------------------------------------------------------------------
+    function inspectAppDetails(index) {
+      const app = APP_STATE.applications[index];
+      if (!app) return;
+
+      document.getElementById("modal-title").innerText = `Resource Breakdown: ${app.name}`;
+      const fields = [
+        ["Framework", `${app.framework_name || 'Multi-level DPP'} (${app.framework_ref || 'mls'})`],
+        ["Lifecycle Status", app.lifecycle_status || (app.exists ? "DEPLOYED" : "NOT CREATED")],
+        ["Perimeter ID", app.perimeter_id || "None"],
+        ["Asset ID", app.asset_id || "None"],
+        ["Compliance Assessment", app.compliance_assessment_name || "None"],
+        ["Compliance Assessment ID", app.compliance_assessment_id || "None"],
+        ["Answered Requirements", `${app.answered_requirements_count || 0} / ${app.total_requirements_count || 0} (${app.audit_completion_pct || 0}%)`],
+        ["Risk Assessment ID", app.risk_assessment_id || "None"],
+        ["Risk Scenarios Created", app.risk_scenarios_count || 0],
+        ["Applied Controls", app.applied_controls_count || 0],
+        ["Linked to Scenarios", `${app.existing_controls_linked || 0} active, ${app.planned_controls_linked || 0} planned`],
+        ["Findings Assessment ID", app.findings_assessment_id || "None"],
+        ["Findings Count", app.findings_count || 0],
+        ["TPRM Entity ID", app.entity_id || "None"],
+        ["TPRM Assessment ID", app.entity_assessment_id || "None"],
+        ["TPRM Conclusion", app.tprm_conclusion || "None"],
+        ["Representative User", `${app.user_email || 'None'} (User ID: ${app.user_id || 'None'})`],
+        ["Vulnerabilities Linked", app.vulnerabilities_linked || 0],
+        ["Threats Linked", app.threats_linked || 0],
+      ];
+
+      let html = `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">`;
+      fields.forEach(([label, val]) => {
+        html += `
+          <div class="p-2.5 bg-surface-950 rounded-lg border border-slate-800">
+            <div class="text-[10px] text-slate-500 uppercase tracking-wider">${label}</div>
+            <div class="text-xs text-white font-semibold truncate mt-0.5" title="${val}">${val}</div>
+          </div>
+        `;
+      });
+      html += `</div>`;
+
+      document.getElementById("modal-content").innerHTML = html;
+      openModal("detail-modal");
+    }
+
+    function openModal(id) {
+      document.getElementById(id).classList.remove("hidden");
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add("hidden");
+    }
+
+    function showConfirmModal(title, msg, onConfirm) {
+      document.getElementById("confirm-title").innerText = title;
+      document.getElementById("confirm-message").innerText = msg;
+      const btn = document.getElementById("confirm-action-btn");
+      btn.onclick = onConfirm;
+      openModal("confirm-modal");
+    }
+
+    // -----------------------------------------------------------------------
+    // Toast Alerts
+    // -----------------------------------------------------------------------
+    function showToast(message, type = "info") {
+      const container = document.getElementById("toast-container");
+      const toast = document.createElement("div");
+
+      let bg = "bg-surface-800 border-slate-700 text-slate-200";
+      let icon = "info";
+      if (type === "success") {
+        bg = "bg-emerald-950/90 border-emerald-500/50 text-emerald-200";
+        icon = "check-circle-2";
+      } else if (type === "error") {
+        bg = "bg-rose-950/90 border-rose-500/50 text-rose-200";
+        icon = "alert-circle";
+      } else if (type === "warning") {
+        bg = "bg-amber-950/90 border-amber-500/50 text-amber-200";
+        icon = "alert-triangle";
+      }
+
+      toast.className = `pointer-events-auto flex items-center space-x-3 px-4 py-3 rounded-xl border shadow-xl text-xs font-medium transition-all duration-300 transform translate-y-2 opacity-0 ${bg}`;
+      toast.innerHTML = `
+        <i data-lucide="${icon}" class="w-4 h-4 shrink-0"></i>
+        <span>${message}</span>
+      `;
+      container.appendChild(toast);
+      lucide.createIcons();
+
+      setTimeout(() => {
+        toast.classList.remove("translate-y-2", "opacity-0");
+      }, 10);
+
+      setTimeout(() => {
+        toast.classList.add("opacity-0", "translate-y-2");
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+  </script>
+</body>
+</html>

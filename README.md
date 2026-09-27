@@ -21,8 +21,18 @@ It includes:
 
 ## 🚀 Quick Start
 
-### 1. Interactive Menu
-Launch the interactive terminal manager:
+### 1. Modern Web UI & Orchestration Dashboard
+Launch the web interface (mirroring all CLI features with real-time SSE execution drawer):
+```bash
+python3 main.py --web
+# or standalone:
+python3 web_app.py
+```
+Visit **`http://127.0.0.1:5000`** in your browser.
+Options: `--web-port 8080`, `--web-host 0.0.0.0`, `--web-open` (automatically opens browser).
+
+### 2. Interactive Terminal Menu
+Launch the interactive terminal manager (or select option `10` to start the Web UI):
 ```bash
 python3 main.py
 ```
@@ -69,9 +79,9 @@ python3 main.py --list-backups
 
 ## 🧪 Testing & Verification
 
-Run the comprehensive automated test suite (129 unit & integration tests):
+Run the comprehensive automated test suite (158 unit & integration tests):
 ```bash
 python3 -m unittest discover tests
 ```
-*All 129 tests pass in ~1.8 seconds.*
+*All 158 tests pass across API, web, orchestration, backup, and risk simulation modules.*
 
