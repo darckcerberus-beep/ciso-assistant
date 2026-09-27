@@ -5,8 +5,8 @@ ref_id: vendor-due-diligence
 name: Vendor Due Diligence (VDD) - simple
 description: Simple framework for rapid due diligence review of vendors
 copyright: intuitem
-version: 4
-publication_date: '2026-09-25'
+version: 5
+publication_date: '2026-09-27'
 provider: intuitem
 packager: intuitem
 objects:
@@ -2192,6 +2192,66 @@ objects:
             color: '#dc3545'
       implementation_groups:
       - saas_app
+    - urn: urn:intuitem:risk:req_node:vendor-due-diligence:app.11
+      assessable: true
+      depth: 2
+      parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:app
+      ref_id: APP.11
+      description: The vendor extranet or service supports integration with the customer's enterprise Identity Provider (IdP) via standard protocols (SAML 2.0 or OIDC), enforcing Single Sign-On (SSO) authentication for customer personnel and eliminating unmanaged local credentials.
+      vulnerabilities:
+      - urn:intuitem:risk:vulnerability:vendor-due-diligence:inadequate_access_controls
+      - urn:intuitem:risk:vulnerability:vendor-due-diligence:insecure_application_apis
+      reference_controls:
+      - urn:intuitem:risk:control:vendor-due-diligence:enforce_mfa_sso_pam
+      - urn:intuitem:risk:control:vendor-due-diligence:secure_application_apis_and_rbac
+      name: Enforced enterprise SSO usage for client personnel
+      questions:
+        urn:intuitem:risk:req_node:vendor-due-diligence:app.11:q1:
+          type: unique_choice
+          text: 'Is the following requirement implemented and verified: The vendor extranet or service supports integration with the customer''s enterprise Identity Provider (IdP) via standard protocols (SAML 2.0 or OIDC), enforcing Single Sign-On (SSO) authentication for customer personnel and eliminating unmanaged local credentials.'
+          choices:
+          - urn: urn:intuitem:risk:req_node:vendor-due-diligence:app.11:q1:c1
+            value: 'Yes'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:vendor-due-diligence:app.11:q1:c2
+            value: 'No'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
+      implementation_groups:
+      - saas_app
+    - urn: urn:intuitem:risk:req_node:vendor-due-diligence:app.12
+      assessable: true
+      depth: 2
+      parent_urn: urn:intuitem:risk:req_node:vendor-due-diligence:app
+      ref_id: APP.12
+      description: The vendor service provides standard APIs or connectors (such as SCIM 2.0 or equivalent provisioning interfaces) allowing the customer's Identity Governance and Administration (IGA) tool to automate user provisioning, deprovisioning, and granular access right / entitlement management.
+      vulnerabilities:
+      - urn:intuitem:risk:vulnerability:vendor-due-diligence:inadequate_access_controls
+      - urn:intuitem:risk:vulnerability:vendor-due-diligence:insecure_application_apis
+      reference_controls:
+      - urn:intuitem:risk:control:vendor-due-diligence:enforce_mfa_sso_pam
+      - urn:intuitem:risk:control:vendor-due-diligence:secure_application_apis_and_rbac
+      name: Access right and lifecycle management via customer IGA tool (SCIM / API)
+      questions:
+        urn:intuitem:risk:req_node:vendor-due-diligence:app.12:q1:
+          type: unique_choice
+          text: 'Is the following requirement implemented and verified: The vendor service provides standard APIs or connectors (such as SCIM 2.0 or equivalent provisioning interfaces) allowing the customer''s Identity Governance and Administration (IGA) tool to automate user provisioning, deprovisioning, and granular access right / entitlement management.'
+          choices:
+          - urn: urn:intuitem:risk:req_node:vendor-due-diligence:app.12:q1:c1
+            value: 'Yes'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:vendor-due-diligence:app.12:q1:c2
+            value: 'No'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
+      implementation_groups:
+      - saas_app
     - urn: urn:intuitem:risk:req_node:vendor-due-diligence:scm
       assessable: false
       depth: 1
@@ -2817,6 +2877,8 @@ objects:
       session management.
     annotation: Prevents unauthorized lateral movement and account takeover across vendor administrative interfaces.
     typical_evidence: '- SSO / IdP federation configuration screenshot
+
+      - SCIM 2.0 / IGA integration documentation and automated user provisioning logs
 
       - MFA enforcement policy across administrative portals
 

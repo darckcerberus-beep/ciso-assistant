@@ -416,6 +416,16 @@ answers:
   answer: 'No'
   result: non_compliant
   observation: 'Deficiency identified in payroll vendor audit: All public and integration APIs implement strict rate limiti'
+- requirement: APP.11
+  question: 'Is the following requirement implemented and verified: The vendor extranet or service supports integration with the customer''s enterprise Identity Provider (IdP) via standard protocols (SAML 2.0 or OIDC), enforcing Single Sign-On (SSO) authentication for customer personnel and eliminating unmanaged local credentials.'
+  answer: 'No'
+  result: non_compliant
+  observation: 'Deficiency identified in payroll vendor audit: No enterprise SSO enforcement; unmanaged local credentials required'
+- requirement: APP.12
+  question: 'Is the following requirement implemented and verified: The vendor service provides standard APIs or connectors (such as SCIM 2.0 or equivalent provisioning interfaces) allowing the customer''s Identity Governance and Administration (IGA) tool to automate user provisioning, deprovisioning, and granular access right / entitlement management.'
+  answer: 'No'
+  result: non_compliant
+  observation: 'Deficiency identified in payroll vendor audit: No SCIM API or IGA integration; access managed manually in vendor console'
 - requirement: SCM.01
   question: 'Is the following requirement implemented and verified: The vendor maintains and publishes an accurate, up-to-date
     registry of all third-party sub-processors and cloud hosting providers processing customer data.'

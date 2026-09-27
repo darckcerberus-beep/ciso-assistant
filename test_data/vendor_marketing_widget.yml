@@ -310,6 +310,16 @@ answers:
   result: compliant
   observation: 'Verified baseline for public marketing widget: All public and integration
     APIs implement strict rate limiti'
+- requirement: APP.11
+  question: 'Is the following requirement implemented and verified: The vendor extranet or service supports integration with the customer''s enterprise Identity Provider (IdP) via standard protocols (SAML 2.0 or OIDC), enforcing Single Sign-On (SSO) authentication for customer personnel and eliminating unmanaged local credentials.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'SSO via Google Workspace / Microsoft Entra supported for admin portal'
+- requirement: APP.12
+  question: 'Is the following requirement implemented and verified: The vendor service provides standard APIs or connectors (such as SCIM 2.0 or equivalent provisioning interfaces) allowing the customer''s Identity Governance and Administration (IGA) tool to automate user provisioning, deprovisioning, and granular access right / entitlement management.'
+  answer: 'No'
+  result: not_applicable
+  observation: 'Lightweight widget service without SCIM 2.0 or enterprise IGA connectors'
 - requirement: EXIT.01
   question: Does the vendor contractually commit to a minimum monthly service availability
     SLA (e.g., 99.9% uptime or higher)?

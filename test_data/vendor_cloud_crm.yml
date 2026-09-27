@@ -388,6 +388,16 @@ answers:
   answer: 'Yes'
   result: compliant
   observation: 'Verified implemented for cloud CRM: All public and integration APIs implement strict rate limiti'
+- requirement: APP.11
+  question: 'Is the following requirement implemented and verified: The vendor extranet or service supports integration with the customer''s enterprise Identity Provider (IdP) via standard protocols (SAML 2.0 or OIDC), enforcing Single Sign-On (SSO) authentication for customer personnel and eliminating unmanaged local credentials.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'Enforced enterprise SSO (SAML 2.0 / OIDC) with customer IdP federation and JIT provisioning'
+- requirement: APP.12
+  question: 'Is the following requirement implemented and verified: The vendor service provides standard APIs or connectors (such as SCIM 2.0 or equivalent provisioning interfaces) allowing the customer''s Identity Governance and Administration (IGA) tool to automate user provisioning, deprovisioning, and granular access right / entitlement management.'
+  answer: 'Yes'
+  result: compliant
+  observation: 'SCIM 2.0 API and standard IGA connectors supported for automated user lifecycle and access right management'
 - requirement: SCM.01
   question: 'Is the following requirement implemented and verified: The vendor maintains and publishes an accurate, up-to-date
     registry of all third-party sub-processors and cloud hosting providers processing customer data.'

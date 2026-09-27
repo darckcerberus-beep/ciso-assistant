@@ -1535,10 +1535,10 @@ class TestFrameworkSelection(unittest.TestCase):
         ans_count, trig_count = ExamplesManager._resolve_triggered_requirements(
             mock_ras, yaml_path="test_data/vendor_cloud_crm.yml"
         )
-        # 72 active requirements out of 78 total in framework (6 Secret-only controls skipped)
-        self.assertEqual(trig_count, 72)
+        # 74 active requirements out of 80 total in framework (6 Secret-only controls skipped)
+        self.assertEqual(trig_count, 74)
 
-        # Now simulate all 72 active requirements answered in the assessment
+        # Now simulate all 74 active requirements answered in the assessment
         with open("test_data/vendor_cloud_crm.yml") as f:
             crm_answers = yaml.safe_load(f).get("answers", [])
         answered_refs = {a["requirement"] for a in crm_answers}
@@ -1550,8 +1550,8 @@ class TestFrameworkSelection(unittest.TestCase):
         ans_count2, trig_count2 = ExamplesManager._resolve_triggered_requirements(
             mock_ras, yaml_path="test_data/vendor_cloud_crm.yml"
         )
-        self.assertEqual(ans_count2, 72)
-        self.assertEqual(trig_count2, 72)
+        self.assertEqual(ans_count2, 74)
+        self.assertEqual(trig_count2, 74)
 
         # Build status dict and verify status is FULLY CONFIGURED, NOT AUDIT PARTIAL
         status = ExamplesManager._build_status_dict(
@@ -1592,8 +1592,8 @@ class TestFrameworkSelection(unittest.TestCase):
         ans_count, trig_count = ExamplesManager._resolve_triggered_requirements(
             mock_ras, yaml_path="test_data/vendor_marketing_widget.yml"
         )
-        # Only 41 active requirements triggered out of 78
-        self.assertEqual(trig_count, 41)
+        # Only 43 active requirements triggered out of 80
+        self.assertEqual(trig_count, 43)
 
     def test_vdd_framework_service_and_classification_questions(self):
         """Verify VDD framework structure: PROF.00 is first with service delivery questions and PROF.01 sets implementation groups."""
@@ -1675,7 +1675,7 @@ class TestFrameworkSelection(unittest.TestCase):
         )
         _, trig_mkt = ExamplesManager._resolve_triggered_requirements(marketplace_ras)
         # Triggers baseline, SaaS, cloud infra, sub-processors, SDLC, confidential (skips AI and Secret)
-        self.assertEqual(trig_mkt, 68)
+        self.assertEqual(trig_mkt, 70)
 
         # 2. Transport provider
         transport_ras = _make_mock_ras(
@@ -1703,7 +1703,7 @@ class TestFrameworkSelection(unittest.TestCase):
         )
         _, trig_ex_sub = ExamplesManager._resolve_triggered_requirements(ex_sub_ras)
         # Triggers SDLC, developer workstation security, confidential data/IP protection, baseline
-        self.assertEqual(trig_ex_sub, 63)
+        self.assertEqual(trig_ex_sub, 65)
 
         # 4. Online project management SaaS augmented with AI
         pm_ai_ras = _make_mock_ras(
@@ -1717,7 +1717,7 @@ class TestFrameworkSelection(unittest.TestCase):
         )
         _, trig_pm_ai = ExamplesManager._resolve_triggered_requirements(pm_ai_ras)
         # Triggers baseline, SaaS, cloud infra, AI model controls, sub-processors, confidential (skips custom SDLC and Secret)
-        self.assertEqual(trig_pm_ai, 62)
+        self.assertEqual(trig_pm_ai, 64)
 
 
 if __name__ == "__main__":

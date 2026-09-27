@@ -2410,32 +2410,15 @@ class ExamplesManager:
             existing = [cid for cid in ra_ctrl_ids if cid in app_controls and app_controls[cid].get_status() == "active"]
             planned = [cid for cid in ra_ctrl_ids if cid in app_controls and app_controls[cid].get_status() != "active"]
 
-            # Also check if any controls match by reference control from requirement or scenario definition
-            target_rc_ids = set(matching_ra.get_associated_reference_control_ids())
-            ref_dict = data.get("reference_control_dict")
-            if ref_dict:
-                for sc_rc_urn in sc_def.get("reference_controls", []):
-                    cand = ref_dict.get_id_from_urn(sc_rc_urn) if hasattr(ref_dict, "get_id_from_urn") else None
-                    if not cand and ":" in sc_rc_urn and hasattr(ref_dict, "get_id_by_ref_id"):
-                        cand = ref_dict.get_id_by_ref_id(sc_rc_urn.rsplit(":", 1)[-1])
-                    if not cand and hasattr(ref_dict, "controls"):
-                        ctrl_list = ref_dict.controls.values() if isinstance(ref_dict.controls, dict) else ref_dict.controls
-                        for rc_obj in ctrl_list:
-                            if getattr(rc_obj, "get_urn", lambda: "")() == sc_rc_urn or getattr(rc_obj, "get_ref_id", lambda: "")() == sc_rc_urn.rsplit(":", 1)[-1]:
-                                cand = rc_obj.get_id()
-                                break
-                    if cand:
-                        target_rc_ids.add(cand)
-
-            for cid, c in app_controls.items():
-                if cid in existing or cid in planned:
-                    continue
-                rc_id = c.get_reference_control_id()
-                if rc_id and rc_id in target_rc_ids:
-                    if c.get_status() == "active":
-                        existing.append(cid)
-                    else:
-                        planned.append(cid)
+            # Also check if any controls match by name if not in ra_ctrl_ids
+            if not existing and not planned:
+                for cid, c in app_controls.items():
+                    rc_id = c.get_reference_control_id()
+                    if rc_id and rc_id in matching_ra.get_associated_reference_control_ids():
+                        if c.get_status() == "active":
+                            existing.append(cid)
+                        else:
+                            planned.append(cid)
 
             patch_payload = {
                 "existing_applied_controls": existing,
