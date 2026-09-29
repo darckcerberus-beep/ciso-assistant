@@ -341,6 +341,13 @@ objects:
         - LeanIX application fact sheet or CMDB configuration item record
         - RACI matrix documenting business, IT, and data owner responsibilities
         - Formal stakeholder appointment / delegation confirmation
+      is_recurrent: true
+      cadence: annually
+      task:
+        name: "Annual Review of Application Stakeholders"
+        description: "Review and re-certify the designated business, IT, and data owners for the application in the enterprise CMDB/inventory."
+        frequency: "YEARLY"
+        interval: 1
 
     - urn: urn:intuitem:risk:control:mls:encrypt_data_in_transit
       ref_id: data_in_transit_encryption
@@ -352,6 +359,13 @@ objects:
         - SSL/TLS configuration report (e.g. Qualys SSL Labs report / testssl.sh audit)
         - Web server / Ingress controller / Load balancer TLS configuration files
         - API gateway mTLS certificate and policy definitions
+      is_recurrent: true
+      cadence: quarterly
+      task:
+        name: "Quarterly TLS and Cipher Suite Audit"
+        description: "Audit TLS configurations, certificate validity, and cipher suites across endpoints to ensure strict compliance with encryption-in-transit standards."
+        frequency: "MONTHLY"
+        interval: 3
 
     - urn: urn:intuitem:risk:control:mls:encrypt_data_at_rest
       ref_id: data_at_rest_encryption
@@ -363,6 +377,13 @@ objects:
         - Database Transparent Data Encryption (TDE) configuration
         - Cloud storage bucket / disk volume KMS encryption policy confirmation
         - Key management system (KMS) key rotation schedule and access audit logs
+      is_recurrent: true
+      cadence: annually
+      task:
+        name: "Annual Encryption Key Rotation and Storage Audit"
+        description: "Verify automated cryptographic key rotation policies (KMS/HSM) and confirm encryption-at-rest enforcement across all storage volumes and databases."
+        frequency: "YEARLY"
+        interval: 1
 
     - urn: urn:intuitem:risk:control:mls:identify_data_classification
       ref_id: data_classification
@@ -374,6 +395,13 @@ objects:
         - Information asset register / data classification registry entry
         - Data flow diagram with data sensitivity tagging
         - Data Protection Impact Assessment (DPIA) or classification sign-off
+      is_recurrent: true
+      cadence: annually
+      task:
+        name: "Annual Data Asset Classification Review"
+        description: "Re-evaluate information assets processed by the application to confirm and update their security classification levels in the asset register."
+        frequency: "YEARLY"
+        interval: 1
 
     - urn: urn:intuitem:risk:control:mls:saas_contract
       ref_id: saas_contract
@@ -385,6 +413,13 @@ objects:
         - Executed SaaS Master Services Agreement (MSA) with Security Exhibit
         - Signed Data Processing Agreement (DPA) and Non-Disclosure Agreement (NDA)
         - Third-party audit assurance reports (SOC 2 Type II / ISO 27001 certificate)
+      is_recurrent: true
+      cadence: annually
+      task:
+        name: "Annual SaaS Provider Contract and Compliance Review"
+        description: "Review SaaS provider contractual agreements, SOC 2/ISO certifications, data processing addenda, and security SLAs."
+        frequency: "YEARLY"
+        interval: 1
 
     - urn: urn:intuitem:risk:control:mls:protect_prod_data_in_non_prod
       ref_id: protect_prod_data_in_non_prod
@@ -396,6 +431,13 @@ objects:
         - Data masking / pseudonymization procedure and tool configuration
         - Non-production database content audit verifying absence of real PII
         - Test data management policy and test environment data purge logs
+      is_recurrent: true
+      cadence: quarterly
+      task:
+        name: "Quarterly Non-Production Data Sanitization Audit"
+        description: "Verify that test and staging environments undergo data masking, pseudonymization, or synthetic data substitution, with no residual raw production data."
+        frequency: "MONTHLY"
+        interval: 3
 
     - urn: urn:intuitem:risk:control:mls:information_exchange_contract
       ref_id: information_exchange_contract
@@ -407,6 +449,13 @@ objects:
         - Signed Data Transfer Agreement (DTA) / Cross-border transfer agreement
         - Executed bilateral Non-Disclosure Agreement (NDA)
         - Data exchange register and technical interface specification
+      is_recurrent: true
+      cadence: annually
+      task:
+        name: "Annual Data Transfer and Information Exchange Review"
+        description: "Inspect external data transfer agreements, standard contractual clauses (SCCs), and NDAs to ensure adequate data protection safeguards remain active."
+        frequency: "YEARLY"
+        interval: 1
 
     - urn: urn:intuitem:risk:control:mls:data_destruction_process
       ref_id: data_destruction_process
@@ -418,6 +467,13 @@ objects:
         - Standard Operating Procedure (SOP) for data retention and disposal
         - Scheduled automated database purge scripts and deletion logs
         - Certificate of Destruction or cryptographic erasure verification report
+      is_recurrent: true
+      cadence: biannually
+      task:
+        name: "Biannual Data Retention and Destruction Verification"
+        description: "Execute scheduled data purging and verify cryptographic erasure or media destruction reports in accordance with the data retention policy."
+        frequency: "MONTHLY"
+        interval: 6
 
   # ========================================================================
   # FRAMEWORK - Assessment framework with requirements and questions

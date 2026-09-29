@@ -2870,6 +2870,13 @@ objects:
     threats:
     - urn:intuitem:risk:threat:vendor-due-diligence:vendor_data_breach
     - urn:intuitem:risk:threat:vendor-due-diligence:regulatory_sanction
+    is_recurrent: true
+    cadence: annually
+    task:
+      name: "Annual Vendor Security Certification and Governance Verification"
+      description: "Request, review, and archive updated ISO/IEC 27001 certificates, SOC 2 Type II assurance reports, bridge letters, and designated security officer contacts."
+      frequency: "YEARLY"
+      interval: 1
   - urn: urn:intuitem:risk:control:vendor-due-diligence:enforce_mfa_sso_pam
     ref_id: enforce_mfa_sso_pam
     name: Enforce MFA, SAML/OIDC SSO, and privileged access management
@@ -2886,6 +2893,13 @@ objects:
     threats:
     - urn:intuitem:risk:threat:vendor-due-diligence:credential_compromise
     - urn:intuitem:risk:threat:vendor-due-diligence:vendor_data_breach
+    is_recurrent: true
+    cadence: quarterly
+    task:
+      name: "Quarterly Vendor Access and Federation Review"
+      description: "Review vendor administrative accounts, SSO/MFA enforcement, SCIM synchronization logs, and privileged access grants across vendor extranets."
+      frequency: "MONTHLY"
+      interval: 3
   - urn: urn:intuitem:risk:control:vendor-due-diligence:harden_infrastructure_and_perimeter
     ref_id: harden_infrastructure_and_perimeter
     name: Harden cloud infrastructure, WAF, and DDoS mitigation
@@ -2900,6 +2914,13 @@ objects:
     threats:
     - urn:intuitem:risk:threat:vendor-due-diligence:service_disruption
     - urn:intuitem:risk:threat:vendor-due-diligence:vendor_data_breach
+    is_recurrent: true
+    cadence: quarterly
+    task:
+      name: "Quarterly Infrastructure Hardening and Perimeter Defense Review"
+      description: "Evaluate vendor perimeter defense reports, WAF/DDoS configurations, edge CDN filtering rules, and patch management compliance metrics."
+      frequency: "MONTHLY"
+      interval: 3
   - urn: urn:intuitem:risk:control:vendor-due-diligence:implement_secure_sdlc_and_sbom
     ref_id: implement_secure_sdlc_and_sbom
     name: Implement secure SDLC, automated scanning, and SBOM
@@ -2914,6 +2935,13 @@ objects:
     threats:
     - urn:intuitem:risk:threat:vendor-due-diligence:supply_chain_compromise
     - urn:intuitem:risk:threat:vendor-due-diligence:vendor_data_breach
+    is_recurrent: true
+    cadence: quarterly
+    task:
+      name: "Quarterly Software Supply Chain and SBOM Verification"
+      description: "Obtain and analyze the updated Software Bill of Materials (SBOM) for known vulnerabilities, component obsolescence, and verify secure SDLC pipeline gates."
+      frequency: "MONTHLY"
+      interval: 3
   - urn: urn:intuitem:risk:control:vendor-due-diligence:require_third_party_pentesting
     ref_id: require_third_party_pentesting
     name: Require annual independent penetration testing
@@ -2925,6 +2953,13 @@ objects:
     threats:
     - urn:intuitem:risk:threat:vendor-due-diligence:vendor_data_breach
     - urn:intuitem:risk:threat:vendor-due-diligence:supply_chain_compromise
+    is_recurrent: true
+    cadence: annually
+    task:
+      name: "Annual Third-Party Penetration Test Report Audit"
+      description: "Collect and evaluate the executive summary and attestation letter of the vendor's annual independent penetration test and track remediations."
+      frequency: "YEARLY"
+      interval: 1
   - urn: urn:intuitem:risk:control:vendor-due-diligence:contract_incident_notification_sla
     ref_id: contract_incident_notification_sla
     name: Contractually mandate 24-72h incident notification SLAs
@@ -2939,6 +2974,13 @@ objects:
     threats:
     - urn:intuitem:risk:threat:vendor-due-diligence:vendor_data_breach
     - urn:intuitem:risk:threat:vendor-due-diligence:regulatory_sanction
+    is_recurrent: true
+    cadence: annually
+    task:
+      name: "Annual Incident Response and Breach Notification SLA Review"
+      description: "Confirm validity of vendor 24-72h breach notification commitments, update 24/7 security escalation contacts, and test communication channels."
+      frequency: "YEARLY"
+      interval: 1
   - urn: urn:intuitem:risk:control:vendor-due-diligence:implement_bcp_dr_and_backups
     ref_id: implement_bcp_dr_and_backups
     name: Implement tested BCP/DR, immutable backups, and defined RTO/RPO
@@ -2953,6 +2995,13 @@ objects:
     threats:
     - urn:intuitem:risk:threat:vendor-due-diligence:service_disruption
     - urn:intuitem:risk:threat:vendor-due-diligence:vendor_lockin_loss
+    is_recurrent: true
+    cadence: annually
+    task:
+      name: "Annual Vendor BCP/DR and Backup Restoration Drill Review"
+      description: "Review vendor business continuity drill results, immutable backup configurations, and verify adherence to contractual RTO and RPO metrics."
+      frequency: "YEARLY"
+      interval: 1
   - urn: urn:intuitem:risk:control:vendor-due-diligence:mandate_encryption_and_tenant_isolation
     ref_id: mandate_encryption_and_tenant_isolation
     name: Mandate end-to-end encryption, tenant isolation, and data residency
@@ -2967,6 +3016,13 @@ objects:
     threats:
     - urn:intuitem:risk:threat:vendor-due-diligence:vendor_data_breach
     - urn:intuitem:risk:threat:vendor-due-diligence:regulatory_sanction
+    is_recurrent: true
+    cadence: biannually
+    task:
+      name: "Biannual Data Encryption and Tenant Isolation Audit"
+      description: "Verify tenant data isolation mechanisms, KMS key rotation procedures, encryption-at-rest standards (AES-256), and geographic residency commitments."
+      frequency: "MONTHLY"
+      interval: 6
   - urn: urn:intuitem:risk:control:vendor-due-diligence:secure_application_apis_and_rbac
     ref_id: secure_application_apis_and_rbac
     name: Secure application APIs, rate limiting, and centralized secrets
@@ -2981,6 +3037,13 @@ objects:
     threats:
     - urn:intuitem:risk:threat:vendor-due-diligence:credential_compromise
     - urn:intuitem:risk:threat:vendor-due-diligence:vendor_data_breach
+    is_recurrent: true
+    cadence: quarterly
+    task:
+      name: "Quarterly API Security and Credential Hygiene Review"
+      description: "Audit vendor API endpoint authentication, rate limiting metrics, OAuth scopes, and verify automated rotation of service account secrets."
+      frequency: "MONTHLY"
+      interval: 3
   - urn: urn:intuitem:risk:control:vendor-due-diligence:manage_subprocessors_and_flowdown
     ref_id: manage_subprocessors_and_flowdown
     name: Maintain sub-processor register, change notice, and contractual flow-down
@@ -2995,6 +3058,13 @@ objects:
     threats:
     - urn:intuitem:risk:threat:vendor-due-diligence:subprocessor_data_leakage
     - urn:intuitem:risk:threat:vendor-due-diligence:regulatory_sanction
+    is_recurrent: true
+    cadence: biannually
+    task:
+      name: "Biannual Fourth-Party Sub-processor Registry Review"
+      description: "Inspect the vendor's updated sub-processor register, verify 30-day change notification compliance, and review downstream contractual flow-down."
+      frequency: "MONTHLY"
+      interval: 6
   - urn: urn:intuitem:risk:control:vendor-due-diligence:govern_ai_usage_and_zdr
     ref_id: govern_ai_usage_and_zdr
     name: Enforce AI Zero-Data-Retention and model training prohibition
@@ -3009,6 +3079,13 @@ objects:
     threats:
     - urn:intuitem:risk:threat:vendor-due-diligence:ai_data_leakage
     - urn:intuitem:risk:threat:vendor-due-diligence:regulatory_sanction
+    is_recurrent: true
+    cadence: biannually
+    task:
+      name: "Biannual AI Zero-Data-Retention and Guardrails Compliance Check"
+      description: "Verify third-party AI/LLM Zero-Data-Retention agreements, audit model usage, confirm customer data training prohibitions, and review prompt guardrails."
+      frequency: "MONTHLY"
+      interval: 6
   - urn: urn:intuitem:risk:control:vendor-due-diligence:guarantee_sla_data_exit_and_escrow
     ref_id: guarantee_sla_data_exit_and_escrow
     name: Guarantee availability SLAs, data export tooling, deletion certificates, and escrow
@@ -3023,6 +3100,13 @@ objects:
     threats:
     - urn:intuitem:risk:threat:vendor-due-diligence:service_disruption
     - urn:intuitem:risk:threat:vendor-due-diligence:vendor_lockin_loss
+    is_recurrent: true
+    cadence: annually
+    task:
+      name: "Annual Exit Management, SLA Verification, and Escrow Audit"
+      description: "Validate availability SLA uptime records, test bulk data extraction tooling, and verify active status of software escrow agreements."
+      frequency: "YEARLY"
+      interval: 1
   vulnerabilities:
   - urn: urn:intuitem:risk:vulnerability:vendor-due-diligence:weak_governance_certification
     ref_id: weak_governance_certification
