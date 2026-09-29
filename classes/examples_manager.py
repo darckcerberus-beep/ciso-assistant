@@ -15,6 +15,7 @@ import yaml
 from classes import utils
 from classes.core.framework import FrameworkDict, FrameworkFile
 from classes.core.risk import RiskAssessmentDict, RiskMatrixDict, RiskScenarioDict, ThreatDict, VulnerabilityDict
+from classes.core.task import TaskDict, TaskTemplateDict
 from classes.core.user import UserDict
 from classes.controls.applied import AppliedControlDict
 from classes.controls.reference import ReferenceControlDict
@@ -105,6 +106,8 @@ FRAMEWORK_CATALOG = [
     },
 ]
 
+from tests.test_application_scenarios import ApplicationRiskSimulator
+
 
 class ExamplesManager:
     """Manages the creation, status discovery, and deletion of example applications in CISO Assistant."""
@@ -155,6 +158,8 @@ class ExamplesManager:
                 "finding_dict": FindingDict(),
                 "vulnerability_dict": VulnerabilityDict(),
                 "threat_dict": ThreatDict(),
+                "task_template_dict": TaskTemplateDict(),
+                "task_dict": TaskDict(),
                 "framework_file": FrameworkFile(str(self.framework_yaml)),
             }
         return self.data
@@ -1611,6 +1616,20 @@ class ExamplesManager:
         # Step 10: Generate Findings from Audit Answers
         findings_res = self.create_findings_for_application(app_name)
 
+        # Step 11: Create recurring tasks for recurrent applied controls
+        task_templates_created = []
+        task_template_dict = data.get("task_template_dict")
+        if applied_control_dict and reference_control_dict:
+            try:
+                task_templates_created = applied_control_dict.create_tasks_for_applied_controls(
+                    reference_control_dict,
+                    task_template_dict=task_template_dict,
+                    perimeter_dict=perimeter_dict,
+                    user_id=assignee_id,
+                )
+            except Exception as e:
+                utils.log(f"Error creating tasks for recurrent controls: {e}", level=logging.WARNING)
+
         # Reload for fresh state
         time.sleep(1)
         self._init_data(force_reload=True)
@@ -1635,6 +1654,7 @@ class ExamplesManager:
             "threats_linked": link_res.get("threats_linked", 0),
             "findings_assessment_id": findings_res.get("findings_assessment_id"),
             "findings_count": findings_res.get("findings_count", 0),
+            "task_templates_created": len(task_templates_created),
             "framework_id": framework_id,
             "framework_name": framework_name,
             "framework_ref": framework_ref,
@@ -2144,6 +2164,20 @@ class ExamplesManager:
         # Generate Findings from Audit Answers
         findings_res = self.create_findings_for_application(app_name)
 
+        # Generate recurring tasks for recurrent applied controls
+        task_templates_created = []
+        task_template_dict = data.get("task_template_dict")
+        if applied_control_dict and reference_control_dict:
+            try:
+                task_templates_created = applied_control_dict.create_tasks_for_applied_controls(
+                    reference_control_dict,
+                    task_template_dict=task_template_dict,
+                    perimeter_dict=perimeter_dict,
+                    user_id=assignee_id,
+                )
+            except Exception as e:
+                utils.log(f"Error creating tasks for recurrent controls: {e}", level=logging.WARNING)
+
         applied_control_dict.reload()
         app_controls = {
             c.get_id(): c
@@ -2170,6 +2204,7 @@ class ExamplesManager:
             "threats_linked": link_res.get("threats_linked", 0),
             "findings_assessment_id": findings_res.get("findings_assessment_id"),
             "findings_count": findings_res.get("findings_count", 0),
+            "task_templates_created": len(task_templates_created),
         }
 
     def create_findings_for_application(self, app_id_or_name: str) -> dict[str, Any]:
@@ -2549,6 +2584,7 @@ class ExamplesManager:
         findings_fa_dict = data.get("findings_assessment_dict")
         finding_dict = data.get("finding_dict")
         vuln_dict = data.get("vulnerability_dict")
+        task_template_dict: TaskTemplateDict | None = data.get("task_template_dict")
 
         perimeter_id = perimeter_dict.get_id_from_name(app_name)
         entity_id = entity_dict.get_id_from_name(app_name)
@@ -2564,6 +2600,7 @@ class ExamplesManager:
             "findings_assessments_deleted": 0,
             "scenarios_deleted": 0,
             "risk_assessments_deleted": 0,
+            "task_templates_deleted": 0,
             "applied_controls_deleted": 0,
             "vulnerabilities_deleted": 0,
             "compliance_assessments_deleted": 0,
@@ -2625,6 +2662,14 @@ class ExamplesManager:
                 deleted["scenarios_deleted"] += count
                 if risk_dict.delete_risk_assessment(ra_id):
                     deleted["risk_assessments_deleted"] += 1
+
+        # 1c. Delete Task Templates linked to Applied Controls
+        if task_template_dict and hasattr(task_template_dict, "delete_templates_for_applied_control"):
+            for ctrl in list(applied_ctrl_dict.get_controls().values()):
+                ctrl_name = ctrl.get_name()
+                if f"on {app_name}" in ctrl_name:
+                    count = task_template_dict.delete_templates_for_applied_control(ctrl.get_id())
+                    deleted["task_templates_deleted"] += count
 
         # 2. Delete Applied Controls
         for ctrl in list(applied_ctrl_dict.get_controls().values()):

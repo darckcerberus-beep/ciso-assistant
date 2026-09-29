@@ -439,6 +439,57 @@ class TestYamlIntegrity(unittest.TestCase):
                 if "expected_requirement_nodes_count" in meta:
                     self.assertEqual(len(fw["req_nodes"]), meta["expected_requirement_nodes_count"])
 
+    def test_recurrent_controls_and_task_specifications(self):
+        """Validate recurrent controls and task specifications across frameworks.
+
+        Ensures:
+        - If is_recurrent is True or task definition exists, cadence and frequency are valid.
+        - Supported cadences are in ('daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'biannually', 'annually', 'yearly').
+        - Supported frequencies in task definitions are in ('DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY').
+        - Interval is a positive integer >= 1.
+        - Task names and descriptions are non-empty strings.
+        """
+        valid_cadences = {"daily", "weekly", "biweekly", "monthly", "quarterly", "biannually", "semiannually", "annually", "yearly"}
+        valid_frequencies = {"DAILY", "WEEKLY", "MONTHLY", "YEARLY"}
+
+        total_recurrent = 0
+        for fw in self.frameworks:
+            with self.subTest(framework=fw["ref_id"]):
+                for urn, ctrl in fw["ref_ctrls"].items():
+                    is_rec = ctrl.get("is_recurrent", False)
+                    task_spec = ctrl.get("task")
+                    cadence = ctrl.get("cadence")
+
+                    if is_rec or task_spec or cadence:
+                        total_recurrent += 1
+                        if cadence:
+                            self.assertIn(
+                                str(cadence).strip().lower(),
+                                valid_cadences,
+                                f"Invalid cadence {cadence!r} for control {urn} in {fw['ref_id']}",
+                            )
+
+                        if task_spec:
+                            self.assertIsInstance(task_spec, dict, f"Task spec must be a dict for control {urn}")
+                            if "name" in task_spec:
+                                self.assertTrue(bool(str(task_spec["name"]).strip()), f"Task name cannot be empty for {urn}")
+                            if "description" in task_spec:
+                                self.assertTrue(bool(str(task_spec["description"]).strip()), f"Task description cannot be empty for {urn}")
+                            if "frequency" in task_spec:
+                                self.assertIn(
+                                    str(task_spec["frequency"]).strip().upper(),
+                                    valid_frequencies,
+                                    f"Invalid task frequency in control {urn}",
+                                )
+                            if "interval" in task_spec:
+                                self.assertGreaterEqual(
+                                    int(task_spec["interval"]),
+                                    1,
+                                    f"Task interval must be >= 1 in control {urn}",
+                                )
+
+        self.assertGreater(total_recurrent, 0, "Expected at least one recurrent control across frameworks")
+
 
 if __name__ == "__main__":
     unittest.main()
