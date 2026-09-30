@@ -16,6 +16,9 @@ Usage:
 
     CLI commands:
         python3 main.py --status
+        python3 main.py --create-domain "Finance Operations"
+        python3 main.py --create-domain "Core Banking" --description "Core banking systems" --parent-domain "Finance Operations"
+        python3 main.py --list-domains
         python3 main.py --create all
         python3 main.py --create app_secure_core
         python3 main.py --link-controls all
@@ -37,7 +40,7 @@ from classes.examples_manager import (
     FRAMEWORK_CATALOG,
     ExamplesManager,
 )
-from classes.organization.domain import criticality_mapping
+from classes.organization.domain import Domain, DomainDict, criticality_mapping
 from tests.test_application_scenarios import ApplicationRiskSimulator
 
 
@@ -797,6 +800,165 @@ def list_backups_ui(manager: ExamplesManager):
     print("=" * 80)
 
 
+def create_domain_ui(
+    manager: ExamplesManager,
+    name: str | None = None,
+    description: str | None = None,
+    parent_domain: str | None = None,
+    interactive: bool = True,
+):
+    """Create an organizational domain/folder in CISO Assistant."""
+    ok, msg = manager.test_connection()
+    if not ok:
+        print(f"\n[ERROR] API Connection Failed: {msg}")
+        return None
+
+    print("\n" + "=" * 80)
+    print("                    CREATE A NEW DOMAIN / FOLDER")
+    print("=" * 80)
+    print("Domains (folders in CISO Assistant) organize perimeters, assessments, and")
+    print("assets into hierarchical business units or organizational perimeters.")
+    print("-" * 80)
+
+    domains = manager.get_domains()
+
+    # 1. Prompt for Domain Name if not provided
+    if not name:
+        while True:
+            entered = input("Enter domain name (or 'c' to cancel): ").strip()
+            if entered.lower() in ("c", "cancel"):
+                print("Operation canceled.")
+                return None
+            if entered:
+                name = entered
+                break
+            print("[!] Domain name cannot be empty.")
+    else:
+        name = name.strip()
+        if not name:
+            print("\n[ERROR] Domain name cannot be empty.")
+            return None
+
+    # Check if domain already exists
+    existing = next((d for d in domains if d.get_name().lower() == name.lower()), None)
+    if existing:
+        print(f"\n[WARNING] Domain '{name}' already exists in CISO Assistant (ID: {existing.get_id()}).")
+        if interactive:
+            confirm = input("Do you want to re-use or view this domain? [Y/n] (or 'c' to cancel): ").strip().lower()
+            if confirm in ("c", "cancel", "n", "no"):
+                print("Operation canceled.")
+                return None
+            print(f"\nRe-using existing domain '{existing.get_name()}' [ID: {existing.get_id()}].")
+            return existing.json_object if hasattr(existing, "json_object") else {"id": existing.get_id(), "name": existing.get_name()}
+        else:
+            return existing.json_object if hasattr(existing, "json_object") else {"id": existing.get_id(), "name": existing.get_name()}
+
+    # 2. Prompt for Description if not provided and in interactive mode
+    if description is None and interactive:
+        desc_input = input("Enter domain description [optional, press Enter to skip] (or 'c' to cancel): ").strip()
+        if desc_input.lower() in ("c", "cancel"):
+            print("Operation canceled.")
+            return None
+        description = desc_input if desc_input else None
+
+    # 3. Prompt for Parent Domain if not provided and in interactive mode
+    parent_id = None
+    parent_display_name = "None (Top-level)"
+    if parent_domain:
+        # Resolve parent domain
+        match_id = next((d for d in domains if d.get_id() == parent_domain), None)
+        if match_id:
+            parent_id = match_id.get_id()
+            parent_display_name = f"{match_id.get_name()} ({parent_id})"
+        else:
+            match_name = next((d for d in domains if d.get_name().lower() == parent_domain.lower()), None)
+            if match_name:
+                parent_id = match_name.get_id()
+                parent_display_name = f"{match_name.get_name()} ({parent_id})"
+            else:
+                parent_id = parent_domain
+                parent_display_name = parent_domain
+    elif interactive and domains:
+        print("\nSelect Parent Domain (Hierarchical Organization):")
+        print(" 0) None (Top-level domain)")
+        for idx, d in enumerate(domains, start=1):
+            print(f" {idx}) {d.get_name()}")
+        p_choice = input(f"Enter choice [0-{len(domains)}, default: 0] (or 'c' to cancel): ").strip()
+        if p_choice.lower() in ("c", "cancel"):
+            print("Operation canceled.")
+            return None
+        if p_choice.isdigit() and 1 <= int(p_choice) <= len(domains):
+            selected_parent = domains[int(p_choice) - 1]
+            parent_id = selected_parent.get_id()
+            parent_display_name = f"{selected_parent.get_name()} ({parent_id})"
+
+    print(f"\n---> Provisioning domain '{name}' in CISO Assistant...")
+    try:
+        res = manager.create_domain(
+            name=name,
+            description=description,
+            parent_folder_id=parent_id,
+            create_iam_groups=True,
+        )
+        if res and (not isinstance(res, dict) or not res.get("error")):
+            domain_id = res.get("id") if isinstance(res, dict) else (res.get_id() if hasattr(res, "get_id") else str(res))
+            domain_name = res.get("name") if isinstance(res, dict) else (res.get_name() if hasattr(res, "get_name") else name)
+            domain_desc = res.get("description") if isinstance(res, dict) else (res.get_description() if hasattr(res, "get_description") else description)
+
+            print("\n" + "=" * 80)
+            print("                    DOMAIN SUCCESSFULLY CREATED")
+            print("=" * 80)
+            print(f" Domain Name:       {domain_name}")
+            print(f" Domain ID:         {domain_id}")
+            if domain_desc:
+                print(f" Description:       {domain_desc}")
+            print(f" Parent Domain:     {parent_display_name}")
+            print(f" IAM Groups:        Enabled (automatically provisioned)")
+            print("-" * 80)
+            print(f" View and manage this domain in the CISO Assistant UI at:")
+            print(f"   {utils.BASE_URL}")
+            print(" Navigate to 'Settings' -> 'Domains' to configure perimeters and roles.")
+            print("=" * 80)
+            return res
+        else:
+            err = res.get("details") or res.get("error") if isinstance(res, dict) else "Unknown error"
+            print(f"\n[ERROR] Failed to create domain '{name}': {err}")
+            return None
+    except Exception as e:
+        print(f"\n[ERROR] Exception creating domain '{name}': {e}")
+        return None
+
+
+def list_domains_ui(manager: ExamplesManager):
+    """Query and display all organizational domains/folders in CISO Assistant."""
+    ok, msg = manager.test_connection()
+    if not ok:
+        print(f"\n[ERROR] API Connection Failed: {msg}")
+        return
+
+    domains = manager.get_domains()
+    print("\n" + "=" * 80)
+    print("                     ORGANIZATIONAL DOMAINS")
+    print("=" * 80)
+    if not domains:
+        print("No domains found in CISO Assistant.")
+        print("=" * 80)
+        return
+
+    sep = "-" * 80
+    print(sep)
+    print(f"{'#':<3} | {'Domain Name':<30} | {'Domain ID':<38}")
+    print(sep)
+    for idx, d in enumerate(domains, start=1):
+        name_str = d.get_name()
+        if len(name_str) > 30:
+            name_str = name_str[:27] + "..."
+        print(f"{idx:<3} | {name_str:<30} | {d.get_id():<38}")
+    print(sep)
+    print(f"Total: {len(domains)} domain(s) in CISO Assistant.")
+    print("=" * 80)
+
+
 def run_offline_simulation():
     """Run local calculation and matrix lookup without calling the live API."""
     print("\nRunning offline local simulation preview (no API calls)...")
@@ -919,11 +1081,12 @@ def interactive_menu(manager: ExamplesManager):
         print(" 7) Remove a Specific Application")
         print(" 8) Run Offline Simulation (Local Preview without API)")
         print(" 9) Backup & Restore Management (Dumps, Snapshots, Restores, Listing)")
-        print(" 10) Launch Web UI & REST API Dashboard (http://127.0.0.1:5000)")
+        print(" 10) Create a New Domain (Organizational Folder)")
+        print(" 11) Launch Web UI & REST API Dashboard (http://127.0.0.1:5000)")
         print(" 0) Exit")
         print("=" * 80)
 
-        choice = input("Enter your choice [0-10]: ").strip()
+        choice = input("Enter your choice [0-11]: ").strip()
 
         if choice == "1":
             show_status(manager, wait_seconds=2.0)
@@ -1033,6 +1196,8 @@ def interactive_menu(manager: ExamplesManager):
             else:
                 backup_ui(manager, backup_type="snapshot")
         elif choice == "10":
+            create_domain_ui(manager)
+        elif choice == "11":
             import webbrowser
             from web import create_app
             url = "http://127.0.0.1:5000"
@@ -1051,7 +1216,7 @@ def interactive_menu(manager: ExamplesManager):
             print("\nGoodbye!")
             break
         else:
-            print("\n[!] Invalid choice. Please select an option from 0 to 10.")
+            print("\n[!] Invalid choice. Please select an option from 0 to 11.")
 
         input("\nPress [Enter] to return to the menu...")
 
@@ -1147,6 +1312,28 @@ def main():
         help="List all discovered backup files and snapshots.",
     )
     parser.add_argument(
+        "--create-domain",
+        nargs="?",
+        const="",
+        metavar="DOMAIN_NAME",
+        help="Create a new domain/folder in CISO Assistant ('--create-domain' or '--create-domain \"My Domain\"').",
+    )
+    parser.add_argument(
+        "--description",
+        metavar="TEXT",
+        help="Optional description for the domain (used with --create-domain).",
+    )
+    parser.add_argument(
+        "--parent-domain",
+        metavar="PARENT",
+        help="Optional parent domain name or UUID (used with --create-domain).",
+    )
+    parser.add_argument(
+        "--list-domains",
+        action="store_true",
+        help="List all existing organizational domains/folders in CISO Assistant.",
+    )
+    parser.add_argument(
         "--log-level",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         help="Set logging output verbosity level (default: WARNING, or LOG_LEVEL env var).",
@@ -1215,6 +1402,20 @@ def main():
 
     if args.status:
         show_status(manager, wait_seconds=args.wait)
+        return
+
+    if args.list_domains:
+        list_domains_ui(manager)
+        return
+
+    if args.create_domain is not None:
+        create_domain_ui(
+            manager,
+            name=args.create_domain if args.create_domain else None,
+            description=args.description,
+            parent_domain=args.parent_domain,
+            interactive=(not bool(args.create_domain)),
+        )
         return
 
     if args.list_backups:

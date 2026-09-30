@@ -5,7 +5,8 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from classes.examples_manager import ExamplesManager
-from main import print_status_table, remove_examples_ui
+from classes.organization.domain import Domain, DomainDict
+from main import create_domain_ui, interactive_menu, list_domains_ui, print_status_table, remove_examples_ui
 
 
 class TestMainStatus(unittest.TestCase):
@@ -889,6 +890,235 @@ class TestMainStatus(unittest.TestCase):
 
             self.assertEqual(len(results), 1)
             mock_remove.assert_called_once_with("app_secure_core")
+
+    def test_create_domain_ui_interactive_success(self):
+        """Verify create_domain_ui interactively prompts and provisions a new domain."""
+        mock_manager = MagicMock(spec=ExamplesManager)
+        mock_manager.test_connection.return_value = (True, "OK")
+        mock_manager.get_domains.return_value = [
+            Domain({"id": "d-corp", "name": "Corporate", "description": "Global corp"})
+        ]
+        mock_manager.create_domain.return_value = {
+            "id": "d-fin",
+            "name": "Finance Operations",
+            "description": "Financial systems",
+            "parent_folder": None,
+            "created_at": "2026-09-30T12:00:00Z",
+        }
+
+        # User inputs: Domain Name, Description, Parent Domain Choice (0 = None)
+        simulated_inputs = ["Finance Operations", "Financial systems", "0"]
+        buf = io.StringIO()
+        with patch("builtins.input", side_effect=simulated_inputs), patch("sys.stdout", buf):
+            res = create_domain_ui(mock_manager, interactive=True)
+
+        output = buf.getvalue()
+        self.assertIsNotNone(res)
+        self.assertEqual(res["id"], "d-fin")
+        self.assertIn("DOMAIN SUCCESSFULLY CREATED", output)
+        self.assertIn("Finance Operations", output)
+        self.assertIn("Financial systems", output)
+        self.assertIn("IAM Groups:        Enabled", output)
+        mock_manager.create_domain.assert_called_once_with(
+            name="Finance Operations",
+            description="Financial systems",
+            parent_folder_id=None,
+            create_iam_groups=True,
+        )
+
+    def test_create_domain_ui_cli_direct_with_parent_name(self):
+        """Verify create_domain_ui with direct CLI parameters resolves parent domain name to ID."""
+        mock_manager = MagicMock(spec=ExamplesManager)
+        mock_manager.test_connection.return_value = (True, "OK")
+        mock_manager.get_domains.return_value = [
+            Domain({"id": "d-corp", "name": "Corporate", "description": "Global corp"})
+        ]
+        mock_manager.create_domain.return_value = {
+            "id": "d-eng",
+            "name": "Engineering",
+            "description": "Tech & Dev",
+            "parent_folder": "d-corp",
+        }
+
+        buf = io.StringIO()
+        with patch("sys.stdout", buf):
+            res = create_domain_ui(
+                mock_manager,
+                name="Engineering",
+                description="Tech & Dev",
+                parent_domain="Corporate",
+                interactive=False,
+            )
+
+        output = buf.getvalue()
+        self.assertIsNotNone(res)
+        self.assertEqual(res["id"], "d-eng")
+        self.assertIn("Engineering", output)
+        self.assertIn("Corporate (d-corp)", output)
+        mock_manager.create_domain.assert_called_once_with(
+            name="Engineering",
+            description="Tech & Dev",
+            parent_folder_id="d-corp",
+            create_iam_groups=True,
+        )
+
+    def test_create_domain_ui_already_exists_interactive_reuse(self):
+        """Verify create_domain_ui warns when domain exists and allows re-using it."""
+        mock_manager = MagicMock(spec=ExamplesManager)
+        mock_manager.test_connection.return_value = (True, "OK")
+        mock_manager.get_domains.return_value = [
+            Domain({"id": "d-fin", "name": "Finance", "description": "Finance dept"})
+        ]
+
+        # User enters 'Finance', then confirms re-use with 'y'
+        simulated_inputs = ["Finance", "y"]
+        buf = io.StringIO()
+        with patch("builtins.input", side_effect=simulated_inputs), patch("sys.stdout", buf):
+            res = create_domain_ui(mock_manager, interactive=True)
+
+        output = buf.getvalue()
+        self.assertIsNotNone(res)
+        self.assertEqual(res["id"], "d-fin")
+        self.assertIn("Domain 'Finance' already exists in CISO Assistant", output)
+        self.assertIn("Re-using existing domain 'Finance'", output)
+        mock_manager.create_domain.assert_not_called()
+
+    def test_create_domain_ui_already_exists_non_interactive(self):
+        """Verify create_domain_ui in non-interactive mode returns existing domain without prompting."""
+        mock_manager = MagicMock(spec=ExamplesManager)
+        mock_manager.test_connection.return_value = (True, "OK")
+        mock_manager.get_domains.return_value = [
+            Domain({"id": "d-fin", "name": "Finance", "description": "Finance dept"})
+        ]
+
+        buf = io.StringIO()
+        with patch("sys.stdout", buf):
+            res = create_domain_ui(mock_manager, name="Finance", interactive=False)
+
+        output = buf.getvalue()
+        self.assertIsNotNone(res)
+        self.assertEqual(res["id"], "d-fin")
+        self.assertIn("Domain 'Finance' already exists in CISO Assistant", output)
+        mock_manager.create_domain.assert_not_called()
+
+    def test_create_domain_ui_connection_failure(self):
+        """Verify create_domain_ui gracefully aborts when API connection fails."""
+        mock_manager = MagicMock(spec=ExamplesManager)
+        mock_manager.test_connection.return_value = (False, "Connection refused")
+
+        buf = io.StringIO()
+        with patch("sys.stdout", buf):
+            res = create_domain_ui(mock_manager, name="Finance")
+
+        output = buf.getvalue()
+        self.assertIsNone(res)
+        self.assertIn("[ERROR] API Connection Failed: Connection refused", output)
+
+    def test_create_domain_ui_cancel_prompt(self):
+        """Verify entering 'c' cancels domain creation."""
+        mock_manager = MagicMock(spec=ExamplesManager)
+        mock_manager.test_connection.return_value = (True, "OK")
+        mock_manager.get_domains.return_value = []
+
+        buf = io.StringIO()
+        with patch("builtins.input", return_value="c"), patch("sys.stdout", buf):
+            res = create_domain_ui(mock_manager, interactive=True)
+
+        output = buf.getvalue()
+        self.assertIsNone(res)
+        self.assertIn("Operation canceled.", output)
+
+    def test_list_domains_ui(self):
+        """Verify list_domains_ui prints formatted table of discovered domains."""
+        mock_manager = MagicMock(spec=ExamplesManager)
+        mock_manager.test_connection.return_value = (True, "OK")
+        mock_manager.get_domains.return_value = [
+            Domain({"id": "d-1", "name": "Examples"}),
+            Domain({"id": "d-2", "name": "Corporate Finance"}),
+        ]
+
+        buf = io.StringIO()
+        with patch("sys.stdout", buf):
+            list_domains_ui(mock_manager)
+
+        output = buf.getvalue()
+        self.assertIn("ORGANIZATIONAL DOMAINS", output)
+        self.assertIn("Examples", output)
+        self.assertIn("Corporate Finance", output)
+        self.assertIn("d-1", output)
+        self.assertIn("d-2", output)
+        self.assertIn("Total: 2 domain(s) in CISO Assistant.", output)
+
+    def test_examples_manager_create_domain(self):
+        """Verify ExamplesManager.create_domain validates input and delegates to DomainDict."""
+        manager = ExamplesManager()
+        # Empty name should raise ValueError
+        with self.assertRaises(ValueError):
+            manager.create_domain(name="")
+
+        with self.assertRaises(ValueError):
+            manager.create_domain(name="   ")
+
+        mock_domain_dict = MagicMock(spec=DomainDict)
+        mock_domain_dict.get_domain_by_id.return_value = None
+        mock_domain_dict.get_id_from_name.return_value = "parent-id-123"
+        mock_domain_dict.create_domain.return_value = {"id": "d-new", "name": "Test"}
+
+        with patch.object(manager, "_init_data", return_value={"domain_dict": mock_domain_dict}):
+            res = manager.create_domain(name="Test", parent_folder_id="Parent Name")
+            self.assertEqual(res["id"], "d-new")
+            mock_domain_dict.create_domain.assert_called_once_with(
+                name="Test",
+                description=None,
+                parent_folder_id="parent-id-123",
+                create_iam_groups=True,
+            )
+
+    def test_domain_dict_create_domain_and_getters(self):
+        """Verify DomainDict.create_domain, get_domain_by_name, and Domain getters."""
+        existing_domain = Domain({"id": "d-1", "name": "Existing", "description": "Existing desc", "parent_folder": "d-0"})
+        self.assertEqual(existing_domain.get_description(), "Existing desc")
+        self.assertEqual(existing_domain.get_parent_folder(), "d-0")
+
+        with patch("classes.utils.get_all_results", return_value=[existing_domain.json_object]):
+            dd = DomainDict()
+            self.assertEqual(len(dd.get_domains()), 1)
+            self.assertEqual(dd.get_domain_by_name("Existing").get_id(), "d-1")
+            self.assertIsNone(dd.get_domain_by_name("Non-existent"))
+            self.assertEqual(dd.get_domain_by_id("d-1").get_name(), "Existing")
+            self.assertIsNone(dd.get_domain_by_id("non-existent-id"))
+
+            # Creating already existing domain returns existing dict
+            res_existing = dd.create_domain("Existing")
+            self.assertEqual(res_existing["id"], "d-1")
+
+            # Creating new domain calls API and reloads
+            new_domain_payload = {"id": "d-2", "name": "New Domain", "description": "New Desc"}
+            with patch("classes.utils.get_return", return_value=new_domain_payload) as mock_post:
+                res_new = dd.create_domain("New Domain", description="New Desc", parent_folder_id="d-1")
+                self.assertEqual(res_new["id"], "d-2")
+                mock_post.assert_called_once_with(
+                    "/api/folders/",
+                    method="POST",
+                    payload={"name": "New Domain", "create_iam_groups": True, "description": "New Desc", "parent_folder": "d-1"},
+                )
+
+    def test_interactive_menu_choice_10_calls_create_domain_ui(self):
+        """Verify selecting option 10 in interactive_menu calls create_domain_ui."""
+        mock_manager = MagicMock(spec=ExamplesManager)
+        # Select 10, then enter to pause, then 0 to exit
+        simulated_inputs = ["10", "", "0"]
+        stdout_buf = io.StringIO()
+        with (
+            patch("builtins.input", side_effect=simulated_inputs),
+            patch("main.create_domain_ui") as mock_create_domain_ui,
+            patch("sys.stdout", stdout_buf),
+        ):
+            interactive_menu(mock_manager)
+
+        mock_create_domain_ui.assert_called_once_with(mock_manager)
+        output = stdout_buf.getvalue()
+        self.assertIn("10) Create a New Domain (Organizational Folder)", output)
 
 
 if __name__ == "__main__":

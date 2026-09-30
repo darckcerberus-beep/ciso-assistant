@@ -203,6 +203,57 @@ class ExamplesManager:
 
         return None
 
+    def create_domain(
+        self,
+        name: str,
+        description: str | None = None,
+        parent_folder_id: str | None = None,
+        create_iam_groups: bool = True,
+    ) -> dict | None:
+        """Create a new domain/folder in CISO Assistant.
+
+        Args:
+            name: Domain name.
+            description: Optional domain description.
+            parent_folder_id: Optional parent domain name or UUID.
+            create_iam_groups: Whether to automatically provision IAM groups (default: True).
+
+        Returns:
+            Dict containing domain data, or None on failure.
+        """
+        if not name or not name.strip():
+            raise ValueError("Domain name cannot be empty.")
+
+        name = name.strip()
+        data = self._init_data()
+        domain_dict: DomainDict = data["domain_dict"]
+
+        resolved_parent_id = None
+        if parent_folder_id:
+            matched_by_id = domain_dict.get_domain_by_id(parent_folder_id) if hasattr(domain_dict, "get_domain_by_id") else None
+            if matched_by_id:
+                resolved_parent_id = matched_by_id.get_id()
+            else:
+                matched_name_id = domain_dict.get_id_from_name(parent_folder_id)
+                if matched_name_id:
+                    resolved_parent_id = matched_name_id
+                else:
+                    resolved_parent_id = parent_folder_id
+
+        return domain_dict.create_domain(
+            name=name,
+            description=description,
+            parent_folder_id=resolved_parent_id,
+            create_iam_groups=create_iam_groups,
+        )
+
+    def get_domains(self) -> list:
+        """Retrieve all domains/folders from CISO Assistant."""
+        data = self._init_data()
+        domain_dict: DomainDict = data["domain_dict"]
+        domain_dict.reload()
+        return domain_dict.get_domains()
+
     def get_default_assignee_id(self) -> str | None:
         """Find an active actor to assign as owner of perimeters and assets."""
         data = self._init_data()

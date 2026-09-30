@@ -48,11 +48,20 @@ class Domain:
     def get_id(self):
         return self.json_object.get('id', '')
 
+    def get_description(self):
+        return self.json_object.get('description', '') or ''
+
+    def get_parent_folder(self):
+        return self.json_object.get('parent_folder')
+
     def print_name(self):
         utils.log(f"Name: {self.get_name()}")
 
     def print_id(self):
         utils.log(f"ID: {self.get_id()}")
+
+    def print_description(self):
+        utils.log(f"Description: {self.get_description()}")
 
 
 class DomainDict:
@@ -81,6 +90,55 @@ class DomainDict:
             if d.get_id() == id:
                 return d.get_name()
         return None
+
+    def get_domain_by_name(self, name):
+        """Retrieve Domain object by name."""
+        for d in self.domains:
+            if d.get_name() == name:
+                return d
+        return None
+
+    def get_domain_by_id(self, domain_id):
+        """Retrieve Domain object by ID."""
+        for d in self.domains:
+            if d.get_id() == domain_id:
+                return d
+        return None
+
+    def create_domain(self, name, description=None, parent_folder_id=None, create_iam_groups=True):
+        """Create a new domain/folder in CISO Assistant.
+
+        Args:
+            name: Name of the domain/folder.
+            description: Optional description for the domain.
+            parent_folder_id: Optional UUID of the parent domain/folder.
+            create_iam_groups: Whether to automatically provision IAM groups (default: True).
+
+        Returns:
+            Dict containing created or existing folder data, or None on failure.
+        """
+        # Check if the domain already exists
+        for d in self.domains:
+            if d.get_name() == name:
+                utils.log(f"Domain '{name}' already exists.")
+                return d.json_object if hasattr(d, "json_object") else {"id": d.get_id(), "name": d.get_name()}
+
+        payload = {'name': name, 'create_iam_groups': create_iam_groups}
+        if description:
+            payload['description'] = description
+        if parent_folder_id:
+            payload['parent_folder'] = parent_folder_id
+
+        result = utils.get_return("/api/folders/", method="POST", payload=payload)
+        utils.log(f"Result: {result}")
+        if result and (not isinstance(result, dict) or not result.get("error")):
+            utils.log(f"Domain '{name}' created successfully.")
+            self.reload()
+            return result
+        else:
+            utils.log(f"Failed to create domain '{name}': {result}", level=logging.ERROR)
+            return None
+
     def upsert_folder(self, name):
         # Check if the folder already exists
         for d in self.domains:
