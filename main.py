@@ -1239,7 +1239,15 @@ def interactive_menu(manager: ExamplesManager):
         elif choice == "10":
             create_domain_ui(manager)
         elif choice == "11":
+            import importlib
+            import sys
             import webbrowser
+            for mod_name in list(sys.modules.keys()):
+                if mod_name == "web" or mod_name.startswith("web."):
+                    try:
+                        importlib.reload(sys.modules[mod_name])
+                    except Exception:
+                        pass
             from web import create_app
             url = "http://127.0.0.1:5000"
             print(f"\nLaunching CISO Assistant Web UI at {url} ...")
