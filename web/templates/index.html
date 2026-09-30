@@ -90,6 +90,10 @@
         <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
         <span>Dashboard & Inventory</span>
       </button>
+      <button onclick="switchTab('domains')" id="tab-btn-domains" class="tab-btn flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap transition">
+        <i data-lucide="folder-tree" class="w-4 h-4 text-purple-400"></i>
+        <span>Domains & Folders</span>
+      </button>
       <button onclick="switchTab('audit-demo')" id="tab-btn-audit-demo" class="tab-btn flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap transition">
         <i data-lucide="user-check" class="w-4 h-4"></i>
         <span>Audit Demo Intake</span>
@@ -124,7 +128,7 @@
     <div id="tab-dashboard" class="space-y-6">
 
       <!-- Executive KPI Cards -->
-      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
         <div class="bg-surface-900 border border-slate-800 p-4 rounded-xl shadow-sm hover:border-slate-700 transition">
           <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
             <span>Catalog Profiles</span>
@@ -132,6 +136,15 @@
           </div>
           <div id="kpi-catalog" class="text-2xl font-bold text-white mt-2">12</div>
           <p class="text-[11px] text-slate-500 mt-1">8 DPP + 4 VDD Profiles</p>
+        </div>
+
+        <div class="bg-surface-900 border border-purple-500/20 p-4 rounded-xl shadow-sm hover:border-purple-500/40 transition">
+          <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
+            <span>Org Domains</span>
+            <i data-lucide="folder-tree" class="w-4 h-4 text-purple-400"></i>
+          </div>
+          <div id="kpi-domains" class="text-2xl font-bold text-purple-400 mt-2">0</div>
+          <p class="text-[11px] text-slate-500 mt-1">Organizational Scopes</p>
         </div>
 
         <div class="bg-surface-900 border border-slate-800 p-4 rounded-xl shadow-sm hover:border-slate-700 transition">
@@ -176,7 +189,7 @@
             <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-400"></i>
           </div>
           <div id="kpi-findings" class="text-2xl font-bold text-rose-400 mt-2">0</div>
-          <p class="text-[11px] text-slate-500 mt-1">Compliance Gaps Identified</p>
+          <p class="text-[11px] text-slate-500 mt-1">Compliance Gaps</p>
         </div>
       </div>
 
@@ -204,6 +217,9 @@
             <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
             <input type="text" id="app-search-input" oninput="filterApplications()" placeholder="Filter applications..." class="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg bg-surface-800 border border-slate-700 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 transition">
           </div>
+          <select id="domain-filter" onchange="filterApplications()" class="text-xs rounded-lg bg-surface-800 border border-slate-700 text-slate-200 px-3 py-1.5 focus:outline-none focus:border-brand-500">
+            <option value="all">All Domains</option>
+          </select>
           <select id="framework-filter" onchange="filterApplications()" class="text-xs rounded-lg bg-surface-800 border border-slate-700 text-slate-200 px-3 py-1.5 focus:outline-none focus:border-brand-500">
             <option value="all">All Frameworks</option>
             <option value="mls">Multi-level DPP (mls)</option>
@@ -228,6 +244,7 @@
               <tr>
                 <th class="py-3 px-4">#</th>
                 <th class="py-3 px-4">Application</th>
+                <th class="py-3 px-4">Domain</th>
                 <th class="py-3 px-4">Framework</th>
                 <th class="py-3 px-4">Lifecycle Status</th>
                 <th class="py-3 px-4">Audit Progress</th>
@@ -240,10 +257,104 @@
             </thead>
             <tbody id="applications-table-body" class="divide-y divide-slate-800/80">
               <tr>
-                <td colspan="10" class="py-8 text-center text-slate-500">
+                <td colspan="11" class="py-8 text-center text-slate-500">
                   <div class="flex flex-col items-center justify-center space-y-2">
                     <i data-lucide="loader" class="w-6 h-6 animate-spin text-brand-500"></i>
                     <span>Loading application status from CISO Assistant...</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- --------------------------------------------------------------------- -->
+    <!-- TAB: DOMAINS & FOLDERS MANAGEMENT                                    -->
+    <!-- --------------------------------------------------------------------- -->
+    <div id="tab-domains" class="hidden space-y-6">
+      <div class="bg-surface-900 border border-slate-800 rounded-xl p-6 shadow-lg">
+        <div class="border-b border-slate-800 pb-5 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+              <i data-lucide="folder-tree" class="w-5 h-5 text-purple-400"></i>
+            </div>
+            <div>
+              <h2 class="text-base font-bold text-white">Organizational Domains & Scopes</h2>
+              <p class="text-xs text-slate-400">Manage CISO Assistant domains, organizational perimeters, and folder hierarchy</p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2.5">
+            <button onclick="toggleCreateDomainForm(true)" class="px-3.5 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-medium text-xs flex items-center space-x-1.5 transition shadow-md shadow-purple-600/20">
+              <i data-lucide="folder-plus" class="w-4 h-4"></i>
+              <span>Create Domain</span>
+            </button>
+            <a href="{{ base_url }}/core/domain/" target="_blank" class="px-3.5 py-2 rounded-lg bg-surface-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium text-xs flex items-center space-x-1.5 transition">
+              <i data-lucide="external-link" class="w-3.5 h-3.5 text-slate-400"></i>
+              <span>Open in CISO Assistant</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Inline Create Domain Card (Collapsible) -->
+        <div id="create-domain-panel" class="hidden mt-6 p-5 bg-surface-950/80 border border-purple-500/30 rounded-xl space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold text-purple-300 uppercase tracking-wider flex items-center space-x-2">
+              <i data-lucide="folder-plus" class="w-4 h-4"></i>
+              <span>Create Organizational Domain / Folder</span>
+            </h3>
+            <button onclick="toggleCreateDomainForm(false)" class="text-slate-400 hover:text-slate-200 text-xs">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <form id="create-domain-form" onsubmit="submitCreateDomain(event)" class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Domain Name <span class="text-rose-400">*</span></label>
+                <input type="text" id="new-domain-name" required placeholder="e.g. IT-Operations, Finance, Cloud-Sec" class="w-full px-3 py-1.5 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-purple-500">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Parent Domain (Hierarchical)</label>
+                <select id="new-domain-parent" class="w-full px-3 py-1.5 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white focus:outline-none focus:border-purple-500">
+                  <option value="">None (Top-Level Domain)</option>
+                </select>
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-slate-300 mb-1">Description (Optional)</label>
+                <input type="text" id="new-domain-desc" placeholder="Brief purpose or scope of this organizational domain" class="w-full px-3 py-1.5 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-purple-500">
+              </div>
+            </div>
+            <div class="flex justify-end space-x-2 pt-2">
+              <button type="button" onclick="toggleCreateDomainForm(false)" class="px-3 py-1.5 rounded-lg bg-surface-800 text-slate-400 hover:text-slate-200 text-xs transition">Cancel</button>
+              <button type="submit" class="px-4 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium flex items-center space-x-1.5 transition">
+                <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                <span>Provision Domain</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Domains Table -->
+        <div class="mt-6 overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300 divide-y divide-slate-800">
+            <thead class="bg-surface-950/60 text-slate-400 uppercase tracking-wider font-semibold text-[11px]">
+              <tr>
+                <th class="py-3 px-4">#</th>
+                <th class="py-3 px-4">Domain Name</th>
+                <th class="py-3 px-4">Domain UUID</th>
+                <th class="py-3 px-4">Description</th>
+                <th class="py-3 px-4">Parent Folder</th>
+                <th class="py-3 px-4">Associated Apps</th>
+                <th class="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="domains-table-body" class="divide-y divide-slate-800/80">
+              <tr>
+                <td colspan="7" class="py-8 text-center text-slate-500">
+                  <div class="flex flex-col items-center justify-center space-y-2">
+                    <i data-lucide="loader" class="w-6 h-6 animate-spin text-purple-500"></i>
+                    <span>Loading organizational domains from CISO Assistant...</span>
                   </div>
                 </td>
               </tr>
@@ -320,6 +431,18 @@
             </select>
           </div>
 
+          <!-- Target Domain / Folder Selection -->
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1.5">Target Domain / Organizational Folder (Optional)</label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <select id="audit-domain-select" onchange="syncAuditDomainInput()" class="w-full px-3 py-2 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white focus:outline-none focus:border-brand-500">
+                <option value="">Default ({{ target_folder }})</option>
+              </select>
+              <input type="text" id="audit-domain-name" placeholder="Or custom domain name..." class="w-full px-3 py-2 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 transition">
+            </div>
+            <p class="text-[11px] text-slate-500 mt-1">Select an existing organizational domain or enter a new one.</p>
+          </div>
+
           <!-- Submit Button -->
           <div class="pt-3 flex items-center justify-end space-x-3">
             <button type="submit" id="audit-submit-btn" class="px-5 py-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-medium text-xs flex items-center space-x-2 transition shadow-md shadow-brand-600/20">
@@ -336,8 +459,9 @@
               <i data-lucide="check-circle" class="w-5 h-5"></i>
               <span>Audit Demonstration Successfully Created!</span>
             </div>
-            <div class="grid grid-cols-2 gap-2 text-xs text-slate-300 pt-2 font-mono">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-300 pt-2 font-mono">
               <div>App Name: <span id="res-app-name" class="text-white font-semibold">-</span></div>
+              <div>Domain: <span id="res-domain-name" class="text-white font-semibold">-</span></div>
               <div>Assigned User: <span id="res-user-email" class="text-white font-semibold">-</span></div>
               <div>Perimeter ID: <span id="res-perimeter-id" class="text-white">-</span></div>
               <div>Assessment: <span id="res-assessment-name" class="text-white">-</span></div>
@@ -906,6 +1030,7 @@
       applications: [],
       catalog: [],
       installedFrameworks: [],
+      domains: [],
       summary: {},
       activeTaskId: null,
       activeEventSource: null,
@@ -935,11 +1060,12 @@
         activeBtn.classList.add("border-brand-500", "text-brand-400");
       }
 
-      ['dashboard', 'audit-demo', 'generate-risks', 'offline-sim', 'backups', 'tools'].forEach(id => {
+      ['dashboard', 'domains', 'audit-demo', 'generate-risks', 'offline-sim', 'backups', 'tools'].forEach(id => {
         const el = document.getElementById(`tab-${id}`);
         if (el) el.classList.toggle("hidden", id !== tabId);
       });
 
+      if (tabId === 'domains') renderDomainsView();
       if (tabId === 'backups') loadBackups();
       if (tabId === 'offline-sim') runOfflineSimulation();
       lucide.createIcons();
@@ -959,11 +1085,13 @@
         APP_STATE.applications = data.applications || [];
         APP_STATE.catalog = data.catalog || [];
         APP_STATE.installedFrameworks = data.installed_frameworks || [];
+        APP_STATE.domains = data.domains || [];
         APP_STATE.summary = data.summary || {};
 
         updateConnectionUI(data);
         renderKpis(data.summary);
         renderApplicationsTable(data.applications);
+        renderDomainsView();
         populateDropdowns();
 
         if (notify) showToast("Dashboard refreshed successfully", "success");
@@ -996,6 +1124,7 @@
 
     function renderKpis(sum = {}) {
       document.getElementById("kpi-catalog").innerText = sum.total_catalog ?? 12;
+      document.getElementById("kpi-domains").innerText = sum.total_domains ?? (APP_STATE.domains ? APP_STATE.domains.length : 0);
       document.getElementById("kpi-deployed").innerText = sum.deployed ?? 0;
       document.getElementById("kpi-audits").innerText = sum.completed_audits ?? 0;
       document.getElementById("kpi-risks").innerText = sum.total_risks ?? 0;
@@ -1008,7 +1137,7 @@
       tbody.innerHTML = "";
 
       if (!apps || apps.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" class="py-8 text-center text-slate-500">No applications found. Use "Provision ALL Examples" or catalog to create some.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="11" class="py-8 text-center text-slate-500">No applications found. Use "Provision ALL Examples" or catalog to create some.</td></tr>`;
         return;
       }
 
@@ -1016,6 +1145,7 @@
         const tr = document.createElement("tr");
         tr.className = "hover:bg-surface-800/40 transition";
         tr.dataset.appName = app.name.toLowerCase();
+        tr.dataset.domainName = (app.domain_name || app.domain || "").toLowerCase();
         tr.dataset.frameworkRef = (app.framework_ref || "").toLowerCase();
 
         // Lifecycle Badge
@@ -1027,6 +1157,11 @@
             statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">IN PROGRESS</span>`;
           }
         }
+
+        // Domain Badge
+        const domainDisplay = (app.domain_name || app.domain)
+          ? `<span class="px-2 py-0.5 rounded text-[10px] font-medium ${app.exists ? 'bg-surface-800 text-slate-200 border border-slate-700' : 'bg-surface-900 text-slate-400 border border-slate-800'} font-mono">${app.domain_name || app.domain}</span>`
+          : `<span class="text-slate-500">-</span>`;
 
         // Audit Progress
         let auditProgress = `<span class="text-slate-500">-</span>`;
@@ -1090,6 +1225,7 @@
             <div class="font-bold text-white">${app.name}</div>
             <div class="text-[10px] text-slate-400 truncate max-w-[200px]">${app.description || app.label || ''}</div>
           </td>
+          <td class="py-3 px-4">${domainDisplay}</td>
           <td class="py-3 px-4">
             <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-surface-800 text-slate-300 border border-slate-700 font-mono">
               ${app.framework_name || 'Multi-level DPP'}
@@ -1132,6 +1268,25 @@
         tbody.appendChild(tr);
       });
 
+      // Populate unique domains in domain-filter dropdown
+      const domainFilter = document.getElementById("domain-filter");
+      if (domainFilter) {
+        const currentVal = domainFilter.value;
+        const orgDomains = (APP_STATE.domains || []).map(d => d.name).filter(Boolean);
+        const appDomains = apps.map(a => a.domain_name || a.domain).filter(Boolean);
+        const uniqueDomains = [...new Set([...orgDomains, ...appDomains])];
+        domainFilter.innerHTML = `<option value="all">All Domains</option>`;
+        uniqueDomains.forEach(d => {
+          const opt = document.createElement("option");
+          opt.value = d.toLowerCase();
+          opt.innerText = d;
+          domainFilter.appendChild(opt);
+        });
+        if (uniqueDomains.map(d => d.toLowerCase()).includes(currentVal)) {
+          domainFilter.value = currentVal;
+        }
+      }
+
       document.getElementById("table-count-badge").innerText = `${apps.length} Profiles`;
       lucide.createIcons();
     }
@@ -1139,33 +1294,148 @@
     function filterApplications() {
       const search = document.getElementById("app-search-input").value.toLowerCase();
       const fwFilter = document.getElementById("framework-filter").value.toLowerCase();
+      const domFilter = document.getElementById("domain-filter") ? document.getElementById("domain-filter").value.toLowerCase() : "all";
 
       document.querySelectorAll("#applications-table-body tr").forEach(tr => {
         const name = tr.dataset.appName || "";
+        const dom = tr.dataset.domainName || "";
         const fw = tr.dataset.frameworkRef || "";
-        const matchSearch = !search || name.includes(search);
+        const matchSearch = !search || name.includes(search) || dom.includes(search);
         const matchFw = fwFilter === "all" || fw.includes(fwFilter);
-        tr.style.display = matchSearch && matchFw ? "" : "none";
+        const matchDom = domFilter === "all" || dom === domFilter;
+        tr.style.display = matchSearch && matchFw && matchDom ? "" : "none";
       });
+    }
+
+    function filterByDomain(domainName) {
+      switchTab('dashboard');
+      const sel = document.getElementById("domain-filter");
+      if (sel) {
+        sel.value = (domainName || "all").toLowerCase();
+        filterApplications();
+      }
+    }
+
+    function renderDomainsView() {
+      const tbody = document.getElementById("domains-table-body");
+      if (!tbody) return;
+      const domains = APP_STATE.domains || [];
+
+      if (domains.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-500">No organizational domains found. Click "Create Domain" to provision one.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = "";
+      domains.forEach((dom, idx) => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-surface-800/40 transition";
+
+        // Associated Apps Count
+        const associatedApps = (APP_STATE.applications || []).filter(
+          app => (app.domain_name || app.domain || "").toLowerCase() === (dom.name || "").toLowerCase()
+        );
+
+        const appsBadge = associatedApps.length > 0
+          ? `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-brand-500/15 text-brand-300 border border-brand-500/30 cursor-pointer hover:bg-brand-500/30" onclick="filterByDomain('${dom.name}')" title="Filter apps for this domain">${associatedApps.length} Apps</span>`
+          : `<span class="text-slate-500">0</span>`;
+
+        const parentDisplay = dom.parent_folder 
+          ? `<span class="px-1.5 py-0.5 rounded bg-surface-800 text-slate-400 font-mono text-[10px] border border-slate-700">${dom.parent_folder.str || dom.parent_folder.id || dom.parent_folder}</span>`
+          : `<span class="text-slate-600 italic">None (Root)</span>`;
+
+        tr.innerHTML = `
+          <td class="py-3 px-4 text-slate-500 font-mono">${idx + 1}</td>
+          <td class="py-3 px-4">
+            <div class="font-bold text-white flex items-center space-x-1.5">
+              <i data-lucide="folder" class="w-3.5 h-3.5 text-purple-400"></i>
+              <span>${dom.name}</span>
+            </div>
+          </td>
+          <td class="py-3 px-4 font-mono text-[11px] text-slate-400">${dom.id || '-'}</td>
+          <td class="py-3 px-4 text-slate-300 max-w-xs truncate">${dom.description || '<span class="text-slate-600">-</span>'}</td>
+          <td class="py-3 px-4">${parentDisplay}</td>
+          <td class="py-3 px-4">${appsBadge}</td>
+          <td class="py-3 px-4 text-right">
+            <button onclick="filterByDomain('${dom.name}')" class="px-2.5 py-1 rounded bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 border border-purple-500/30 text-[11px] font-medium transition inline-flex items-center space-x-1" title="View applications in this domain">
+              <i data-lucide="filter" class="w-3 h-3"></i>
+              <span>Filter Apps</span>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      lucide.createIcons();
+    }
+
+    function toggleCreateDomainForm(force) {
+      const panel = document.getElementById("create-domain-panel");
+      if (!panel) return;
+      const show = force !== undefined ? force : panel.classList.contains("hidden");
+      panel.classList.toggle("hidden", !show);
+      if (show) {
+        document.getElementById("new-domain-name").focus();
+      }
+    }
+
+    function submitCreateDomain(e) {
+      e.preventDefault();
+      const name = document.getElementById("new-domain-name").value.trim();
+      const parentDomain = document.getElementById("new-domain-parent").value.trim();
+      const description = document.getElementById("new-domain-desc").value.trim();
+
+      if (!name) {
+        showToast("Domain name is required", "error");
+        return;
+      }
+
+      const payload = {
+        name: name,
+        parent_domain: parentDomain || null,
+        description: description || null,
+      };
+
+      startTaskPost("/api/domains", payload, () => {
+        toggleCreateDomainForm(false);
+        document.getElementById("create-domain-form").reset();
+        showToast(`Domain '${name}' provisioned successfully!`, "success");
+        refreshAll();
+      });
+    }
+
+    function syncAuditDomainInput() {
+      const sel = document.getElementById("audit-domain-select");
+      const input = document.getElementById("audit-domain-name");
+      if (sel && input) {
+        if (sel.value) {
+          input.value = sel.options[sel.selectedIndex].text;
+        } else {
+          input.value = "";
+        }
+      }
     }
 
     function populateDropdowns() {
       // Deployed Apps for Risk Generator
       const genSelect = document.getElementById("gen-app-select");
       if (genSelect) {
+        const cur = genSelect.value;
         genSelect.innerHTML = `<option value="">Select an application...</option>`;
         APP_STATE.applications.forEach(app => {
           const opt = document.createElement("option");
           opt.value = app.name;
           const statusText = app.exists ? (app.audit_answered ? "Answered" : "Deployed (Unanswered)") : "Not Created";
-          opt.innerText = `${app.name} (${statusText})`;
+          const domText = (app.domain_name || app.domain) ? ` [${app.domain_name || app.domain}]` : "";
+          opt.innerText = `${app.name}${domText} (${statusText})`;
           genSelect.appendChild(opt);
         });
+        genSelect.value = cur;
       }
 
       // Catalog Profiles for Risk Generator
       const profileSelect = document.getElementById("gen-profile-select");
       if (profileSelect) {
+        const cur = profileSelect.value;
         profileSelect.innerHTML = "";
         APP_STATE.catalog.forEach(cat => {
           const opt = document.createElement("option");
@@ -1173,6 +1443,35 @@
           opt.innerText = `${cat.name} (${cat.description || cat.label})`;
           profileSelect.appendChild(opt);
         });
+        profileSelect.value = cur;
+      }
+
+      // Domains for Target Domain in Audit Intake
+      const auditDomainSelect = document.getElementById("audit-domain-select");
+      if (auditDomainSelect) {
+        const cur = auditDomainSelect.value;
+        auditDomainSelect.innerHTML = `<option value="">Default ({{ target_folder }})</option>`;
+        (APP_STATE.domains || []).forEach(d => {
+          const opt = document.createElement("option");
+          opt.value = d.id;
+          opt.innerText = d.name;
+          auditDomainSelect.appendChild(opt);
+        });
+        auditDomainSelect.value = cur;
+      }
+
+      // Parent Domains for New Domain Form
+      const parentDomainSelect = document.getElementById("new-domain-parent");
+      if (parentDomainSelect) {
+        const cur = parentDomainSelect.value;
+        parentDomainSelect.innerHTML = `<option value="">None (Top-Level Domain)</option>`;
+        (APP_STATE.domains || []).forEach(d => {
+          const opt = document.createElement("option");
+          opt.value = d.id;
+          opt.innerText = `${d.name} (${(d.id || '').substring(0, 8)}...)`;
+          parentDomainSelect.appendChild(opt);
+        });
+        parentDomainSelect.value = cur;
       }
 
       // Frameworks for Diagnostics
@@ -1208,6 +1507,13 @@
 
     function submitAuditDemo(e) {
       e.preventDefault();
+      const domainInput = document.getElementById("audit-domain-name").value.trim();
+      const domainSelect = document.getElementById("audit-domain-select");
+      let selectedDomain = domainInput;
+      if (!selectedDomain && domainSelect && domainSelect.selectedIndex > 0) {
+        selectedDomain = domainSelect.options[domainSelect.selectedIndex].text;
+      }
+
       const payload = {
         app_name: document.getElementById("audit-app-name").value.trim(),
         user_email: document.getElementById("audit-user-email").value.trim(),
@@ -1215,11 +1521,13 @@
         last_name: document.getElementById("audit-user-last").value.trim(),
         is_third_party: document.getElementById("audit-user-tprm").checked,
         framework: document.getElementById("audit-framework-select").value,
+        domain: selectedDomain || null,
       };
 
       startTaskPost("/api/audit-demo", payload, (res) => {
         // Display result card
         document.getElementById("res-app-name").innerText = payload.app_name;
+        document.getElementById("res-domain-name").innerText = res?.data?.domain_name || res?.domain_name || selectedDomain || "{{ target_folder }}";
         document.getElementById("res-user-email").innerText = payload.user_email;
         document.getElementById("res-perimeter-id").innerText = res?.data?.perimeter_id || res?.perimeter_id || "Created";
         document.getElementById("res-assessment-name").innerText = res?.data?.compliance_assessment_name || "Assigned";
@@ -1701,6 +2009,7 @@
 
       document.getElementById("modal-title").innerText = `Resource Breakdown: ${app.name}`;
       const fields = [
+        ["Domain / Folder", `${app.domain_name || app.domain || 'None'}${app.domain_id ? ` (ID: ${app.domain_id})` : ''}`],
         ["Framework", `${app.framework_name || 'Multi-level DPP'} (${app.framework_ref || 'mls'})`],
         ["Lifecycle Status", app.lifecycle_status || (app.exists ? "DEPLOYED" : "NOT CREATED")],
         ["Perimeter ID", app.perimeter_id || "None"],

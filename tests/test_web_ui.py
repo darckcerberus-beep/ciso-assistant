@@ -34,6 +34,8 @@ class TestWebUI(unittest.TestCase):
         html = response.get_data(as_text=True)
         self.assertIn("CISO Assistant", html)
         self.assertIn("Dashboard & Inventory", html)
+        self.assertIn("Domains & Folders", html)
+        self.assertIn("domain-filter", html)
         self.assertIn("Offline Simulation Studio", html)
         self.assertIn("Disaster Recovery & Backups", html)
 
@@ -44,8 +46,30 @@ class TestWebUI(unittest.TestCase):
         data = response.get_json()
         self.assertIn("connected", data)
         self.assertIn("applications", data)
+        self.assertIn("domains", data)
         self.assertIn("summary", data)
         self.assertIn("total_catalog", data["summary"])
+        self.assertIn("total_domains", data["summary"])
+
+    def test_domains_endpoint(self):
+        """Test GET and POST /api/domains."""
+        # GET domains
+        response = self.client.get("/api/domains")
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertIn("domains", data)
+
+        # POST domain (validation error if empty name)
+        err_res = self.client.post("/api/domains", json={"name": ""})
+        self.assertEqual(err_res.status_code, 400)
+
+        # POST domain (valid creation task)
+        with patch("classes.examples_manager.ExamplesManager.create_domain") as mock_create:
+            mock_create.return_value = {"id": "dom-123", "name": "IT-Ops"}
+            ok_res = self.client.post("/api/domains", json={"name": "IT-Ops", "description": "IT Domain"})
+            self.assertEqual(ok_res.status_code, 200)
+            ok_data = ok_res.get_json()
+            self.assertIn("task_id", ok_data)
 
     def test_catalog_endpoint(self):
         """Test GET /api/catalog returns pre-configured application profiles."""
@@ -244,25 +268,52 @@ class TestWebUI(unittest.TestCase):
         """Verify ExamplesManager.generate_controls_and_risks_for_application accepts both app_name and app_id_or_name."""
         from classes.examples_manager import ExamplesManager
         manager = ExamplesManager()
-        with patch.object(manager, "_init_data") as mock_init:
+        mock_ca = MagicMock()
+        mock_ca.get_id.return_value = "ca1"
+        mock_ca.get_name.return_value = "Audit Demo in App-Audit-Demo"
+        mock_ca.get_perimeter_id.return_value = "p1"
+        mock_ca.get_framework_id.return_value = "fw1"
+
+        mock_req_assessment = MagicMock()
+        mock_req_assessment.get_compliance_assessment_id.return_value = "ca1"
+        mock_req_assessment.has_selected_answer.return_value = True
+        mock_req_assessment.is_unassessed_result.return_value = False
+
+        mock_risk_assessment = MagicMock()
+        mock_risk_assessment.get_id.return_value = "ra1"
+        mock_risk_assessment.get_name.return_value = "Risk Assessment on App-Audit-Demo"
+        mock_risk_assessment.json_object = {"perimeter": "p1"}
+
+        with patch.object(manager, "_init_data") as mock_init, \
+             patch.object(manager, "find_target_risk_matrix", return_value="rm1"), \
+             patch("tests.test_application_scenarios.ApplicationRiskSimulator") as mock_sim:
             mock_init.return_value = {
                 "perimeter_dict": MagicMock(get_id_from_name=lambda n: "p1", get_owner_id_from_perimeter_id=lambda p: "u1"),
                 "asset_dict": MagicMock(get_asset_id_from_perimeter_name=lambda n: "a1"),
-                "compliance_assessment_dict": MagicMock(get_id_from_perimeter_id=lambda p: "ca1", get_assessment=lambda i: MagicMock(get_answered_count=lambda: 5, get_requirement_assessments=lambda: [])),
-                "applied_control_dict": MagicMock(),
+                "compliance_assessment_dict": MagicMock(
+                    get_id_from_perimeter_id=lambda p: "ca1",
+                    get_compliance_assessments=lambda: {"ca1": mock_ca},
+                    get_assessment=lambda i: MagicMock(get_answered_count=lambda: 5, get_requirement_assessments=lambda: [mock_req_assessment]),
+                    requirement_assessments=MagicMock(get_requirement_assessments=lambda: {"ra1": mock_req_assessment}),
+                ),
+                "applied_control_dict": MagicMock(get_controls=lambda: {}),
                 "reference_control_dict": MagicMock(),
-                "risk_assessment_dict": MagicMock(get_id_from_perimeter_id=lambda p: "ra1"),
-                "risk_scenario_dict": MagicMock(),
+                "risk_assessment_dict": MagicMock(
+                    get_id_from_perimeter_id=lambda p: "ra1",
+                    get_risk_assessments=lambda: {"ra1": mock_risk_assessment},
+                    create_risk_assessments=lambda *a, **kw: {"id": "ra1"},
+                ),
+                "risk_scenario_dict": MagicMock(get_risk_scenarios=lambda: {}),
+                "framework_dict": MagicMock(),
                 "framework_file": MagicMock(),
                 "risk_matrix_dict": MagicMock(),
             }
             # Test calling with app_name keyword argument
-            with patch("classes.examples_manager.ApplicationRiskSimulator") as mock_sim:
-                mock_sim.return_value.evaluate_application.return_value = {"scenarios": {}}
-                res = manager.generate_controls_and_risks_for_application(
-                    app_name="App-Audit-Demo",
-                )
-                self.assertEqual(res["app_name"], "App-Audit-Demo")
+            mock_sim.return_value.evaluate_application.return_value = {"scenarios": {}}
+            res = manager.generate_controls_and_risks_for_application(
+                app_name="App-Audit-Demo",
+            )
+            self.assertEqual(res["app_name"], "App-Audit-Demo")
 
     @patch("classes.examples_manager.ExamplesManager.link_all_controls_to_risk_scenarios")
     def test_link_controls_endpoint(self, mock_link):
