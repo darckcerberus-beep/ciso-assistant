@@ -220,6 +220,8 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
         template_folder=str(Path(__file__).resolve().parent / "templates"),
         static_folder=str(Path(__file__).resolve().parent / "static"),
     )
+    app.config["TEMPLATES_AUTO_RELOAD"] = True
+    app.jinja_env.auto_reload = True
 
     if test_config:
         app.config.update(test_config)
@@ -227,6 +229,14 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
     if manager is None:
         manager = app.config.get("manager") or ExamplesManager()
     app.manager = manager
+
+    @app.after_request
+    def add_cache_headers(response):
+        """Prevent browser caching so UI updates and background themes reflect immediately."""
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
 
     # -----------------------------------------------------------------------
     # Web UI Page
@@ -238,7 +248,7 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
         return render_template(
             "index.html",
             base_url=utils.BASE_URL,
-            target_folder=EXAMPLE_FOLDER_NAME,
+            target_folder=getattr(manager, "folder_name", None) or EXAMPLE_FOLDER_NAME,
         )
 
     # -----------------------------------------------------------------------
@@ -248,6 +258,7 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
     @app.route("/api/status")
     def api_status():
         """Retrieve deployment status across all applications."""
+        target_folder = getattr(manager, "folder_name", None) or EXAMPLE_FOLDER_NAME
         wait_sec = float(request.args.get("wait", 0.0))
 
         connected, conn_msg = manager.test_connection()
@@ -256,12 +267,14 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
                 "connected": False,
                 "message": conn_msg,
                 "base_url": utils.BASE_URL,
-                "folder_name": EXAMPLE_FOLDER_NAME,
+                "folder_name": target_folder,
                 "applications": [],
                 "installed_frameworks": [],
                 "catalog": manager.get_example_applications(),
+                "domains": [],
                 "summary": {
                     "total_catalog": len(manager.get_example_applications()),
+                    "total_domains": 0,
                     "deployed": 0,
                     "completed_audits": 0,
                     "total_risks": 0,
@@ -276,6 +289,22 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
         status_list = manager.get_status(wait_seconds=0)
         installed_fws = manager.get_installed_frameworks()
         catalog_apps = manager.get_example_applications()
+
+        # Query all organizational domains in CISO Assistant
+        domains_list = []
+        try:
+            raw_domains = manager.get_domains()
+            domains_list = [
+                {
+                    "id": d.get_id(),
+                    "name": d.get_name(),
+                    "description": getattr(d, "get_description", lambda: "")(),
+                    "parent_folder": getattr(d, "get_parent_folder", lambda: None)(),
+                }
+                for d in raw_domains
+            ]
+        except Exception as e:
+            LOGGER.warning(f"Error querying domains: {e}")
 
         # Compute aggregate metrics
         deployed_apps = [s for s in status_list if s.get("exists")]
@@ -296,12 +325,14 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
             "connected": True,
             "message": conn_msg,
             "base_url": utils.BASE_URL,
-            "folder_name": EXAMPLE_FOLDER_NAME,
+            "folder_name": target_folder,
             "applications": status_list,
             "installed_frameworks": installed_fws,
             "catalog": catalog_apps,
+            "domains": domains_list,
             "summary": {
                 "total_catalog": len(catalog_apps),
+                "total_domains": len(domains_list),
                 "deployed": len(deployed_apps),
                 "completed_audits": completed_audits,
                 "partial_audits": partial_audits,
@@ -309,6 +340,54 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
                 "total_controls": total_controls,
                 "total_findings": total_findings,
             },
+        })
+
+    @app.route("/api/domains", methods=["GET", "POST"])
+    def api_domains():
+        """Retrieve or create organizational domains/folders in CISO Assistant."""
+        if request.method == "POST":
+            payload = request.get_json() or {}
+            name = payload.get("name", "").strip()
+            description = payload.get("description", "").strip() or None
+            parent_domain = payload.get("parent_domain", "").strip() or None
+
+            if not name:
+                return jsonify({"error": "Domain name is required."}), 400
+
+            def _create_job():
+                print(f"---> Creating organizational domain '{name}' in CISO Assistant...")
+                res = manager.create_domain(
+                    name=name,
+                    description=description,
+                    parent_folder_id=parent_domain,
+                    create_iam_groups=True,
+                )
+                if isinstance(res, dict) and res.get("error"):
+                    raise RuntimeError(res.get("details") or res.get("error"))
+                dom_id = res.get("id") if isinstance(res, dict) else (res.get_id() if hasattr(res, "get_id") else str(res))
+                print(f"     [OK] Domain Created: {name} (ID: {dom_id})")
+                return res
+
+            task_id = TASK_MANAGER.create_task(f"Create Domain '{name}'", _create_job)
+            return jsonify({"task_id": task_id, "message": f"Creation of domain '{name}' started."})
+
+        # GET: List all domains
+        connected, _ = manager.test_connection()
+        if not connected:
+            return jsonify({"domains": [], "connected": False})
+
+        domains = manager.get_domains()
+        return jsonify({
+            "connected": True,
+            "domains": [
+                {
+                    "id": d.get_id(),
+                    "name": d.get_name(),
+                    "description": getattr(d, "get_description", lambda: "")(),
+                    "parent_folder": getattr(d, "get_parent_folder", lambda: None)(),
+                }
+                for d in domains
+            ],
         })
 
     @app.route("/api/frameworks")
