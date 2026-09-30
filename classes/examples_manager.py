@@ -931,6 +931,8 @@ class ExamplesManager:
         framework_name: str | None = None,
         framework_ref: str | None = None,
         yaml_path: str | None = None,
+        domain_id: str | None = None,
+        domain_name: str | None = None,
     ) -> dict[str, Any]:
         """Construct a standardized status dictionary for an application."""
         total_reqs = 0
@@ -981,6 +983,9 @@ class ExamplesManager:
             "id": app_id,
             "name": app_name,
             "label": label,
+            "domain_id": domain_id,
+            "domain_name": domain_name,
+            "domain": domain_name,
             "yaml_path": yaml_path or "",
             "framework_id": framework_id,
             "framework_name": framework_name,
@@ -1145,6 +1150,32 @@ class ExamplesManager:
             if not fw_ref:
                 fw_ref = app.get("framework_ref", DEFAULT_FRAMEWORK_REF)
 
+            # Resolve domain / folder
+            app_domain_id = None
+            if perimeter_id:
+                p_obj = next((p for p in perimeter_dict.get_perimeters() if p.get_id() == perimeter_id), None)
+                if p_obj:
+                    app_domain_id = p_obj.get_folder_uuid()
+            if not app_domain_id and asset_id:
+                a_obj = next((a for a in asset_dict.get_assets() if a.get_id() == asset_id), None)
+                if a_obj:
+                    app_domain_id = a_obj.get_folder_id()
+            if not app_domain_id and entity_id:
+                e_obj = next((e for e in entity_dict.get_entities() if e.get_id() == entity_id), None)
+                if e_obj:
+                    ent_f = e_obj.json_object.get("folder", {})
+                    app_domain_id = ent_f.get("id") if isinstance(ent_f, dict) else ent_f
+
+            app_domain_name = None
+            domain_dict = data.get("domain_dict")
+            if app_domain_id and domain_dict and hasattr(domain_dict, "get_name_from_id"):
+                app_domain_name = domain_dict.get_name_from_id(app_domain_id)
+
+            if not app_domain_name:
+                app_domain_name = self.folder_name
+                if not app_domain_id and domain_dict and hasattr(domain_dict, "get_id_from_name"):
+                    app_domain_id = domain_dict.get_id_from_name(self.folder_name)
+
             status_list.append(self._build_status_dict(
                 app_id=app["id"],
                 app_name=app_name,
@@ -1170,6 +1201,8 @@ class ExamplesManager:
                 framework_name=fw_name,
                 framework_ref=fw_ref,
                 yaml_path=app.get("yaml_path", ""),
+                domain_id=app_domain_id,
+                domain_name=app_domain_name,
             ))
 
         # Discover custom applications created in the example folder
@@ -1305,6 +1338,8 @@ class ExamplesManager:
                     framework_name=fw_name,
                     framework_ref=fw_ref,
                     yaml_path="-",
+                    domain_id=folder_id,
+                    domain_name=self.folder_name,
                 ))
 
         return status_list

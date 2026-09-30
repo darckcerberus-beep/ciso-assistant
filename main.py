@@ -55,14 +55,20 @@ def print_banner():
 
 def print_status_table(status_list):
     """Print formatted deployment summary table and resource breakdown."""
-    sep = "-" * 168
+    sep = "-" * 187
     print("\n" + sep)
-    print(f"{'#':<3} | {'Application Name':<25} | {'Status':<24} | {'App Created':<11} | {'Audit Answered':<15} | {'Risks Created':<13} | {'Controls':<8} | {'Linked':<8} | {'TPRM':<5} | {'User':<18} | {'Findings':<8}")
+    print(f"{'#':<3} | {'Application Name':<25} | {'Domain':<16} | {'Status':<24} | {'App Created':<11} | {'Audit Answered':<15} | {'Risks Created':<13} | {'Controls':<8} | {'Linked':<8} | {'TPRM':<5} | {'User':<18} | {'Findings':<8}")
     print(sep)
     for idx, item in enumerate(status_list, start=1):
         name_str = item["name"]
         if len(name_str) > 25:
             name_str = name_str[:22] + "..."
+
+        domain_str = item.get("domain_name") or item.get("domain") or item.get("folder_name") or ("Examples" if item.get("exists") else "-")
+        if not item.get("exists") and not item.get("domain_name") and not item.get("domain"):
+            domain_str = "-"
+        if len(domain_str) > 16:
+            domain_str = domain_str[:13] + "..."
 
         status_str = item.get("lifecycle_status") or item.get("status") or ("DEPLOYED" if item.get("exists") else "NOT CREATED")
         if len(status_str) > 24:
@@ -107,7 +113,7 @@ def print_status_table(status_list):
         if len(user_str) > 18:
             user_str = user_str[:15] + "..."
 
-        print(f"{idx:<3} | {name_str:<25} | {status_str:<24} | {app_str:<11} | {audit_str:<15} | {risks_str:<13} | {ctrl_count:<8} | {linked_str:<8} | {tprm_str:<5} | {user_str:<18} | {findings_str:<8}")
+        print(f"{idx:<3} | {name_str:<25} | {domain_str:<16} | {status_str:<24} | {app_str:<11} | {audit_str:<15} | {risks_str:<13} | {ctrl_count:<8} | {linked_str:<8} | {tprm_str:<5} | {user_str:<18} | {findings_str:<8}")
     print(sep)
 
     # Detailed view
@@ -116,6 +122,9 @@ def print_status_table(status_list):
         print("\nDeployed Resources Breakdown:")
         for s in deployed:
             print(f"\n  * {s['name']}:")
+            dom_disp = s.get('domain_name') or s.get('domain') or s.get('folder_name') or 'Examples'
+            dom_id_disp = f" (ID: {s['domain_id']})" if s.get('domain_id') else ""
+            print(f"    - Domain:                   {dom_disp}{dom_id_disp}")
             fw_disp = s.get('framework_name') or 'Multi-level DPP'
             fw_ref_disp = f" ({s['framework_ref']})" if s.get('framework_ref') else ""
             print(f"    - Framework:                {fw_disp}{fw_ref_disp}")

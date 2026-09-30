@@ -47,10 +47,14 @@ class TestMainStatus(unittest.TestCase):
                 "user_email": "alice@example.com",
                 "user_id": "usr-1",
                 "tprm_conclusion": "ok",
+                "domain_id": "dom-1",
+                "domain_name": "Examples",
             },
             {
                 "id": "app_audit_demo",
                 "name": "App-Audit-Demo",
+                "domain_id": "dom-2",
+                "domain_name": "Corporate",
                 "exists": True,
                 "app_created": True,
                 "audit_created": True,
@@ -151,6 +155,7 @@ class TestMainStatus(unittest.TestCase):
 
         # Check Table Headers
         self.assertIn("Application Name", output)
+        self.assertIn("Domain", output)
         self.assertIn("Status", output)
         self.assertIn("App Created", output)
         self.assertIn("Audit Answered", output)
@@ -159,6 +164,9 @@ class TestMainStatus(unittest.TestCase):
         self.assertIn("Linked", output)
 
         # Check Row Values
+        self.assertIn("Examples", output)
+        self.assertIn("Corporate", output)
+
         # App-Secure-Core: CONFIGURED | App: YES | Audit: YES (12/12) | Risks: YES (4)
         self.assertIn("CONFIGURED", output)
         self.assertIn("YES (12/12)", output)
@@ -176,6 +184,7 @@ class TestMainStatus(unittest.TestCase):
         self.assertIn("NOT CREATED", output)
 
         # Check Detailed view breakdown
+        self.assertIn("Domain:", output)
         self.assertIn("Lifecycle Status:", output)
         self.assertIn("App Created:", output)
         self.assertIn("Audit Answered:", output)
@@ -240,12 +249,17 @@ class TestMainStatus(unittest.TestCase):
             user_email="user@example.com",
             user_id="u-2",
             req_by_ca={},
+            domain_id="dom-xyz",
+            domain_name="Finance",
         )
         self.assertTrue(s2["exists"])
         self.assertTrue(s2["app_created"])
         self.assertFalse(s2["audit_created"])
         self.assertFalse(s2["audit_answered"])
         self.assertEqual(s2["lifecycle_status"], "APP ONLY (NO AUDIT)")
+        self.assertEqual(s2["domain_name"], "Finance")
+        self.assertEqual(s2["domain_id"], "dom-xyz")
+        self.assertEqual(s2["domain"], "Finance")
 
         # State 3: Audit Pending (CA created with 2 requirements, 0 answered)
         mock_ca = MagicMock()
