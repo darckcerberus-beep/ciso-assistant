@@ -21,6 +21,8 @@ Usage:
         python3 main.py --list-domains
         python3 main.py --create all
         python3 main.py --create app_secure_core
+        python3 main.py --create app_secure_core --domain "Finance Operations"
+        python3 main.py --create-audit "App-Audit-Demo" --domain "Finance Operations"
         python3 main.py --link-controls all
         python3 main.py --link-controls app_secure_core
         python3 main.py --remove all --yes
@@ -44,12 +46,12 @@ from classes.organization.domain import Domain, DomainDict, criticality_mapping
 from tests.test_application_scenarios import ApplicationRiskSimulator
 
 
-def print_banner():
+def print_banner(target_folder: str = EXAMPLE_FOLDER_NAME):
     """Display header banner."""
     print("=" * 80)
     print("           CISO ASSISTANT - EXAMPLE APPLICATIONS MANAGER")
     print(f" Target Instance: {utils.BASE_URL}")
-    print(f" Target Folder:   {EXAMPLE_FOLDER_NAME}")
+    print(f" Target Folder:   {target_folder}")
     print("=" * 80)
 
 
@@ -217,7 +219,12 @@ def link_controls_ui(manager: ExamplesManager, target="all"):
             print(f"[ERROR] Failed to link controls for {app['name']}: {e}")
 
 
-def create_examples_ui(manager: ExamplesManager, target="all", framework_ref_or_name: str | None = None):
+def create_examples_ui(
+    manager: ExamplesManager,
+    target="all",
+    framework_ref_or_name: str | None = None,
+    domain_name: str | None = None,
+):
     """Provision example applications in CISO Assistant with answers and risk scenarios."""
     ok, msg = manager.test_connection()
     if not ok:
@@ -235,9 +242,10 @@ def create_examples_ui(manager: ExamplesManager, target="all", framework_ref_or_
             print("\nPlease ensure the framework is imported into CISO Assistant before creating applications.")
             return
 
+    target_domain_disp = domain_name or manager.folder_name
     if target == "all":
         example_apps = manager.get_example_applications()
-        print(f"\nCreating all {len(example_apps)} example applications in CISO Assistant...")
+        print(f"\nCreating all {len(example_apps)} example applications in CISO Assistant (Domain: {target_domain_disp})...")
         for app in example_apps:
             app_fw_ref = app.get("framework_ref")
             app_fw_name = app.get("framework_name")
@@ -245,9 +253,13 @@ def create_examples_ui(manager: ExamplesManager, target="all", framework_ref_or_
             if not matching_fw:
                 print(f"\n---> [SKIPPED] {app['label']}: Associated framework '{app_fw_name}' ({app_fw_ref}) is not installed in CISO Assistant.")
                 continue
-            print(f"\n---> Provisioning {app['label']} (Framework: {matching_fw.get_name()})...")
+            print(f"\n---> Provisioning {app['label']} in domain '{target_domain_disp}' (Framework: {matching_fw.get_name()})...")
             try:
-                res = manager.create_example_application(app["id"], framework_ref_or_name=app_fw_ref)
+                call_kwargs = {"framework_ref_or_name": app_fw_ref}
+                if domain_name is not None:
+                    call_kwargs["domain_name"] = domain_name
+                res = manager.create_example_application(app["id"], **call_kwargs)
+                print(f"     [OK] Domain: {res.get('domain_name')} (ID: {res.get('domain_id')})")
                 print(f"     [OK] Representative User: {res.get('user_email')} (ID: {res.get('user_id')})")
                 print(f"     [OK] TPRM External Entity: {res.get('entity_id')}")
                 print(f"     [OK] TPRM Entity Assessment: {res.get('entity_assessment_name')}")
@@ -279,9 +291,13 @@ def create_examples_ui(manager: ExamplesManager, target="all", framework_ref_or_
             print(f"\n[ERROR] Cannot create {app['name']}: Associated framework '{app_fw_name}' ({app_fw_ref}) is not installed in CISO Assistant.")
             print("Please ensure the framework is installed in CISO Assistant before creating applications.")
             return
-        print(f"\n---> Provisioning {app['label']} in CISO Assistant (Framework: {matching_fw.get_name()})...")
+        print(f"\n---> Provisioning {app['label']} in domain '{target_domain_disp}' (Framework: {matching_fw.get_name()})...")
         try:
-            res = manager.create_example_application(app["id"], framework_ref_or_name=target_fw)
+            call_kwargs = {"framework_ref_or_name": target_fw}
+            if domain_name is not None:
+                call_kwargs["domain_name"] = domain_name
+            res = manager.create_example_application(app["id"], **call_kwargs)
+            print(f"     [OK] Domain: {res.get('domain_name')} (ID: {res.get('domain_id')})")
             print(f"     [OK] Representative User: {res.get('user_email')} (ID: {res.get('user_id')})")
             print(f"     [OK] TPRM External Entity: {res.get('entity_id')}")
             print(f"     [OK] TPRM Entity Assessment: {res.get('entity_assessment_name')}")
@@ -307,6 +323,7 @@ def create_audit_demo_ui(
     app_name: str | None = None,
     user_email: str | None = None,
     framework_ref_or_name: str | None = None,
+    domain_name: str | None = None,
 ):
     """Create an application and assign its compliance assessment to a user (interactive audit demo)."""
     ok, msg = manager.test_connection()
@@ -344,8 +361,9 @@ def create_audit_demo_ui(
     print(" - Generates NO risk scenarios or controls until answers are provided.")
     print("-" * 80)
 
-    # 1. Prompt for Application Name
-    if not app_name:
+    # 1. Prompt for Application Name (and Domain if in interactive demo)
+    is_interactive_demo = (app_name is None)
+    if is_interactive_demo:
         default_app_name = "App-Audit-Demo"
         prompt_str = f"Enter application name [default: {default_app_name}] (or 'c' to cancel): "
         entered = input(prompt_str).strip()
@@ -353,6 +371,15 @@ def create_audit_demo_ui(
             print("Operation canceled.")
             return
         app_name = entered or default_app_name
+
+        if not domain_name:
+            default_domain = manager.folder_name or EXAMPLE_FOLDER_NAME
+            dom_prompt = f"Enter target domain [default: {default_domain}] (or 'c' to cancel): "
+            dom_input = input(dom_prompt).strip()
+            if dom_input.lower() in ("c", "cancel"):
+                print("Operation canceled.")
+                return
+            domain_name = dom_input or default_domain
 
     # 2. Prompt for User Email
     if not user_email:
@@ -430,20 +457,25 @@ def create_audit_demo_ui(
                 selected_fw = installed_fws[0]
                 framework_ref_or_name = selected_fw.get("ref_id") or selected_fw.get("name")
 
-    print(f"\n---> Provisioning application '{app_name}' and assigning audit to '{user_email}'...")
+    target_domain_disp = domain_name or manager.folder_name
+    print(f"\n---> Provisioning application '{app_name}' in domain '{target_domain_disp}' and assigning audit to '{user_email}'...")
     try:
-        res = manager.create_application_for_audit(
-            app_name=app_name,
-            user_email=user_email,
-            first_name=first_name,
-            last_name=last_name,
-            is_third_party=is_third_party,
-            framework_ref_or_name=framework_ref_or_name,
-        )
+        audit_call_kwargs = {
+            "app_name": app_name,
+            "user_email": user_email,
+            "first_name": first_name,
+            "last_name": last_name,
+            "is_third_party": is_third_party,
+            "framework_ref_or_name": framework_ref_or_name,
+        }
+        if domain_name is not None:
+            audit_call_kwargs["domain_name"] = domain_name
+        res = manager.create_application_for_audit(**audit_call_kwargs)
         print("\n" + "=" * 80)
         print("          AUDIT DEMONSTRATION APPLICATION READY")
         print("=" * 80)
         print(f" Application Name:         {res['app_name']}")
+        print(f" Target Domain:            {res.get('domain_name', 'Examples')} (ID: {res.get('domain_id')})")
         fw_display = res.get("framework_name", "Multi-level DPP")
         fw_ref_disp = f" ({res['framework_ref']})" if res.get("framework_ref") else ""
         print(f" Target Framework:         {fw_display}{fw_ref_disp}")
@@ -1080,7 +1112,7 @@ def run_pipeline():
 def interactive_menu(manager: ExamplesManager):
     """Run the interactive console menu for managing example applications."""
     while True:
-        print_banner()
+        print_banner(manager.folder_name)
         print(" 1) List / Check Status of Examples in CISO Assistant")
         print(" 2) Create ALL Examples in CISO Assistant (Simulate Answers via API)")
         print(" 3) Create a Specific Example Application (Simulate Answers via API)")
@@ -1269,6 +1301,11 @@ def main():
         help="Framework reference ID or name to use ('mls', 'vendor-due-diligence', or custom).",
     )
     parser.add_argument(
+        "--domain",
+        metavar="DOMAIN",
+        help="Target domain/folder name to create applications in (creates domain if missing; default: 'Examples').",
+    )
+    parser.add_argument(
         "--generate-risks",
         nargs="?",
         const="App-Audit-Demo",
@@ -1402,7 +1439,7 @@ def main():
         run_pipeline()
         return
 
-    manager = ExamplesManager()
+    manager = ExamplesManager(folder_name=args.domain if args.domain else EXAMPLE_FOLDER_NAME)
 
     # CLI mode
     if args.offline:
@@ -1440,11 +1477,16 @@ def main():
         return
 
     if args.create_audit:
+        audit_call_kwargs = {
+            "app_name": args.create_audit,
+            "user_email": args.user,
+            "framework_ref_or_name": args.framework,
+        }
+        if args.domain:
+            audit_call_kwargs["domain_name"] = args.domain
         create_audit_demo_ui(
             manager,
-            app_name=args.create_audit,
-            user_email=args.user,
-            framework_ref_or_name=args.framework,
+            **audit_call_kwargs,
         )
         return
 
@@ -1453,10 +1495,15 @@ def main():
         return
 
     if args.create:
+        create_call_kwargs = {
+            "target": args.create,
+            "framework_ref_or_name": args.framework,
+        }
+        if args.domain:
+            create_call_kwargs["domain_name"] = args.domain
         create_examples_ui(
             manager,
-            target=args.create,
-            framework_ref_or_name=args.framework,
+            **create_call_kwargs,
         )
         return
 

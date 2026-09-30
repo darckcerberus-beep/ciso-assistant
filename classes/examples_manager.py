@@ -106,8 +106,6 @@ FRAMEWORK_CATALOG = [
     },
 ]
 
-from tests.test_application_scenarios import ApplicationRiskSimulator
-
 
 class ExamplesManager:
     """Manages the creation, status discovery, and deletion of example applications in CISO Assistant."""
@@ -181,20 +179,58 @@ class ExamplesManager:
         except Exception as e:
             return False, f"Connection exception: {e}"
 
-    def get_or_create_folder(self) -> str | None:
-        """Retrieve or create the destination folder/domain for example applications."""
-        data = self._init_data()
-        domain_dict: DomainDict = data["domain_dict"]
+    def get_or_create_folder(self, folder_name: str | None = None) -> str | None:
+        """Retrieve or create the destination folder/domain for example applications.
 
-        folder_id = domain_dict.get_id_from_name(self.folder_name)
+        If the specified domain does not exist in CISO Assistant, it will be automatically created.
+
+        Args:
+            folder_name: Optional domain/folder name or UUID. Defaults to self.folder_name.
+
+        Returns:
+            Domain/Folder UUID or None.
+        """
+        target = (folder_name or self.folder_name or "").strip()
+        if not target:
+            target = self.folder_name
+
+        data = self._init_data()
+        domain_dict = data.get("domain_dict")
+        if not domain_dict:
+            return None
+
+        # 1. Check if target is already a valid domain ID
+        if hasattr(domain_dict, "get_domain_by_id"):
+            domain_by_id = domain_dict.get_domain_by_id(target)
+            if domain_by_id:
+                return domain_by_id.get_id()
+
+        # 2. Check if target matches an existing domain name
+        folder_id = domain_dict.get_id_from_name(target)
         if folder_id:
             return folder_id
 
-        # Fall back to any existing folder if creation fails, or create it
-        new_folder = domain_dict.upsert_folder(self.folder_name)
-        if isinstance(new_folder, dict) and new_folder.get("id"):
-            return new_folder.get("id")
+        # 3. Domain does not exist -> Create it automatically
+        utils.log(f"Domain '{target}' does not exist in CISO Assistant. Automatically creating domain...", level=logging.INFO)
+        new_domain = None
+        if hasattr(domain_dict, "create_domain"):
+            new_domain = domain_dict.create_domain(name=target, description=f"Domain for {target}")
+        elif hasattr(domain_dict, "upsert_folder"):
+            new_domain = domain_dict.upsert_folder(target)
 
+        if isinstance(new_domain, dict) and new_domain.get("id"):
+            utils.log(f"Successfully created domain '{target}' (ID: {new_domain.get('id')})", level=logging.INFO)
+            return new_domain.get("id")
+        if hasattr(new_domain, "get_id"):
+            utils.log(f"Successfully created domain '{target}' (ID: {new_domain.get_id()})", level=logging.INFO)
+            return new_domain.get_id()
+
+        # 4. Check if reload populated the newly created domain by name
+        folder_id = domain_dict.get_id_from_name(target)
+        if folder_id:
+            return folder_id
+
+        # 5. Fall back to any existing folder if creation fails
         domains = domain_dict.get_domains()
         if domains:
             fallback = domains[0]
@@ -1205,7 +1241,7 @@ class ExamplesManager:
                 domain_name=app_domain_name,
             ))
 
-        # Discover custom applications created in the example folder
+        # Discover custom applications created in the example folder or target domain
         folder_id = None
         domain_dict = data.get("domain_dict")
         if domain_dict and hasattr(domain_dict, "get_domains"):
@@ -1214,133 +1250,141 @@ class ExamplesManager:
                     folder_id = d.get_id()
                     break
 
-        if folder_id:
-            custom_entities = []
-            for ent in entity_dict.get_entities():
-                ent_name = ent.get_name()
-                if ent_name and ent_name not in known_names:
-                    ent_folder = ent.json_object.get("folder", {})
-                    ent_fid = ent_folder.get("id") if isinstance(ent_folder, dict) else ent_folder
-                    if ent_fid == folder_id:
-                        custom_entities.append(ent_name)
+        custom_entities = []
+        for ent in entity_dict.get_entities():
+            ent_name = ent.get_name()
+            if ent_name and ent_name not in known_names:
+                ent_folder = ent.json_object.get("folder", {})
+                ent_fid = ent_folder.get("id") if isinstance(ent_folder, dict) else ent_folder
+                # Match application in target folder, or discover custom entity with associated folder
+                if folder_id and ent_fid == folder_id:
+                    custom_entities.append((ent_name, ent_fid))
+                elif ent_fid:
+                    custom_entities.append((ent_name, ent_fid))
 
-            for app_name in custom_entities:
-                known_names.add(app_name)
-                perimeter_id = perimeter_dict.get_id_from_name(app_name)
-                asset_id = asset_dict.get_asset_id_from_perimeter_name(app_name)
+        for app_name, ent_fid in custom_entities:
+            known_names.add(app_name)
+            perimeter_id = perimeter_dict.get_id_from_name(app_name)
+            asset_id = asset_dict.get_asset_id_from_perimeter_name(app_name)
 
-                ca_obj = None
-                for ca in compliance_dict.get_compliance_assessments().values():
-                    if perimeter_id and ca.get_perimeter_id() == perimeter_id:
-                        ca_obj = ca
+            ca_obj = None
+            for ca in compliance_dict.get_compliance_assessments().values():
+                if perimeter_id and ca.get_perimeter_id() == perimeter_id:
+                    ca_obj = ca
+                    break
+                if app_name in ca.get_name():
+                    ca_obj = ca
+                    break
+
+            ra_obj = None
+            ra_scenarios_count = 0
+            for ra in risk_dict.get_risk_assessments().values():
+                if perimeter_id and ra.json_object.get("perimeter") == perimeter_id:
+                    ra_obj = ra
+                    break
+                if app_name in ra.get_name():
+                    ra_obj = ra
+                    break
+
+            existing_ctrls_linked = 0
+            planned_ctrls_linked = 0
+            vulns_linked = 0
+            threats_linked = 0
+            if ra_obj:
+                ra_id = ra_obj.get_id()
+                for sc in risk_scenarios_dict.get_risk_scenarios().values():
+                    sc_ra = sc.get_json().get("risk_assessment")
+                    if isinstance(sc_ra, dict):
+                        sc_ra = sc_ra.get("id")
+                    if sc_ra == ra_id:
+                        ra_scenarios_count += 1
+                        existing_ctrls_linked += len(sc.get_json().get("existing_applied_controls") or [])
+                        planned_ctrls_linked += len(sc.get_json().get("applied_controls") or [])
+                        vulns_linked += len(sc.get_vulnerability_ids() if hasattr(sc, "get_vulnerability_ids") else (sc.get_json().get("vulnerabilities") or []))
+                        threats_linked += len(sc.get_threat_ids() if hasattr(sc, "get_threat_ids") else (sc.get_json().get("threats") or []))
+
+            ctrl_count = 0
+            for ctrl in applied_ctrl_dict.get_controls().values():
+                ctrl_name = ctrl.get_name()
+                if f"on {app_name}" in ctrl_name:
+                    ctrl_count += 1
+
+            entity_id = entity_dict.get_id_from_name(app_name)
+            ea_obj = None
+            for ea in entity_assessment_dict.get_entity_assessments():
+                if entity_id and ea.get_entity_id() == entity_id:
+                    ea_obj = ea
+                    break
+                if app_name in ea.get_name():
+                    ea_obj = ea
+                    break
+
+            user_id = None
+            user_email = None
+            entity_rep_dict = data.get("entity_representative_dict")
+            rep_ids = ea_obj.get_representative_ids() if ea_obj else []
+            if not rep_ids and entity_id and entity_rep_dict:
+                rep_ids = [r.get_user_id() for r in entity_rep_dict.get_representatives_for_entity(entity_id)]
+            if rep_ids:
+                for u in user_dict.get_users():
+                    if u.get_id() in rep_ids:
+                        user_id = u.get_id()
+                        user_email = u.get_email()
                         break
-                    if app_name in ca.get_name():
-                        ca_obj = ca
+
+            fa_id = None
+            findings_count = 0
+            if findings_fa_dict and finding_dict:
+                for fa in findings_fa_dict.get_findings_assessments().values():
+                    if (perimeter_id and fa.get_perimeter_id() == perimeter_id) or app_name in fa.get_name():
+                        fa_id = fa.get_id()
+                        findings_count = len(finding_dict.get_findings_for_assessment(fa_id))
                         break
 
-                ra_obj = None
-                ra_scenarios_count = 0
-                for ra in risk_dict.get_risk_assessments().values():
-                    if perimeter_id and ra.json_object.get("perimeter") == perimeter_id:
-                        ra_obj = ra
-                        break
-                    if app_name in ra.get_name():
-                        ra_obj = ra
-                        break
+            fw_id = ca_obj.get_framework_id() if (ca_obj and hasattr(ca_obj, "get_framework_id")) else None
+            fw_name = None
+            fw_ref = None
+            if fw_id and data.get("framework_dict"):
+                fw_obj = data["framework_dict"].get_framework_by_identifier(fw_id)
+                if fw_obj:
+                    fw_name = fw_obj.get_name()
+                    fw_json = getattr(fw_obj, "json_object", {}) or {}
+                    fw_ref = fw_json.get("ref_id")
 
-                existing_ctrls_linked = 0
-                planned_ctrls_linked = 0
-                vulns_linked = 0
-                threats_linked = 0
-                if ra_obj:
-                    ra_id = ra_obj.get_id()
-                    for sc in risk_scenarios_dict.get_risk_scenarios().values():
-                        sc_ra = sc.get_json().get("risk_assessment")
-                        if isinstance(sc_ra, dict):
-                            sc_ra = sc_ra.get("id")
-                        if sc_ra == ra_id:
-                            ra_scenarios_count += 1
-                            existing_ctrls_linked += len(sc.get_json().get("existing_applied_controls") or [])
-                            planned_ctrls_linked += len(sc.get_json().get("applied_controls") or [])
-                            vulns_linked += len(sc.get_vulnerability_ids() if hasattr(sc, "get_vulnerability_ids") else (sc.get_json().get("vulnerabilities") or []))
-                            threats_linked += len(sc.get_threat_ids() if hasattr(sc, "get_threat_ids") else (sc.get_json().get("threats") or []))
+            custom_domain_name = None
+            if ent_fid and domain_dict and hasattr(domain_dict, "get_name_from_id"):
+                custom_domain_name = domain_dict.get_name_from_id(ent_fid)
+            if not custom_domain_name:
+                custom_domain_name = self.folder_name
 
-                ctrl_count = 0
-                for ctrl in applied_ctrl_dict.get_controls().values():
-                    ctrl_name = ctrl.get_name()
-                    if f"on {app_name}" in ctrl_name:
-                        ctrl_count += 1
-
-                entity_id = entity_dict.get_id_from_name(app_name)
-                ea_obj = None
-                for ea in entity_assessment_dict.get_entity_assessments():
-                    if entity_id and ea.get_entity_id() == entity_id:
-                        ea_obj = ea
-                        break
-                    if app_name in ea.get_name():
-                        ea_obj = ea
-                        break
-
-                user_id = None
-                user_email = None
-                entity_rep_dict = data.get("entity_representative_dict")
-                rep_ids = ea_obj.get_representative_ids() if ea_obj else []
-                if not rep_ids and entity_id and entity_rep_dict:
-                    rep_ids = [r.get_user_id() for r in entity_rep_dict.get_representatives_for_entity(entity_id)]
-                if rep_ids:
-                    for u in user_dict.get_users():
-                        if u.get_id() in rep_ids:
-                            user_id = u.get_id()
-                            user_email = u.get_email()
-                            break
-
-                fa_id = None
-                findings_count = 0
-                if findings_fa_dict and finding_dict:
-                    for fa in findings_fa_dict.get_findings_assessments().values():
-                        if (perimeter_id and fa.get_perimeter_id() == perimeter_id) or app_name in fa.get_name():
-                            fa_id = fa.get_id()
-                            findings_count = len(finding_dict.get_findings_for_assessment(fa_id))
-                            break
-
-                fw_id = ca_obj.get_framework_id() if (ca_obj and hasattr(ca_obj, "get_framework_id")) else None
-                fw_name = None
-                fw_ref = None
-                if fw_id and data.get("framework_dict"):
-                    fw_obj = data["framework_dict"].get_framework_by_identifier(fw_id)
-                    if fw_obj:
-                        fw_name = fw_obj.get_name()
-                        fw_json = getattr(fw_obj, "json_object", {}) or {}
-                        fw_ref = fw_json.get("ref_id")
-
-                status_list.append(self._build_status_dict(
-                    app_id=f"custom_{app_name.lower().replace(' ', '_')}",
-                    app_name=app_name,
-                    label=f"{app_name} (Custom Audit Demo)",
-                    perimeter_id=perimeter_id,
-                    asset_id=asset_id,
-                    ca_obj=ca_obj,
-                    ra_obj=ra_obj,
-                    ra_scenarios_count=ra_scenarios_count,
-                    ctrl_count=ctrl_count,
-                    existing_ctrls_linked=existing_ctrls_linked,
-                    planned_ctrls_linked=planned_ctrls_linked,
-                    vulns_linked=vulns_linked,
-                    threats_linked=threats_linked,
-                    fa_id=fa_id,
-                    findings_count=findings_count,
-                    entity_id=entity_id,
-                    ea_obj=ea_obj,
-                    user_email=user_email,
-                    user_id=user_id,
-                    req_by_ca=req_by_ca,
-                    framework_id=fw_id,
-                    framework_name=fw_name,
-                    framework_ref=fw_ref,
-                    yaml_path="-",
-                    domain_id=folder_id,
-                    domain_name=self.folder_name,
-                ))
+            status_list.append(self._build_status_dict(
+                app_id=f"custom_{app_name.lower().replace(' ', '_')}",
+                app_name=app_name,
+                label=f"{app_name} (Custom Audit Demo)",
+                perimeter_id=perimeter_id,
+                asset_id=asset_id,
+                ca_obj=ca_obj,
+                ra_obj=ra_obj,
+                ra_scenarios_count=ra_scenarios_count,
+                ctrl_count=ctrl_count,
+                existing_ctrls_linked=existing_ctrls_linked,
+                planned_ctrls_linked=planned_ctrls_linked,
+                vulns_linked=vulns_linked,
+                threats_linked=threats_linked,
+                fa_id=fa_id,
+                findings_count=findings_count,
+                entity_id=entity_id,
+                ea_obj=ea_obj,
+                user_email=user_email,
+                user_id=user_id,
+                req_by_ca=req_by_ca,
+                framework_id=fw_id,
+                framework_name=fw_name,
+                framework_ref=fw_ref,
+                yaml_path="-",
+                domain_id=ent_fid or folder_id,
+                domain_name=custom_domain_name,
+            ))
 
         return status_list
 
@@ -1348,11 +1392,12 @@ class ExamplesManager:
         self,
         app_id_or_name: str,
         framework_ref_or_name: str | None = None,
+        domain_name: str | None = None,
     ) -> dict[str, Any]:
         """Create a complete example application simulation in CISO Assistant.
 
         Steps:
-        1. Resolve Folder and Default Assignee.
+        1. Resolve Folder/Domain and Default Assignee (creates domain if missing).
         2. Create Perimeter (`App-Name`).
         3. Create Asset (`App-Name`) and link to folder/owner.
         4. Create Compliance Assessment bound to target framework.
@@ -1365,6 +1410,7 @@ class ExamplesManager:
         Args:
             app_id_or_name: Application ID (e.g. 'app_secure_core') or Name ('App-Secure-Core').
             framework_ref_or_name: Optional framework ref_id, name, or identifier to override app default.
+            domain_name: Optional target domain/folder name or UUID (default: self.folder_name).
 
         Returns:
             Summary dict with created IDs and status.
@@ -1379,7 +1425,13 @@ class ExamplesManager:
         utils.log(f"Starting simulation creation for {app_name} from {answers_path}...", level=logging.INFO)
 
         data = self._init_data()
-        folder_id = self.get_or_create_folder()
+        folder_id = self.get_or_create_folder(domain_name)
+        domain_dict = data.get("domain_dict")
+        resolved_domain_name = (
+            domain_dict.get_name_from_id(folder_id)
+            if (domain_dict and hasattr(domain_dict, "get_name_from_id") and folder_id)
+            else (domain_name or self.folder_name)
+        )
         assignee_id = self.get_default_assignee_id()
 
         target_fw_spec = framework_ref_or_name or app_spec.get("framework_ref") or app_spec.get("framework_name")
@@ -1722,6 +1774,8 @@ class ExamplesManager:
 
         return {
             "app_name": app_name,
+            "domain_id": folder_id,
+            "domain_name": resolved_domain_name,
             "entity_id": entity_id,
             "entity_assessment_id": ea_id,
             "entity_assessment_name": ea_name,
@@ -1755,13 +1809,14 @@ class ExamplesManager:
         last_name: str = "",
         is_third_party: bool = True,
         framework_ref_or_name: str | None = None,
+        domain_name: str | None = None,
     ) -> dict[str, Any]:
         """Create an application in CISO Assistant for an audit demonstration.
 
         Sets up:
         1. Third-party or internal user account (created if missing).
         2. External Entity in TPRM and Entity Representative link.
-        3. Perimeter and Asset.
+        3. Perimeter and Asset (in target domain/folder; creates domain if missing).
         4. Compliance Assessment bound to target framework.
         5. TPRM Entity Assessment linking entity, compliance assessment, and representative user.
         6. Requirement assignment in progress for the user.
@@ -1778,6 +1833,7 @@ class ExamplesManager:
             last_name: Optional last name if creating a new user.
             is_third_party: Whether newly created user should be third-party (default True).
             framework_ref_or_name: Optional framework ref_id, name, or identifier to use.
+            domain_name: Optional target domain/folder name or UUID (default: self.folder_name).
 
         Returns:
             Dict summary of created resources and assignment details.
@@ -1792,7 +1848,13 @@ class ExamplesManager:
         utils.log(f"Starting audit demonstration creation for {app_name} assigned to {user_email}...", level=logging.INFO)
 
         data = self._init_data(force_reload=True)
-        folder_id = self.get_or_create_folder()
+        folder_id = self.get_or_create_folder(domain_name)
+        domain_dict = data.get("domain_dict")
+        resolved_domain_name = (
+            domain_dict.get_name_from_id(folder_id)
+            if (domain_dict and hasattr(domain_dict, "get_name_from_id") and folder_id)
+            else (domain_name or self.folder_name)
+        )
         assignee_id = self.get_default_assignee_id()
         framework = self.find_target_framework(framework_ref_or_name)
 
@@ -1943,6 +2005,8 @@ class ExamplesManager:
 
         return {
             "app_name": app_name,
+            "domain_id": folder_id,
+            "domain_name": resolved_domain_name,
             "user_email": user_email,
             "user_id": user_id,
             "user_created": user_created,
@@ -2795,11 +2859,15 @@ class ExamplesManager:
 
         return deleted
 
-    def create_all_examples(self) -> list[dict[str, Any]]:
-        """Create all example applications in CISO Assistant."""
+    def create_all_examples(self, domain_name: str | None = None) -> list[dict[str, Any]]:
+        """Create all example applications in CISO Assistant.
+
+        Args:
+            domain_name: Optional target domain/folder name or UUID (default: self.folder_name).
+        """
         results = []
         for app in self.get_example_applications():
-            res = self.create_example_application(app["id"])
+            res = self.create_example_application(app["id"], domain_name=domain_name)
             results.append(res)
         return results
 

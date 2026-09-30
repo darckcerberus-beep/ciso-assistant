@@ -1,6 +1,7 @@
 """Unit tests for status reporting table and lifecycle states in main.py and ExamplesManager."""
 
 import io
+from pathlib import Path
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -1117,25 +1118,213 @@ class TestMainStatus(unittest.TestCase):
                     payload={"name": "New Domain", "create_iam_groups": True, "description": "New Desc", "parent_folder": "d-1"},
                 )
 
-    def test_interactive_menu_choice_10_calls_create_domain_ui(self):
-        """Verify selecting option 10 in interactive_menu calls create_domain_ui."""
-        mock_manager = MagicMock(spec=ExamplesManager)
-        # Select 10, then enter to pause, then 0 to exit
-        simulated_inputs = ["10", "", "0"]
-        stdout_buf = io.StringIO()
-        with (
-            patch("builtins.input", side_effect=simulated_inputs),
-            patch("main.create_domain_ui") as mock_create_domain_ui,
-            patch("sys.stdout", stdout_buf),
-        ):
-            interactive_menu(mock_manager)
+    def test_get_or_create_folder_existing_and_new(self):
+        """Verify get_or_create_folder resolves existing domains and creates missing ones."""
+        manager = ExamplesManager()
+        mock_domain_dict = MagicMock()
+        mock_domain_obj = MagicMock()
+        mock_domain_obj.get_id.return_value = "dom-uuid-1"
+        mock_domain_obj.get_name.return_value = "Finance Operations"
 
-        mock_create_domain_ui.assert_called_once_with(mock_manager)
-        output = stdout_buf.getvalue()
-        self.assertIn("10) Create a New Domain (Organizational Folder)", output)
+        mock_domain_dict.get_domain_by_id.side_effect = lambda did: mock_domain_obj if did == "dom-uuid-1" else None
+        mock_domain_dict.get_id_from_name.side_effect = lambda name: "dom-uuid-1" if name == "Finance Operations" else None
+        mock_domain_dict.create_domain.return_value = {"id": "dom-uuid-2", "name": "Brand New Domain"}
+
+        with patch.object(manager, "_init_data", return_value={"domain_dict": mock_domain_dict}):
+            # 1. Existing domain by name
+            fid1 = manager.get_or_create_folder("Finance Operations")
+            self.assertEqual(fid1, "dom-uuid-1")
+            mock_domain_dict.create_domain.assert_not_called()
+
+            # 2. Existing domain by UUID
+            fid2 = manager.get_or_create_folder("dom-uuid-1")
+            self.assertEqual(fid2, "dom-uuid-1")
+
+            # 3. New non-existent domain -> creates domain automatically
+            fid3 = manager.get_or_create_folder("Brand New Domain")
+            self.assertEqual(fid3, "dom-uuid-2")
+            mock_domain_dict.create_domain.assert_called_once_with(name="Brand New Domain", description="Domain for Brand New Domain")
+
+    def test_create_example_application_with_custom_domain(self):
+        """Verify create_example_application passes domain_name and returns domain info."""
+        manager = ExamplesManager()
+        mock_app_spec = {
+            "id": "app_secure_core",
+            "name": "App-Secure-Core",
+            "yaml_path": "test_data/app_secure_core.yml",
+            "framework_ref": "mls",
+        }
+        mock_fw = MagicMock()
+        mock_fw.get_id.return_value = "fw-1"
+        mock_fw.get_name.return_value = "Multi-level DPP"
+
+        mock_domain_dict = MagicMock()
+        mock_domain_dict.get_name_from_id.return_value = "Custom Domain"
+
+        mock_data = {
+            "domain_dict": mock_domain_dict,
+            "user_dict": MagicMock(create_user_if_missing=MagicMock(return_value={"id": "u-1"}), get_id_from_email=MagicMock(return_value="u-1")),
+            "entity_dict": MagicMock(create_entity=MagicMock(return_value={"id": "ent-1"}), get_id_from_name=MagicMock(return_value="ent-1")),
+            "entity_representative_dict": MagicMock(),
+            "entity_assessment_dict": MagicMock(create_entity_assessment=MagicMock(return_value={"id": "ea-1"}), get_entity_assessments=MagicMock(return_value=[])),
+            "perimeter_dict": MagicMock(create_perimeter=MagicMock(return_value=MagicMock(get_id=MagicMock(return_value="p-1"))), get_id_from_name=MagicMock(return_value="p-1")),
+            "asset_dict": MagicMock(create_asset=MagicMock(return_value=MagicMock(get_id=MagicMock(return_value="a-1"))), get_asset_id_from_perimeter_name=MagicMock(return_value="a-1"), get_assets=MagicMock(return_value=[])),
+            "applied_control_dict": MagicMock(get_controls=MagicMock(return_value={})),
+            "reference_control_dict": MagicMock(),
+            "compliance_assessment_dict": MagicMock(
+                get_compliance_assessments=MagicMock(return_value={"ca-1": MagicMock(get_id=MagicMock(return_value="ca-1"), get_status=MagicMock(return_value="in_progress"))}),
+                requirement_assessments=MagicMock(reload=MagicMock(), get_requirement_assessment_id_list_from_compliance_assessment_id=MagicMock(return_value=["r-1"])),
+                requirement_assignments=MagicMock(reload=MagicMock()),
+                assign_requirements_to_perimeter_owner=MagicMock(),
+                create_missing_applied_controls=MagicMock(),
+                update_asset_criticality=MagicMock(),
+            ),
+            "risk_assessment_dict": MagicMock(create_risk_assessments=MagicMock(return_value={"id": "ra-1"})),
+            "risk_scenario_dict": MagicMock(create_risk_scenario=MagicMock()),
+        }
+
+        with (
+            patch.object(manager, "find_example_application", return_value=mock_app_spec),
+            patch.object(manager, "find_target_framework", return_value=mock_fw),
+            patch.object(manager, "resolve_framework_yaml_path", return_value=Path("YML/multi-level-dpp.yaml")),
+            patch.object(manager, "resolve_framework_file", return_value=MagicMock(get_risk_scenarios=MagicMock(return_value=[]))),
+            patch.object(manager, "find_target_risk_matrix", return_value="rm-1"),
+            patch.object(manager, "get_or_create_folder", return_value="folder-custom-1") as mock_get_folder,
+            patch.object(manager, "get_default_assignee_id", return_value="assignee-1"),
+            patch.object(manager, "_init_data", return_value=mock_data),
+            patch("classes.utils.get_return", return_value={"id": "ca-1"}),
+            patch("classes.integrations.answers_import.import_compliance_answers", return_value={"updated": 5}),
+            patch.object(manager, "link_controls_for_application", return_value={"existing_controls": 2, "planned_controls": 1}),
+            patch.object(manager, "create_findings_for_application", return_value={"findings_count": 0}),
+            patch("time.sleep"),
+            patch("pathlib.Path.exists", return_value=True),
+            patch("tests.test_application_scenarios.ApplicationRiskSimulator") as mock_sim,
+        ):
+            mock_sim.return_value.evaluate_application.return_value = {"scenarios": []}
+            res = manager.create_example_application("app_secure_core", domain_name="Custom Domain")
+
+            mock_get_folder.assert_called_once_with("Custom Domain")
+            self.assertEqual(res["domain_id"], "folder-custom-1")
+            self.assertEqual(res["domain_name"], "Custom Domain")
+
+    def test_create_application_for_audit_with_custom_domain(self):
+        """Verify create_application_for_audit passes domain_name and returns domain info."""
+        manager = ExamplesManager()
+        mock_fw = MagicMock()
+        mock_fw.get_id.return_value = "fw-audit-1"
+        mock_fw.get_name.return_value = "Audit Framework"
+
+        mock_domain_dict = MagicMock()
+        mock_domain_dict.get_name_from_id.return_value = "Audit Domain"
+
+        mock_data = {
+            "domain_dict": mock_domain_dict,
+            "user_dict": MagicMock(get_id_from_email=MagicMock(return_value="u-audit-1")),
+            "entity_dict": MagicMock(create_entity=MagicMock(return_value={"id": "ent-audit-1"}), get_id_from_name=MagicMock(return_value="ent-audit-1")),
+            "entity_representative_dict": MagicMock(),
+            "entity_assessment_dict": MagicMock(create_entity_assessment=MagicMock(return_value={"id": "ea-audit-1"}), get_entity_assessments=MagicMock(return_value=[])),
+            "perimeter_dict": MagicMock(create_perimeter=MagicMock(return_value=MagicMock(get_id=MagicMock(return_value="p-audit-1"))), get_id_from_name=MagicMock(return_value="p-audit-1")),
+            "asset_dict": MagicMock(create_asset=MagicMock(return_value=MagicMock(get_id=MagicMock(return_value="a-audit-1"))), get_asset_id_from_perimeter_name=MagicMock(return_value="a-audit-1"), get_assets=MagicMock(return_value=[])),
+            "compliance_assessment_dict": MagicMock(
+                get_compliance_assessments=MagicMock(return_value={"ca-audit-1": MagicMock(get_id=MagicMock(return_value="ca-audit-1"), get_status=MagicMock(return_value="in_progress"))}),
+                requirement_assessments=MagicMock(reload=MagicMock(), get_requirement_assessment_id_list_from_compliance_assessment_id=MagicMock(return_value=["ra-1"])),
+                requirement_assignments=MagicMock(reload=MagicMock(), get_requirement_assignment_id_list_from_compliance_assessment_id=MagicMock(return_value=["asgn-1"])),
+            ),
+        }
+
+        with (
+            patch.object(manager, "find_target_framework", return_value=mock_fw),
+            patch.object(manager, "get_or_create_folder", return_value="folder-audit-1") as mock_get_folder,
+            patch.object(manager, "get_default_assignee_id", return_value="assignee-1"),
+            patch.object(manager, "_init_data", return_value=mock_data),
+            patch("classes.utils.get_return", return_value={"id": "ca-audit-1"}),
+            patch("time.sleep"),
+        ):
+            res = manager.create_application_for_audit(
+                app_name="App-Audit-Custom",
+                user_email="auditor@example.com",
+                domain_name="Audit Domain",
+            )
+            mock_get_folder.assert_called_once_with("Audit Domain")
+            self.assertEqual(res["domain_id"], "folder-audit-1")
+            self.assertEqual(res["domain_name"], "Audit Domain")
+
+    def test_cli_create_with_domain_flag(self):
+        """Verify CLI --create APP --domain DOMAIN dispatches domain_name to create_examples_ui."""
+        from main import main
+        test_args = ["main.py", "--create", "app_secure_core", "--domain", "Finance Operations"]
+        with (
+            patch("sys.argv", test_args),
+            patch("main.create_examples_ui") as mock_create_ui,
+        ):
+            main()
+            mock_create_ui.assert_called_once()
+            _args, kwargs = mock_create_ui.call_args
+            self.assertEqual(kwargs.get("target"), "app_secure_core")
+            self.assertEqual(kwargs.get("domain_name"), "Finance Operations")
+
+    def test_cli_create_audit_with_domain_flag(self):
+        """Verify CLI --create-audit APP --domain DOMAIN dispatches domain_name to create_audit_demo_ui."""
+        from main import main
+        test_args = ["main.py", "--create-audit", "App-Audit-Demo", "--domain", "Core Banking"]
+        with (
+            patch("sys.argv", test_args),
+            patch("main.create_audit_demo_ui") as mock_audit_ui,
+        ):
+            main()
+            mock_audit_ui.assert_called_once()
+            _args, kwargs = mock_audit_ui.call_args
+            self.assertEqual(kwargs.get("app_name"), "App-Audit-Demo")
+            self.assertEqual(kwargs.get("domain_name"), "Core Banking")
+
+    def test_create_audit_demo_ui_interactive_prompts_domain(self):
+        """Verify interactive Choice 4 prompts for domain and passes it to create_application_for_audit."""
+        from main import create_audit_demo_ui
+        mock_manager = MagicMock(spec=ExamplesManager)
+        mock_manager.test_connection.return_value = (True, "OK")
+        mock_manager.folder_name = "Examples"
+        mock_manager.get_installed_frameworks.return_value = [{"id": "fw-1", "name": "Multi-level DPP", "ref_id": "mls"}]
+        mock_manager._init_data.return_value = {"user_dict": MagicMock(get_id_from_email=MagicMock(return_value="u-1"), get_users=MagicMock(return_value=[]))}
+        mock_manager.create_application_for_audit.return_value = {
+            "app_name": "My-Audit-App",
+            "domain_id": "d-custom",
+            "domain_name": "Healthcare Division",
+            "user_email": "auditor@example.com",
+            "user_id": "u-1",
+            "entity_id": "ent-1",
+            "entity_assessment_name": "EA-1",
+            "entity_assessment_id": "ea-1",
+            "compliance_assessment_name": "CA-1",
+            "compliance_assessment_id": "ca-1",
+            "framework_name": "Multi-level DPP",
+            "framework_ref": "mls",
+        }
+
+        # Simulated inputs:
+        # 1. App name: "My-Audit-App"
+        # 2. Domain name: "Healthcare Division"
+        # 3. User email: "auditor@example.com"
+        # 4. Framework choice: "1"
+        simulated_inputs = ["My-Audit-App", "Healthcare Division", "auditor@example.com", "1"]
+        buf = io.StringIO()
+        with (
+            patch("sys.stdout", buf),
+            patch("builtins.input", side_effect=simulated_inputs),
+            patch("time.sleep"),
+            patch("main.show_status"),
+        ):
+            create_audit_demo_ui(mock_manager)
+
+        mock_manager.create_application_for_audit.assert_called_once()
+        _args, kwargs = mock_manager.create_application_for_audit.call_args
+        self.assertEqual(kwargs.get("app_name"), "My-Audit-App")
+        self.assertEqual(kwargs.get("domain_name"), "Healthcare Division")
+        output = buf.getvalue()
+        self.assertIn("Target Domain:            Healthcare Division", output)
 
 
 if __name__ == "__main__":
     unittest.main()
+
 
 

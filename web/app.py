@@ -392,6 +392,9 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
     @app.route("/api/provision/all", methods=["POST"])
     def api_provision_all():
         """Provision all 12 example applications in CISO Assistant."""
+        payload = request.get_json() or {}
+        target_domain = payload.get("domain")
+
         def _job():
             example_apps = manager.get_example_applications()
             print(f"Creating all {len(example_apps)} example applications in CISO Assistant...")
@@ -406,8 +409,12 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
 
                 print(f"\n---> Provisioning {app_entry['label']} (Framework: {matching_fw.get_name()})...")
                 try:
-                    res = manager.create_example_application(app_entry["id"], framework_ref_or_name=app_fw_ref)
-                    print(f"     [OK] Perimeter: {res.get('perimeter_id')}")
+                    res = manager.create_example_application(
+                        app_entry["id"],
+                        framework_ref_or_name=app_fw_ref,
+                        domain_name=target_domain,
+                    )
+                    print(f"     [OK] Domain: {res.get('domain_name')}")
                     print(f"     [OK] Compliance Assessment: {res.get('compliance_assessment_name')}")
                     print(f"     [OK] Answers Imported: {res.get('answers_updated')}")
                     print(f"     [OK] Risk Scenarios: {res.get('scenarios_created')}")
@@ -430,6 +437,7 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
         payload = request.get_json() or {}
         app_id = payload.get("app_id") or payload.get("name")
         target_fw = payload.get("framework")
+        target_domain = payload.get("domain")
 
         if not app_id:
             return jsonify({"error": "Missing 'app_id' in request."}), 400
@@ -444,7 +452,12 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
             matching_fw = manager.find_target_framework(fw_ref)
             fw_display = matching_fw.get_name() if matching_fw and hasattr(matching_fw, "get_name") else (str(matching_fw) if matching_fw else "Default")
             print(f"---> Provisioning {app_spec['label']} in CISO Assistant (Framework: {fw_display})...")
-            res = manager.create_example_application(app_spec["id"], framework_ref_or_name=fw_ref)
+            res = manager.create_example_application(
+                app_spec["id"],
+                framework_ref_or_name=fw_ref,
+                domain_name=target_domain,
+            )
+            print(f"     [OK] Domain: {res.get('domain_name')}")
             print(f"     [OK] Representative User: {res.get('user_email')}")
             print(f"     [OK] Perimeter: {res.get('perimeter_id')}")
             print(f"     [OK] Answers: {res.get('answers_updated')}")
@@ -470,6 +483,7 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
         last_name = payload.get("last_name", "").strip()
         is_third_party = bool(payload.get("is_third_party", True))
         framework = payload.get("framework", "mls").strip()
+        target_domain = payload.get("domain")
 
         if not user_email or "@" not in user_email:
             return jsonify({"error": "A valid 'user_email' is required."}), 400
@@ -483,8 +497,10 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
                 last_name=last_name,
                 is_third_party=is_third_party,
                 framework_ref_or_name=framework,
+                domain_name=target_domain,
             )
             print(f"     [OK] Application: {res.get('app_name')}")
+            print(f"     [OK] Domain: {res.get('domain_name')}")
             print(f"     [OK] Assigned User: {res.get('user_email')} (User Created: {res.get('user_created')})")
             print(f"     [OK] Perimeter: {res.get('perimeter_id')}")
             print(f"     [OK] Assessment: {res.get('compliance_assessment_name')}")
