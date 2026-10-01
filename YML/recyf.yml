@@ -113,6 +113,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:pol.asset
       - urn:intuitem:risk:function:doc-pol:doc.asset_register
       - urn:intuitem:risk:function:doc-pol:doc.context
+      questions:
+        urn:intuitem:risk:req_node:recyf:1.1:q1:
+          type: unique_choice
+          text: "Quel est le niveau de recensement des activités, services et systèmes d'information supports de l'entité ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:1.1:q1:c1
+            value: 'Inventaire exhaustif et formalisé : activités, services et SI supports recensés avec un responsable désigné pour chacun'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:1.1:q1:c2
+            value: 'Recensement partiel ou informel : inventaire incomplet ou responsables non systématiquement identifiés'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:1.1:q1:c3
+            value: 'Inexistant : aucun recensement structuré des activités et des systèmes d''information supports'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 1.2 [EI / EE] : Justification documentée des systèmes d'information exclus du champ des obligations de sécurité
     - urn: urn:intuitem:risk:req_node:recyf:1.2
       assessable: true
@@ -130,6 +150,21 @@ objects:
       - urn:intuitem:risk:function:doc-pol:doc.asset_register
       - urn:intuitem:risk:function:doc-pol:pol.asset
       - urn:intuitem:risk:function:doc-pol:doc.scope
+      questions:
+        urn:intuitem:risk:req_node:recyf:1.2:q1:
+          type: unique_choice
+          text: "Les systèmes d'information exclus du champ des obligations sont-ils formellement justifiés ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:1.2:q1:c1
+            value: 'Oui, les SI exclus sont explicitement listés avec leurs justifications documentées'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:1.2:q1:c2
+            value: 'Non, aucune justification documentée n''est formalisée pour les systèmes exclus'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 1.3 [EI / EE] : Revue, validation et réexamen annuel de l'inventaire des activités et systèmes d'information
     - urn: urn:intuitem:risk:req_node:recyf:1.3
       assessable: true
@@ -146,6 +181,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:doc.asset_register
       - urn:intuitem:risk:function:doc-pol:pol.asset
+      questions:
+        urn:intuitem:risk:req_node:recyf:1.3:q1:
+          type: unique_choice
+          text: "À quelle fréquence l'inventaire des activités et des SI est-il validé et réexaminé ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:1.3:q1:c1
+            value: 'Revue annuelle systématique et mise à jour lors de toute évolution majeure du périmètre'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:1.3:q1:c2
+            value: 'Revue ponctuelle ou irrégulière, sans fréquence annuelle garantie'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:1.3:q1:c3
+            value: 'Aucun réexamen périodique ou inventaire jamais actualisé'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ========================================================================
     # OBJECTIF DE SÉCURITÉ 2 : CADRE DE GOUVERNANCE DE LA SÉCURITÉ NUMÉRIQUE
@@ -185,6 +240,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.main
       - urn:intuitem:risk:function:doc-pol:doc.raci
+      questions:
+        urn:intuitem:risk:req_node:recyf:2.a.1:q1:
+          type: unique_choice
+          text: "Le dirigeant exécutif assume-t-il formellement la responsabilité de la sécurité numérique et du suivi de la conformité ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:2.a.1:q1:c1
+            value: 'Oui, responsabilité formellement endossée par le dirigeant exécutif avec suivi effectif de la conformité'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:2.a.1:q1:c2
+            value: 'Partiellement, responsabilité reconnue informellement sans suivi formalisé de la conformité'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:2.a.1:q1:c3
+            value: 'Non, le dirigeant exécutif n''est pas impliqué dans la gouvernance de la sécurité numérique'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 2.A.2 [EE] : Désignation d'un RSSI et du point de contact officiel pour l'ANSSI
     - urn: urn:intuitem:risk:req_node:recyf:2.a.2
       assessable: true
@@ -202,6 +277,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:doc.raci
       - urn:intuitem:risk:function:doc-pol:doc.controls
+      questions:
+        urn:intuitem:risk:req_node:recyf:2.a.2:q1:
+          type: unique_choice
+          text: "Un conseiller dédié (ex. RSSI) est-il désigné comme point de contact officiel pour l'ANSSI ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:2.a.2:q1:c1
+            value: 'Oui, une personne est formellement désignée pour conseiller le dirigeant et assurer le contact avec l''ANSSI'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:2.a.2:q1:c2
+            value: 'Non, aucun point de contact officiel n''est formellement désigné auprès de l''ANSSI'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 2.A.3 [EI / EE] : Organisation dédiée et allocation des moyens adaptés pour piloter la sécurité numérique
     - urn: urn:intuitem:risk:req_node:recyf:2.a.3
       assessable: true
@@ -219,6 +309,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:doc.raci
       - urn:intuitem:risk:function:doc-pol:doc.controls
       - urn:intuitem:risk:function:doc-pol:pol.main
+      questions:
+        urn:intuitem:risk:req_node:recyf:2.a.3:q1:
+          type: unique_choice
+          text: "Quel est le niveau de structuration de l'organisation dédiée à la sécurité numérique ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:2.a.3:q1:c1
+            value: 'Organisation formalisée et outillée : rôles définis (RACI), ressources dédiées et comitologie régulière'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:2.a.3:q1:c2
+            value: 'Organisation partielle : rôles informels ou moyens alloués insuffisants pour couvrir les besoins'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:2.a.3:q1:c3
+            value: 'Inexistante : aucune organisation ni gouvernance dédiée à la sécurité numérique'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ------------------------------------------------------------------------
     # SOUS-SECTION 2.B : Politique de sécurité des systèmes d'information (PSSI)
@@ -243,6 +353,26 @@ objects:
       - EE
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.main
+      questions:
+        urn:intuitem:risk:req_node:recyf:2.b.1:q1:
+          type: unique_choice
+          text: "Quel est le niveau d'élaboration et d'application de la Politique de Sécurité des Systèmes d'Information (PSSI) ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:2.b.1:q1:c1
+            value: 'PSSI formalisée, validée par la direction et activement mise en œuvre'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:2.b.1:q1:c2
+            value: 'PSSI en cours de rédaction ou formalisée mais partiellement appliquée'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:2.b.1:q1:c3
+            value: 'Inexistante : aucune PSSI formalisée au sein de l''entité'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 2.B.2 [EI / EE] : Contenu socle obligatoire de la PSSI (gouvernance, règles opérationnelles, périmètre d'application)
     - urn: urn:intuitem:risk:req_node:recyf:2.b.2
       assessable: true
@@ -270,6 +400,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:pol.main
       - urn:intuitem:risk:function:doc-pol:doc.overview
       - urn:intuitem:risk:function:doc-pol:doc.legal
+      questions:
+        urn:intuitem:risk:req_node:recyf:2.b.2:q1:
+          type: unique_choice
+          text: "La PSSI couvre-t-elle l'ensemble du contenu socle obligatoire prescrit par le référentiel ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:2.b.2:q1:c1
+            value: 'Couverture complète : gouvernance, orientations stratégiques, engagements du dirigeant et spécificités sectorielles'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:2.b.2:q1:c2
+            value: 'Couverture partielle : certains volets obligatoires ne sont pas formalisés dans le document'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:2.b.2:q1:c3
+            value: 'Non conforme : la PSSI ne répond pas aux exigences socles du référentiel'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 2.B.3 [EI / EE] : Approbation formelle de la PSSI par le dirigeant exécutif de l'entité
     - urn: urn:intuitem:risk:req_node:recyf:2.b.3
       assessable: true
@@ -283,6 +433,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.main
       - urn:intuitem:risk:function:doc-pol:doc.mgmt_review
+      questions:
+        urn:intuitem:risk:req_node:recyf:2.b.3:q1:
+          type: unique_choice
+          text: "La PSSI fait-elle l'objet d'une approbation formelle par le dirigeant exécutif ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:2.b.3:q1:c1
+            value: 'Oui, la PSSI est formellement signée et approuvée par le dirigeant exécutif'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:2.b.3:q1:c2
+            value: 'Non, la PSSI n''a pas été formellement approuvée par le dirigeant exécutif'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 2.B.4 [EI / EE] : Revue annuelle obligatoire et mise à jour de la PSSI lors de tout changement majeur
     - urn: urn:intuitem:risk:req_node:recyf:2.b.4
       assessable: true
@@ -299,6 +464,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.main
       - urn:intuitem:risk:function:doc-pol:doc.mgmt_review
+      questions:
+        urn:intuitem:risk:req_node:recyf:2.b.4:q1:
+          type: unique_choice
+          text: "Quel est le cycle de revue et de mise à jour de la PSSI ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:2.b.4:q1:c1
+            value: 'Revue annuelle systématique et actualisation lors de toute évolution majeure du contexte'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:2.b.4:q1:c2
+            value: 'Revue occasionnelle sans périodicité annuelle garantie'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:2.b.4:q1:c3
+            value: 'Aucune revue périodique : document figé depuis sa publication initiale'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 2.B.5 [EI / EE] : Déclinaison de la PSSI en politiques thématiques et procédures opérationnelles spécialisées
     - urn: urn:intuitem:risk:req_node:recyf:2.b.5
       assessable: true
@@ -321,6 +506,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:pol.crypto
       - urn:intuitem:risk:function:doc-pol:pol.access
       - urn:intuitem:risk:function:doc-pol:pol.audit
+      questions:
+        urn:intuitem:risk:req_node:recyf:2.b.5:q1:
+          type: unique_choice
+          text: "La PSSI est-elle déclinée en politiques thématiques opérationnelles (chiffrement, accès, comptes, revues) ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:2.b.5:q1:c1
+            value: 'Déclinaison complète : politiques thématiques et procédures opérationnelles documentées et appliquées'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:2.b.5:q1:c2
+            value: 'Déclinaison partielle : seules certaines thématiques disposent de politiques formalisées'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:2.b.5:q1:c3
+            value: 'Aucune déclinaison : pas de politique opérationnelle pour préciser la PSSI'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ------------------------------------------------------------------------
     # SOUS-SECTION 2.C : Gestion de la conformité
@@ -352,6 +557,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:proc.compliance_monitoring
       - urn:intuitem:risk:function:doc-pol:doc.soa
       - urn:intuitem:risk:function:doc-pol:doc.nc_log
+      questions:
+        urn:intuitem:risk:req_node:recyf:2.c.1:q1:
+          type: unique_choice
+          text: "Quel est le niveau de réalisation de l'analyse de conformité des SI vis-à-vis du référentiel ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:2.c.1:q1:c1
+            value: 'Analyse de conformité exhaustive et tenue à jour identifiant les écarts pour chaque SI'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:2.c.1:q1:c2
+            value: 'Analyse de conformité partielle ou réalisée sur un périmètre restreint de SI'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:2.c.1:q1:c3
+            value: 'Inexistante : aucune analyse de conformité documentée'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 2.C.2 [EI / EE] : Établissement, mise en œuvre et suivi dans la durée d'un plan d'actions de remédiation
     - urn: urn:intuitem:risk:req_node:recyf:2.c.2
       assessable: true
@@ -375,6 +600,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.compliance_monitoring
       - urn:intuitem:risk:function:doc-pol:doc.nc_log
+      questions:
+        urn:intuitem:risk:req_node:recyf:2.c.2:q1:
+          type: unique_choice
+          text: "Un plan d'actions de remédiation est-il établi et suivi pour corriger les écarts de conformité ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:2.c.2:q1:c1
+            value: 'Plan d''actions formalisé, budgété, avec responsables, échéances précises et suivi régulier'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:2.c.2:q1:c2
+            value: 'Actions de remédiation identifiées mais sans calendrier formalisé ni suivi structuré'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:2.c.2:q1:c3
+            value: 'Aucun plan d''actions de remédiation formalisé'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 2.C.3 [EI / EE] : Modalités d'application volontaire du référentiel pour les entités non assujetties
     - urn: urn:intuitem:risk:req_node:recyf:2.c.3
       assessable: true
@@ -395,6 +640,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.exception_mgmt
       - urn:intuitem:risk:function:doc-pol:doc.exception_register
+      questions:
+        urn:intuitem:risk:req_node:recyf:2.c.3:q1:
+          type: unique_choice
+          text: "En cas d'application volontaire avec mesures alternatives, les justifications sont-elles documentées ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:2.c.3:q1:c1
+            value: 'Oui, justifications d''équivalence technique et organisationnelle formellement documentées'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:2.c.3:q1:c2
+            value: 'Non, des mesures alternatives sont appliquées sans justification documentée'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ========================================================================
     # OBJECTIF DE SÉCURITÉ 3 : MAÎTRISE DE L'ÉCOSYSTÈME
@@ -443,6 +703,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:doc.supplier_register
       - urn:intuitem:risk:function:doc-pol:doc.flow_matrix
       - urn:intuitem:risk:function:doc-pol:pol.supplier
+      questions:
+        urn:intuitem:risk:req_node:recyf:3.a.1:q1:
+          type: unique_choice
+          text: "Quel est le niveau de complétude de la cartographie des prestataires et fournisseurs informatiques ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:3.a.1:q1:c1
+            value: 'Cartographie exhaustive et à jour : prestataires, services fournis et interconnexions documentés'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:3.a.1:q1:c2
+            value: 'Cartographie partielle : liste incomplète ou interconnexions non documentées'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:3.a.1:q1:c3
+            value: 'Inexistante : aucun inventaire centralisé des tiers informatiques'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 3.A.2 [EI / EE] : Enregistrement et maintien à jour des coordonnées d'au moins un contact de sécurité par prestataire
     - urn: urn:intuitem:risk:req_node:recyf:3.a.2
       assessable: true
@@ -457,6 +737,26 @@ objects:
       - EE
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:doc.supplier_register
+      questions:
+        urn:intuitem:risk:req_node:recyf:3.a.2:q1:
+          type: unique_choice
+          text: "Les coordonnées d'un point de contact de sécurité sont-elles tenues à jour pour chaque prestataire ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:3.a.2:q1:c1
+            value: 'Oui, point de contact de sécurité identifié et vérifié pour l''ensemble des prestataires'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:3.a.2:q1:c2
+            value: 'Partiellement, coordonnées disponibles uniquement pour les prestataires majeurs'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:3.a.2:q1:c3
+            value: 'Non, aucun point de contact de sécurité répertorié pour les prestataires'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ------------------------------------------------------------------------
     # SOUS-SECTION 3.B : Sécurité numérique dans les contrats avec les tiers
@@ -489,6 +789,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.supplier
       - urn:intuitem:risk:function:doc-pol:doc.sap
+      questions:
+        urn:intuitem:risk:req_node:recyf:3.b.1:q1:
+          type: unique_choice
+          text: "Les contrats avec les prestataires intègrent-ils systématiquement des exigences et garanties de sécurité (PAS, clauses) ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:3.b.1:q1:c1
+            value: 'Systématique : clauses de sécurité, notification d''incidents et PAS exigés dans tous les contrats'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:3.b.1:q1:c2
+            value: 'Partiel : clauses de sécurité présentes uniquement dans certains contrats récents'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:3.b.1:q1:c3
+            value: 'Inexistant : aucune clause de cybersécurité formalisée dans les contrats fournisseurs'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 3.B.2 [EI / EE] : Vérification et audits périodiques de conformité des prestataires aux obligations de sécurité
     - urn: urn:intuitem:risk:req_node:recyf:3.b.2
       assessable: true
@@ -508,6 +828,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.tprm_assessment
       - urn:intuitem:risk:function:doc-pol:pol.supplier
+      questions:
+        urn:intuitem:risk:req_node:recyf:3.b.2:q1:
+          type: unique_choice
+          text: "L'entité procède-t-elle à des vérifications et audits périodiques de la conformité de ses prestataires ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:3.b.2:q1:c1
+            value: 'Vérifications régulières et audits périodiques formalisés sur pièces ou sur site'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:3.b.2:q1:c2
+            value: 'Contrôles ponctuels ou limités aux déclarations sur l''honneur sans vérification'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:3.b.2:q1:c3
+            value: 'Aucune vérification ni audit de conformité mené auprès des prestataires'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ========================================================================
     # OBJECTIF DE SÉCURITÉ 4 : SÉCURITÉ NUMÉRIQUE DANS LA GESTION DES RESSOURCES HUMAINES
@@ -537,6 +877,26 @@ objects:
       - EE
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.accept
+      questions:
+        urn:intuitem:risk:req_node:recyf:4.1:q1:
+          type: unique_choice
+          text: "Quel est le statut de la charte d'usage des systèmes d'information auprès des utilisateurs ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:4.1:q1:c1
+            value: 'Charte formellement adoptée, opposable, annexée au règlement intérieur et signée par les utilisateurs'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:4.1:q1:c2
+            value: 'Charte existante mais non opposable ou non systématiquement diffusée aux utilisateurs'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:4.1:q1:c3
+            value: 'Inexistante : aucune charte informatique formalisée'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 4.2 [EI / EE] : Programme régulier de sensibilisation à la cybersécurité pour l'ensemble des collaborateurs
     - urn: urn:intuitem:risk:req_node:recyf:4.2
       assessable: true
@@ -553,6 +913,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.educ
       - urn:intuitem:risk:function:doc-pol:doc.educ_plan
+      questions:
+        urn:intuitem:risk:req_node:recyf:4.2:q1:
+          type: unique_choice
+          text: "Quel est le niveau de maturité du programme de sensibilisation à la cybersécurité des collaborateurs ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:4.2:q1:c1
+            value: 'Programme récurrent et structuré : formations régulières, campagnes de phishing et suivi de participation'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:4.2:q1:c2
+            value: 'Sensibilisation ponctuelle : actions occasionnelles sans récurrence ni suivi formalisé'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:4.2:q1:c3
+            value: 'Inexistant : aucune action de sensibilisation à la cybersécurité pour le personnel'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 4.3 [EE] : Clauses de sécurité, de confidentialité et de responsabilité dans les contrats de travail
     - urn: urn:intuitem:risk:req_node:recyf:4.3
       assessable: true
@@ -569,6 +949,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.hr_security
       - urn:intuitem:risk:function:doc-pol:pol.supplier
+      questions:
+        urn:intuitem:risk:req_node:recyf:4.3:q1:
+          type: unique_choice
+          text: "Les contrats de travail comportent-ils des clauses explicites de sécurité, confidentialité et responsabilité ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:4.3:q1:c1
+            value: 'Oui, clauses de confidentialité et de respect des règles de sécurité intégrées à tous les contrats'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:4.3:q1:c2
+            value: 'Non, absence d''engagements formels de sécurité dans les contrats de travail'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 4.4 [EI / EE] : Processus formalisé de gestion des arrivées, mobilités internes et départs des collaborateurs
     - urn: urn:intuitem:risk:req_node:recyf:4.4
       assessable: true
@@ -592,6 +987,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:proc.hr_security
       - urn:intuitem:risk:function:doc-pol:proc.recertification
       - urn:intuitem:risk:function:doc-pol:pol.access
+      questions:
+        urn:intuitem:risk:req_node:recyf:4.4:q1:
+          type: unique_choice
+          text: "Quel est le niveau de formalisation du processus de gestion des arrivées, mobilités et départs des collaborateurs ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:4.4:q1:c1
+            value: 'Processus formalisé et outillé : attribution, modification et révocation immédiate des accès (départs < 24h)'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:4.4:q1:c2
+            value: 'Processus partiel : procédures informelles ou délais de révocation variables'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:4.4:q1:c3
+            value: 'Inexistant : aucune procédure formalisée pour la gestion des mouvements RH et des accès'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 4.5 [EI / EE] : Formation continue et habilitation spécifique pour les fonctions à responsabilités ou privilèges
     - urn: urn:intuitem:risk:req_node:recyf:4.5
       assessable: true
@@ -610,6 +1025,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:train.threat
       - urn:intuitem:risk:function:doc-pol:train.iam
       - urn:intuitem:risk:function:doc-pol:doc.educ_plan
+      questions:
+        urn:intuitem:risk:req_node:recyf:4.5:q1:
+          type: unique_choice
+          text: "Les personnels occupant des fonctions à privilèges bénéficient-ils d'une formation et d'habilitations adaptées ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:4.5:q1:c1
+            value: 'Formation continue spécialisée et processus formel d''habilitation pour les profils à privilèges'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:4.5:q1:c2
+            value: 'Formations informelles ou habilitations non formalisées pour les fonctions sensibles'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:4.5:q1:c3
+            value: 'Aucune formation spécifique ni habilitation formelle pour les profils privilégiés'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ========================================================================
     # OBJECTIF DE SÉCURITÉ 5 : MAÎTRISE DES SYSTÈMES D'INFORMATION
@@ -657,6 +1092,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:doc.is_map
       - urn:intuitem:risk:function:doc-pol:doc.asset_register
+      questions:
+        urn:intuitem:risk:req_node:recyf:5.a.1:q1:
+          type: unique_choice
+          text: "Quel est le niveau de complétude et d'actualisation de la cartographie matérielle, logicielle et réseau du SI ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:5.a.1:q1:c1
+            value: 'Cartographie exhaustive et à jour : inventaires automatisés (matériels, OS, logiciels, flux réseaux)'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:5.a.1:q1:c2
+            value: 'Cartographie partielle ou déclarative : inventaires manuels incomplets ou partiellement à jour'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:5.a.1:q1:c3
+            value: 'Inexistante : aucun inventaire structuré ni schéma réseau actualisé'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ------------------------------------------------------------------------
     # SOUS-SECTION 5.B : Maintien en condition opérationnelle et de sécurité (MCO/MCS)
@@ -684,6 +1139,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:proc.update
       - urn:intuitem:risk:function:doc-pol:pol.vulnerability
       - urn:intuitem:risk:function:doc-pol:proc.software_lifecycle
+      questions:
+        urn:intuitem:risk:req_node:recyf:5.b.1:q1:
+          type: unique_choice
+          text: "Une procédure formelle de maintien en conditions opérationnelles et de sécurité (MCO/MCS) est-elle appliquée ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:5.b.1:q1:c1
+            value: 'Procédure formalisée, documentée et systématiquement appliquée sur l''ensemble du SI'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:5.b.1:q1:c2
+            value: 'Pratiques de MCO/MCS informelles ou appliquées uniquement à certains composants'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:5.b.1:q1:c3
+            value: 'Aucune procédure ni démarche structurée de MCO/MCS'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 5.B.2 [EI / EE] : Maintien à jour continu des bases de signatures et connaissances antivirales et de sécurité
     - urn: urn:intuitem:risk:req_node:recyf:5.b.2
       assessable: true
@@ -701,6 +1176,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:pol.malware
       - urn:intuitem:risk:function:doc-pol:tech.endpoint_protection
       - urn:intuitem:risk:function:doc-pol:tech.edr
+      questions:
+        urn:intuitem:risk:req_node:recyf:5.b.2:q1:
+          type: unique_choice
+          text: "Les bases de connaissances et signatures de sécurité (antivirus, règles) sont-elles actualisées de manière continue ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:5.b.2:q1:c1
+            value: 'Oui, mises à jour automatisées, quotidiennes et supervisées sur 100% des équipements'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:5.b.2:q1:c2
+            value: 'Partiellement, mises à jour manuelles ou non systématiques sur certains terminaux'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:5.b.2:q1:c3
+            value: 'Non, bases de signatures non maintenues ou obsolètes'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 5.B.3 [EI / EE] : Veille proactive sur les vulnérabilités, correctifs et menaces cyber affectant les composants du SI
     - urn: urn:intuitem:risk:req_node:recyf:5.b.3
       assessable: true
@@ -722,6 +1217,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.vulnerability
       - urn:intuitem:risk:function:doc-pol:proc.threat_intel
+      questions:
+        urn:intuitem:risk:req_node:recyf:5.b.3:q1:
+          type: unique_choice
+          text: "Quel est le niveau de maturité de la veille proactive sur les vulnérabilités affectant les composants du SI ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:5.b.3:q1:c1
+            value: 'Veille proactive et outillée : suivi des bulletins (CERT-FR, éditeurs) avec qualification d''impact'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:5.b.3:q1:c2
+            value: 'Veille informelle ou réactive : consultation occasionnelle des alertes de sécurité'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:5.b.3:q1:c3
+            value: 'Inexistante : aucune veille sur les vulnérabilités et menaces cyber'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 5.B.4 [EI / EE] : Mise en œuvre sans délai des actions correctives pour les vulnérabilités critiques identifiées
     - urn: urn:intuitem:risk:req_node:recyf:5.b.4
       assessable: true
@@ -743,6 +1258,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.vulnerability
       - urn:intuitem:risk:function:doc-pol:proc.update
+      questions:
+        urn:intuitem:risk:req_node:recyf:5.b.4:q1:
+          type: unique_choice
+          text: "Des mesures correctives sont-elles déployées sans délai dès l'identification d'une vulnérabilité critique ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:5.b.4:q1:c1
+            value: 'Oui, traitement d''urgence formalisé avec déploiement prioritaire des correctifs ou mesures de contournement'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:5.b.4:q1:c2
+            value: 'Partiellement, traitement dépendant de la disponibilité des équipes, sans SLA d''urgence garanti'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:5.b.4:q1:c3
+            value: 'Non, absence de processus de traitement rapide des vulnérabilités critiques'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 5.B.5 [EE] : Planification et installation régulière des correctifs de sécurité sur l'ensemble des ressources
     - urn: urn:intuitem:risk:req_node:recyf:5.b.5
       assessable: true
@@ -757,6 +1292,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.vulnerability
       - urn:intuitem:risk:function:doc-pol:proc.update
+      questions:
+        urn:intuitem:risk:req_node:recyf:5.b.5:q1:
+          type: unique_choice
+          text: "Quel est le niveau de structuration de la politique de déploiement des correctifs de sécurité (patch management) ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:5.b.5:q1:c1
+            value: 'Processus régulier et maîtrisé : planification, tests préalables et déploiement systématique sur tout le SI'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:5.b.5:q1:c2
+            value: 'Déploiement irrégulier ou partiel : correctifs appliqués avec retard ou sur un périmètre restreint'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:5.b.5:q1:c3
+            value: 'Inexistant : aucune politique planifiée de déploiement des correctifs de sécurité'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 5.B.6 [EI / EE] : Mesures de protection compensatoires en cas d'impossibilité technique de déployer un correctif
     - urn: urn:intuitem:risk:req_node:recyf:5.b.6
       assessable: true
@@ -776,6 +1331,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.vulnerability
       - urn:intuitem:risk:function:doc-pol:proc.exception_mgmt
+      questions:
+        urn:intuitem:risk:req_node:recyf:5.b.6:q1:
+          type: unique_choice
+          text: "Des mesures compensatoires strictes sont-elles mises en œuvre lorsqu'un correctif ne peut être déployé ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:5.b.6:q1:c1
+            value: 'Oui, mesures compensatoires formelles (cloisonnement, filtrage renforcé, surveillance dédiée) documentées'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:5.b.6:q1:c2
+            value: 'Non, vulnérabilités non corrigées laissées sans protection compensatoire'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 5.B.7 [EI / EE] : Installation et maintien à niveau des versions supportées pour les composants exposés
     - urn: urn:intuitem:risk:req_node:recyf:5.b.7
       assessable: true
@@ -793,6 +1363,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.software_lifecycle
       - urn:intuitem:risk:function:doc-pol:pol.vulnerability
+      questions:
+        urn:intuitem:risk:req_node:recyf:5.b.7:q1:
+          type: unique_choice
+          text: "Les composants logiciels et matériels exposés au réseau sont-ils maintenus dans des versions supportées ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:5.b.7:q1:c1
+            value: 'Oui, 100% des composants exposés sont sous support éditeur actif'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:5.b.7:q1:c2
+            value: 'Partiellement, certains composants exposés sont en fin de vie avec plan de migration en cours'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:5.b.7:q1:c3
+            value: 'Non, des composants obsolètes et non supportés sont exposés sans plan de migration'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 5.B.8 [EI / EE] : Téléchargement et vérification d'intégrité des logiciels depuis les canaux et sources officielles
     - urn: urn:intuitem:risk:req_node:recyf:5.b.8
       assessable: true
@@ -808,6 +1398,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.vulnerability
       - urn:intuitem:risk:function:doc-pol:pol.secdev
+      questions:
+        urn:intuitem:risk:req_node:recyf:5.b.8:q1:
+          type: unique_choice
+          text: "Les téléchargements de logiciels et mises à jour s'effectuent-ils exclusivement via des canaux officiels contrôlés ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:5.b.8:q1:c1
+            value: 'Oui, sources officielles strictes avec vérification systématique de l''intégrité (hash, signatures)'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:5.b.8:q1:c2
+            value: 'Non, téléchargements libres ou sans contrôle d''intégrité'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 5.B.9 [EI / EE] : Mesures compensatoires et isolement renforcé en cas de maintien d'une version logicielle obsolète
     - urn: urn:intuitem:risk:req_node:recyf:5.b.9
       assessable: true
@@ -825,6 +1430,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.software_lifecycle
       - urn:intuitem:risk:function:doc-pol:proc.exception_mgmt
+      questions:
+        urn:intuitem:risk:req_node:recyf:5.b.9:q1:
+          type: unique_choice
+          text: "En cas de maintien exceptionnel d'un composant obsolète, des mesures compensatoires d'isolement sont-elles actives ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:5.b.9:q1:c1
+            value: 'Oui, isolement réseau étanche, interdiction d''accès Internet et surveillance accrue'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:5.b.9:q1:c2
+            value: 'Non, composants obsolètes maintenus sans isolement suffisant'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ========================================================================
     # OBJECTIF DE SÉCURITÉ 6 : MAÎTRISE DES ACCÈS PHYSIQUES AUX LOCAUX
@@ -853,6 +1473,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:phys.secure_area
       - urn:intuitem:risk:function:doc-pol:phys.visitor_mgmt
       - urn:intuitem:risk:function:doc-pol:pol.physical
+      questions:
+        urn:intuitem:risk:req_node:recyf:6.1:q1:
+          type: unique_choice
+          text: "Quel est le niveau de contrôle des accès physiques aux locaux hébergeant les systèmes d'information ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:6.1:q1:c1
+            value: 'Contrôle d''accès physique systématique et outillé : badges nominatifs, sas ou serrures contrôlées avec journalisation'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:6.1:q1:c2
+            value: 'Contrôle d''accès physique partiel : portes fermées à clé sans contrôle nominatif ni traçabilité'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:6.1:q1:c3
+            value: 'Inexistant : accès libre aux locaux sans aucun dispositif de contrôle d''accès'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 6.2 [EE] : Protection physique renforcée des locaux sensibles, répartiteurs et salles serveurs
     - urn: urn:intuitem:risk:req_node:recyf:6.2
       assessable: true
@@ -869,6 +1509,21 @@ objects:
       - urn:intuitem:risk:function:doc-pol:phys.cctv
       - urn:intuitem:risk:function:doc-pol:phys.secure_area
       - urn:intuitem:risk:function:doc-pol:proc.physical_security
+      questions:
+        urn:intuitem:risk:req_node:recyf:6.2:q1:
+          type: unique_choice
+          text: "Les locaux sensibles, baies de brassage et salles serveurs bénéficient-ils d'une protection physique renforcée ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:6.2:q1:c1
+            value: 'Oui, zones sécurisées dédiées avec contrôle d''accès spécifique, vidéosurveillance ou détection d''intrusion'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:6.2:q1:c2
+            value: 'Non, équipements sensibles situés dans des espaces partagés ou sans verrouillage spécifique'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 6.3 [EE] : Attribution des accès physiques selon le strict besoin d'en connaître et revue des droits
     - urn: urn:intuitem:risk:req_node:recyf:6.3
       assessable: true
@@ -884,6 +1539,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:phys.secure_area
       - urn:intuitem:risk:function:doc-pol:pol.physical
       - urn:intuitem:risk:function:doc-pol:proc.physical_security
+      questions:
+        urn:intuitem:risk:req_node:recyf:6.3:q1:
+          type: unique_choice
+          text: "Les droits d'accès physique sont-ils restreints au strict besoin d'en connaître et périodiquement revus ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:6.3:q1:c1
+            value: 'Attribution selon le strict besoin d''en connaître avec revue formalisée au moins annuelle des accès'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:6.3:q1:c2
+            value: 'Attribution large ou revue des droits d''accès physique occasionnelle'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:6.3:q1:c3
+            value: 'Aucune restriction ni revue des autorisations d''accès physique'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 6.4 [EI / EE] : Encadrement, enregistrement et accompagnement permanent des visiteurs et prestataires externes
     - urn: urn:intuitem:risk:req_node:recyf:6.4
       assessable: true
@@ -899,6 +1574,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:phys.visitor_mgmt
       - urn:intuitem:risk:function:doc-pol:proc.physical_security
+      questions:
+        urn:intuitem:risk:req_node:recyf:6.4:q1:
+          type: unique_choice
+          text: "Les visiteurs et prestataires externes font-ils l'objet d'un encadrement physique strict dans les locaux ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:6.4:q1:c1
+            value: 'Oui, enregistrement systématique sur registre, port d''un badge visiteur et accompagnement permanent'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:6.4:q1:c2
+            value: 'Non, visiteurs non accompagnés ou non systématiquement enregistrés'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ========================================================================
     # OBJECTIF DE SÉCURITÉ 7 : SÉCURISATION DE L'ARCHITECTURE DES SYSTÈMES D'INFORMATION
@@ -943,6 +1633,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:tech.vlan
       - urn:intuitem:risk:function:doc-pol:tech.microsegmentation
       - urn:intuitem:risk:function:doc-pol:doc.arc_principles
+      questions:
+        urn:intuitem:risk:req_node:recyf:7.a.1:q1:
+          type: unique_choice
+          text: "Le système d'information fait-il l'objet d'un cloisonnement étanche vis-à-vis d'Internet et des réseaux tiers ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:7.a.1:q1:c1
+            value: 'Cloisonnement physique ou logique robuste et vérifié (pare-feux dédiés, DMZ, absence de pont direct)'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:7.a.1:q1:c2
+            value: 'Cloisonnement partiel : certaines liaisons vers des tiers contournent les passerelles sécurisées'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:7.a.1:q1:c3
+            value: 'Inexistant : aucune séparation étanche entre le SI et les réseaux externes'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 7.A.2 [EE] : Cloisonnement physique ou logique entre les différents systèmes d'information internes de l'entité
     - urn: urn:intuitem:risk:req_node:recyf:7.a.2
       assessable: true
@@ -964,6 +1674,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:pol.network
       - urn:intuitem:risk:function:doc-pol:tech.vlan
       - urn:intuitem:risk:function:doc-pol:tech.microsegmentation
+      questions:
+        urn:intuitem:risk:req_node:recyf:7.a.2:q1:
+          type: unique_choice
+          text: "Un cloisonnement est-il mis en œuvre entre les différents systèmes d'information internes de l'entité ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:7.a.2:q1:c1
+            value: 'Oui, segmentation réseau effective (VLAN dédiés, pare-feux internes) entre SI internes distincts'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:7.a.2:q1:c2
+            value: 'Partiellement, segmentation initiée sur certains SI critiques mais réseau interne largement à plat'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:7.a.2:q1:c3
+            value: 'Non, réseau interne totalement plat sans cloisonnement entre systèmes'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 7.A.3 [EE] : Analyse d'opportunité et définition de sous-systèmes homogènes par niveau de sensibilité
     - urn: urn:intuitem:risk:req_node:recyf:7.a.3
       assessable: true
@@ -981,6 +1711,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:doc.arc_principles
       - urn:intuitem:risk:function:doc-pol:pol.network
+      questions:
+        urn:intuitem:risk:req_node:recyf:7.a.3:q1:
+          type: unique_choice
+          text: "Une analyse de sensibilité a-t-elle été menée pour définir des sous-systèmes par niveau de criticité ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:7.a.3:q1:c1
+            value: 'Oui, cartographie des sous-systèmes formalisée selon leur sensibilité et besoins de protection'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:7.a.3:q1:c2
+            value: 'Non, absence d''analyse d''opportunité ni de découpage par niveau de sensibilité'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 7.A.4 [EE] : Cloisonnement effectif et étanche des sous-systèmes identifiés
     - urn: urn:intuitem:risk:req_node:recyf:7.a.4
       assessable: true
@@ -995,6 +1740,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:pol.network
       - urn:intuitem:risk:function:doc-pol:tech.microsegmentation
       - urn:intuitem:risk:function:doc-pol:tech.vlan
+      questions:
+        urn:intuitem:risk:req_node:recyf:7.a.4:q1:
+          type: unique_choice
+          text: "Les sous-systèmes identifiés font-ils l'objet d'un cloisonnement technique effectif ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:7.a.4:q1:c1
+            value: 'Cloisonnement technique complet et éprouvé entre sous-systèmes de sensibilités différentes'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:7.a.4:q1:c2
+            value: 'Cloisonnement partiel ou flux résiduels non contrôlés entre sous-systèmes'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:7.a.4:q1:c3
+            value: 'Inexistant : aucun cloisonnement technique effectif entre sous-systèmes'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 7.A.5 [EE] : Mise en place d'une passerelle sortante sécurisée (proxy sortant, filtrage des flux)
     - urn: urn:intuitem:risk:req_node:recyf:7.a.5
       assessable: true
@@ -1012,6 +1777,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:tech.web_proxy
       - urn:intuitem:risk:function:doc-pol:pol.network
+      questions:
+        urn:intuitem:risk:req_node:recyf:7.a.5:q1:
+          type: unique_choice
+          text: "Une passerelle sortante sécurisée (proxy sortant, filtrage d'URL/flux) contrôle-t-elle les flux vers Internet ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:7.a.5:q1:c1
+            value: 'Oui, passerelle sortante active avec filtrage d''URL, inspection antivirale et interdiction des flux directs'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:7.a.5:q1:c2
+            value: 'Non, flux sortants directs autorisés vers Internet sans passerelle sécurisée'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 7.A.6 [EE] : Mise en place d'une passerelle entrante sécurisée (DMZ, reverse-proxy, WAF)
     - urn: urn:intuitem:risk:req_node:recyf:7.a.6
       assessable: true
@@ -1030,6 +1810,21 @@ objects:
       - urn:intuitem:risk:function:doc-pol:tech.reverse_proxy
       - urn:intuitem:risk:function:doc-pol:pol.web_sec
       - urn:intuitem:risk:function:doc-pol:pol.network
+      questions:
+        urn:intuitem:risk:req_node:recyf:7.a.6:q1:
+          type: unique_choice
+          text: "Une passerelle entrante sécurisée (DMZ, reverse-proxy, WAF) protège-t-elle les services exposés ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:7.a.6:q1:c1
+            value: 'Oui, DMZ avec reverse-proxy et WAF filtrant l''ensemble des flux entrants vers les serveurs exposés'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:7.a.6:q1:c2
+            value: 'Non, services internes directement joignables depuis l''extérieur sans passerelle de sécurité'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 7.A.7 [EI / EE] : Restriction stricte des interconnexions au seul besoin opérationnel avéré et documenté
     - urn: urn:intuitem:risk:req_node:recyf:7.a.7
       assessable: true
@@ -1049,6 +1844,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.network
       - urn:intuitem:risk:function:doc-pol:doc.flow_matrix
+      questions:
+        urn:intuitem:risk:req_node:recyf:7.a.7:q1:
+          type: unique_choice
+          text: "Les interconnexions réseau sont-elles strictement limitées au seul besoin opérationnel avéré et documenté ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:7.a.7:q1:c1
+            value: 'Oui, chaque interconnexion est justifiée, documentée et limitée au strict besoin fonctionnel'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:7.a.7:q1:c2
+            value: 'Non, interconnexions superflues ou non documentées présentes sur le réseau'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 7.A.8 [EE] : Formalisation, analyse d'impact et validation préalable de toute nouvelle interconnexion réseau
     - urn: urn:intuitem:risk:req_node:recyf:7.a.8
       assessable: true
@@ -1068,6 +1878,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.network
       - urn:intuitem:risk:function:doc-pol:doc.flow_matrix
+      questions:
+        urn:intuitem:risk:req_node:recyf:7.a.8:q1:
+          type: unique_choice
+          text: "Toute nouvelle interconnexion réseau fait-elle l'objet d'une analyse d'impact préalable et d'une validation formelle ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:7.a.8:q1:c1
+            value: 'Processus formalisé avec analyse d''impact de sécurité obligatoire et validation préalable'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:7.a.8:q1:c2
+            value: 'Validation informelle sans analyse d''impact de sécurité documentée'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:7.a.8:q1:c3
+            value: 'Aucun processus : interconnexions déployées sans validation préalable de sécurité'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ------------------------------------------------------------------------
     # SOUS-SECTION 7.B : Filtrage des communications
@@ -1098,6 +1928,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:doc.flow_matrix
       - urn:intuitem:risk:function:doc-pol:pol.network
+      questions:
+        urn:intuitem:risk:req_node:recyf:7.b.1:q1:
+          type: unique_choice
+          text: "Quel est le niveau de documentation des communications et flux applicatifs métier nécessaires ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:7.b.1:q1:c1
+            value: 'Matrice des flux applicatifs exhaustive, documentée et maintenue à jour'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:7.b.1:q1:c2
+            value: 'Documentation partielle des flux principaux sans exhaustivité'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:7.b.1:q1:c3
+            value: 'Inexistante : aucun inventaire documenté des flux applicatifs métier'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 7.B.2 [EE] : Documentation des communications nécessaires à l'administration et au maintien opérationnel
     - urn: urn:intuitem:risk:req_node:recyf:7.b.2
       assessable: true
@@ -1112,6 +1962,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:doc.flow_matrix
       - urn:intuitem:risk:function:doc-pol:pol.network
+      questions:
+        urn:intuitem:risk:req_node:recyf:7.b.2:q1:
+          type: unique_choice
+          text: "Les flux réseau nécessaires à l'administration et au maintien opérationnel sont-ils documentés ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:7.b.2:q1:c1
+            value: 'Oui, l''ensemble des flux d''administration (protocoles, ports, sources, cibles) est documenté'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:7.b.2:q1:c2
+            value: 'Non, flux d''administration non documentés ou non distingués des flux standards'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 7.B.3 [EI / EE] : Règles de filtrage interdisant tout flux non expressément autorisé (déni par défaut)
     - urn: urn:intuitem:risk:req_node:recyf:7.b.3
       assessable: true
@@ -1129,6 +1994,21 @@ objects:
       - urn:intuitem:risk:function:doc-pol:pol.network
       - urn:intuitem:risk:function:doc-pol:tech.network_firewall
       - urn:intuitem:risk:function:doc-pol:doc.flow_matrix
+      questions:
+        urn:intuitem:risk:req_node:recyf:7.b.3:q1:
+          type: unique_choice
+          text: "La politique de filtrage réseau applique-t-elle le principe d'interdiction par défaut (déni par défaut / default deny) ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:7.b.3:q1:c1
+            value: 'Oui, politique de déni par défaut stricte : seuls les flux expressément autorisés sont ouverts'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:7.b.3:q1:c2
+            value: 'Non, filtrage permissif par défaut ou règles trop permissives (any/any)'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 7.B.4 [EI / EE] : Filtrage des communications au moyen d'un ou plusieurs pare-feux dédiés à cet usage
     - urn: urn:intuitem:risk:req_node:recyf:7.b.4
       assessable: true
@@ -1150,6 +2030,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:tech.network_firewall
       - urn:intuitem:risk:function:doc-pol:pol.network
+      questions:
+        urn:intuitem:risk:req_node:recyf:7.b.4:q1:
+          type: unique_choice
+          text: "Le filtrage des communications est-il assuré par un ou plusieurs pare-feux dédiés à cette fonction ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:7.b.4:q1:c1
+            value: 'Oui, équipements pare-feux dédiés, durcis et configurés selon les règles de l''art'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:7.b.4:q1:c2
+            value: 'Non, absence de pare-feu dédié ou filtrage opéré uniquement sur des routeurs standards non sécurisés'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 7.B.5 [EI / EE] : Revue annuelle obligatoire de la conformité et de l'efficacité technique des règles de filtrage
     - urn: urn:intuitem:risk:req_node:recyf:7.b.5
       assessable: true
@@ -1166,6 +2061,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:pol.network
       - urn:intuitem:risk:function:doc-pol:tech.network_firewall
       - urn:intuitem:risk:function:doc-pol:proc.compliance_monitoring
+      questions:
+        urn:intuitem:risk:req_node:recyf:7.b.5:q1:
+          type: unique_choice
+          text: "À quelle fréquence la pertinence et l'efficacité des règles de filtrage réseau sont-elles revues ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:7.b.5:q1:c1
+            value: 'Revue formelle au moins annuelle de l''ensemble des règles de filtrage et nettoyage des règles obsolètes'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:7.b.5:q1:c2
+            value: 'Revue occasionnelle sans périodicité garantie'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:7.b.5:q1:c3
+            value: 'Aucune revue périodique des règles de filtrage des pare-feux'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ========================================================================
     # OBJECTIF DE SÉCURITÉ 8 : SÉCURISATION DES ACCÈS DISTANTS AUX SYSTÈMES D'INFORMATION
@@ -1197,6 +2112,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:pol.crypto
       - urn:intuitem:risk:function:doc-pol:tech.vpn
       - urn:intuitem:risk:function:doc-pol:pol.access
+      questions:
+        urn:intuitem:risk:req_node:recyf:8.1:q1:
+          type: unique_choice
+          text: "Quel est le niveau d'encadrement formel et technique des accès distants au système d'information ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:8.1:q1:c1
+            value: 'Accès distants strictement encadrés par une procédure formelle, autorisés individuellement et sécurisés'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:8.1:q1:c2
+            value: 'Accès distants autorisés de manière informelle avec encadrement technique partiel'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:8.1:q1:c3
+            value: 'Inexistant : accès distants non maîtrisés ou ouverts sans politique formalisée'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 8.2 [EI / EE] : Chiffrement robuste de bout en bout des canaux de communication distants (VPN/TLS)
     - urn: urn:intuitem:risk:req_node:recyf:8.2
       assessable: true
@@ -1215,6 +2150,21 @@ objects:
       - urn:intuitem:risk:function:doc-pol:pol.access
       - urn:intuitem:risk:function:doc-pol:tech.mfa
       - urn:intuitem:risk:function:doc-pol:tech.vpn
+      questions:
+        urn:intuitem:risk:req_node:recyf:8.2:q1:
+          type: unique_choice
+          text: "Les canaux de télécommunication distants font-ils l'objet d'une protection cryptographique robuste (VPN/TLS) ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:8.2:q1:c1
+            value: 'Oui, chiffrement systématique de bout en bout avec protocoles et algorithmes conformes aux recommandations ANSSI'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:8.2:q1:c2
+            value: 'Non, des flux distants transitent en clair ou avec des chiffrements obsolètes'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 8.3 [EE] : Authentification multi-facteurs (MFA) obligatoire pour tout accès distant au SI
     - urn: urn:intuitem:risk:req_node:recyf:8.3
       assessable: true
@@ -1230,6 +2180,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:tech.mfa
       - urn:intuitem:risk:function:doc-pol:pol.access
+      questions:
+        urn:intuitem:risk:req_node:recyf:8.3:q1:
+          type: unique_choice
+          text: "L'authentification multi-facteurs (MFA) est-elle exigée pour tout accès distant au SI ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:8.3:q1:c1
+            value: 'Oui, MFA systématiquement obligatoire et actif pour 100% des accès distants'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:8.3:q1:c2
+            value: 'Partiellement, MFA déployé uniquement pour les administrateurs ou certaines applications'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:8.3:q1:c3
+            value: 'Non, authentification simple par simple mot de passe sur les accès distants'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 8.4 [EE] : Mesures compensatoires strictes en cas d'impossibilité technique de mettre en œuvre du MFA
     - urn: urn:intuitem:risk:req_node:recyf:8.4
       assessable: true
@@ -1245,6 +2215,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.exception_mgmt
       - urn:intuitem:risk:function:doc-pol:pol.access
+      questions:
+        urn:intuitem:risk:req_node:recyf:8.4:q1:
+          type: unique_choice
+          text: "Des mesures compensatoires strictes sont-elles appliquées lorsqu'un accès distant ne peut pas supporter de MFA ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:8.4:q1:c1
+            value: 'Oui, mesures compensatoires validées (filtrage IP strict, certificats matériels, rebond dédié étanche)'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:8.4:q1:c2
+            value: 'Non, des accès sans MFA subsistent sans aucune mesure compensatoire'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 8.5 [EE] : Chiffrement intégral des mémoires de masse (disques) des postes nomades et équipements mobiles
     - urn: urn:intuitem:risk:req_node:recyf:8.5
       assessable: true
@@ -1266,6 +2251,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:tech.disk_encryption
       - urn:intuitem:risk:function:doc-pol:pol.crypto
       - urn:intuitem:risk:function:doc-pol:pol.work
+      questions:
+        urn:intuitem:risk:req_node:recyf:8.5:q1:
+          type: unique_choice
+          text: "Les mémoires de masse des ordinateurs portables nomades et terminaux mobiles sont-elles chiffrées ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:8.5:q1:c1
+            value: 'Oui, chiffrement intégral du disque (BitLocker, FileVault, LUKS) activé sur 100% des postes nomades'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:8.5:q1:c2
+            value: 'Partiellement, chiffrement déployé sur certains postes uniquement'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:8.5:q1:c3
+            value: 'Non, disques des postes nomades non chiffrés'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ========================================================================
     # OBJECTIF DE SÉCURITÉ 9 : PROTECTION CONTRE LES CODES MALVEILLANTS
@@ -1294,6 +2299,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.asset
       - urn:intuitem:risk:function:doc-pol:pol.accept
+      questions:
+        urn:intuitem:risk:req_node:recyf:9.1:q1:
+          type: unique_choice
+          text: "L'entité a-t-elle formalisé la liste des catégories d'équipements matériels autorisés à se connecter au SI ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:9.1:q1:c1
+            value: 'Oui, politique claire formalisant les catégories d''équipements et terminaux autorisés'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:9.1:q1:c2
+            value: 'Non, absence de liste ou de politique définissant les équipements autorisés'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 9.2 [EE] : Connexion restreinte aux seuls équipements matériels sous la maîtrise de l'entité ou de ses prestataires
     - urn: urn:intuitem:risk:req_node:recyf:9.2
       assessable: true
@@ -1313,6 +2333,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:pol.asset
       - urn:intuitem:risk:function:doc-pol:tech.nac
       - urn:intuitem:risk:function:doc-pol:tech.uem
+      questions:
+        urn:intuitem:risk:req_node:recyf:9.2:q1:
+          type: unique_choice
+          text: "La connexion au SI est-elle strictement réservée aux seuls équipements sous maîtrise de l'entité ou de ses prestataires ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:9.2:q1:c1
+            value: 'Connexion strictement limitée aux terminaux maîtrisés (postes d''entreprise gérés par MDM/GPO)'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:9.2:q1:c2
+            value: 'BYOD toléré de manière informelle ou terminaux personnels connectés sans contrôle technique'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:9.2:q1:c3
+            value: 'Aucune restriction : n''importe quel terminal peut se connecter au réseau de l''entité'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 9.3 [EI / EE] : Mesures techniques et organisationnelles empêchant la connexion d'équipements non autorisés
     - urn: urn:intuitem:risk:req_node:recyf:9.3
       assessable: true
@@ -1329,6 +2369,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:tech.nac
       - urn:intuitem:risk:function:doc-pol:pol.asset
+      questions:
+        urn:intuitem:risk:req_node:recyf:9.3:q1:
+          type: unique_choice
+          text: "Des mesures techniques et organisationnelles empêchent-elles efficacement la connexion d'équipements non autorisés ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:9.3:q1:c1
+            value: 'Oui, mécanismes techniques actifs (blocage des ports non utilisés, 802.1X, contrôle d''accès réseau)'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:9.3:q1:c2
+            value: 'Non, aucune mesure n''empêche le branchement d''un équipement tiers sur le réseau'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 9.4 [EE] : Blocage des connexions réseau non autorisées (contrôle d'accès au réseau local et sans-fil)
     - urn: urn:intuitem:risk:req_node:recyf:9.4
       assessable: true
@@ -1344,6 +2399,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:tech.nac
       - urn:intuitem:risk:function:doc-pol:pol.asset
+      questions:
+        urn:intuitem:risk:req_node:recyf:9.4:q1:
+          type: unique_choice
+          text: "Un contrôle d'accès au réseau local et sans-fil bloque-t-il les connexions non autorisées ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:9.4:q1:c1
+            value: 'Oui, authentification 802.1X avec certificats machines ou WPA3-Enterprise avec isolation des invités'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:9.4:q1:c2
+            value: 'Partiellement, Wi-Fi protégé par clé partagée statique sans contrôle d''accès sur le réseau filaire'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:9.4:q1:c3
+            value: 'Non, réseau local ou Wi-Fi ouvert sans contrôle d''accès'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 9.5 [EI / EE] : Encadrement strict et limitation de l'usage des supports amovibles (clés USB réinscriptibles)
     - urn: urn:intuitem:risk:req_node:recyf:9.5
       assessable: true
@@ -1361,6 +2436,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.removable_media
       - urn:intuitem:risk:function:doc-pol:pol.asset
+      questions:
+        urn:intuitem:risk:req_node:recyf:9.5:q1:
+          type: unique_choice
+          text: "Quel est le niveau d'encadrement et de restriction de l'usage des supports amovibles (clés USB) ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:9.5:q1:c1
+            value: 'Usage strictement encadré : ports USB bloqués par défaut, station blanche de décontamination obligatoire'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:9.5:q1:c2
+            value: 'Encadrement déclaratif par charte sans blocage technique actif'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:9.5:q1:c3
+            value: 'Inexistant : utilisation libre de supports amovibles non contrôlés'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 9.6 [EI / EE] : Déploiement d'une solution de protection antivirus / EDR active sur postes et serveurs
     - urn: urn:intuitem:risk:req_node:recyf:9.6
       assessable: true
@@ -1382,6 +2477,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:pol.malware
       - urn:intuitem:risk:function:doc-pol:tech.endpoint_protection
       - urn:intuitem:risk:function:doc-pol:tech.edr
+      questions:
+        urn:intuitem:risk:req_node:recyf:9.6:q1:
+          type: unique_choice
+          text: "Une solution de protection contre les malwares (antivirus / EDR) est-elle activement déployée sur le parc ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:9.6:q1:c1
+            value: 'EDR ou antivirus managé déployé sur 100% des postes et serveurs avec supervision centralisée'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:9.6:q1:c2
+            value: 'Antivirus déployé partiellement ou non supervisé de manière centralisée'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:9.6:q1:c3
+            value: 'Inexistant : aucune solution antivirale active sur les systèmes'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 9.7 [EI / EE] : Analyse antivirale et filtrage systématique des fichiers et données provenant de sources externes
     - urn: urn:intuitem:risk:req_node:recyf:9.7
       assessable: true
@@ -1402,6 +2517,21 @@ objects:
       - urn:intuitem:risk:function:doc-pol:pol.malware
       - urn:intuitem:risk:function:doc-pol:tech.mail_gateway
       - urn:intuitem:risk:function:doc-pol:tech.network_antivirus
+      questions:
+        urn:intuitem:risk:req_node:recyf:9.7:q1:
+          type: unique_choice
+          text: "Les fichiers et flux provenant de sources externes font-ils l'objet d'une analyse antivirale systématique ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:9.7:q1:c1
+            value: 'Oui, passerelle de messagerie sécurisée et filtrage antivirus automatique des flux entrants'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:9.7:q1:c2
+            value: 'Non, fichiers et pièces jointes externes reçus sans analyse antivirale systématique'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ========================================================================
     # OBJECTIF DE SÉCURITÉ 10 : GESTION DES IDENTITÉS ET DES ACCÈS (IAM)
@@ -1441,6 +2571,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.access
       - urn:intuitem:risk:function:doc-pol:doc.pam_register
+      questions:
+        urn:intuitem:risk:req_node:recyf:10.a.1:q1:
+          type: unique_choice
+          text: "Chaque utilisateur et processus accédant au SI dispose-t-il d'un identifiant nominatif et unique ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:10.a.1:q1:c1
+            value: 'Oui, stricte unicité des comptes nominatifs pour 100% des utilisateurs et des comptes de service'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:10.a.1:q1:c2
+            value: 'Partiellement, présence de comptes génériques partagés pour des tâches courantes'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:10.a.1:q1:c3
+            value: 'Non, identification non assurée ou comptes collectifs d''usage généralisé'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 10.A.2 [EI / EE] : Usage strictement individuel et personnel du compte utilisateur par son titulaire
     - urn: urn:intuitem:risk:req_node:recyf:10.a.2
       assessable: true
@@ -1455,6 +2605,21 @@ objects:
       - EE
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.access
+      questions:
+        urn:intuitem:risk:req_node:recyf:10.a.2:q1:
+          type: unique_choice
+          text: "L'usage de chaque compte est-il strictement individuel avec interdiction de partage ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:10.a.2:q1:c1
+            value: 'Oui, interdiction stricte du partage d''identifiants formalisée et contrôlée'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:10.a.2:q1:c2
+            value: 'Non, partage toléré d''identifiants et de mots de passe entre collaborateurs'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 10.A.3 [EI / EE] : Encadrement dérogatoire, traçabilité et justification formelle des comptes partagés ou génériques
     - urn: urn:intuitem:risk:req_node:recyf:10.a.3
       assessable: true
@@ -1474,6 +2639,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.access
       - urn:intuitem:risk:function:doc-pol:proc.exception_mgmt
+      questions:
+        urn:intuitem:risk:req_node:recyf:10.a.3:q1:
+          type: unique_choice
+          text: "Les éventuels comptes partagés résiduels font-ils l'objet d'un encadrement dérogatoire et d'une traçabilité renforcée ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:10.a.3:q1:c1
+            value: 'Comptes partagés exceptionnels, formalisés, justifiés techniquement et tracés nominativement (bastion/PAM)'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:10.a.3:q1:c2
+            value: 'Comptes partagés existants sans traçabilité fine des actions individuelles'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:10.a.3:q1:c3
+            value: 'Aucun encadrement des comptes partagés'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 10.A.4 [EI / EE] : Dispense d'identification nominative pour les systèmes de diffusion d'informations publiques
     - urn: urn:intuitem:risk:req_node:recyf:10.a.4
       assessable: true
@@ -1491,6 +2676,21 @@ objects:
       - EE
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.access
+      questions:
+        urn:intuitem:risk:req_node:recyf:10.a.4:q1:
+          type: unique_choice
+          text: "Les accès non nominatifs sont-ils strictement réservés à la diffusion d'informations publiques ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:10.a.4:q1:c1
+            value: 'Oui, accès anonymes limités aux seuls sites web ou portails publics d''information'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:10.a.4:q1:c2
+            value: 'Non, accès anonymes possibles sur des ressources ou services internes'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 10.A.5 [EI / EE] : Désactivation immédiate des comptes utilisateurs devenus obsolètes ou lors des départs
     - urn: urn:intuitem:risk:req_node:recyf:10.a.5
       assessable: true
@@ -1506,6 +2706,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.access
       - urn:intuitem:risk:function:doc-pol:proc.hr_security
+      questions:
+        urn:intuitem:risk:req_node:recyf:10.a.5:q1:
+          type: unique_choice
+          text: "Les comptes utilisateurs des collaborateurs ayant quitté l'entité sont-ils désactivés sans délai ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:10.a.5:q1:c1
+            value: 'Oui, désactivation automatique ou immédiate (moins de 24h ouvrées) dès le départ effectif'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:10.a.5:q1:c2
+            value: 'Partiellement, désactivation manuelle avec des délais constatés de plusieurs semaines'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:10.a.5:q1:c3
+            value: 'Non, comptes d''anciens collaborateurs laissés actifs sans surveillance'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 10.A.6 [EI / EE] : Revue périodique au moins annuelle de l'ensemble des comptes actifs du système d'information
     - urn: urn:intuitem:risk:req_node:recyf:10.a.6
       assessable: true
@@ -1522,6 +2742,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.access
       - urn:intuitem:risk:function:doc-pol:proc.recertification
+      questions:
+        urn:intuitem:risk:req_node:recyf:10.a.6:q1:
+          type: unique_choice
+          text: "À quelle fréquence l'ensemble des comptes actifs du système d'information est-il revu ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:10.a.6:q1:c1
+            value: 'Revue au moins annuelle systématique de tous les comptes actifs et suppression des comptes orphelins'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:10.a.6:q1:c2
+            value: 'Revue occasionnelle sans processus formalisé'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:10.a.6:q1:c3
+            value: 'Aucune revue périodique des comptes actifs'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ------------------------------------------------------------------------
     # SOUS-SECTION 10.B : Authentification
@@ -1550,6 +2790,21 @@ objects:
       - EE
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.access
+      questions:
+        urn:intuitem:risk:req_node:recyf:10.b.1:q1:
+          type: unique_choice
+          text: "Une authentification préalable sécurisée est-elle systématiquement exigée avant tout accès au SI ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:10.b.1:q1:c1
+            value: 'Oui, aucune ressource accessible sans authentification préalable vérifiée'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:10.b.1:q1:c2
+            value: 'Non, certaines ressources ou partages réseau sont accessibles sans authentification'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 10.B.2 [EI / EE] : Modification obligatoire de tout secret, mot de passe ou clé configuré par défaut avant mise en service
     - urn: urn:intuitem:risk:req_node:recyf:10.b.2
       assessable: true
@@ -1568,6 +2823,21 @@ objects:
       - urn:intuitem:risk:function:doc-pol:pol.hardening
       - urn:intuitem:risk:function:doc-pol:proc.gpo
       - urn:intuitem:risk:function:doc-pol:pol.access
+      questions:
+        urn:intuitem:risk:req_node:recyf:10.b.2:q1:
+          type: unique_choice
+          text: "Tous les secrets, mots de passe et clés configurés par défaut sont-ils modifiés avant mise en service ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:10.b.2:q1:c1
+            value: 'Oui, modification systématique obligatoire de tous les mots de passe et secrets constructeur'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:10.b.2:q1:c2
+            value: 'Non, des équipements ou applications conservent leurs mots de passe d''usine par défaut'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 10.B.3 [EI / EE] : Renouvellement systématique du secret d'un compte partagé lors du départ d'un utilisateur
     - urn: urn:intuitem:risk:req_node:recyf:10.b.3
       assessable: true
@@ -1582,6 +2852,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.access
       - urn:intuitem:risk:function:doc-pol:proc.hr_security
+      questions:
+        urn:intuitem:risk:req_node:recyf:10.b.3:q1:
+          type: unique_choice
+          text: "Le secret d'un compte partagé est-il immédiatement renouvelé lors du départ d'un utilisateur y ayant eu accès ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:10.b.3:q1:c1
+            value: 'Oui, renouvellement systématique et immédiat du mot de passe ou clé'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:10.b.3:q1:c2
+            value: 'Non, les secrets des comptes partagés ne sont pas révoqués lors des départs'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 10.B.4 [EI / EE] : Confidentialité stricte des éléments secrets d'authentification et interdiction de transmission
     - urn: urn:intuitem:risk:req_node:recyf:10.b.4
       assessable: true
@@ -1598,6 +2883,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.access
       - urn:intuitem:risk:function:doc-pol:tech.password_manager
+      questions:
+        urn:intuitem:risk:req_node:recyf:10.b.4:q1:
+          type: unique_choice
+          text: "La confidentialité des secrets d'authentification est-elle rigoureusement garantie (pas de stockage en clair) ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:10.b.4:q1:c1
+            value: 'Secrets stockés de façon sécurisée (hachage robuste, gestionnaire de mots de passe professionnel)'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:10.b.4:q1:c2
+            value: 'Pratiques partielles : certains mots de passe conservés dans des fichiers bureautiques non protégés'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:10.b.4:q1:c3
+            value: 'Non conforme : mots de passe écrits sur post-it ou stockés en clair'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 10.B.5 [EI / EE] : Conformité des mécanismes d'authentification aux recommandations et guides de l'ANSSI
     - urn: urn:intuitem:risk:req_node:recyf:10.b.5
       assessable: true
@@ -1614,6 +2919,26 @@ objects:
       - EE
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.access
+      questions:
+        urn:intuitem:risk:req_node:recyf:10.b.5:q1:
+          type: unique_choice
+          text: "La politique de complexité des mots de passe est-elle conforme aux recommandations de l'ANSSI ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:10.b.5:q1:c1
+            value: 'Conforme aux guides ANSSI : longueur suffisante, complexité, protection anti-bruteforce'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:10.b.5:q1:c2
+            value: 'Partiellement conforme : longueur insuffisante (< 10 caractères) ou absence de blocage après échecs'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:10.b.5:q1:c3
+            value: 'Non conforme : aucune exigence de robustesse des mots de passe'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 10.B.6 [EI / EE] : Mesures compensatoires en cas d'impossibilité technique de modifier un secret par défaut
     - urn: urn:intuitem:risk:req_node:recyf:10.b.6
       assessable: true
@@ -1631,6 +2956,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.access
       - urn:intuitem:risk:function:doc-pol:proc.exception_mgmt
+      questions:
+        urn:intuitem:risk:req_node:recyf:10.b.6:q1:
+          type: unique_choice
+          text: "Des mesures compensatoires sont-elles appliquées lorsqu'un secret par défaut ne peut être modifié ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:10.b.6:q1:c1
+            value: 'Oui, isolement réseau strict et mesures compensatoires documentées'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:10.b.6:q1:c2
+            value: 'Non, secrets non modifiables conservés sans protection d''isolement'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 10.B.7 [EE] : Surveillance renforcée et isolement réseau des ressources dotées de secrets non modifiables
     - urn: urn:intuitem:risk:req_node:recyf:10.b.7
       assessable: true
@@ -1645,6 +2985,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.access
       - urn:intuitem:risk:function:doc-pol:pol.monitor
+      questions:
+        urn:intuitem:risk:req_node:recyf:10.b.7:q1:
+          type: unique_choice
+          text: "Les équipements avec secrets non modifiables font-ils l'objet d'un cloisonnement et d'une surveillance renforcés ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:10.b.7:q1:c1
+            value: 'Oui, réseau dédié étanche et surveillance spécifique des flux'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:10.b.7:q1:c2
+            value: 'Non, équipements avec secrets fixes connectés au réseau standard sans surveillance'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ------------------------------------------------------------------------
     # SOUS-SECTION 10.C : Droits d'accès
@@ -1669,6 +3024,21 @@ objects:
       - EE
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.access
+      questions:
+        urn:intuitem:risk:req_node:recyf:10.c.1:q1:
+          type: unique_choice
+          text: "L'attribution des droits d'accès est-elle subordonnée à une identification et authentification préalables ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:10.c.1:q1:c1
+            value: 'Oui, attribution strictement conditionnée à une authentification réussie'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:10.c.1:q1:c2
+            value: 'Non, privilèges attribués sans authentification formelle préalable'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 10.C.2 [EI / EE] : Application stricte du principe du moindre privilège selon les missions et responsabilités confiées
     - urn: urn:intuitem:risk:req_node:recyf:10.c.2
       assessable: true
@@ -1685,6 +3055,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.access
       - urn:intuitem:risk:function:doc-pol:proc.rbac
+      questions:
+        urn:intuitem:risk:req_node:recyf:10.c.2:q1:
+          type: unique_choice
+          text: "Quel est le niveau d'application du principe du moindre privilège pour les droits d'accès ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:10.c.2:q1:c1
+            value: 'Principe du moindre privilège appliqué rigoureusement : droits accordés au strict nécessaire par profil métier (RBAC)'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:10.c.2:q1:c2
+            value: 'Application partielle : privilèges larges ou comptes administratifs utilisés pour les tâches courantes'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:10.c.2:q1:c3
+            value: 'Inexistant : droits d''accès généreux sans restriction par profil métier'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 10.C.3 [EI / EE] : Contrôle granulaire des droits d'accès au niveau de chaque ressource du système d'information
     - urn: urn:intuitem:risk:req_node:recyf:10.c.3
       assessable: true
@@ -1701,6 +3091,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.access
       - urn:intuitem:risk:function:doc-pol:proc.rbac
+      questions:
+        urn:intuitem:risk:req_node:recyf:10.c.3:q1:
+          type: unique_choice
+          text: "Le contrôle des droits d'accès est-il vérifié de manière granulaire au niveau de chaque ressource du SI ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:10.c.3:q1:c1
+            value: 'Oui, contrôle d''accès granulaire et effectif au niveau des serveurs, bases de données et fichiers'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:10.c.3:q1:c2
+            value: 'Partiellement, contrôle au niveau de l''entrée réseau mais droits internes ouverts à tous'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:10.c.3:q1:c3
+            value: 'Non, aucun contrôle granulaire des droits d''accès aux ressources'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 10.C.4 [EI / EE] : Revue périodique au moins annuelle des habilitations et privilèges d'accès attribués
     - urn: urn:intuitem:risk:req_node:recyf:10.c.4
       assessable: true
@@ -1717,6 +3127,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.access
       - urn:intuitem:risk:function:doc-pol:proc.recertification
+      questions:
+        urn:intuitem:risk:req_node:recyf:10.c.4:q1:
+          type: unique_choice
+          text: "À quelle fréquence les habilitations et droits d'accès accordés font-ils l'objet d'une revue formelle ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:10.c.4:q1:c1
+            value: 'Revue au moins annuelle systématique des habilitations validée par les responsables métier'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:10.c.4:q1:c2
+            value: 'Revue occasionnelle sans processus formalisé'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:10.c.4:q1:c3
+            value: 'Aucune revue périodique des droits et privilèges d''accès'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ========================================================================
     # OBJECTIF DE SÉCURITÉ 11 : MAÎTRISE DE L'ADMINISTRATION DES SYSTÈMES D'INFORMATION
@@ -1760,6 +3190,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:proc.pam
       - urn:intuitem:risk:function:doc-pol:pol.access
       - urn:intuitem:risk:function:doc-pol:doc.pam_register
+      questions:
+        urn:intuitem:risk:req_node:recyf:11.a.1:q1:
+          type: unique_choice
+          text: "Les actions d'administration sont-elles exclusivement effectuées au moyen de comptes dédiés ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:11.a.1:q1:c1
+            value: 'Oui, séparation stricte : comptes d''administration dédiés distincts des comptes bureautiques'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:11.a.1:q1:c2
+            value: 'Partiellement, certains administrateurs utilisent leur compte nominatif standard pour administrer'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:11.a.1:q1:c3
+            value: 'Non, absence de comptes d''administration dédiés'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 11.A.2 [EI / EE] : Comptes d'administration réservés aux seuls administrateurs dûment habilités
     - urn: urn:intuitem:risk:req_node:recyf:11.a.2
       assessable: true
@@ -1774,6 +3224,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.pam
       - urn:intuitem:risk:function:doc-pol:pol.access
+      questions:
+        urn:intuitem:risk:req_node:recyf:11.a.2:q1:
+          type: unique_choice
+          text: "Les comptes d'administration sont-ils réservés aux seules personnes nommément habilitées ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:11.a.2:q1:c1
+            value: 'Oui, comptes d''administration attribués individuellement aux seuls personnels habilités et formés'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:11.a.2:q1:c2
+            value: 'Non, attribution non maîtrisée ou comptes d''administration partagés sans contrôle'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 11.A.3 [EI / EE] : Application des exigences renforcées d'identification et d'authentification aux comptes d'admin
     - urn: urn:intuitem:risk:req_node:recyf:11.a.3
       assessable: true
@@ -1789,6 +3254,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.pam
       - urn:intuitem:risk:function:doc-pol:pol.access
+      questions:
+        urn:intuitem:risk:req_node:recyf:11.a.3:q1:
+          type: unique_choice
+          text: "Des exigences renforcées d'identification et d'authentification s'appliquent-elles aux comptes d'admin ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:11.a.3:q1:c1
+            value: 'Oui, authentification forte (MFA/carte à puce) et politiques de mots de passe renforcées pour l''administration'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:11.a.3:q1:c2
+            value: 'Partiellement, mot de passe complexe exigé mais sans authentification multi-facteurs'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:11.a.3:q1:c3
+            value: 'Non, aucune exigence renforcée pour les comptes d''administration'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 11.A.4 [EE] : Usage exclusif du compte d'administration sur son périmètre technique autorisé
     - urn: urn:intuitem:risk:req_node:recyf:11.a.4
       assessable: true
@@ -1805,6 +3290,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.pam
       - urn:intuitem:risk:function:doc-pol:pol.access
+      questions:
+        urn:intuitem:risk:req_node:recyf:11.a.4:q1:
+          type: unique_choice
+          text: "Chaque compte d'administration est-il limité à son périmètre technique autorisé ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:11.a.4:q1:c1
+            value: 'Oui, segmentation stricte des rôles administratifs sans compte omnipotent non maîtrisé'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:11.a.4:q1:c2
+            value: 'Non, utilisation généralisée de comptes à privilèges totaux (ex: Domain Admins pour des tâches courantes)'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 11.A.5 [EI / EE] : Mesures compensatoires en cas d'impossibilité technique de séparer les rôles d'administration
     - urn: urn:intuitem:risk:req_node:recyf:11.a.5
       assessable: true
@@ -1823,6 +3323,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.pam
       - urn:intuitem:risk:function:doc-pol:proc.exception_mgmt
+      questions:
+        urn:intuitem:risk:req_node:recyf:11.a.5:q1:
+          type: unique_choice
+          text: "Des mesures compensatoires sont-elles en place en cas d'impossibilité technique de séparer les rôles d'admin ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:11.a.5:q1:c1
+            value: 'Oui, mesures compensatoires validées (bastion d''administration, enregistrement de session, double validation)'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:11.a.5:q1:c2
+            value: 'Non, cumul de privilèges sans aucune mesure compensatoire'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 11.A.6 [EE] : Registre exhaustif et tenu à jour de l'ensemble des comptes d'administration du SI
     - urn: urn:intuitem:risk:req_node:recyf:11.a.6
       assessable: true
@@ -1836,6 +3351,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:doc.pam_register
       - urn:intuitem:risk:function:doc-pol:proc.pam
+      questions:
+        urn:intuitem:risk:req_node:recyf:11.a.6:q1:
+          type: unique_choice
+          text: "Un registre exhaustif et tenu à jour de l'ensemble des comptes d'administration du SI est-il formalisé ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:11.a.6:q1:c1
+            value: 'Registre exhaustif et à jour répertoriant tous les comptes à privilèges et leurs titulaires'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:11.a.6:q1:c2
+            value: 'Inventaire partiel ou informel des comptes à privilèges'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:11.a.6:q1:c3
+            value: 'Inexistant : aucun registre des comptes d''administration'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 11.A.7 [EE] : Traçabilité et justification formelle de toute création, modification ou suppression de compte d'admin
     - urn: urn:intuitem:risk:req_node:recyf:11.a.7
       assessable: true
@@ -1857,6 +3392,21 @@ objects:
       - urn:intuitem:risk:function:doc-pol:proc.pam
       - urn:intuitem:risk:function:doc-pol:proc.recertification
       - urn:intuitem:risk:function:doc-pol:proc.rbac
+      questions:
+        urn:intuitem:risk:req_node:recyf:11.a.7:q1:
+          type: unique_choice
+          text: "Toute création, modification ou suppression de compte d'administration fait-elle l'objet d'une justification et d'une traçabilité ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:11.a.7:q1:c1
+            value: 'Oui, processus d''approbation préalable documenté et journalisation systématique des changements de privilèges'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:11.a.7:q1:c2
+            value: 'Non, création ou modification de comptes d''administration sans traçabilité ni justification'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ------------------------------------------------------------------------
     # SOUS-SECTION 11.B : Sécurité des annuaires
@@ -1884,6 +3434,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:pol.vulnerability
       - urn:intuitem:risk:function:doc-pol:proc.update
       - urn:intuitem:risk:function:doc-pol:proc.pam
+      questions:
+        urn:intuitem:risk:req_node:recyf:11.b.1:q1:
+          type: unique_choice
+          text: "Les correctifs de sécurité sont-ils appliqués de manière prioritaire et sans délai sur les annuaires (Active Directory) ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:11.b.1:q1:c1
+            value: 'Oui, politique de déploiement prioritaire d''urgence pour les contrôleurs de domaine et annuaires'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:11.b.1:q1:c2
+            value: 'Partiellement, correctifs appliqués selon le cycle standard sans priorité spécifique pour les annuaires'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:11.b.1:q1:c3
+            value: 'Non, contrôleurs de domaine non mis à jour régulièrement'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 11.B.2 [EE] : Identification, délimitation et protection renforcée du cœur de confiance (Active Directory / annuaires)
     - urn: urn:intuitem:risk:req_node:recyf:11.b.2
       assessable: true
@@ -1905,6 +3475,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:doc.arc_principles
       - urn:intuitem:risk:function:doc-pol:proc.pam
+      questions:
+        urn:intuitem:risk:req_node:recyf:11.b.2:q1:
+          type: unique_choice
+          text: "Le cœur de confiance (annuaires, AD, PKI) est-il formellement identifié et protégé (modèle en tiers / Tier 0) ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:11.b.2:q1:c1
+            value: 'Architecture en tiers (Tiering / Tier 0) rigoureusement mise en œuvre et étanche'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:11.b.2:q1:c2
+            value: 'Démarche de tiering initiée ou protection renforcée partielle des contrôleurs de domaine'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:11.b.2:q1:c3
+            value: 'Inexistant : cœur de confiance non isolé des stations de travail et serveurs applicatifs'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 11.B.3 [EE] : Administration du cœur de confiance réalisée exclusivement depuis des comptes dédiés de niveau supérieur
     - urn: urn:intuitem:risk:req_node:recyf:11.b.3
       assessable: true
@@ -1919,6 +3509,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.pam
       - urn:intuitem:risk:function:doc-pol:tech.paw
+      questions:
+        urn:intuitem:risk:req_node:recyf:11.b.3:q1:
+          type: unique_choice
+          text: "L'administration du cœur de confiance est-elle réalisée exclusivement depuis des comptes dédiés de niveau supérieur ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:11.b.3:q1:c1
+            value: 'Oui, comptes Tier 0 dédiés utilisés exclusivement sur le cœur de confiance, interdits sur les niveaux inférieurs'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:11.b.3:q1:c2
+            value: 'Non, comptes d''administration du domaine utilisés pour administrer des postes de travail ou serveurs banalisés'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 11.B.4 [EE] : Administration du cœur de confiance réalisée depuis des ressources dédiées et strictement isolées
     - urn: urn:intuitem:risk:req_node:recyf:11.b.4
       assessable: true
@@ -1933,6 +3538,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:tech.paw
       - urn:intuitem:risk:function:doc-pol:proc.pam
+      questions:
+        urn:intuitem:risk:req_node:recyf:11.b.4:q1:
+          type: unique_choice
+          text: "L'administration du cœur de confiance est-elle opérée depuis des ressources dédiées et strictement isolées (PAW) ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:11.b.4:q1:c1
+            value: 'Oui, stations d''administration dédiées durcies (PAW) sans accès web ni messagerie'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:11.b.4:q1:c2
+            value: 'Partiellement, serveurs de rebond partagés sans isolation physique ou logique étanche'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:11.b.4:q1:c3
+            value: 'Non, administration du cœur de confiance depuis des postes bureautiques standard'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 11.B.5 [EE] : Interdiction de connexions externes directes à destination des ressources du cœur de confiance
     - urn: urn:intuitem:risk:req_node:recyf:11.b.5
       assessable: true
@@ -1950,6 +3575,21 @@ objects:
       - urn:intuitem:risk:function:doc-pol:tech.paw
       - urn:intuitem:risk:function:doc-pol:pol.network
       - urn:intuitem:risk:function:doc-pol:tech.network_firewall
+      questions:
+        urn:intuitem:risk:req_node:recyf:11.b.5:q1:
+          type: unique_choice
+          text: "Toute connexion externe directe à destination des ressources du cœur de confiance est-elle interdite ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:11.b.5:q1:c1
+            value: 'Oui, flux externes vers le cœur de confiance strictement interdits et bloqués par pare-feu'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:11.b.5:q1:c2
+            value: 'Non, contrôleurs de domaine joignables directement depuis l''extérieur ou des réseaux non maîtrisés'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 11.B.6 [EE] : Revue annuelle obligatoire de la configuration de sécurité et des relations d'approbation des annuaires
     - urn: urn:intuitem:risk:req_node:recyf:11.b.6
       assessable: true
@@ -1966,6 +3606,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.pam
       - urn:intuitem:risk:function:doc-pol:proc.compliance_monitoring
+      questions:
+        urn:intuitem:risk:req_node:recyf:11.b.6:q1:
+          type: unique_choice
+          text: "À quelle fréquence la configuration de sécurité et les relations d'approbation des annuaires sont-elles revues ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:11.b.6:q1:c1
+            value: 'Revue formelle au moins annuelle de l''architecture AD, des délégations et des relations d''approbation'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:11.b.6:q1:c2
+            value: 'Revue occasionnelle sans méthodologie outillée'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:11.b.6:q1:c3
+            value: 'Aucune revue périodique de la sécurité des annuaires'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 11.B.7 [EE] : Conformité de la configuration des annuaires aux recommandations officielles de l'ANSSI
     - urn: urn:intuitem:risk:req_node:recyf:11.b.7
       assessable: true
@@ -1982,6 +3642,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.pam
       - urn:intuitem:risk:function:doc-pol:pol.hardening
+      questions:
+        urn:intuitem:risk:req_node:recyf:11.b.7:q1:
+          type: unique_choice
+          text: "La configuration des annuaires est-elle conforme aux recommandations et guides de durcissement de l'ANSSI ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:11.b.7:q1:c1
+            value: 'Durcissement conforme aux guides officiels ANSSI (protocoles obsolètes désactivés, délégations saines)'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:11.b.7:q1:c2
+            value: 'Durcissement partiel : protocoles vulnérables résiduels (NTLMv1, SMBv1) ou délégations excessives'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:11.b.7:q1:c3
+            value: 'Non durci : configuration par défaut de l''annuaire sans audit de durcissement'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ========================================================================
     # OBJECTIF DE SÉCURITÉ 12 : DÉTECTION ET RÉACTION AUX INCIDENTS DE SÉCURITÉ
@@ -2008,6 +3688,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.incident
       - urn:intuitem:risk:function:doc-pol:proc.incident
+      questions:
+        urn:intuitem:risk:req_node:recyf:12.1:q1:
+          type: unique_choice
+          text: "Quel est le niveau de formalisation de la procédure de détection et de gestion des incidents de sécurité ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:12.1:q1:c1
+            value: 'Procédure formalisée, documentée, diffusée et régulièrement testée au sein de l''organisation'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:12.1:q1:c2
+            value: 'Pratiques informelles de gestion d''incidents sans procédure documentée'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:12.1:q1:c3
+            value: 'Inexistante : aucune procédure formalisée de gestion des incidents de sécurité'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 12.2 [EE] : Mise en place d'outils et de canaux centralisés de collecte des signalements d'incidents de sécurité
     - urn: urn:intuitem:risk:req_node:recyf:12.2
       assessable: true
@@ -2025,6 +3725,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.incident
       - urn:intuitem:risk:function:doc-pol:tech.siem
+      questions:
+        urn:intuitem:risk:req_node:recyf:12.2:q1:
+          type: unique_choice
+          text: "Des canaux centralisés sont-ils mis en place pour recueillir les signalements d'incidents de sécurité ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:12.2:q1:c1
+            value: 'Oui, point de contact unique identifié (adresse mail dédiée, ticketing, numéro d''urgence) connu de tous'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:12.2:q1:c2
+            value: 'Partiellement, signalements possibles mais sans guichet unique clairement identifié'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:12.2:q1:c3
+            value: 'Non, aucun canal identifié pour signaler un incident de sécurité'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 12.3 [EI / EE] : Définition et mise en œuvre des mécanismes d'analyse technique et de qualification des incidents
     - urn: urn:intuitem:risk:req_node:recyf:12.3
       assessable: true
@@ -2042,6 +3762,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:proc.incident
       - urn:intuitem:risk:function:doc-pol:tech.siem
       - urn:intuitem:risk:function:doc-pol:pol.monitor
+      questions:
+        urn:intuitem:risk:req_node:recyf:12.3:q1:
+          type: unique_choice
+          text: "Des mécanismes d'analyse technique et de qualification de la gravité des incidents sont-ils opérationnels ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:12.3:q1:c1
+            value: 'Grille de criticité formalisée et compétences techniques pour qualifier rapidement la sévérité et l''impact'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:12.3:q1:c2
+            value: 'Qualification au cas par cas sans critères objectifs formalisés'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:12.3:q1:c3
+            value: 'Aucun mécanisme de qualification technique des incidents'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 12.4 [EE] : Organisation opérationnelle de traitement, confinement, éradication et remédiation des incidents
     - urn: urn:intuitem:risk:req_node:recyf:12.4
       assessable: true
@@ -2060,6 +3800,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:proc.incident
       - urn:intuitem:risk:function:doc-pol:pol.incident
       - urn:intuitem:risk:function:doc-pol:pol.bcp
+      questions:
+        urn:intuitem:risk:req_node:recyf:12.4:q1:
+          type: unique_choice
+          text: "Quel est le niveau d'organisation pour le confinement, l'éradication et la remédiation des incidents cyber ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:12.4:q1:c1
+            value: 'Équipe de réponse outillée avec fiches réflexes opérationnelles et capacités de remédiation éprouvées'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:12.4:q1:c2
+            value: 'Organisation réactive dépendante de compétences individuelles ou de prestataires non contractualisés'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:12.4:q1:c3
+            value: 'Inexistante : aucune capacité organisée de réponse aux incidents de sécurité'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 12.5 [EE] : Procédure de notification des incidents majeurs à l'ANSSI conformément aux obligations légales (NIS 2)
     - urn: urn:intuitem:risk:req_node:recyf:12.5
       assessable: true
@@ -2078,6 +3838,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.post_incident
       - urn:intuitem:risk:function:doc-pol:proc.forensics
+      questions:
+        urn:intuitem:risk:req_node:recyf:12.5:q1:
+          type: unique_choice
+          text: "Une procédure formelle de notification des incidents majeurs à l'ANSSI (conforme à NIS 2) est-elle établie ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:12.5:q1:c1
+            value: 'Oui, procédure documentée définissant les seuils, délais légaux (alerte précoce 24h, notification 72h) et responsables'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:12.5:q1:c2
+            value: 'Partiellement, obligation connue mais sans procédure opérationnelle ni modèle de déclaration préétabli'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:12.5:q1:c3
+            value: 'Non, aucune procédure de notification à l''ANSSI'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 12.6 [EE] : Collecte et conservation sécurisée des preuves numériques et relevés techniques d'analyse (forensic)
     - urn: urn:intuitem:risk:req_node:recyf:12.6
       assessable: true
@@ -2096,6 +3876,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.forensics
       - urn:intuitem:risk:function:doc-pol:doc.incident_register
+      questions:
+        urn:intuitem:risk:req_node:recyf:12.6:q1:
+          type: unique_choice
+          text: "Les éléments techniques et preuves numériques (forensics) sont-ils collectés selon une démarche sécurisée ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:12.6:q1:c1
+            value: 'Oui, méthodologie de collecte rigoureuse préservant l''intégrité et la chaîne de traçabilité des preuves numériques'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:12.6:q1:c2
+            value: 'Non, preuves non collectées ou altérées lors des interventions de dépannage'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 12.7 [EE] : Protection et scellement des relevés techniques relatifs aux incidents contre toute altération
     - urn: urn:intuitem:risk:req_node:recyf:12.7
       assessable: true
@@ -2112,6 +3907,21 @@ objects:
       - urn:intuitem:risk:function:doc-pol:proc.forensics
       - urn:intuitem:risk:function:doc-pol:pol.backup
       - urn:intuitem:risk:function:doc-pol:tech.immutable_backup
+      questions:
+        urn:intuitem:risk:req_node:recyf:12.7:q1:
+          type: unique_choice
+          text: "Les relevés techniques et journaux relatifs aux incidents sont-ils protégés contre toute altération ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:12.7:q1:c1
+            value: 'Oui, scellement cryptographique ou stockage en lecture seule sur espace isolé et sécurisé'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:12.7:q1:c2
+            value: 'Non, traces d''incident conservées sur des espaces modifiables sans garantie d''intégrité'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ========================================================================
     # OBJECTIF DE SÉCURITÉ 13 : CONTINUITÉ ET REPRISE D'ACTIVITÉ
@@ -2137,6 +3947,26 @@ objects:
       - EE
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.backup
+      questions:
+        urn:intuitem:risk:req_node:recyf:13.1:q1:
+          type: unique_choice
+          text: "Quel est le niveau de formalisation et d'application de la politique de sauvegarde et de restauration ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:13.1:q1:c1
+            value: 'Politique formalisée, documentée, avec sauvegardes automatisées et vérifiées quotidiennement'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:13.1:q1:c2
+            value: 'Sauvegardes régulières mais sans politique formalisée ni vérification systématique des rapports'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:13.1:q1:c3
+            value: 'Inexistante : sauvegardes manuelles irrégulières ou politique absente'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 13.2 [EI / EE] : Tests périodiques de restauration des sauvegardes au minimum annuels pour garantir l'exploitabilité
     - urn: urn:intuitem:risk:req_node:recyf:13.2
       assessable: true
@@ -2153,6 +3983,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.backup
       - urn:intuitem:risk:function:doc-pol:proc.bcp_exercise
+      questions:
+        urn:intuitem:risk:req_node:recyf:13.2:q1:
+          type: unique_choice
+          text: "À quelle fréquence des tests effectifs de restauration des sauvegardes sont-ils menés ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:13.2:q1:c1
+            value: 'Tests de restauration complets menés au moins annuellement sur un environnement dédié'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:13.2:q1:c2
+            value: 'Tests partiels occasionnels portant sur quelques fichiers isolés'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:13.2:q1:c3
+            value: 'Aucun test de restauration jamais réalisé'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 13.3 [EI / EE] : Sauvegardes immuables / hors-ligne protégées contre les incidents destructeurs et ransomwares
     - urn: urn:intuitem:risk:req_node:recyf:13.3
       assessable: true
@@ -2168,6 +4018,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.backup
       - urn:intuitem:risk:function:doc-pol:tech.immutable_backup
+      questions:
+        urn:intuitem:risk:req_node:recyf:13.3:q1:
+          type: unique_choice
+          text: "Des sauvegardes immuables ou hors-ligne (air-gapped) protégées contre les rançongiciels sont-elles maintenues ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:13.3:q1:c1
+            value: 'Oui, sauvegardes immuables (WORM) ou copies hors-ligne physiquement déconnectées (règle 3-2-1)'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:13.3:q1:c2
+            value: 'Partiellement, sauvegardes déportées mais connectées en permanence au réseau de production'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:13.3:q1:c3
+            value: 'Non, sauvegardes vulnérables à une compromission globale (chiffrement simultané par ransomware)'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 13.4 [EE] : Définition documentée de la DMIA (RTO) et de la PDMA (RPO) pour chaque activité et service
     - urn: urn:intuitem:risk:req_node:recyf:13.4
       assessable: true
@@ -2182,6 +4052,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:doc.bia
       - urn:intuitem:risk:function:doc-pol:proc.bia
+      questions:
+        urn:intuitem:risk:req_node:recyf:13.4:q1:
+          type: unique_choice
+          text: "Les objectifs de DMIA (RTO) et de PDMA (RPO) sont-ils documentés pour chaque activité et service critique ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:13.4:q1:c1
+            value: 'Oui, DMIA et PDMA formellement définis, validés avec les métiers et documentés'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:13.4:q1:c2
+            value: 'Partiellement, objectifs connus informellement sans validation métier formalisée'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:13.4:q1:c3
+            value: 'Non, aucune définition formalisée des objectifs de DMIA et PDMA'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 13.5 [EI / EE] : Dimensionnement technique des mécanismes de sauvegarde adapté aux exigences de continuité
     - urn: urn:intuitem:risk:req_node:recyf:13.5
       assessable: true
@@ -2197,6 +4087,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.backup
       - urn:intuitem:risk:function:doc-pol:proc.bia
+      questions:
+        urn:intuitem:risk:req_node:recyf:13.5:q1:
+          type: unique_choice
+          text: "Les mécanismes de sauvegarde sont-ils techniquement dimensionnés pour respecter les DMIA et PDMA cibles ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:13.5:q1:c1
+            value: 'Oui, dimensionnement validé par des tests garantissant le respect des DMIA et PDMA'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:13.5:q1:c2
+            value: 'Non, capacités de restauration insuffisantes pour tenir les objectifs de reprise exigés'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 13.6 [EE] : Élaboration, mise en œuvre et maintien opérationnel d'un PCA et d'un PRA formalisés
     - urn: urn:intuitem:risk:req_node:recyf:13.6
       assessable: true
@@ -2214,6 +4119,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:pol.bcp
       - urn:intuitem:risk:function:doc-pol:proc.drp
       - urn:intuitem:risk:function:doc-pol:tech.dr_site
+      questions:
+        urn:intuitem:risk:req_node:recyf:13.6:q1:
+          type: unique_choice
+          text: "Quel est le niveau d'élaboration et d'opérationnalité des plans de continuité (PCA) et de reprise (PRA) ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:13.6:q1:c1
+            value: 'PCA et PRA formalisés, documentés, approuvés par la direction et testés régulièrement'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:13.6:q1:c2
+            value: 'Plans d''urgence partiels ou documents non actualisés depuis plus de deux ans'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:13.6:q1:c3
+            value: 'Inexistant : aucun plan formalisé de continuité ou de reprise d''activité'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 13.7 [EE] : Articulation des mesures de continuité basée sur la cartographie des activités et de l'écosystème
     - urn: urn:intuitem:risk:req_node:recyf:13.7
       assessable: true
@@ -2233,6 +4158,21 @@ objects:
       - urn:intuitem:risk:function:doc-pol:proc.drp
       - urn:intuitem:risk:function:doc-pol:doc.flow_matrix
       - urn:intuitem:risk:function:doc-pol:proc.incident
+      questions:
+        urn:intuitem:risk:req_node:recyf:13.7:q1:
+          type: unique_choice
+          text: "Les mesures de continuité s'articulent-elles de manière cohérente avec la cartographie des activités et dépendances ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:13.7:q1:c1
+            value: 'Oui, alignement complet sur l''inventaire des activités critiques et l''écosystème de prestataires'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:13.7:q1:c2
+            value: 'Non, mesures de continuité déconnectées des réalités du périmètre métier ou des dépendances tierces'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ========================================================================
     # OBJECTIF DE SÉCURITÉ 14 : RÉACTION AUX CRISES D'ORIGINE CYBER
@@ -2261,6 +4201,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.crisis_mgmt
       - urn:intuitem:risk:function:doc-pol:pol.incident
+      questions:
+        urn:intuitem:risk:req_node:recyf:14.1:q1:
+          type: unique_choice
+          text: "Quel est le niveau de formalisation du dispositif de gestion de crise cyber au sein de l'entité ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:14.1:q1:c1
+            value: 'Dispositif formalisé : procédure de crise, composition de la cellule et fiches de rôles validées'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:14.1:q1:c2
+            value: 'Dispositif informel : gestion de crise basée sur des réactions ad hoc sans procédure formalisée'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:14.1:q1:c3
+            value: 'Inexistant : aucune organisation ni procédure de gestion de crise d''origine cyber'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 14.2 [EI / EE] : Maintien d'une liste imprimée (version papier) à jour des personnes mobilisables pour la crise
     - urn: urn:intuitem:risk:req_node:recyf:14.2
       assessable: true
@@ -2277,6 +4237,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.crisis_mgmt
       - urn:intuitem:risk:function:doc-pol:doc.com
+      questions:
+        urn:intuitem:risk:req_node:recyf:14.2:q1:
+          type: unique_choice
+          text: "Une liste imprimée (version papier) à jour des personnes mobilisables pour la crise est-elle conservée ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:14.2:q1:c1
+            value: 'Oui, liste papier tenue à jour, disponible hors-ligne en plusieurs exemplaires sécurisés'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:14.2:q1:c2
+            value: 'Non, contacts uniquement stockés sur des systèmes informatiques susceptibles d''être indisponibles'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 14.3 [EI / EE] : Disponibilité permanente et accessibilité garantie de la liste imprimée des contacts de crise
     - urn: urn:intuitem:risk:req_node:recyf:14.3
       assessable: true
@@ -2295,6 +4270,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.crisis_mgmt
       - urn:intuitem:risk:function:doc-pol:doc.com
+      questions:
+        urn:intuitem:risk:req_node:recyf:14.3:q1:
+          type: unique_choice
+          text: "La disponibilité permanente et l'accessibilité immédiate de la liste papier des contacts sont-elles garanties ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:14.3:q1:c1
+            value: 'Oui, emplacements physiques connus et accessibles 24/7 par les membres désignés'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:14.3:q1:c2
+            value: 'Non, accès restreint ou localisation incertaine de la version imprimée en situation d''urgence'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 14.4 [EI / EE] : Maintien à jour d'un annuaire des parties prenantes externes pertinentes (autorités, prestataires, CSIRT)
     - urn: urn:intuitem:risk:req_node:recyf:14.4
       assessable: true
@@ -2312,6 +4302,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:proc.crisis_mgmt
       - urn:intuitem:risk:function:doc-pol:doc.supplier_register
       - urn:intuitem:risk:function:doc-pol:doc.com
+      questions:
+        urn:intuitem:risk:req_node:recyf:14.4:q1:
+          type: unique_choice
+          text: "Un annuaire à jour des parties prenantes externes (autorités, ANSSI, CSIRT, prestataires de crise) est-il maintenu ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:14.4:q1:c1
+            value: 'Oui, annuaire externe complet, vérifié périodiquement et disponible hors-ligne'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:14.4:q1:c2
+            value: 'Partiellement, coordonnées incomplètes ou non vérifiées récemment'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:14.4:q1:c3
+            value: 'Non, aucun annuaire formalisé des tiers d''assistance en cas de crise'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 14.5 [EI / EE] : Réalisation systématique d'un retour d'expérience (RETEX) suite à chaque exercice ou crise cyber
     - urn: urn:intuitem:risk:req_node:recyf:14.5
       assessable: true
@@ -2329,6 +4339,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:proc.post_incident
       - urn:intuitem:risk:function:doc-pol:proc.bcp_exercise
       - urn:intuitem:risk:function:doc-pol:doc.nc_log
+      questions:
+        urn:intuitem:risk:req_node:recyf:14.5:q1:
+          type: unique_choice
+          text: "Un retour d'expérience (RETEX) formalisé est-il systématiquement réalisé après chaque crise ou exercice ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:14.5:q1:c1
+            value: 'Oui, rapport de RETEX systématique débouchant sur un plan d''actions d''amélioration audité'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:14.5:q1:c2
+            value: 'Partiellement, débriefing informel sans rapport écrit ni suivi structuré des enseignements'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:14.5:q1:c3
+            value: 'Non, aucun retour d''expérience formalisé'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 14.6 [EE] : Critères formalisés d'activation et de désactivation de la cellule de crise cyber
     - urn: urn:intuitem:risk:req_node:recyf:14.6
       assessable: true
@@ -2343,6 +4373,21 @@ objects:
       - EE
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.crisis_mgmt
+      questions:
+        urn:intuitem:risk:req_node:recyf:14.6:q1:
+          type: unique_choice
+          text: "Les critères de déclenchement et de levée de la cellule de crise cyber sont-ils formellement définis ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:14.6:q1:c1
+            value: 'Oui, critères objectifs (impact opérationnel, données compromises, indisponibilité) formalisés et partagés'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:14.6:q1:c2
+            value: 'Non, déclenchement laissé à l''appréciation subjective sans seuil formalisé'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 14.7 [EE] : Procédures d'escalade, fiches réflexes opérationnelles et modalités de commandement de crise
     - urn: urn:intuitem:risk:req_node:recyf:14.7
       assessable: true
@@ -2359,6 +4404,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.crisis_mgmt
       - urn:intuitem:risk:function:doc-pol:pol.incident
+      questions:
+        urn:intuitem:risk:req_node:recyf:14.7:q1:
+          type: unique_choice
+          text: "Des fiches réflexes opérationnelles et procédures d'escalade sont-elles établies pour les premiers instants de crise ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:14.7:q1:c1
+            value: 'Oui, fiches réflexes rédigées, accessibles et connues des équipes d''astreinte et de direction'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:14.7:q1:c2
+            value: 'Partiellement, fiches existantes mais non actualisées ou non diffusées'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:14.7:q1:c3
+            value: 'Non, aucune fiche réflexe d''urgence formalisée'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 14.8 [EE] : Mesures préétablies pour isoler, protéger ou déconnecter d'urgence les systèmes critiques
     - urn: urn:intuitem:risk:req_node:recyf:14.8
       assessable: true
@@ -2378,6 +4443,21 @@ objects:
       - urn:intuitem:risk:function:doc-pol:proc.crisis_mgmt
       - urn:intuitem:risk:function:doc-pol:proc.drp
       - urn:intuitem:risk:function:doc-pol:proc.incident
+      questions:
+        urn:intuitem:risk:req_node:recyf:14.8:q1:
+          type: unique_choice
+          text: "Des mesures techniques préétablies permettent-elles d'isoler ou de déconnecter d'urgence les systèmes critiques ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:14.8:q1:c1
+            value: 'Oui, procédures d''isolement d''urgence validées (coupure de liens, isolation réseau) activables rapidement'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:14.8:q1:c2
+            value: 'Non, aucune modalité préétablie d''isolement d''urgence des systèmes en cas d''attaque'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 14.9 [EE] : Stratégie de communication de crise adaptée aux parties prenantes internes et externes
     - urn: urn:intuitem:risk:req_node:recyf:14.9
       assessable: true
@@ -2396,6 +4476,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.crisis_mgmt
       - urn:intuitem:risk:function:doc-pol:doc.com
+      questions:
+        urn:intuitem:risk:req_node:recyf:14.9:q1:
+          type: unique_choice
+          text: "Quel est le niveau de préparation de la stratégie de communication de crise cyber ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:14.9:q1:c1
+            value: 'Stratégie formalisée : éléments de langage types, porte-parole désignés et circuits de validation interne/externe'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:14.9:q1:c2
+            value: 'Préparation partielle sans trames prédéfinies ni validation formelle des rôles'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:14.9:q1:c3
+            value: 'Inexistante : aucune préparation de la communication en cas d''incident cyber majeur'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 14.10 [EE] : Disponibilité de moyens de communication de secours indépendants et sécurisés (hors-bande)
     - urn: urn:intuitem:risk:req_node:recyf:14.10
       assessable: true
@@ -2409,6 +4509,21 @@ objects:
       - EE
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.crisis_mgmt
+      questions:
+        urn:intuitem:risk:req_node:recyf:14.10:q1:
+          type: unique_choice
+          text: "Des moyens de communication de secours indépendants du SI principal (hors-bande) sont-ils opérationnels ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:14.10:q1:c1
+            value: 'Oui, messagerie chiffrée alternative, téléphones dédiés ou solutions cloud indépendantes préconfigurées'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:14.10:q1:c2
+            value: 'Non, dépendance exclusive aux outils habituels (messagerie d''entreprise risquant d''être indisponible)'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ========================================================================
     # OBJECTIF DE SÉCURITÉ 15 : EXERCICES, TESTS ET ENTRAÎNEMENTS
@@ -2436,6 +4551,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.ir_exercise
       - urn:intuitem:risk:function:doc-pol:proc.bcp_exercise
+      questions:
+        urn:intuitem:risk:req_node:recyf:15.1:q1:
+          type: unique_choice
+          text: "À quelle fréquence des exercices de simulation sur table (tabletop) de crise cyber sont-ils conduits ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:15.1:q1:c1
+            value: 'Exercices sur table organisés au moins annuellement avec la direction et les équipes clés'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:15.1:q1:c2
+            value: 'Exercices occasionnels ou réalisés il y a plus de deux ans'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:15.1:q1:c3
+            value: 'Aucun exercice sur table jamais réalisé'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 15.2 [EE] : Définition et mise en œuvre d'une stratégie d'entraînement pluriannuelle formalisée
     - urn: urn:intuitem:risk:req_node:recyf:15.2
       assessable: true
@@ -2459,6 +4594,21 @@ objects:
       - urn:intuitem:risk:function:doc-pol:proc.ir_exercise
       - urn:intuitem:risk:function:doc-pol:proc.bcp_exercise
       - urn:intuitem:risk:function:doc-pol:doc.educ_plan
+      questions:
+        urn:intuitem:risk:req_node:recyf:15.2:q1:
+          type: unique_choice
+          text: "Une stratégie pluriannuelle formalisée d'entraînement à la gestion de crise est-elle définie ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:15.2:q1:c1
+            value: 'Oui, stratégie pluriannuelle validée par la gouvernance articulant différents niveaux d''exercices'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:15.2:q1:c2
+            value: 'Non, absence de stratégie formalisée d''entraînement dans la durée'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 15.3 [EE] : Objectifs des entraînements : tester la chaîne d'alerte, la résilience PCA/PRA et la cellule de crise
     - urn: urn:intuitem:risk:req_node:recyf:15.3
       assessable: true
@@ -2476,6 +4626,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:proc.ir_exercise
       - urn:intuitem:risk:function:doc-pol:proc.bcp_exercise
       - urn:intuitem:risk:function:doc-pol:proc.crisis_mgmt
+      questions:
+        urn:intuitem:risk:req_node:recyf:15.3:q1:
+          type: unique_choice
+          text: "Les entraînements testent-ils concrètement la chaîne d'alerte, la résilience PCA/PRA et la cellule de crise ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:15.3:q1:c1
+            value: 'Oui, scénarios réalistes testant l''ensemble de la chaîne opérationnelle et décisionnelle'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:15.3:q1:c2
+            value: 'Partiellement, tests limités à des aspects techniques sans implication de la gouvernance'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:15.3:q1:c3
+            value: 'Non, entraînements non représentatifs ou non réalisés'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 15.4 [EE] : Déclinaison de la stratégie dans un programme triennal d'exercices cyber avec RETEX formalisé
     - urn: urn:intuitem:risk:req_node:recyf:15.4
       assessable: true
@@ -2496,6 +4666,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:proc.ir_exercise
       - urn:intuitem:risk:function:doc-pol:proc.bcp_exercise
       - urn:intuitem:risk:function:doc-pol:doc.educ_plan
+      questions:
+        urn:intuitem:risk:req_node:recyf:15.4:q1:
+          type: unique_choice
+          text: "La stratégie d'entraînement est-elle déclinée dans un programme triennal d'exercices avec RETEX formalisé ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:15.4:q1:c1
+            value: 'Programme triennal formalisé avec planification des exercices et capitalisation systématique par RETEX'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:15.4:q1:c2
+            value: 'Planification annuelle informelle sans engagement triennal'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:15.4:q1:c3
+            value: 'Aucun programme pluriannuel d''exercices planifié'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ========================================================================
     # OBJECTIF DE SÉCURITÉ 16 : APPROCHE PAR LES RISQUES
@@ -2531,6 +4721,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:pol.risk
       - urn:intuitem:risk:function:doc-pol:doc.risk_appetite
       - urn:intuitem:risk:function:doc-pol:doc.raci
+      questions:
+        urn:intuitem:risk:req_node:recyf:16.1:q1:
+          type: unique_choice
+          text: "Quel est le niveau de formalisation du cadre de gouvernance des risques de sécurité numérique ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:16.1:q1:c1
+            value: 'Cadre de gestion des risques formalisé, outillé (ex: EBIOS RM, ISO 27005) et intégré à la gouvernance globale'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:16.1:q1:c2
+            value: 'Démarche informelle ou gestion des risques opportuniste non outillée'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:16.1:q1:c3
+            value: 'Inexistant : aucune gouvernance par les risques de sécurité numérique'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 16.2 [EE] : Réalisation d'une analyse de risques formalisée pour chaque système d'information de l'entité
     - urn: urn:intuitem:risk:req_node:recyf:16.2
       assessable: true
@@ -2553,6 +4763,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.risk
       - urn:intuitem:risk:function:doc-pol:doc.risk_register
+      questions:
+        urn:intuitem:risk:req_node:recyf:16.2:q1:
+          type: unique_choice
+          text: "Une analyse de risques formalisée est-elle réalisée pour chaque système d'information de l'entité ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:16.2:q1:c1
+            value: 'Analyses de risques formalisées, documentées et tenues à jour pour 100% des systèmes d''information'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:16.2:q1:c2
+            value: 'Analyses de risques partielles réalisées uniquement sur certains projets majeurs'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:16.2:q1:c3
+            value: 'Inexistante : aucune analyse de risques documentée sur les systèmes d''information'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 16.3 [EE] : Validation formelle de l'analyse, acceptation des risques résiduels et pilotage du plan de traitement
     - urn: urn:intuitem:risk:req_node:recyf:16.3
       assessable: true
@@ -2570,6 +4800,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:pol.risk
       - urn:intuitem:risk:function:doc-pol:doc.risk_register
       - urn:intuitem:risk:function:doc-pol:doc.risk_appetite
+      questions:
+        urn:intuitem:risk:req_node:recyf:16.3:q1:
+          type: unique_choice
+          text: "Les analyses de risques, risques résiduels et plans de traitement sont-ils formellement validés par la direction ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:16.3:q1:c1
+            value: 'Oui, validation formelle de l''analyse, acceptation expresse des risques résiduels et suivi du plan de traitement'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:16.3:q1:c2
+            value: 'Partiellement, plan de traitement rédigé mais sans acceptation formelle des risques résiduels par la direction'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:16.3:q1:c3
+            value: 'Non, aucune validation managériale des risques résiduels ni suivi du traitement'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 16.4 [EE] : Réexamen périodique au minimum triennal de l'analyse de risques ou en cas d'évolution majeure
     - urn: urn:intuitem:risk:req_node:recyf:16.4
       assessable: true
@@ -2585,6 +4835,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.risk
       - urn:intuitem:risk:function:doc-pol:doc.risk_register
+      questions:
+        urn:intuitem:risk:req_node:recyf:16.4:q1:
+          type: unique_choice
+          text: "À quelle fréquence les analyses de risques font-elles l'objet d'un réexamen formel ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:16.4:q1:c1
+            value: 'Réexamen au minimum triennal systématique et actualisation lors de toute évolution majeure'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:16.4:q1:c2
+            value: 'Réexamen occasionnel sans périodicité définie'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:16.4:q1:c3
+            value: 'Aucun réexamen : analyses jamais réévaluées après leur réalisation initiale'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ========================================================================
     # OBJECTIF DE SÉCURITÉ 17 : AUDIT DE LA SÉCURITÉ DES SYSTÈMES D'INFORMATION
@@ -2619,6 +4889,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.audit
       - urn:intuitem:risk:function:doc-pol:doc.audit_plan
+      questions:
+        urn:intuitem:risk:req_node:recyf:17.1:q1:
+          type: unique_choice
+          text: "Quel est le niveau de formalisation du programme pluriannuel d'audit de sécurité des SI ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:17.1:q1:c1
+            value: 'Programme pluriannuel d''audit formalisé, budgété, validé par la direction et exécuté rigoureusement'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:17.1:q1:c2
+            value: 'Audits commandités au coup par coup sans programmation pluriannuelle'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:17.1:q1:c3
+            value: 'Inexistant : aucun programme d''audit de sécurité'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 17.2 [EE] : Conduite d'audits de sécurité indépendants vérifiant l'atteinte des objectifs et identifiant les vulnérabilités
     - urn: urn:intuitem:risk:req_node:recyf:17.2
       assessable: true
@@ -2636,6 +4926,21 @@ objects:
       - EE
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.audit
+      questions:
+        urn:intuitem:risk:req_node:recyf:17.2:q1:
+          type: unique_choice
+          text: "Les audits de sécurité sont-ils conduits par des auditeurs ou prestataires indépendants (ex. PASSI) ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:17.2:q1:c1
+            value: 'Oui, audits indépendants réalisés par des tiers qualifiés (ex. PASSI) ou un service d''audit interne indépendant'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:17.2:q1:c2
+            value: 'Non, auto-évaluation interne sans indépendance vis-à-vis des équipes opérationnelles'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 17.3 [EE] : Typologies d'audit obligatoires (organisationnel, architecture, configuration, tests d'intrusion)
     - urn: urn:intuitem:risk:req_node:recyf:17.3
       assessable: true
@@ -2659,6 +4964,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:pol.audit
       - urn:intuitem:risk:function:doc-pol:tech.sast_dast
       - urn:intuitem:risk:function:doc-pol:pol.hardening
+      questions:
+        urn:intuitem:risk:req_node:recyf:17.3:q1:
+          type: unique_choice
+          text: "Les typologies d'audit obligatoires (organisationnel, architecture, configuration, intrusion) sont-elles couvertes ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:17.3:q1:c1
+            value: 'Couverture complète : audits organisationnels, revues d''architecture et de configuration, et tests d''intrusion'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:17.3:q1:c2
+            value: 'Couverture partielle : seuls des tests d''intrusion ponctuels ou des audits documentaires sont menés'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:17.3:q1:c3
+            value: 'Aucune typologie d''audit technique ou organisationnel mise en œuvre'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 17.4 [EE] : Rapport d'audit présentant la synthèse de conformité, la cotation des vulnérabilités et les recommandations
     - urn: urn:intuitem:risk:req_node:recyf:17.4
       assessable: true
@@ -2677,6 +5002,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.audit
       - urn:intuitem:risk:function:doc-pol:doc.nc_log
+      questions:
+        urn:intuitem:risk:req_node:recyf:17.4:q1:
+          type: unique_choice
+          text: "Les rapports d'audit comportent-ils une cotation objective des vulnérabilités et des recommandations hiérarchisées ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:17.4:q1:c1
+            value: 'Oui, rapports complets avec synthèse managériale, cotation de criticité des vulnérabilités et plan de recommandations'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:17.4:q1:c2
+            value: 'Non, rapports sommaires sans cotation formelle des vulnérabilités'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 17.5 [EE] : Élaboration et suivi rigoureux d'un plan d'actions de remédiation des non-conformités et vulnérabilités
     - urn: urn:intuitem:risk:req_node:recyf:17.5
       assessable: true
@@ -2694,6 +5034,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:pol.audit
       - urn:intuitem:risk:function:doc-pol:doc.nc_log
       - urn:intuitem:risk:function:doc-pol:proc.compliance_monitoring
+      questions:
+        urn:intuitem:risk:req_node:recyf:17.5:q1:
+          type: unique_choice
+          text: "Un plan d'actions de remédiation est-il rigoureusement suivi suite aux constats d'audit ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:17.5:q1:c1
+            value: 'Plan de remédiation formalisé avec arbitrage des priorités, échéances assignées et revues d''avancement périodiques'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:17.5:q1:c2
+            value: 'Remédiation partielle sans calendrier formel de correction des vulnérabilités identifiées'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:17.5:q1:c3
+            value: 'Aucun plan d''actions : rapports d''audit classés sans remédiation effective'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ========================================================================
     # OBJECTIF DE SÉCURITÉ 18 : SÉCURISATION DE LA CONFIGURATION DES RESSOURCES DES SI
@@ -2725,6 +5085,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:pol.hardening
       - urn:intuitem:risk:function:doc-pol:proc.gpo
       - urn:intuitem:risk:function:doc-pol:pol.app_control
+      questions:
+        urn:intuitem:risk:req_node:recyf:18.1:q1:
+          type: unique_choice
+          text: "Quel est le niveau de rationalisation des logiciels et composants installés sur les systèmes ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:18.1:q1:c1
+            value: 'Principe de moindre fonctionnalité appliqué : composants logiciels strictement restreints aux besoins métiers avérés'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:18.1:q1:c2
+            value: 'Rationalisation partielle : outils superflus ou composants de test maintenus sur certains environnements de production'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:18.1:q1:c3
+            value: 'Aucune restriction : logiciels et services installés sans contrôle de nécessité opérationnelle'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 18.2 [EE] : Mesures compensatoires strictes en cas d'impossibilité technique de désactiver un composant superflu
     - urn: urn:intuitem:risk:req_node:recyf:18.2
       assessable: true
@@ -2740,6 +5120,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.exception_mgmt
       - urn:intuitem:risk:function:doc-pol:pol.hardening
+      questions:
+        urn:intuitem:risk:req_node:recyf:18.2:q1:
+          type: unique_choice
+          text: "Des mesures compensatoires sont-elles appliquées lorsqu'un composant superflu ne peut pas être désactivé ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:18.2:q1:c1
+            value: 'Oui, mesures compensatoires formalisées (cloisonnement réseau renforcé, restriction des accès et surveillance)'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:18.2:q1:c2
+            value: 'Non, services inutiles maintenus sans mesure de protection compensatoire'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 18.3 [EE] : Configuration sécurisée des ressources logicielles selon les référentiels et guides de durcissement ANSSI
     - urn: urn:intuitem:risk:req_node:recyf:18.3
       assessable: true
@@ -2756,6 +5151,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.hardening
       - urn:intuitem:risk:function:doc-pol:proc.gpo
+      questions:
+        urn:intuitem:risk:req_node:recyf:18.3:q1:
+          type: unique_choice
+          text: "Les ressources logicielles font-elles l'objet d'un durcissement conforme aux guides de l'ANSSI ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:18.3:q1:c1
+            value: 'Guides de durcissement ANSSI (ou CIS Benchmarks) formalisés en masters de configuration et appliqués (GPO/Ansible)'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:18.3:q1:c2
+            value: 'Durcissement partiel ou manuel sans socle de configuration standardisé'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:18.3:q1:c3
+            value: 'Configurations par défaut des éditeurs conservées sans durcissement de sécurité'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 18.4 [EE] : Revue annuelle obligatoire de la configuration de sécurité de l'ensemble des ressources du SI
     - urn: urn:intuitem:risk:req_node:recyf:18.4
       assessable: true
@@ -2774,6 +5189,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:pol.hardening
       - urn:intuitem:risk:function:doc-pol:proc.compliance_monitoring
       - urn:intuitem:risk:function:doc-pol:tech.vuln_scanner
+      questions:
+        urn:intuitem:risk:req_node:recyf:18.4:q1:
+          type: unique_choice
+          text: "À quelle fréquence la configuration de sécurité de l'ensemble des ressources du SI est-elle revue ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:18.4:q1:c1
+            value: 'Revue de configuration au moins annuelle assistée par des outils de conformité automatisés'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:18.4:q1:c2
+            value: 'Revue manuelle occasionnelle sans régularité garantie'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:18.4:q1:c3
+            value: 'Aucune revue périodique des configurations de sécurité'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ========================================================================
     # OBJECTIF DE SÉCURITÉ 19 : ADMINISTRATION DEPUIS DES RESSOURCES DÉDIÉES
@@ -2800,6 +5235,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:tech.paw
       - urn:intuitem:risk:function:doc-pol:proc.pam
       - urn:intuitem:risk:function:doc-pol:pol.network
+      questions:
+        urn:intuitem:risk:req_node:recyf:19.1:q1:
+          type: unique_choice
+          text: "Les actions d'administration du SI s'effectuent-elles exclusivement au travers d'un réseau dédié ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:19.1:q1:c1
+            value: 'Oui, réseau d''administration dédié (VLAN/VRF isolé ou réseau physique étanche) obligatoire pour toute action d''admin'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:19.1:q1:c2
+            value: 'Partiellement, réseau d''administration présent mais administration possible depuis le réseau bureautique'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:19.1:q1:c3
+            value: 'Non, aucune séparation réseau pour les flux et opérations d''administration'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 19.2 [EE] : Gestion et configuration exclusive des équipements du réseau d'administration par l'entité ou son mandataire
     - urn: urn:intuitem:risk:req_node:recyf:19.2
       assessable: true
@@ -2814,6 +5269,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:tech.paw
       - urn:intuitem:risk:function:doc-pol:proc.pam
+      questions:
+        urn:intuitem:risk:req_node:recyf:19.2:q1:
+          type: unique_choice
+          text: "Les équipements du réseau d'administration sont-ils gérés sous maîtrise exclusive de l'entité ou d'un mandataire ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:19.2:q1:c1
+            value: 'Oui, gestion et paramétrage sous contrôle exclusif de l''entité ou de son prestataire infogérant qualifié'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:19.2:q1:c2
+            value: 'Non, équipements d''administration gérés sans maîtrise exclusive de l''entité'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 19.3 [EE] : Utilisation exclusive des ressources matérielles du réseau d'administration aux seules tâches d'admin
     - urn: urn:intuitem:risk:req_node:recyf:19.3
       assessable: true
@@ -2827,6 +5297,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:tech.paw
       - urn:intuitem:risk:function:doc-pol:pol.network
+      questions:
+        urn:intuitem:risk:req_node:recyf:19.3:q1:
+          type: unique_choice
+          text: "Les matériels du réseau d'administration sont-ils réservés exclusivement aux tâches d'administration ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:19.3:q1:c1
+            value: 'Oui, utilisation strictement exclusive sans hébergement d''applications ou services utilisateurs'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:19.3:q1:c2
+            value: 'Non, serveurs ou équipements d''administration hébergeant également des usages bureautiques ou métier'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 19.4 [EE] : Poste de travail physique dédié exclusivement à l'administration (interdiction des usages bureautiques/web)
     - urn: urn:intuitem:risk:req_node:recyf:19.4
       assessable: true
@@ -2840,6 +5325,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:tech.paw
       - urn:intuitem:risk:function:doc-pol:proc.pam
+      questions:
+        urn:intuitem:risk:req_node:recyf:19.4:q1:
+          type: unique_choice
+          text: "Les administrateurs disposent-ils d'un poste physique dédié exclusivement à l'administration ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:19.4:q1:c1
+            value: 'Oui, poste de travail physique dédié (PAW) étanche, sans navigation web libre ni messagerie bureautique'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:19.4:q1:c2
+            value: 'Partiellement, machine virtuelle dédiée sur un poste bureautique standard (séparation non étanche)'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:19.4:q1:c3
+            value: 'Non, administration opérée directement depuis des postes bureautiques standard non dédiés'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 19.5 [EE] : Connexion des administrateurs depuis un poste physique dédié avec authentification forte
     - urn: urn:intuitem:risk:req_node:recyf:19.5
       assessable: true
@@ -2853,6 +5358,21 @@ objects:
       - EE
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:tech.paw
+      questions:
+        urn:intuitem:risk:req_node:recyf:19.5:q1:
+          type: unique_choice
+          text: "La connexion des administrateurs depuis leur poste dédié repose-t-elle sur une authentification forte obligatoire ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:19.5:q1:c1
+            value: 'Oui, authentification multi-facteurs ou certificat matériel (carte à puce, token FIDO2) obligatoire'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:19.5:q1:c2
+            value: 'Non, authentification par simple mot de passe sur les postes d''administration'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 19.6 [EE] : Mesures compensatoires et renforcement de sécurité en cas d'exception temporaire au poste dédié
     - urn: urn:intuitem:risk:req_node:recyf:19.6
       assessable: true
@@ -2874,6 +5394,21 @@ objects:
       - urn:intuitem:risk:function:doc-pol:pol.hardening
       - urn:intuitem:risk:function:doc-pol:proc.gpo
       - urn:intuitem:risk:function:doc-pol:proc.exception_mgmt
+      questions:
+        urn:intuitem:risk:req_node:recyf:19.6:q1:
+          type: unique_choice
+          text: "Des mesures compensatoires strictes sont-elles appliquées en cas d'exception temporaire au poste dédié ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:19.6:q1:c1
+            value: 'Oui, mesures compensatoires formelles (contrôle d''intégrité, session temporaire isolée, bastion) documentées'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:19.6:q1:c2
+            value: 'Non, exceptions accordées sans renforcement de sécurité'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 19.7 [EE] : Raccordement contrôlé et filtré du réseau d'administration aux ressources du SI à administrer
     - urn: urn:intuitem:risk:req_node:recyf:19.7
       assessable: true
@@ -2890,6 +5425,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:tech.paw
       - urn:intuitem:risk:function:doc-pol:pol.network
+      questions:
+        urn:intuitem:risk:req_node:recyf:19.7:q1:
+          type: unique_choice
+          text: "Le raccordement du réseau d'administration aux ressources administrées est-il filtré et contrôlé ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:19.7:q1:c1
+            value: 'Oui, filtrage pare-feu strict n''autorisant que les seuls protocoles d''administration nécessaires'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:19.7:q1:c2
+            value: 'Non, réseau d''administration interconnecté sans filtrage rigoureux aux ressources cibles'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 19.8 [EE] : Modalités de cloisonnement strict et filtrage renforcé des accès au réseau d'administration
     - urn: urn:intuitem:risk:req_node:recyf:19.8
       assessable: true
@@ -2908,6 +5458,21 @@ objects:
       - urn:intuitem:risk:function:doc-pol:tech.paw
       - urn:intuitem:risk:function:doc-pol:pol.network
       - urn:intuitem:risk:function:doc-pol:tech.microsegmentation
+      questions:
+        urn:intuitem:risk:req_node:recyf:19.8:q1:
+          type: unique_choice
+          text: "Les points d'accès au réseau d'administration font-ils l'objet d'un cloisonnement et filtrage renforcés ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:19.8:q1:c1
+            value: 'Oui, passerelle de rebond sécurisée (bastion PAM), authentification forte et filtrage applicatif'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:19.8:q1:c2
+            value: 'Non, accès direct au réseau d''administration sans point de contrôle renforcé'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 19.9 [EE] : Mesures compensatoires en cas d'impossibilité d'administrer une ressource via le réseau dédié
     - urn: urn:intuitem:risk:req_node:recyf:19.9
       assessable: true
@@ -2926,6 +5491,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.exception_mgmt
       - urn:intuitem:risk:function:doc-pol:pol.network
+      questions:
+        urn:intuitem:risk:req_node:recyf:19.9:q1:
+          type: unique_choice
+          text: "Des mesures compensatoires sont-elles déployées lorsqu'une ressource ne peut être administrée via le réseau dédié ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:19.9:q1:c1
+            value: 'Oui, isolement spécifique et mesures compensatoires de protection et surveillance documentées'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:19.9:q1:c2
+            value: 'Non, administration non dédiée tolérée sans mesure de protection compensatoire'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 19.10 [EE] : Protection cryptographique de bout en bout des communications associées aux actions d'administration
     - urn: urn:intuitem:risk:req_node:recyf:19.10
       assessable: true
@@ -2944,6 +5524,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.crypto
       - urn:intuitem:risk:function:doc-pol:proc.pam
+      questions:
+        urn:intuitem:risk:req_node:recyf:19.10:q1:
+          type: unique_choice
+          text: "Les communications associées aux opérations d'administration font-elles l'objet d'une protection cryptographique de bout en bout ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:19.10:q1:c1
+            value: 'Oui, protocoles chiffrés robustes (SSHv2, TLS 1.3, IPsec) systématiquement exigés pour l''administration'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:19.10:q1:c2
+            value: 'Non, protocoles d''administration non chiffrés (Telnet, HTTP, SNMPv1/v2) autorisés sur le réseau'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 19.11 [EE] : Chiffrement impératif des flux d'administration transitant sur des réseaux non dédiés ou externes
     - urn: urn:intuitem:risk:req_node:recyf:19.11
       assessable: true
@@ -2961,6 +5556,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:tech.vpn
       - urn:intuitem:risk:function:doc-pol:pol.crypto
+      questions:
+        urn:intuitem:risk:req_node:recyf:19.11:q1:
+          type: unique_choice
+          text: "Le chiffrement des flux d'administration est-il impérativement activé lors du transit sur des réseaux tiers ou non dédiés ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:19.11:q1:c1
+            value: 'Oui, tunnel chiffré obligatoire (VPN IPsec/TLS) pour tout flux d''administration transitant hors du réseau dédié'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:19.11:q1:c2
+            value: 'Non, flux d''administration transitant en clair sur des liaisons non sécurisées'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 19.12 [EE] : Mesures compensatoires et d'isolement en cas d'impossibilité de chiffrer les flux d'administration
     - urn: urn:intuitem:risk:req_node:recyf:19.12
       assessable: true
@@ -2978,6 +5588,21 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:proc.exception_mgmt
       - urn:intuitem:risk:function:doc-pol:pol.crypto
+      questions:
+        urn:intuitem:risk:req_node:recyf:19.12:q1:
+          type: unique_choice
+          text: "Des mesures compensatoires sont-elles appliquées en cas d'impossibilité technique de chiffrer un flux d'administration ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:19.12:q1:c1
+            value: 'Oui, liaison physique dédiée étanche et isolement complet sans partage de média'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:19.12:q1:c2
+            value: 'Non, flux d''administration non chiffrés maintenus sur des liaisons partagées sans protection'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
 
     # ========================================================================
     # OBJECTIF DE SÉCURITÉ 20 : SUPERVISION DE LA SÉCURITÉ DES SYSTÈMES D'INFORMATION
@@ -3009,6 +5634,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.monitor
       - urn:intuitem:risk:function:doc-pol:doc.raci
+      questions:
+        urn:intuitem:risk:req_node:recyf:20.1:q1:
+          type: unique_choice
+          text: "Quel est le niveau de dimensionnement et de qualification des équipes en charge de la supervision de sécurité (SOC) ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:20.1:q1:c1
+            value: 'Équipe SOC qualifiée (interne ou prestataire PDIS), formée en continu avec astreinte ou couverture 24/7'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:20.1:q1:c2
+            value: 'Supervision assurée aux heures ouvrées par des équipes d''exploitation non spécialisées en sécurité'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:20.1:q1:c3
+            value: 'Inexistant : aucune équipe ni compétence dédiée à la supervision de sécurité'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 20.2 [EE] : Démarche d'amélioration continue de l'activité de supervision face à l'évolution des menaces
     - urn: urn:intuitem:risk:req_node:recyf:20.2
       assessable: true
@@ -3031,6 +5676,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.monitor
       - urn:intuitem:risk:function:doc-pol:tech.siem
+      questions:
+        urn:intuitem:risk:req_node:recyf:20.2:q1:
+          type: unique_choice
+          text: "Une démarche d'amélioration continue et d'adaptation des règles de détection aux nouvelles menaces est-elle en place ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:20.2:q1:c1
+            value: 'Oui, revues périodiques des règles de détection (Use Cases SIEM/EDR) alimentées par la Threat Intelligence'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:20.2:q1:c2
+            value: 'Partiellement, règles de détection par défaut des éditeurs avec ajustements occasionnels'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:20.2:q1:c3
+            value: 'Non, aucune actualisation des scénarios et règles de détection'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 20.3 [EE] : Maîtrise de l'architecture technique, des outils et des règles de configuration de la supervision
     - urn: urn:intuitem:risk:req_node:recyf:20.3
       assessable: true
@@ -3049,6 +5714,21 @@ objects:
       - urn:intuitem:risk:function:doc-pol:pol.monitor
       - urn:intuitem:risk:function:doc-pol:tech.siem
       - urn:intuitem:risk:function:doc-pol:doc.arc_principles
+      questions:
+        urn:intuitem:risk:req_node:recyf:20.3:q1:
+          type: unique_choice
+          text: "L'architecture technique et les règles de configuration du dispositif de supervision sont-elles documentées et maîtrisées ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:20.3:q1:c1
+            value: 'Oui, documentation complète : architecture SIEM/SOC, cartographie des collecteurs et règles de corrélation'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:20.3:q1:c2
+            value: 'Non, architecture de supervision méconnue ou non documentée'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 20.4 [EE] : Collecte et centralisation des journaux d'événements de sécurité (système, réseau, applicatif)
     - urn: urn:intuitem:risk:req_node:recyf:20.4
       assessable: true
@@ -3069,6 +5749,26 @@ objects:
       - urn:intuitem:risk:function:doc-pol:proc.logging
       - urn:intuitem:risk:function:doc-pol:tech.siem
       - urn:intuitem:risk:function:doc-pol:tech.access_log
+      questions:
+        urn:intuitem:risk:req_node:recyf:20.4:q1:
+          type: unique_choice
+          text: "Quel est le niveau de collecte et de centralisation des journaux d'événements de sécurité ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:20.4:q1:c1
+            value: 'Collecte et centralisation automatisées (SIEM) des journaux (système, réseau, sécurité, authentification, applicatifs)'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:20.4:q1:c2
+            value: 'Collecte partielle limitée aux seuls pare-feux ou contrôleurs de domaine, sans centralisation globale'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:20.4:q1:c3
+            value: 'Inexistante : journaux locaux non centralisés ou journalisation désactivée'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 20.5 [EE] : Conservation sécurisée pour une durée définie et synchronisation temporelle (NTP) des journaux d'événements
     - urn: urn:intuitem:risk:req_node:recyf:20.5
       assessable: true
@@ -3085,6 +5785,26 @@ objects:
       reference_controls:
       - urn:intuitem:risk:function:doc-pol:pol.monitor
       - urn:intuitem:risk:function:doc-pol:proc.logging
+      questions:
+        urn:intuitem:risk:req_node:recyf:20.5:q1:
+          type: unique_choice
+          text: "Les journaux font-ils l'objet d'une synchronisation temporelle (NTP sécurisé) et d'une durée de conservation définie ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:20.5:q1:c1
+            value: 'Oui, synchronisation NTP sécurisée sur tous les équipements et conservation des logs d''au moins 3 mois'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:20.5:q1:c2
+            value: 'Partiellement, horodatage sans source NTP fiable ou durée de rétention insuffisante (< 3 mois)'
+            add_score: 50
+            compute_result: true
+            color: '#fd7e14'
+          - urn: urn:intuitem:risk:req_node:recyf:20.5:q1:c3
+            value: 'Non, pas de synchronisation temporelle ni de rétention garantie des journaux'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
     # Exigence 20.6 [EE] : Protection renforcée des données de supervision et journaux d'audit contre l'altération et la suppression
     - urn: urn:intuitem:risk:req_node:recyf:20.6
       assessable: true
@@ -3101,3 +5821,18 @@ objects:
       - urn:intuitem:risk:function:doc-pol:pol.monitor
       - urn:intuitem:risk:function:doc-pol:pol.backup
       - urn:intuitem:risk:function:doc-pol:tech.immutable_backup
+      questions:
+        urn:intuitem:risk:req_node:recyf:20.6:q1:
+          type: unique_choice
+          text: "Les données de supervision et journaux d'audit sont-ils protégés contre toute altération ou suppression ?"
+          choices:
+          - urn: urn:intuitem:risk:req_node:recyf:20.6:q1:c1
+            value: 'Oui, stockage sécurisé en écriture seule (WORM), droits d''accès restreints et déport hors-ligne protégé des ransomwares'
+            add_score: 100
+            compute_result: true
+            color: '#33a745'
+          - urn: urn:intuitem:risk:req_node:recyf:20.6:q1:c2
+            value: 'Non, journaux stockés sur des serveurs modifiables par les administrateurs courants sans garantie d''intégrité'
+            add_score: 0
+            compute_result: false
+            color: '#dc3545'
