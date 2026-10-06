@@ -18,10 +18,10 @@ class TestExamplesManager(unittest.TestCase):
         self.manager = ExamplesManager()
 
     def test_example_applications_definitions(self):
-        """Verify the 12 expected example applications (8 DPP + 4 VDD) are defined with valid YAML files."""
-        self.assertEqual(len(EXAMPLE_APPLICATIONS), 12)
+        """Verify the 15 expected example applications (8 DPP + 4 VDD + 3 AppSec) are defined with valid YAML files."""
+        self.assertEqual(len(EXAMPLE_APPLICATIONS), 15)
         apps = self.manager.get_example_applications()
-        self.assertEqual(len(apps), 12)
+        self.assertEqual(len(apps), 15)
         app_names = [a["name"] for a in apps]
         self.assertIn("App-Secure-Core", app_names)
         self.assertIn("App-Vulnerable-Portal", app_names)
@@ -35,6 +35,9 @@ class TestExamplesManager(unittest.TestCase):
         self.assertIn("Vendor-Shadow-Payroll", app_names)
         self.assertIn("Vendor-AI-Transcription", app_names)
         self.assertIn("Vendor-Marketing-Widget", app_names)
+        self.assertIn("App-AppSec-Secure-API", app_names)
+        self.assertIn("App-AppSec-Vulnerable-Legacy", app_names)
+        self.assertIn("App-AppSec-Hybrid-SaaS", app_names)
 
         for app in apps:
             self.assertTrue(app["yaml_path"].endswith((".yml", ".yaml")))
@@ -1188,6 +1191,8 @@ class TestFrameworkSelection(unittest.TestCase):
                 self.assertEqual(app["framework_name"], "Multi-level DPP")
             elif app["framework_ref"] == "vendor-due-diligence":
                 self.assertEqual(app["framework_name"], "Vendor Due Diligence (VDD) - simple")
+            elif app["framework_ref"] == "appsec":
+                self.assertEqual(app["framework_name"], "Application Security Assessment Framework (AppSec)")
             else:
                 self.fail(f"Unknown framework_ref: {app['framework_ref']}")
             self.assertTrue(Path(app["framework_yaml"]).exists())
@@ -1203,7 +1208,7 @@ class TestFrameworkSelection(unittest.TestCase):
             app_block = data.get("application", {})
             self.assertIn("framework_ref", app_block, f"Missing framework_ref in {yml_file.name}")
             self.assertIn("framework_name", app_block, f"Missing framework_name in {yml_file.name}")
-            self.assertIn(app_block["framework_ref"], ["mls", "vendor-due-diligence"])
+            self.assertIn(app_block["framework_ref"], ["mls", "vendor-due-diligence", "appsec"])
 
     def test_get_available_frameworks_catalog(self):
         """Verify catalog returns both DPP and Vendor Due Diligence frameworks."""
@@ -1425,16 +1430,21 @@ class TestFrameworkSelection(unittest.TestCase):
              patch("time.sleep"):
             create_examples_ui(self.manager, target="all")
             self.assertEqual(mock_create.call_count, len(EXAMPLE_APPLICATIONS))
-            # Verify DPP apps were called with 'mls' and vendor apps with 'vendor-due-diligence'
+            # Verify DPP apps were called with 'mls', vendor apps with 'vendor-due-diligence', and appsec apps with 'appsec'
             for call_args in mock_create.call_args_list:
                 app_id, kwargs = call_args[0][0], call_args[1]
-                expected_fw = "vendor-due-diligence" if "vendor" in app_id else "mls"
+                if "vendor" in app_id:
+                    expected_fw = "vendor-due-diligence"
+                elif "appsec" in app_id:
+                    expected_fw = "appsec"
+                else:
+                    expected_fw = "mls"
                 self.assertEqual(kwargs.get("framework_ref_or_name"), expected_fw)
 
     def test_create_examples_ui_skips_when_associated_framework_uninstalled(self):
         """Verify create_examples_ui skips applications whose associated framework is missing."""
         from main import create_examples_ui
-        # MLS is installed, VDD is not installed
+        # MLS is installed, VDD and AppSec are not installed
         def mock_find_fw(target):
             if target in ("mls", "Multi-level DPP"):
                 m = MagicMock()
@@ -1448,11 +1458,12 @@ class TestFrameworkSelection(unittest.TestCase):
              patch("main.show_status"), \
              patch("time.sleep"):
             create_examples_ui(self.manager, target="all")
-            # Only the 8 DPP apps should be created; the 4 VDD apps skipped
+            # Only the 8 DPP apps should be created; the 4 VDD and 3 AppSec apps skipped
             self.assertEqual(mock_create.call_count, 8)
             for call_args in mock_create.call_args_list:
                 app_id = call_args[0][0]
                 self.assertNotIn("vendor", app_id)
+                self.assertNotIn("appsec", app_id)
 
     def test_interactive_menu_choice_3_offers_only_associated_framework(self):
         """Verify interactive menu Choice 3 offers only the associated framework for an example."""

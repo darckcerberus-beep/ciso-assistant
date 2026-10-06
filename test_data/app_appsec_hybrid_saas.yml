@@ -1,0 +1,524 @@
+# ==============================================================================
+# Application: App-AppSec-Hybrid-SaaS
+# Profile: Cloud-Native Analytics Platform (Confidential / SaaS / 65% Compliant)
+# ==============================================================================
+# This profile represents a moderately secured SaaS business analytics platform
+# handling customer-facing confidential business intelligence data. Demonstrates
+# partial AppSec compliance with modern cloud infrastructure, good development practices,
+# but identified gaps in encryption at rest, testing automation, and SIEM monitoring.
+# Serves as a realistic mid-stage security maturity progression model.
+# ==============================================================================
+
+application:
+  order: 15
+  id: "app_appsec_hybrid_saas"
+  name: "App-AppSec-Hybrid-SaaS"
+  label: "App-AppSec-Hybrid-SaaS (Confidential / SaaS Cloud / 65% Compliant / Medium Risk)"
+  description: "Cloud-native SaaS business analytics platform; solid baseline and architecture but moderate DevSecOps and third-party monitoring gaps."
+  classification: "Confidential"
+  hosting: "SaaS"
+  compliance_target: "65%"
+  expected_risk: "Medium"
+  framework_ref: "appsec"
+  framework_name: "Application Security Assessment Framework (AppSec)"
+  framework_yaml: "YML/appsec.yml"
+  user:
+    email: "sarah.analytics@example-saas.com"
+    first_name: "Sarah"
+    last_name: "CloudAnalytics"
+  tprm:
+    criticality: 3
+    maturity: 2
+    trust: 2
+    conclusion: "warning"
+
+answers:
+  # ============================================================================
+  # CHAPTER 1: APPLICATION INFORMATION & GOVERNANCE
+  # ============================================================================
+
+  - requirement: "stakeholder_identification"
+    question: "Is there a designated business contact?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "VP of Product Analytics designated as primary business owner."
+
+  - requirement: "stakeholder_identification"
+    question: "Is there a designated IT contact?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Lead DevOps Engineer assigned as technical owner."
+
+  - requirement: "stakeholder_identification"
+    question: "Is there a designated data owner?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Head of Data Governance identified as data owner."
+
+  - requirement: "stakeholder_identification"
+    question: "Is the information about stakeholders updated in LeanIX / CMDB?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "LeanIX mapping out of date since last organizational restructuring."
+
+  - requirement: "data_classification"
+    question: "What is the maximum classification level handled?"
+    answer: "Confidential"
+    result: "compliant"
+    observation: "Processes confidential customer business intelligence and revenue analytics data. Impact Level 3."
+
+  - requirement: "hosting"
+    question: "What is the hosting model?"
+    answer: "SaaS"
+    result: "compliant"
+    observation: "Hosted on multi-tenant Google Cloud Platform (GCP) SaaS infrastructure."
+
+  - requirement: "network_exposure"
+    question: "What is the network exposure of the application?"
+    answer: "Internet-facing (Public Web / Mobile API)"
+    result: "compliant"
+    observation: "Customer portal and REST API endpoints publicly accessible over HTTPS."
+
+  - requirement: "architecture_and_threat_modeling"
+    question: "Has a formal threat model (e.g. STRIDE) or security architecture review been conducted for this application?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Architecture review and data flow diagram completed during initial design phase."
+
+  # ============================================================================
+  # CHAPTER 2: IDENTITY, AUTHENTICATION & ACCESS CONTROL
+  # ============================================================================
+
+  - requirement: "authentication_and_mfa"
+    question: "Is Multi-Factor Authentication (MFA) enforced for all administrative and privileged access?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "MFA enforced for GCP console, GitHub, and production Kubernetes clusters."
+
+  - requirement: "authentication_and_mfa"
+    question: "Are strong password policies and brute-force lockout protections implemented?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Basic password policy enforced but automated rate-limiting lockout is not enabled on login endpoints."
+
+  - requirement: "federation_and_sso"
+    question: "Is user authentication delegated to a centralized enterprise Identity Provider (SSO / SAML 2.0 / OIDC)?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Corporate Google Workspace OIDC federation used for all internal employee authentication."
+
+  - requirement: "access_control_and_rbac"
+    question: "Is access controlled via granular roles (RBAC/ABAC) enforcing least privilege across all business functions and APIs?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Role-Based Access Control implemented separating Viewer, Editor, and Organization Admin roles."
+
+  - requirement: "access_control_and_rbac"
+    question: "Are access permissions reviewed and recertified on a periodic basis (at least biannually)?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Periodic user access recertification is not formalized or tracked."
+
+  - requirement: "session_management"
+    question: "Are session tokens securely generated, transmitted with secure cookie flags (HttpOnly, Secure, SameSite), and invalidated on logout or inactivity?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "JWT tokens transmitted via Secure, HttpOnly, and SameSite=Lax cookies with 30-minute timeout."
+
+  # ============================================================================
+  # CHAPTER 3: APPLICATION VULNERABILITY DEFENSE & CODE HYGIENE
+  # ============================================================================
+
+  - requirement: "input_validation_and_injection_defense"
+    question: "Are all user-supplied inputs validated on the server side using strict allow-lists and schema rules?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "FastAPI server-side Pydantic models validate all incoming request bodies and parameters."
+
+  - requirement: "input_validation_and_injection_defense"
+    question: "Are database interactions executed via parameterized queries or ORMs to prevent SQL/NoSQL injections?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Database operations executed via SQLAlchemy ORM with parameterized statements."
+
+  - requirement: "output_encoding_and_web_defenses"
+    question: "Is context-aware output encoding enforced across all dynamic responses to prevent Cross-Site Scripting (XSS)?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "React virtual DOM automatically handles context-aware output encoding to prevent XSS."
+
+  - requirement: "output_encoding_and_web_defenses"
+    question: "Are standard HTTP security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options) configured?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Nginx ingress controller configured with HSTS, CSP, and X-Content-Type-Options headers."
+
+  - requirement: "error_handling_and_info_leakage"
+    question: "Are debug modes and detailed stack traces disabled in production environments?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Debug mode disabled in production container images; standardized error responses returned."
+
+  - requirement: "secrets_management"
+    question: "Are application credentials, API keys, and cryptographic secrets stored exclusively in a dedicated secrets manager rather than in code or configuration files?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "GCP Secret Manager stores database passwords and third-party API keys."
+
+  # ============================================================================
+  # CHAPTER 4: CRYPTOGRAPHY & DATA PROTECTION
+  # ============================================================================
+
+  - requirement: "data_in_transit"
+    question: "Is data encrypted during transit?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "TLS 1.2+ enforced on all external endpoints and internal service mesh communication."
+
+  - requirement: "data_at_rest"
+    question: "Is data encrypted at rest?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Temporary analytics cache volumes and staging data buckets stored unencrypted without customer key management."
+
+  # ============================================================================
+  # CHAPTER 5: SECURE SDLC & DEVSECOPS
+  # ============================================================================
+
+  - requirement: "automated_security_testing"
+    question: "Is automated Static Application Security Testing (SAST) integrated into the CI/CD pipeline with blocking quality gates?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "SonarQube SAST runs on GitHub pull requests."
+
+  - requirement: "automated_security_testing"
+    question: "Is Dynamic Application Security Testing (DAST) or API security scanning performed prior to release?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "DAST security scanning is not integrated into deployment pipelines."
+
+  - requirement: "supply_chain_and_dependencies"
+    question: "Is Software Composition Analysis (SCA) automated to detect known vulnerabilities in open-source dependencies and packages?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Dependabot alerts enabled across Python and JavaScript repositories."
+
+  - requirement: "supply_chain_and_dependencies"
+    question: "Is an accurate Software Bill of Materials (SBOM) maintained and audited for all released application artifacts?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "SBOM generation is not implemented in the release workflow."
+
+  - requirement: "code_review_and_ci_cd_integrity"
+    question: "Are mandatory peer code reviews and branch protection rules enforced before any merge into deployment branches?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Branch protection rules require at least one peer approval before merging to main."
+
+  # ============================================================================
+  # CHAPTER 6: API SECURITY & RATE LIMITING
+  # ============================================================================
+
+  - requirement: "api_security_and_rate_limiting"
+    question: "Are exposed API endpoints protected against abusive traffic via rate limiting and automated throttling controls?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "NGINX rate-limiting rules apply 60 requests per minute per IP address."
+
+  - requirement: "api_security_and_rate_limiting"
+    question: "Are API payloads strictly validated against documented API specifications (e.g. OpenAPI / JSON schema)?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "API schema enforcement is not strictly applied at the API gateway layer."
+
+  # ============================================================================
+  # CHAPTER 7: DATA EXCHANGE & NON-PRODUCTION DATA PROTECTION
+  # ============================================================================
+
+  - requirement: "data_exchange"
+    question: "Are there data exchanges beyond the group?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Analytics exports shared with authorized customer enterprise integrations."
+
+  - requirement: "data_exchange"
+    question: "Is there a data exchange contract with the appropriate confidentiality clauses?"
+    answer: "Contract!"
+    result: "compliant"
+    observation: "Standard customer terms and DPAs govern all data transfer integrations."
+
+  - requirement: "non_prod_data"
+    question: "Do you have a dedicated non-production environment?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Isolated staging environment in dedicated GCP project."
+
+  - requirement: "non_prod_data"
+    question: "Do you use prod data in a non-prod environment?"
+    answer: "Yes"
+    result: "not_compliant"
+    observation: "Periodic staging runs copy sanitized slices of production data."
+
+  - requirement: "non_prod_data"
+    question: "How do you protect them?"
+    answer: "Pseudonymisation"
+    result: "compliant"
+    observation: "Pseudonymization pipeline masks customer identifiers and names before loading into staging."
+
+  - requirement: "non_prod_data"
+    question: "Do you clean the prod data after use in non-prod?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Masked data retained in staging indefinitely without automated post-test wiping."
+
+  - requirement: "data_destruction"
+    question: "Is there a data destruction process for this application?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Customer account deletion endpoint triggers database row deletion."
+
+  - requirement: "data_destruction"
+    question: "Is the process compliant with the policy (responsibilities, methods, reporting)?"
+    answer: "No, not compliant"
+    result: "not_compliant"
+    observation: "Data destruction lacks formal compliance reporting and cryptographic verification audit trails."
+
+  # ============================================================================
+  # CHAPTER 8: SECURITY LOGGING, MONITORING & INCIDENT RESPONSE
+  # ============================================================================
+
+  - requirement: "security_event_logging"
+    question: "Does the application log key security events (failed logins, privilege escalation, administrative changes, access to sensitive assets)?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Audit logs capture authentication attempts and role changes."
+
+  - requirement: "security_event_logging"
+    question: "Are sensitive data fields (passwords, payment cards, tokens, PII) systematically sanitized/masked from log outputs?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Log sanitation filters missing; occasional query parameters with customer emails logged."
+
+  - requirement: "centralized_monitoring_and_alerting"
+    question: "Are application logs forwarded in near-real-time to a central SIEM/SOC platform with alerting rules for suspicious activities?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Logs stored in GCP Cloud Logging without SIEM integration or real-time SOC alerting."
+
+  # ============================================================================
+  # CHAPTER 9: TESTING, PATCHING & RESILIENCE
+  # ============================================================================
+
+  - requirement: "penetration_testing_and_vulnerability_management"
+    question: "Is an independent penetration test performed on the application at least annually or following major architectural changes?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Third-party penetration test conducted in April 2026."
+
+  - requirement: "penetration_testing_and_vulnerability_management"
+    question: "Are identified vulnerabilities remediated within defined SLAs (e.g. Critical within 7 days, High within 30 days)?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Medium and low vulnerabilities frequently exceed 90-day remediation targets."
+
+  - requirement: "backup_and_disaster_recovery"
+    question: "Are automated and encrypted backups maintained for application state and databases, with restoration tests performed at least annually?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Automated daily Cloud SQL snapshots with cross-region replication and annual restore verification."
+
+  # ============================================================================
+  # CHAPTER 10: THIRD-PARTY SAAS GOVERNANCE
+  # ============================================================================
+
+  - requirement: "saas_contract_compliance"
+    question: "Is there a signed SaaS contract?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Executed Google Cloud enterprise agreement."
+
+  - requirement: "saas_contract_compliance"
+    question: "Does the contract include an Audit clause?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Right to review annual SOC 2 Type II reports."
+
+  - requirement: "saas_contract_compliance"
+    question: "Does the contract include an Incident Notification process?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Provider contract mandates incident notification within 48 hours."
+
+  - requirement: "saas_contract_compliance"
+    question: "Does the contract include Strong IAM requirements?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Vendor IAM requirements not formally detailed in contractual schedule."
+
+  - requirement: "saas_contract_compliance"
+    question: "Does the contract include a Confidentiality agreement (NDA)?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Standard terms of service used without customized bilateral NDA schedule."
+
+# ==============================================================================
+# Expected Risk Scenarios & Evaluation (AppSec Framework)
+# ==============================================================================
+# SaaS Application -> All 16 scenarios evaluated.
+# Impact Level: 3 (Confidential).
+# Scenarios vary across Likelihood 1, 2, 3, 4 based on requirement scores:
+# - Likelihood 1 & 2 -> Matrix Risk 1 (Level 2 - Low), Priority 3 (Medium)
+# - Likelihood 3 -> Matrix Risk 2 (Level 3 - Medium), Priority 2 (High)
+# - Likelihood 4 -> Matrix Risk 3 (Level 4 - High), Priority 1 (Critical)
+# ==============================================================================
+expected_evaluation:
+  impact_level: 3
+  confidentiality_impact: 3
+  availability_impact: 3
+  scenario_count: 16
+  excluded_scenarios: []
+
+expected_risk_scenarios:
+  - scenario: "Exposure of unencrypted data in transit"
+    likelihood_requirement: "data_in_transit"
+    likelihood_score: 100
+    scaled_likelihood: 1
+    scaled_impact: 3
+    matrix_risk_id: 1
+    risk_level: 2
+    control_priority: 3
+
+  - scenario: "Exposure of unencrypted data at rest"
+    likelihood_requirement: "data_at_rest"
+    likelihood_score: 0
+    scaled_likelihood: 4
+    scaled_impact: 3
+    matrix_risk_id: 3
+    risk_level: 4
+    control_priority: 1
+
+  - scenario: "Disclosure of production data in non-production environments"
+    likelihood_requirement: "non_prod_data"
+    likelihood_score: 90
+    scaled_likelihood: 1
+    scaled_impact: 3
+    matrix_risk_id: 1
+    risk_level: 2
+    control_priority: 3
+
+  - scenario: "Third-party data leakage"
+    likelihood_requirement: "data_exchange"
+    likelihood_score: 100
+    scaled_likelihood: 1
+    scaled_impact: 3
+    matrix_risk_id: 1
+    risk_level: 2
+    control_priority: 3
+
+  - scenario: "SaaS provider data leakage"
+    likelihood_requirement: "saas_contract_compliance"
+    likelihood_score: 60
+    scaled_likelihood: 2
+    scaled_impact: 3
+    matrix_risk_id: 1
+    risk_level: 2
+    control_priority: 3
+
+  - scenario: "Missing application stakeholders"
+    likelihood_requirement: "stakeholder_identification"
+    likelihood_score: 75
+    scaled_likelihood: 2
+    scaled_impact: 3
+    matrix_risk_id: 1
+    risk_level: 2
+    control_priority: 3
+
+  - scenario: "Excessive retention of sensitive data"
+    likelihood_requirement: "data_destruction"
+    likelihood_score: 50
+    scaled_likelihood: 3
+    scaled_impact: 3
+    matrix_risk_id: 2
+    risk_level: 3
+    control_priority: 2
+
+  - scenario: "Account takeover via weak authentication"
+    likelihood_requirement: "authentication_and_mfa"
+    likelihood_score: 50
+    scaled_likelihood: 3
+    scaled_impact: 3
+    matrix_risk_id: 2
+    risk_level: 3
+    control_priority: 2
+
+  - scenario: "Unauthorized data access via broken authorization"
+    likelihood_requirement: "access_control_and_rbac"
+    likelihood_score: 50
+    scaled_likelihood: 3
+    scaled_impact: 3
+    matrix_risk_id: 2
+    risk_level: 3
+    control_priority: 2
+
+  - scenario: "Application compromise via injection attack"
+    likelihood_requirement: "input_validation_and_injection_defense"
+    likelihood_score: 100
+    scaled_likelihood: 1
+    scaled_impact: 3
+    matrix_risk_id: 1
+    risk_level: 2
+    control_priority: 3
+
+  - scenario: "Credential leakage via hardcoded secrets"
+    likelihood_requirement: "secrets_management"
+    likelihood_score: 100
+    scaled_likelihood: 1
+    scaled_impact: 3
+    matrix_risk_id: 1
+    risk_level: 2
+    control_priority: 3
+
+  - scenario: "Supply chain compromise via vulnerable dependency"
+    likelihood_requirement: "supply_chain_and_dependencies"
+    likelihood_score: 50
+    scaled_likelihood: 3
+    scaled_impact: 3
+    matrix_risk_id: 2
+    risk_level: 3
+    control_priority: 2
+
+  - scenario: "API abuse and denial of service"
+    likelihood_requirement: "api_security_and_rate_limiting"
+    likelihood_score: 50
+    scaled_likelihood: 3
+    scaled_impact: 3
+    matrix_risk_id: 2
+    risk_level: 3
+    control_priority: 2
+
+  - scenario: "Undetected breach due to missing security logging"
+    likelihood_requirement: "centralized_monitoring_and_alerting"
+    likelihood_score: 0
+    scaled_likelihood: 4
+    scaled_impact: 3
+    matrix_risk_id: 3
+    risk_level: 4
+    control_priority: 1
+
+  - scenario: "Catastrophic data loss due to unverified backups"
+    likelihood_requirement: "backup_and_disaster_recovery"
+    likelihood_score: 100
+    scaled_likelihood: 1
+    scaled_impact: 3
+    matrix_risk_id: 1
+    risk_level: 2
+    control_priority: 3
+
+  - scenario: "Exploitation of unpatched vulnerability"
+    likelihood_requirement: "penetration_testing_and_vulnerability_management"
+    likelihood_score: 50
+    scaled_likelihood: 3
+    scaled_impact: 3
+    matrix_risk_id: 2
+    risk_level: 3
+    control_priority: 2

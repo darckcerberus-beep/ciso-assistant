@@ -1,0 +1,131 @@
+# ==============================================================================
+# Modèle d'organisation NIS 2 / ReCyF : Domaine, Périmètres & Actifs Cibles
+# ==============================================================================
+# Ce fichier définit le domaine organisationnel, les périmètres et les actifs
+# représentant les objets sur lesquels les exigences du Référentiel Cyber France
+# (ANSSI ReCyF v2.5) sont évaluées dans CISO Assistant.
+# ==============================================================================
+
+version: 1
+locale: fr
+framework_ref: ReCyF
+framework_urn: urn:intuitem:risk:framework:recyf
+
+domain:
+  name: "NIS2 - ReCyF"
+  description: "Domaine dédié au pilotage de la conformité NIS 2 et à l'évaluation du Référentiel Cyber France (ANSSI ReCyF v2.5)."
+
+assets:
+  - ref_id: governance_organization
+    name: "Gouvernance, Organisation & RH"
+    type: "PR"
+    perimeter_name: "Périmètre Gouvernance, Risques & Conformité NIS 2"
+    description: "Politiques (PSSI), gouvernance, rôles RSSI/ANSSI, gestion des risques, gestion de crise, exercices, audits et processus RH."
+    recyf_objectives:
+      - "1.1"
+      - "2.A"
+      - "2.B"
+      - "2.C"
+      - "4"
+      - "14"
+      - "15"
+      - "16"
+      - "17"
+    requirements_count: 40
+
+  - ref_id: information_systems
+    name: "Systèmes d'Information & Applications Métier"
+    type: "PR"
+    perimeter_name: "Périmètre Systèmes d'Information et Applications NIS 2"
+    description: "Applications métier, bases de données, cartographie applicative, MCO/MCS, gestion des vulnérabilités, correctifs et PCA/PRA."
+    recyf_objectives:
+      - "1.2"
+      - "1.3"
+      - "5.A"
+      - "5.B"
+      - "13"
+    requirements_count: 19
+
+  - ref_id: ecosystem_suppliers
+    name: "Écosystème & Fournisseurs Tiers"
+    type: "PR"
+    perimeter_name: "Périmètre Écosystème et Fournisseurs Tiers NIS 2"
+    description: "Cartographie des prestataires, clauses contractuelles de sécurité, plans d'assurance sécurité (PAS) et audits tiers."
+    recyf_objectives:
+      - "3.A"
+      - "3.B"
+    requirements_count: 4
+
+  - ref_id: network_architecture
+    name: "Architecture Réseau & Accès Distants"
+    type: "SP"
+    perimeter_name: "Périmètre Architecture Réseau et Accès Distants NIS 2"
+    description: "Cloisonnement réseau, zonage, passerelles DMZ/Proxy, filtrage firewall, accès distants VPN/TLS et authentification forte."
+    recyf_objectives:
+      - "7.A"
+      - "7.B"
+      - "8.1"
+      - "8.2"
+      - "8.3"
+      - "8.4"
+    requirements_count: 17
+
+  - ref_id: endpoints
+    name: "Postes de Travail & Terminaux Nomades"
+    type: "SP"
+    perimeter_name: "Périmètre Postes de Travail et Terminaux Nomades NIS 2"
+    description: "Parc de postes utilisateurs, terminaux mobiles, chiffrement des disques nomades, protection EDR/antivirus et contrôle des supports amovibles."
+    recyf_objectives:
+      - "8.5"
+      - "9"
+    requirements_count: 8
+
+  - ref_id: iam_directories
+    name: "Identités, Accès & Annuaires (IAM / AD)"
+    type: "SP"
+    perimeter_name: "Périmètre Identités, Accès et Annuaires (IAM) NIS 2"
+    description: "Cycle de vie des comptes, authentification, MFA, principe du moindre privilège, contrôleurs de domaine et annuaires d'entreprise."
+    recyf_objectives:
+      - "10.A"
+      - "10.B"
+      - "10.C"
+      - "11.B"
+    requirements_count: 24
+
+  - ref_id: administration_pav
+    name: "Ressources d'Administration Dédiées (PAV)"
+    type: "SP"
+    perimeter_name: "Périmètre Administration et Postes Dédiés (PAV) NIS 2"
+    description: "Comptes à privilèges d'administration, réseau d'administration dédié hors-bande, postes physiques d'administration dédiés (PAV)."
+    recyf_objectives:
+      - "11.A"
+      - "19"
+    requirements_count: 19
+
+  - ref_id: infrastructure_servers
+    name: "Serveurs & Équipements d'Infrastructure"
+    type: "SP"
+    perimeter_name: "Périmètre Serveurs et Équipements d'Infrastructure NIS 2"
+    description: "Durcissement (hardening), suppression des services inutiles, application des guides de configuration sécurisée et revues de conformité."
+    recyf_objectives:
+      - "18"
+    requirements_count: 4
+
+  - ref_id: supervision_soc
+    name: "Supervision, Logs & Détection (SOC / SIEM)"
+    type: "SP"
+    perimeter_name: "Périmètre Supervision, Logs et Détection (SOC) NIS 2"
+    description: "Détection des incidents, centralisation et intégrité des logs, horodatage synchronisé (NTP), rétention sécurisée et notification ANSSI."
+    recyf_objectives:
+      - "12"
+      - "20"
+    requirements_count: 13
+
+  - ref_id: physical_security
+    name: "Locaux Physiques & Salles Serveurs"
+    type: "SP"
+    perimeter_name: "Périmètre Locaux Techniques et Datacenters NIS 2"
+    description: "Contrôle d'accès physique, protection des salles serveurs et baies réseau, gestion des habilitations d'accès et accompagnement des visiteurs."
+    recyf_objectives:
+      - "6"
+    requirements_count: 4

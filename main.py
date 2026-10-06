@@ -26,7 +26,8 @@ Usage:
         python3 main.py --link-controls all
         python3 main.py --link-controls app_secure_core
         python3 main.py --remove all --yes
-        python3 main.py --remove app_vulnerable_portal
+        python3 main.py --provision-nis2
+        python3 main.py --status-nis2
         python3 main.py --offline
         python3 main.py --pipeline
 """
@@ -1000,6 +1001,69 @@ def list_domains_ui(manager: ExamplesManager):
     print("=" * 80)
 
 
+def provision_nis2_ui(domain_name: str | None = None):
+    """Provision the dedicated NIS2 - ReCyF domain, perimeters, and target assets."""
+    from classes.integrations.recyf_domain_manager import ReCyFDomainManager, NIS2_DOMAIN_NAME
+    target_domain = domain_name or NIS2_DOMAIN_NAME
+    mgr = ReCyFDomainManager(domain_name=target_domain)
+    print("\n" + "=" * 80)
+    print("      PROVISION DEDICATED DOMAIN & ASSETS FOR NIS 2 / ANSSI RECYF")
+    print("=" * 80)
+    print(f" Target Domain: {target_domain}")
+    print(" This will create or verify:")
+    print("  - The dedicated organizational domain for NIS 2 / ReCyF.")
+    print("  - 10 dedicated perimeters covering all 20 ReCyF security objectives.")
+    print("  - 10 primary & support assets mapped to the 152 assessable requirements.")
+    print("-" * 80)
+
+    try:
+        res = mgr.provision_nis2_recyf_environment()
+        print(f"\n[SUCCESS] Domain: {res['domain_name']} (ID: {res['domain_id']})")
+        print("\nProvisioned Perimeters and Assets:")
+        for a in res["assets"]:
+            t_label = "Primaire" if a["type"] == "PR" else "Support"
+            print(f"  * [{a['type']}|{t_label}] {a['name']}")
+            print(f"    - Perimeter: {a['perimeter_name']} (ID: {a['perimeter_id']})")
+            print(f"    - Asset ID:  {a['id']} ({a['req_count']} ReCyF requirements evaluated)")
+        print(f"\n[SUCCESS] Successfully provisioned {len(res['assets'])} assets across {len(res['perimeters'])} perimeters in domain '{res['domain_name']}'!")
+    except Exception as e:
+        print(f"\n[ERROR] Failed to provision NIS2 ReCyF environment: {e}")
+
+
+def status_nis2_ui(domain_name: str | None = None):
+    """Display status of the dedicated NIS2 - ReCyF domain, perimeters, and assets."""
+    from classes.integrations.recyf_domain_manager import ReCyFDomainManager, NIS2_DOMAIN_NAME
+    target_domain = domain_name or NIS2_DOMAIN_NAME
+    mgr = ReCyFDomainManager(domain_name=target_domain)
+    print("\n" + "=" * 80)
+    print("         NIS 2 / ANSSI RECYF DEPLOYMENT & ASSET MAPPING STATUS")
+    print("=" * 80)
+    print(f" Target Domain: {target_domain}")
+    print("-" * 80)
+
+    try:
+        st = mgr.get_nis2_recyf_status()
+        if not st.get("exists"):
+            print(f"[INFO] Domain '{target_domain}' does not exist in CISO Assistant.")
+            print("Run 'python3 main.py --provision-nis2' to create it.")
+            print("=" * 80)
+            return
+
+        print(f" Domain: {st['domain_name']} [EXISTS] (ID: {st['domain_id']})")
+        print("\n" + "-" * 105)
+        print(f"{'#':<3} | {'Type':<4} | {'Asset Name':<38} | {'Reqs':<4} | {'Perimeter Status':<20} | {'Asset Status':<20}")
+        print("-" * 105)
+        for idx, item in enumerate(st.get("items", []), start=1):
+            p_st = f"EXISTS ({item['perimeter_id'][:8]}..)" if item["perimeter_exists"] else "MISSING"
+            a_st = f"EXISTS ({item['asset_id'][:8]}..)" if item["asset_exists"] else "MISSING"
+            print(f"{idx:<3} | {item['type']:<4} | {item['name']:<38} | {item['req_count']:<4} | {p_st:<20} | {a_st:<20}")
+        print("-" * 105)
+        print(f"Total: {len(st.get('items', []))} dedicated assets mapped to 152 ReCyF requirements.")
+        print("=" * 105)
+    except Exception as e:
+        print(f"\n[ERROR] Failed to check NIS2 ReCyF status: {e}")
+
+
 def run_offline_simulation():
     """Run local calculation and matrix lookup without calling the live API."""
     print("\nRunning offline local simulation preview (no API calls)...")
@@ -1124,10 +1188,11 @@ def interactive_menu(manager: ExamplesManager):
         print(" 9) Backup & Restore Management (Dumps, Snapshots, Restores, Listing)")
         print(" 10) Create a New Domain (Organizational Folder)")
         print(" 11) Launch Web UI & REST API Dashboard (http://127.0.0.1:5000)")
+        print(" 12) Provision / Check NIS2 - ReCyF Dedicated Domain & Assets")
         print(" 0) Exit")
         print("=" * 80)
 
-        choice = input("Enter your choice [0-11]: ").strip()
+        choice = input("Enter your choice [0-12]: ").strip()
 
         if choice == "1":
             show_status(manager, wait_seconds=2.0)
@@ -1261,11 +1326,22 @@ def interactive_menu(manager: ExamplesManager):
                 w_app.run(host="127.0.0.1", port=5000, debug=False)
             except KeyboardInterrupt:
                 print("\nWeb UI server stopped.")
+        elif choice == "12":
+            print("\nSelect NIS2 / ReCyF action:")
+            print(" 1) View NIS2 - ReCyF Domain, Perimeters & Assets Status")
+            print(" 2) Provision / Ensure NIS2 - ReCyF Domain, Perimeters & Assets")
+            nis_choice = input("Enter choice [1-2, default: 1] (or 'c' to cancel): ").strip()
+            if nis_choice.lower() in ("c", "cancel"):
+                pass
+            elif nis_choice == "2":
+                provision_nis2_ui()
+            else:
+                status_nis2_ui()
         elif choice in ("0", "q", "exit"):
             print("\nGoodbye!")
             break
         else:
-            print("\n[!] Invalid choice. Please select an option from 0 to 11.")
+            print("\n[!] Invalid choice. Please select an option from 0 to 12.")
 
         input("\nPress [Enter] to return to the menu...")
 
@@ -1420,6 +1496,16 @@ def main():
         action="store_true",
         help="Automatically open the Web UI in the default browser upon launch.",
     )
+    parser.add_argument(
+        "--provision-nis2",
+        action="store_true",
+        help="Provision dedicated domain, perimeters, and assets for NIS2 / ReCyF in CISO Assistant.",
+    )
+    parser.add_argument(
+        "--status-nis2",
+        action="store_true",
+        help="Check deployment status of NIS2 / ReCyF domain, perimeters, and assets in CISO Assistant.",
+    )
     args = parser.parse_args()
 
     if args.log_level:
@@ -1456,6 +1542,14 @@ def main():
 
     if args.status:
         show_status(manager, wait_seconds=args.wait)
+        return
+
+    if args.status_nis2:
+        status_nis2_ui(domain_name=args.domain)
+        return
+
+    if args.provision_nis2:
+        provision_nis2_ui(domain_name=args.domain)
         return
 
     if args.list_domains:

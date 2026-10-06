@@ -1,0 +1,2569 @@
+# ============================================================================
+# Application Security Assessment Framework (AppSec) - CISO Assistant Library
+# ============================================================================
+# This YAML file defines an enriched, comprehensive application security framework
+# based on the Multi-level Data Protection Policy (newDPP).
+# It extends foundational data protection with broad Application Security (AppSec)
+# domains inspired by OWASP ASVS, ISO/IEC 27001 (Annex A.8), and DevSecOps best practices:
+# - Application Profiling, Governance & Architecture Threat Modeling
+# - Identity, Authentication, MFA & Role-Based Access Control (RBAC)
+# - Input Validation, Injection Defenses & Web Security Controls
+# - Centralized Secrets Management & Cryptography (Transit & Rest)
+# - Secure SDLC, Automated CI/CD Testing (SAST/DAST) & Supply Chain Security (SCA/SBOM)
+# - API Security, Rate Limiting & Controlled Data Exchanges
+# - Non-Production Data Sanitization & Compliant Data Destruction
+# - Security Event Logging, Tamper-Resistance & Centralized SIEM Monitoring
+# - Regular Penetration Testing, Patch SLAs & Backup / Disaster Recovery
+# - Third-Party SaaS Contractual Governance
+# ============================================================================
+
+urn: urn:intuitem:risk:library:appsec
+locale: en
+ref_id: "appsec"
+name: "Application Security Assessment Framework (AppSec)"
+description: >
+  Comprehensive application security evaluation framework based on Multi-level DPP,
+  extending baseline data protection with full-spectrum AppSec requirements:
+  Identity & Access Management, Secure SDLC, Input Validation, Cryptography & Secrets,
+  API Security, Security Logging, Resilience, Vulnerability Management, and Third-Party Risk.
+copyright: ACME Corp
+version: 1
+publication_date: 2026-10-02
+provider: ACME Corp
+packager: ACME Corp
+
+objects:
+
+  # ========================================================================
+  # RISK SCENARIOS - Threat scenarios covering application risks
+  # ========================================================================
+  risk_scenarios:
+    # 1. Unencrypted data in transit (from newDPP)
+    - urn: urn:intuitem:risk:scenario:appsec:unencrypted_data_in_transit
+      ref_id: unencrypted_data_in_transit
+      name: "Exposure of unencrypted data in transit"
+      description: >
+        Sensitive information is exposed during network transmission due to
+        missing or deprecated cryptographic transport protocols.
+      likelihood: urn:intuitem:risk:req_node:appsec:data_in_transit
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:lack_of_encryption
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:encrypt_data_in_transit
+
+    # 2. Unencrypted data at rest (from newDPP)
+    - urn: urn:intuitem:risk:scenario:appsec:unencrypted_data_at_rest
+      ref_id: unencrypted_data_at_rest
+      name: "Exposure of unencrypted data at rest"
+      description: >
+        Sensitive information is exposed in databases, object stores, or storage volumes
+        due to missing encryption-at-rest controls.
+      likelihood: urn:intuitem:risk:req_node:appsec:data_at_rest
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:lack_of_encryption
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:encrypt_data_at_rest
+
+    # 3. Non-production data disclosure (from newDPP)
+    - urn: urn:intuitem:risk:scenario:appsec:nonprod_data_disclosure
+      ref_id: nonprod_data_disclosure
+      name: "Disclosure of production data in non-production environments"
+      description: >
+        Production data used in development, staging, or test environments is exposed
+        because sanitization, pseudonymisation, or masking measures are not implemented.
+      likelihood: urn:intuitem:risk:req_node:appsec:non_prod_data
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:unprotected_non_prod
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:protect_prod_data_in_non_prod
+
+    # 4. Third-party data leakage (from newDPP)
+    - urn: urn:intuitem:risk:scenario:appsec:third_party_data_leakage
+      ref_id: third_party_data_leakage
+      name: "Third-party data leakage"
+      description: >
+        Sensitive information is disclosed or misused by an external partner
+        due to inadequate contractual data-sharing and confidentiality terms.
+      likelihood: urn:intuitem:risk:req_node:appsec:data_exchange
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:contractual_gap
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:information_exchange_contract
+
+    # 5. SaaS provider data leakage (from newDPP)
+    - urn: urn:intuitem:risk:scenario:appsec:saas_provider_data_leakage
+      ref_id: saas_provider_data_leakage
+      name: "SaaS provider data leakage"
+      description: >
+        Sensitive information is disclosed or misused by an external SaaS provider
+        due to inadequate contractual safeguards, lack of audit rights, or missing DPAs.
+      likelihood: urn:intuitem:risk:req_node:appsec:saas_contract
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:contractual_gap
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:saas_contract
+
+    # 6. Missing application stakeholders (from newDPP)
+    - urn: urn:intuitem:risk:scenario:appsec:missing_stakeholders
+      ref_id: missing_stakeholders
+      name: "Missing application stakeholders"
+      description: >
+        Unclear accountability and missing business, IT, or data owner designations
+        delay security patch decisions, incident response, and governance approvals.
+      likelihood: urn:intuitem:risk:req_node:appsec:stakeholder_identification
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_loss
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:unclear_accountability
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:stakeholder_designation
+
+    # 7. Improper data retention (from newDPP)
+    - urn: urn:intuitem:risk:scenario:appsec:improper_data_retention
+      ref_id: improper_data_retention
+      name: "Excessive retention of sensitive data"
+      description: >
+        Sensitive information is retained indefinitely beyond business or statutory
+        requirements due to the absence of a compliant data purge/destruction process.
+      likelihood: urn:intuitem:risk:req_node:appsec:data_destruction
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:uncontrolled_data_retention
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:data_destruction_process
+
+    # 8. Account takeover via weak authentication (AppSec addition)
+    - urn: urn:intuitem:risk:scenario:appsec:account_takeover_via_weak_auth
+      ref_id: account_takeover_via_weak_auth
+      name: "Account takeover via weak authentication"
+      description: >
+        Adversaries compromise user or administrative accounts via brute-force,
+        credential stuffing, or session hijacking due to missing MFA or weak auth controls.
+      likelihood: urn:intuitem:risk:req_node:appsec:authentication_and_mfa
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:account_takeover
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:weak_authentication_controls
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:enforce_mfa_and_strong_auth
+
+    # 9. Unauthorized data access via broken authorization (AppSec addition)
+    - urn: urn:intuitem:risk:scenario:appsec:privilege_escalation_broken_access_control
+      ref_id: privilege_escalation_broken_access_control
+      name: "Unauthorized data access via broken authorization"
+      description: >
+        Flaws in access control logic allow malicious actors to escalate privileges,
+        access unauthorized administrative functions, or bypass tenant isolation (BOLA/IDOR).
+      likelihood: urn:intuitem:risk:req_node:appsec:access_control_and_rbac
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:broken_authorization_rbac
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:enforce_least_privilege_rbac
+
+    # 10. Application compromise via injection attack (AppSec addition)
+    - urn: urn:intuitem:risk:scenario:appsec:injection_flaw_exploitation
+      ref_id: injection_flaw_exploitation
+      name: "Application compromise via injection attack"
+      description: >
+        Adversaries exploit unvalidated user inputs to execute SQL injection,
+        remote command execution, or cross-site scripting (XSS), compromising application integrity.
+      likelihood: urn:intuitem:risk:req_node:appsec:input_validation_and_injection_defense
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:injection_attacks
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:flawed_input_validation
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:secure_input_validation_and_encoding
+
+    # 11. Credential leakage via hardcoded secrets (AppSec addition)
+    - urn: urn:intuitem:risk:scenario:appsec:hardcoded_secrets_exposure
+      ref_id: hardcoded_secrets_exposure
+      name: "Credential leakage via hardcoded secrets"
+      description: >
+        Database credentials, API keys, or private cryptographic keys hardcoded
+        in source code repositories or build scripts are exposed to unauthorized parties.
+      likelihood: urn:intuitem:risk:req_node:appsec:secrets_management
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:secrets_compromise
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:hardcoded_secrets
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:centralized_secrets_management
+
+    # 12. Supply chain compromise via vulnerable dependencies (AppSec addition)
+    - urn: urn:intuitem:risk:scenario:appsec:supply_chain_dependency_compromise
+      ref_id: supply_chain_dependency_compromise
+      name: "Supply chain compromise via vulnerable dependency"
+      description: >
+        Adversaries exploit unpatched critical CVEs in open-source third-party libraries,
+        container base images, or software dependencies integrated into the application.
+      likelihood: urn:intuitem:risk:req_node:appsec:supply_chain_and_dependencies
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:supply_chain_tampering
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:vulnerable_dependencies
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:supply_chain_dependency_management
+
+    # 13. API abuse and denial of service (AppSec addition)
+    - urn: urn:intuitem:risk:scenario:appsec:api_abuse_and_denial_of_service
+      ref_id: api_abuse_and_denial_of_service
+      name: "API abuse and denial of service"
+      description: >
+        Exposed API endpoints are overwhelmed by abusive requests, scraping, or brute-force
+        attacks due to the absence of rate limiting and traffic throttling controls.
+      likelihood: urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:service_disruption
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:unmitigated_api_abuse
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:api_security_and_rate_limiting
+
+    # 14. Undetected breach due to missing security logging (AppSec addition)
+    - urn: urn:intuitem:risk:scenario:appsec:undetected_security_breach
+      ref_id: undetected_security_breach
+      name: "Undetected breach due to missing security logging"
+      description: >
+        An active application intrusion or unauthorized data exfiltration remains undetected
+        for an extended period because security events are not logged or forwarded to a central SIEM.
+      likelihood: urn:intuitem:risk:req_node:appsec:centralized_monitoring_and_alerting
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:undetected_intrusion
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:insufficient_security_logging
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:centralized_security_logging
+
+    # 15. Catastrophic data loss due to unverified backups (AppSec addition)
+    - urn: urn:intuitem:risk:scenario:appsec:prolonged_outage_data_loss
+      ref_id: prolonged_outage_data_loss
+      name: "Catastrophic data loss due to unverified backups"
+      description: >
+        Infrastructure failure, ransomware, or corruption causes irreversible data loss
+        or extended downtime because backups and disaster recovery plans are not regularly tested.
+      likelihood: urn:intuitem:risk:req_node:appsec:backup_and_disaster_recovery
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_loss
+        - urn:intuitem:risk:threat:appsec:service_disruption
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:inadequate_resilience_backup
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:backup_and_disaster_recovery
+
+    # 16. Exploitation of unpatched vulnerability (AppSec addition)
+    - urn: urn:intuitem:risk:scenario:appsec:unpatched_vulnerability_exploitation
+      ref_id: unpatched_vulnerability_exploitation
+      name: "Exploitation of unpatched vulnerability"
+      description: >
+        Known security vulnerabilities remain unaddressed in production due to the absence
+        of regular independent penetration testing and formal remediation SLAs.
+      likelihood: urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+        - urn:intuitem:risk:threat:appsec:injection_attacks
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:untested_application_security
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:regular_penetration_testing
+
+  # ========================================================================
+  # RISK MATRIX - 4x4 probability/impact matrix with risk levels
+  # ========================================================================
+  risk_matrix:
+    - urn: urn:intuitem:risk:matrix:appsec
+      ref_id: risk-matrix-4x4-appsec
+      name: Application Security Risk Matrix
+      description: 4x4 Risk Matrix for Application Security Assessment
+      # Probability levels (4 levels: unlikely to very likely)
+      probability:
+      - id: 0
+        abbreviation: '1'
+        name: 1 - unlikely
+        description: The likelihood of the risk scenario is very low
+      - id: 1
+        abbreviation: '2'
+        name: 2 - rather unlikely
+        description: The likelihood of the risk scenario is low
+      - id: 2
+        abbreviation: '3'
+        name: 3 - likely
+        description: The likelihood of the risk scenario is significant
+      - id: 3
+        abbreviation: '4'
+        name: 4 - very likely
+        description: The likelihood of the risk scenario is high
+      # Impact levels (4 levels: minor to critical)
+      impact:
+      - id: 0
+        abbreviation: '1'
+        name: 1 - minor
+        description: Negligible consequences for the organization
+      - id: 1
+        abbreviation: '2'
+        name: 2 - significant
+        description: Significant but limited consequences for the organization
+      - id: 2
+        abbreviation: '3'
+        name: 3 - serious
+        description: Substantial consequences for the organization
+      - id: 3
+        abbreviation: '4'
+        name: 4 - critical
+        description: Disastrous consequences for the organization
+      # Risk levels (5 levels: very low to very high)
+      risk:
+      - id: 0
+        abbreviation: '1'
+        name: 1 - very low
+        description: very low - acceptable risk
+        hexcolor: '#D3FF4E'
+      - id: 1
+        abbreviation: '2'
+        name: 2 - low
+        description: low - acceptable risk
+        hexcolor: '#02A45A'
+      - id: 2
+        abbreviation: '3'
+        name: 3 - medium
+        description: medium - tolerable risk
+        hexcolor: '#FFA600'
+      - id: 3
+        abbreviation: '4'
+        name: 4 - high
+        description: high - unacceptable risk
+        hexcolor: '#FF1A00'
+      - id: 4
+        abbreviation: '5'
+        name: 5 - very high
+        description: very high - unacceptable risk
+        hexcolor: '#C00000'
+      # Risk calculation grid: maps probability x impact to risk level
+      grid:
+      - - 0
+        - 0
+        - 1
+        - 1
+      - - 0
+        - 1
+        - 1
+        - 2
+      - - 1
+        - 1
+        - 2
+        - 3
+      - - 1
+        - 2
+        - 3
+        - 4
+
+  # ========================================================================
+  # THREATS - Application security threat agents and events
+  # ========================================================================
+  threats:
+    - urn: urn:intuitem:risk:threat:appsec:data_exfiltration
+      ref_id: data_exfiltration
+      name: "Data exfiltration"
+      description: "Unauthorized extraction or transfer of sensitive data to an untrusted external entity."
+    - urn: urn:intuitem:risk:threat:appsec:data_loss
+      ref_id: data_loss
+      name: "Data loss"
+      description: "Accidental or malicious destruction, corruption, or irreversible loss of data."
+    - urn: urn:intuitem:risk:threat:appsec:unauthorized_access
+      ref_id: unauthorized_access
+      name: "Unauthorized access"
+      description: "Access to sensitive information, functionality, or administrative commands by an unprivileged entity."
+    - urn: urn:intuitem:risk:threat:appsec:injection_attacks
+      ref_id: injection_attacks
+      name: "Injection attacks"
+      description: "Exploitation of interpreter flaws via untrusted input (SQL injection, OS command injection, XSS)."
+    - urn: urn:intuitem:risk:threat:appsec:account_takeover
+      ref_id: account_takeover
+      name: "Account takeover"
+      description: "Hijacking legitimate user or privileged accounts via credential stuffing, brute force, or session compromise."
+    - urn: urn:intuitem:risk:threat:appsec:supply_chain_tampering
+      ref_id: supply_chain_tampering
+      name: "Software supply chain tampering"
+      description: "Malicious manipulation or exploitation of open-source packages, libraries, or build pipelines."
+    - urn: urn:intuitem:risk:threat:appsec:secrets_compromise
+      ref_id: secrets_compromise
+      name: "Secrets compromise"
+      description: "Unauthorized discovery or theft of cryptographic keys, API tokens, database passwords, or credentials."
+    - urn: urn:intuitem:risk:threat:appsec:service_disruption
+      ref_id: service_disruption
+      name: "Service disruption"
+      description: "Denial of service, volumetric flooding, resource exhaustion, or failure degrading system availability."
+    - urn: urn:intuitem:risk:threat:appsec:undetected_intrusion
+      ref_id: undetected_intrusion
+      name: "Undetected intrusion"
+      description: "Prolonged adversarial access persisting undetected due to missing or inadequate security telemetry."
+
+  # ========================================================================
+  # VULNERABILITIES - Weaknesses that can be exploited by threats
+  # ========================================================================
+  vulnerabilities:
+    - urn: urn:intuitem:risk:vulnerability:appsec:lack_of_data_classification
+      ref_id: lack_of_data_classification
+      name: "Lack of data classification"
+      description: "Absence of a defined data classification level for the application assets."
+      associated_controls:
+        - urn:intuitem:risk:control:appsec:identify_data_classification
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:identify_data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+
+    - urn: urn:intuitem:risk:vulnerability:appsec:lack_of_encryption
+      ref_id: lack_of_encryption
+      name: "Lack of encryption"
+      description: "Data stored or transmitted without robust cryptographic protection."
+      associated_controls:
+        - urn:intuitem:risk:control:appsec:encrypt_data_in_transit
+        - urn:intuitem:risk:control:appsec:encrypt_data_at_rest
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:encrypt_data_in_transit
+        - urn:intuitem:risk:control:appsec:encrypt_data_at_rest
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+
+    - urn: urn:intuitem:risk:vulnerability:appsec:unclear_accountability
+      ref_id: unclear_accountability
+      name: "Unclear responsibilities"
+      description: "Absence of identified, accountable points of contact for application, IT, and data governance."
+      associated_controls:
+        - urn:intuitem:risk:control:appsec:stakeholder_designation
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:stakeholder_designation
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_loss
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+
+    - urn: urn:intuitem:risk:vulnerability:appsec:unprotected_non_prod
+      ref_id: unprotected_non_prod
+      name: "Vulnerable non-production environment"
+      description: "Use of production data in development or test environments without sanitization or masking."
+      associated_controls:
+        - urn:intuitem:risk:control:appsec:protect_prod_data_in_non_prod
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:protect_prod_data_in_non_prod
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+
+    - urn: urn:intuitem:risk:vulnerability:appsec:contractual_gap
+      ref_id: contractual_gap
+      name: "Contractual gap"
+      description: "Absence of binding cybersecurity, audit, or data protection clauses with external partners or SaaS providers."
+      associated_controls:
+        - urn:intuitem:risk:control:appsec:saas_contract
+        - urn:intuitem:risk:control:appsec:information_exchange_contract
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:saas_contract
+        - urn:intuitem:risk:control:appsec:information_exchange_contract
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+
+    - urn: urn:intuitem:risk:vulnerability:appsec:uncontrolled_data_retention
+      ref_id: uncontrolled_data_retention
+      name: "Uncontrolled data retention"
+      description: "Absence of compliant data destruction and purging procedures leading to excessive retention of sensitive data."
+      associated_controls:
+        - urn:intuitem:risk:control:appsec:data_destruction_process
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:data_destruction_process
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+
+    - urn: urn:intuitem:risk:vulnerability:appsec:weak_authentication_controls
+      ref_id: weak_authentication_controls
+      name: "Weak authentication controls"
+      description: "Missing Multi-Factor Authentication (MFA), weak password policies, or insecure session token handling."
+      associated_controls:
+        - urn:intuitem:risk:control:appsec:enforce_mfa_and_strong_auth
+        - urn:intuitem:risk:control:appsec:centralized_identity_sso
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:enforce_mfa_and_strong_auth
+        - urn:intuitem:risk:control:appsec:centralized_identity_sso
+      threats:
+        - urn:intuitem:risk:threat:appsec:account_takeover
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+
+    - urn: urn:intuitem:risk:vulnerability:appsec:broken_authorization_rbac
+      ref_id: broken_authorization_rbac
+      name: "Broken authorization and access control"
+      description: "Flawed authorization enforcement allowing horizontal or vertical privilege escalation and BOLA/IDOR."
+      associated_controls:
+        - urn:intuitem:risk:control:appsec:enforce_least_privilege_rbac
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:enforce_least_privilege_rbac
+      threats:
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+
+    - urn: urn:intuitem:risk:vulnerability:appsec:flawed_input_validation
+      ref_id: flawed_input_validation
+      name: "Flawed input validation and output encoding"
+      description: "Insufficient validation, sanitization, or encoding of user-supplied data enabling injection attacks."
+      associated_controls:
+        - urn:intuitem:risk:control:appsec:secure_input_validation_and_encoding
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:secure_input_validation_and_encoding
+      threats:
+        - urn:intuitem:risk:threat:appsec:injection_attacks
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+
+    - urn: urn:intuitem:risk:vulnerability:appsec:hardcoded_secrets
+      ref_id: hardcoded_secrets
+      name: "Hardcoded credentials and secrets"
+      description: "Presence of API keys, passwords, or tokens in source code repositories, images, or configuration files."
+      associated_controls:
+        - urn:intuitem:risk:control:appsec:centralized_secrets_management
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:centralized_secrets_management
+      threats:
+        - urn:intuitem:risk:threat:appsec:secrets_compromise
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+
+    - urn: urn:intuitem:risk:vulnerability:appsec:vulnerable_dependencies
+      ref_id: vulnerable_dependencies
+      name: "Vulnerable third-party dependencies"
+      description: "Use of outdated open-source libraries or container base images containing known security vulnerabilities."
+      associated_controls:
+        - urn:intuitem:risk:control:appsec:automated_devsecops_testing
+        - urn:intuitem:risk:control:appsec:supply_chain_dependency_management
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:automated_devsecops_testing
+        - urn:intuitem:risk:control:appsec:supply_chain_dependency_management
+      threats:
+        - urn:intuitem:risk:threat:appsec:supply_chain_tampering
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+
+    - urn: urn:intuitem:risk:vulnerability:appsec:insufficient_security_logging
+      ref_id: insufficient_security_logging
+      name: "Insufficient security logging and monitoring"
+      description: "Failure to generate, protect, or monitor audit logs for security-relevant application events."
+      associated_controls:
+        - urn:intuitem:risk:control:appsec:centralized_security_logging
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:centralized_security_logging
+      threats:
+        - urn:intuitem:risk:threat:appsec:undetected_intrusion
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+
+    - urn: urn:intuitem:risk:vulnerability:appsec:inadequate_resilience_backup
+      ref_id: inadequate_resilience_backup
+      name: "Inadequate backup and resilience"
+      description: "Absence of automated encrypted backups and untested disaster recovery procedures."
+      associated_controls:
+        - urn:intuitem:risk:control:appsec:backup_and_disaster_recovery
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:backup_and_disaster_recovery
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_loss
+        - urn:intuitem:risk:threat:appsec:service_disruption
+
+    - urn: urn:intuitem:risk:vulnerability:appsec:unmitigated_api_abuse
+      ref_id: unmitigated_api_abuse
+      name: "Unmitigated API abuse and scraping"
+      description: "API endpoints lacking rate limiting, schema validation, and anti-automation protections."
+      associated_controls:
+        - urn:intuitem:risk:control:appsec:api_security_and_rate_limiting
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:api_security_and_rate_limiting
+      threats:
+        - urn:intuitem:risk:threat:appsec:service_disruption
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+
+    - urn: urn:intuitem:risk:vulnerability:appsec:untested_application_security
+      ref_id: untested_application_security
+      name: "Untested application security and delayed patching"
+      description: "Absence of regular independent penetration testing and failure to remediate vulnerabilities within SLAs."
+      associated_controls:
+        - urn:intuitem:risk:control:appsec:regular_penetration_testing
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:regular_penetration_testing
+      threats:
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+        - urn:intuitem:risk:threat:appsec:injection_attacks
+
+  # ========================================================================
+  # REFERENCE CONTROLS - Mitigation controls and recurring tasks
+  # ========================================================================
+  reference_controls:
+    - urn: urn:intuitem:risk:control:appsec:stakeholder_designation
+      ref_id: stakeholder_designation
+      name: "Designate stakeholders"
+      description: "Formally identify and document business owner, IT owner, and data owner for the application and keep the enterprise repository up to date."
+      annotation: >
+        Stakeholder designation establishes direct governance and operational accountability across business, technology, and data compliance domains.
+      typical_evidence: >
+        - LeanIX application fact sheet or CMDB configuration item record
+        - RACI matrix documenting business, IT, and data owner responsibilities
+        - Formal stakeholder appointment / delegation confirmation
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_loss
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      is_recurrent: true
+      cadence: annually
+      task:
+        name: "Annual Review of Application Stakeholders"
+        description: "Review and re-certify the designated business, IT, and data owners for the application in the enterprise CMDB/inventory."
+        frequency: "YEARLY"
+        interval: 1
+
+    - urn: urn:intuitem:risk:control:appsec:encrypt_data_in_transit
+      ref_id: data_in_transit_encryption
+      name: "Encrypt data in transit"
+      description: "Enforce end-to-end encryption for all data flows in transit across public and private networks using strong cryptographic protocols."
+      annotation: >
+        Requires TLS 1.2+ / TLS 1.3 with forward secrecy cipher suites, HSTS enforcement, and mutual TLS (mTLS) for machine-to-machine service communications.
+      typical_evidence: >
+        - SSL/TLS configuration report (e.g. Qualys SSL Labs report / testssl.sh audit)
+        - Web server / Ingress controller / Load balancer TLS configuration files
+        - API gateway mTLS certificate and policy definitions
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      is_recurrent: true
+      cadence: quarterly
+      task:
+        name: "Quarterly TLS and Cipher Suite Audit"
+        description: "Audit TLS configurations, certificate validity, and cipher suites across endpoints to ensure strict compliance with encryption-in-transit standards."
+        frequency: "MONTHLY"
+        interval: 3
+
+    - urn: urn:intuitem:risk:control:appsec:encrypt_data_at_rest
+      ref_id: data_at_rest_encryption
+      name: "Encrypt data at rest"
+      description: "Implement robust cryptographic protection for all persistent data stores, volumes, databases, and backup archives containing sensitive data."
+      annotation: >
+        Mandates industry-standard symmetric encryption algorithms (AES-256 / AES-GCM) with centralized, segregated key management (KMS / HSM) and automated key rotation.
+      typical_evidence: >
+        - Database Transparent Data Encryption (TDE) configuration
+        - Cloud storage bucket / disk volume KMS encryption policy confirmation
+        - Key management system (KMS) key rotation schedule and access audit logs
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      is_recurrent: true
+      cadence: annually
+      task:
+        name: "Annual Encryption Key Rotation and Storage Audit"
+        description: "Verify automated cryptographic key rotation policies (KMS/HSM) and confirm encryption-at-rest enforcement across all storage volumes and databases."
+        frequency: "YEARLY"
+        interval: 1
+
+    - urn: urn:intuitem:risk:control:appsec:identify_data_classification
+      ref_id: data_classification
+      name: "Identify the data classification level"
+      description: "Identify and record the classification level of the information assets processed, stored, or transmitted by the application."
+      annotation: >
+        Data classification drives proportional security baseline controls and dynamic implementation group activation (Public, Internal, Confidential, Secret).
+      typical_evidence: >
+        - Information asset register / data classification registry entry
+        - Data flow diagram with data sensitivity tagging
+        - Data Protection Impact Assessment (DPIA) or classification sign-off
+      threats:
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      is_recurrent: true
+      cadence: annually
+      task:
+        name: "Annual Data Asset Classification Review"
+        description: "Re-evaluate information assets processed by the application to confirm and update their security classification levels in the asset register."
+        frequency: "YEARLY"
+        interval: 1
+
+    - urn: urn:intuitem:risk:control:appsec:saas_contract
+      ref_id: saas_contract
+      name: "Sign a contract with the SaaS provider with all the adequate clauses"
+      description: "Execute formal SaaS contractual agreements incorporating audit rights, incident reporting, IAM standards, and confidentiality terms."
+      annotation: >
+        Mandates legal, security, and compliance review of third-party SaaS contracts to ensure data protection, breach notification SLAs, and right to audit.
+      typical_evidence: >
+        - Executed SaaS Master Services Agreement (MSA) with Security Exhibit
+        - Signed Data Processing Agreement (DPA) and Non-Disclosure Agreement (NDA)
+        - Third-party audit assurance reports (SOC 2 Type II / ISO 27001 certificate)
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+      is_recurrent: true
+      cadence: annually
+      task:
+        name: "Annual SaaS Provider Contract and Compliance Review"
+        description: "Review SaaS provider contractual agreements, SOC 2/ISO certifications, data processing addenda, and security SLAs."
+        frequency: "YEARLY"
+        interval: 1
+
+    - urn: urn:intuitem:risk:control:appsec:protect_prod_data_in_non_prod
+      ref_id: protect_prod_data_in_non_prod
+      name: "Use hashing, encryption, anonymisation or pseudonymisation of prod data in non-production environment"
+      description: "Sanitize, mask, or pseudonymize production data before replication into non-production environments to prevent unauthorized disclosure."
+      annotation: >
+        Non-production environments must never contain plaintext sensitive data. Automated data masking pipelines must be enforced prior to testing.
+      typical_evidence: >
+        - Data masking / pseudonymization procedure and tool configuration
+        - Non-production database content audit verifying absence of real PII
+        - Test data management policy and test environment data purge logs
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      is_recurrent: true
+      cadence: quarterly
+      task:
+        name: "Quarterly Non-Production Data Sanitization Audit"
+        description: "Verify that test and staging environments undergo data masking, pseudonymization, or synthetic data substitution, with no residual raw production data."
+        frequency: "MONTHLY"
+        interval: 3
+
+    - urn: urn:intuitem:risk:control:appsec:information_exchange_contract
+      ref_id: information_exchange_contract
+      name: "Sign a contract regarding the exchange of information with all the adequate clauses"
+      description: "Execute formal information exchange contracts with appropriate security, confidentiality, and data handling clauses for external transfers."
+      annotation: >
+        Governs external data transfers through legally binding agreements detailing authorized scope, encryption requirements, and return/destruction mandates.
+      typical_evidence: >
+        - Signed Data Transfer Agreement (DTA) / Cross-border transfer agreement
+        - Executed bilateral Non-Disclosure Agreement (NDA)
+        - Data exchange register and technical interface specification
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+      is_recurrent: true
+      cadence: annually
+      task:
+        name: "Annual Data Transfer and Information Exchange Review"
+        description: "Inspect external data transfer agreements, standard contractual clauses (SCCs), and NDAs to ensure adequate data protection safeguards remain active."
+        frequency: "YEARLY"
+        interval: 1
+
+    - urn: urn:intuitem:risk:control:appsec:data_destruction_process
+      ref_id: data_destruction_process
+      name: "Write and implement a compliant data destruction process"
+      description: "Establish and operationalize a verifiable data destruction process including defined roles, approved methods, and reporting upon completion."
+      annotation: >
+        Ensures obsolete or expired information is irrecoverably destroyed according to recognized standards (e.g. NIST SP 800-88) upon retention expiry.
+      typical_evidence: >
+        - Standard Operating Procedure (SOP) for data retention and disposal
+        - Scheduled automated database purge scripts and deletion logs
+        - Certificate of Destruction or cryptographic erasure verification report
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      is_recurrent: true
+      cadence: biannually
+      task:
+        name: "Biannual Data Retention and Destruction Verification"
+        description: "Execute scheduled data purging and verify cryptographic erasure or media destruction reports in accordance with the data retention policy."
+        frequency: "MONTHLY"
+        interval: 6
+
+    - urn: urn:intuitem:risk:control:appsec:enforce_mfa_and_strong_auth
+      ref_id: enforce_mfa_and_strong_auth
+      name: "Enforce Multi-Factor Authentication (MFA) and strong authentication"
+      description: "Enforce MFA for all administrative and user access, strong password policies, and brute-force protection."
+      annotation: >
+        Mandates phishing-resistant MFA (FIDO2/WebAuthn, TOTP) for administrative consoles, credential complexity standards, and account lockout throttling.
+      typical_evidence: >
+        - IAM identity provider MFA enforcement policy screenshot or export
+        - Password policy configuration in directory service (min length >= 12, complexity, lockout)
+        - Brute-force protection / rate-limiting configuration on login endpoints
+      threats:
+        - urn:intuitem:risk:threat:appsec:account_takeover
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      is_recurrent: true
+      cadence: biannually
+      task:
+        name: "Biannual Authentication Policy and MFA Audit"
+        description: "Audit MFA enforcement rates across administrative and user accounts and verify brute-force threshold controls."
+        frequency: "MONTHLY"
+        interval: 6
+
+    - urn: urn:intuitem:risk:control:appsec:centralized_identity_sso
+      ref_id: centralized_identity_sso
+      name: "Integrate centralized Single Sign-On (SSO)"
+      description: "Delegate application authentication to a corporate Identity Provider using standard federated protocols (SAML 2.0 / OpenID Connect)."
+      annotation: >
+        Centralizes user authentication, offboarding, and conditional access policies through corporate enterprise IdP (e.g., Entra ID, Okta, Ping Identity).
+      typical_evidence: >
+        - SAML 2.0 / OIDC federation configuration in application and IdP
+        - Automated user provisioning (SCIM) and deprovisioning logs
+      threats:
+        - urn:intuitem:risk:threat:appsec:account_takeover
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      is_recurrent: true
+      cadence: annually
+      task:
+        name: "Annual SSO and Federation Review"
+        description: "Review SAML/OIDC federation certificates, claim mappings, and deprovisioning workflows with the corporate IdP."
+        frequency: "YEARLY"
+        interval: 1
+
+    - urn: urn:intuitem:risk:control:appsec:enforce_least_privilege_rbac
+      ref_id: enforce_least_privilege_rbac
+      name: "Enforce least privilege and Role-Based Access Control (RBAC)"
+      description: "Implement granular RBAC/ABAC enforcing least privilege across all application functions, data objects, and APIs, with periodic recertification."
+      annotation: >
+        Prevents Broken Object Level Authorization (BOLA/IDOR) and unauthorized privilege escalation. Every request must validate authorization at the object level.
+      typical_evidence: >
+        - RBAC permission matrix documenting roles and authorized operations
+        - Code audit report verifying server-side object-level authorization checks
+        - Periodic user access review (UAR) sign-off records
+      threats:
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+      is_recurrent: true
+      cadence: biannually
+      task:
+        name: "Biannual Access Rights and Privilege Recertification"
+        description: "Perform comprehensive recertification of user roles, privileged permissions, and service accounts."
+        frequency: "MONTHLY"
+        interval: 6
+
+    - urn: urn:intuitem:risk:control:appsec:secure_input_validation_and_encoding
+      ref_id: secure_input_validation_and_encoding
+      name: "Implement server-side input validation and context-aware output encoding"
+      description: "Validate all untrusted input against strict schemas, use parameterized queries / ORM, and enforce context-aware output encoding to prevent injection attacks."
+      annotation: >
+        Blocks SQL injection, command injection, NoSQL injection, and Cross-Site Scripting (XSS). Combines server-side validation with Content Security Policy (CSP).
+      typical_evidence: >
+        - Static code analysis (SAST) rule configuration demonstrating parameterized query enforcement
+        - Input validation filter middleware specifications and schema validators
+        - Content Security Policy (CSP) and HTTP security response headers verification report
+      threats:
+        - urn:intuitem:risk:threat:appsec:injection_attacks
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      is_recurrent: true
+      cadence: quarterly
+      task:
+        name: "Quarterly Input Validation and Security Headers Review"
+        description: "Verify that all input validation schemas, ORM queries, and HTTP security headers (CSP, HSTS) conform to baseline standards."
+        frequency: "MONTHLY"
+        interval: 3
+
+    - urn: urn:intuitem:risk:control:appsec:centralized_secrets_management
+      ref_id: centralized_secrets_management
+      name: "Enforce centralized secrets management"
+      description: "Store all API keys, database credentials, and cryptographic certificates in dedicated secrets vaults, preventing hardcoding in repositories."
+      annotation: >
+        Prohibits credentials in git repositories, environment files, or container images. Mandates automated secret injection via HashiCorp Vault, AWS Secrets Manager, or Azure Key Vault.
+      typical_evidence: >
+        - Dedicated secrets manager vault configuration and access policy
+        - Pre-commit git hook and CI/CD secret scanning tool configuration (e.g., Gitleaks, TruffleHog)
+        - Secret rotation schedule and vault audit logs
+      threats:
+        - urn:intuitem:risk:threat:appsec:secrets_compromise
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      is_recurrent: true
+      cadence: quarterly
+      task:
+        name: "Quarterly Secrets Vault and Repo Scan Audit"
+        description: "Scan all source code repositories for accidental secret commits and audit secrets vault access policies and rotation status."
+        frequency: "MONTHLY"
+        interval: 3
+
+    - urn: urn:intuitem:risk:control:appsec:automated_devsecops_testing
+      ref_id: automated_devsecops_testing
+      name: "Automate SAST and DAST security testing in CI/CD"
+      description: "Integrate Static Application Security Testing (SAST) and Dynamic Application Security Testing (DAST) into automated deployment pipelines with quality gates."
+      annotation: >
+        Enforces automated security checks at every pull request and build. Pipeline fails on discovery of Critical or High security findings.
+      typical_evidence: >
+        - CI/CD pipeline definition file (.gitlab-ci.yml, Jenkinsfile, GitHub Actions workflow) with SAST/DAST steps
+        - Automated quality gate rules blocking merges on High/Critical vulnerabilities
+        - Historical SAST/DAST pipeline execution logs and scan reports
+      threats:
+        - urn:intuitem:risk:threat:appsec:injection_attacks
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      is_recurrent: true
+      cadence: monthly
+      task:
+        name: "Monthly CI/CD Security Pipeline and Quality Gate Audit"
+        description: "Review SAST and DAST tool integration, rule update status, and pipeline quality gate enforcement logs."
+        frequency: "MONTHLY"
+        interval: 1
+
+    - urn: urn:intuitem:risk:control:appsec:supply_chain_dependency_management
+      ref_id: supply_chain_dependency_management
+      name: "Manage software supply chain and third-party dependencies"
+      description: "Track dependencies via Software Bill of Materials (SBOM) and run continuous Software Composition Analysis (SCA) to detect known CVEs."
+      annotation: >
+        Mitigates open-source supply chain attacks. Enforces automated dependency vulnerability alerts (Dependabot, Snyk, Grype) and patch management.
+      typical_evidence: >
+        - Generated CycloneDX or SPDX Software Bill of Materials (SBOM) artifact
+        - SCA scanner configuration and dashboard showing zero unmanaged High/Critical CVEs
+        - Dependency update policy and vulnerability patch lead time metrics
+      threats:
+        - urn:intuitem:risk:threat:appsec:supply_chain_tampering
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      is_recurrent: true
+      cadence: monthly
+      task:
+        name: "Monthly Dependency Vulnerability and SBOM Review"
+        description: "Inspect SCA scan results, open CVE remediation backlogs, and generated SBOMs for all production releases."
+        frequency: "MONTHLY"
+        interval: 1
+
+    - urn: urn:intuitem:risk:control:appsec:api_security_and_rate_limiting
+      ref_id: api_security_and_rate_limiting
+      name: "Secure API endpoints with rate limiting and schema validation"
+      description: "Deploy an API gateway enforcing rate limiting, traffic throttling, OpenAPI schema validation, and token authentication on all endpoints."
+      annotation: >
+        Protects APIs against credential stuffing, volumetric denial of service, and parameter tampering.
+      typical_evidence: >
+        - API gateway configuration (Kong, Apigee, AWS API Gateway, Envoy) showing rate limiting rules
+        - OpenAPI / JSON Schema definition and runtime schema validation policy
+        - WAF / bot protection rule configuration
+      threats:
+        - urn:intuitem:risk:threat:appsec:service_disruption
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+      is_recurrent: true
+      cadence: quarterly
+      task:
+        name: "Quarterly API Gateway Policy and Rate Limiting Audit"
+        description: "Review API rate limits, schema validation rules, and traffic anomaly logs across all public and internal gateways."
+        frequency: "MONTHLY"
+        interval: 3
+
+    - urn: urn:intuitem:risk:control:appsec:centralized_security_logging
+      ref_id: centralized_security_logging
+      name: "Implement centralized security logging and SIEM alerting"
+      description: "Log all authentication, authorization, and administrative events; sanitize sensitive fields; and stream logs to a centralized SIEM for real-time detection."
+      annotation: >
+        Logs must be tamper-resistant, synchronized via NTP, and preserved for at least 12 months. PII, passwords, and tokens must be masked prior to ingestion.
+      typical_evidence: >
+        - Application logging framework configuration showing log levels and security events
+        - SIEM data ingestion pipeline confirmation and active alert rules
+        - Log redaction filter specification proving absence of cleartext PII or credentials
+      threats:
+        - urn:intuitem:risk:threat:appsec:undetected_intrusion
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+      is_recurrent: true
+      cadence: quarterly
+      task:
+        name: "Quarterly Security Logging and SIEM Alerting Audit"
+        description: "Verify continuous log streaming to the SIEM, test alert triggers, and audit log data sanitization compliance."
+        frequency: "MONTHLY"
+        interval: 3
+
+    - urn: urn:intuitem:risk:control:appsec:regular_penetration_testing
+      ref_id: regular_penetration_testing
+      name: "Conduct regular penetration testing and vulnerability management"
+      description: "Perform periodic penetration tests by certified independent testers, and enforce strict remediation SLAs based on severity."
+      annotation: >
+        Tests must cover web, API, and cloud infrastructure components. Critical findings must be remediated within 7 days, High within 30 days.
+      typical_evidence: >
+        - Executive summary and technical report of recent independent penetration test
+        - Vulnerability remediation tracking ticket list showing SLA compliance
+        - Retesting confirmation report verifying closure of discovered vulnerabilities
+      threats:
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+        - urn:intuitem:risk:threat:appsec:injection_attacks
+      is_recurrent: true
+      cadence: annually
+      task:
+        name: "Annual Application Penetration Test and Remediation Audit"
+        description: "Execute third-party penetration test, review findings with application owners, and verify timely remediation within SLA."
+        frequency: "YEARLY"
+        interval: 1
+
+    - urn: urn:intuitem:risk:control:appsec:backup_and_disaster_recovery
+      ref_id: backup_and_disaster_recovery
+      name: "Implement automated backups and disaster recovery testing"
+      description: "Maintain automated encrypted backups and test restoration drills against documented RTO and RPO targets."
+      annotation: >
+        Backups must be immutable or stored with air-gapped / cross-account replication to withstand ransomware. Regular restoration drills validate operational recovery.
+      typical_evidence: >
+        - Backup policy and automated backup schedule configuration
+        - Annual disaster recovery drill report documenting measured RTO and RPO
+        - Backup encryption key management configuration
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_loss
+        - urn:intuitem:risk:threat:appsec:service_disruption
+      is_recurrent: true
+      cadence: annually
+      task:
+        name: "Annual Backup Restoration and Disaster Recovery Drill"
+        description: "Execute simulated database and application restoration drill, verify data consistency, and certify RTO/RPO metrics."
+        frequency: "YEARLY"
+        interval: 1
+
+    - urn: urn:intuitem:risk:control:appsec:threat_modeling_and_secure_design
+      ref_id: threat_modeling_and_secure_design
+      name: "Conduct formal threat modeling and secure architecture review"
+      description: "Perform structured threat modeling (e.g. STRIDE) and security architecture reviews during application design and prior to major releases."
+      annotation: >
+        Identifies design flaws early in the development lifecycle. Documents trust boundaries, data flows, and countermeasures in the architecture design.
+      typical_evidence: >
+        - Threat model diagram and analysis report (e.g., Microsoft Threat Modeling Tool, OWASP Threat Dragon)
+        - Security architecture review sign-off document
+        - Traceability matrix linking identified threats to implemented countermeasures
+      threats:
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+      is_recurrent: true
+      cadence: annually
+      task:
+        name: "Annual Security Architecture and Threat Model Review"
+        description: "Review and update the application threat model and architecture documentation to account for recent feature additions and topology changes."
+        frequency: "YEARLY"
+        interval: 1
+
+  # ========================================================================
+  # FRAMEWORK - Assessment framework with chapters, requirements & questions
+  # ========================================================================
+  framework:
+    urn: urn:intuitem:risk:framework:appsec
+    ref_id: "appsec"
+    name: "Application Security Assessment Framework (AppSec)"
+    description: "Comprehensive application security assessment framework based on Multi-level DPP enriched with OWASP ASVS and DevSecOps controls"
+
+    # Implementation groups define assessment tracks/profiles
+    implementation_groups_definition:
+      - urn: urn:intuitem:risk:ig:appsec:info
+        name: "Application information & Governance"
+        ref_id: "info"
+        description: "Basic profiling and governance context of the application"
+        default_selected: true
+      - urn: urn:intuitem:risk:ig:appsec:baseline
+        name: "Application Security Baseline"
+        ref_id: "baseline"
+        description: "Core technical application security baseline applicable to all applications"
+        default_selected: true
+      - urn: urn:intuitem:risk:ig:appsec:confidential_app
+        name: "Confidential Application Track"
+        ref_id: "confidential_app"
+        description: "Requirements for applications handling Confidential data"
+      - urn: urn:intuitem:risk:ig:appsec:secret_app
+        name: "Secret Application Track"
+        ref_id: "secret_app"
+        description: "Requirements for applications handling Secret data"
+      - urn: urn:intuitem:risk:ig:appsec:internet_facing
+        name: "Internet-Facing Application Track"
+        ref_id: "internet_facing"
+        description: "Requirements for applications exposed to the Internet"
+      - urn: urn:intuitem:risk:ig:appsec:saas_app
+        name: "SaaS Application Track"
+        ref_id: "saas_app"
+        description: "Requirements for third-party SaaS applications"
+
+    # ====================================================================
+    # REQUIREMENT NODES - Hierarchical assessment structure
+    # ====================================================================
+    requirement_nodes:
+      # === INTRODUCTORY SPLASH SCREEN ===
+      - urn: urn:intuitem:risk:req_node:appsec:instructions_splash
+        assessable: false
+        display_mode: splash
+        depth: 1
+        ref_id: instructions_splash
+        name: "Instructions & Guidance"
+        description: >
+          Welcome to the Comprehensive Application Security Assessment (AppSec).
+
+          This framework evaluates the security posture, architecture robustness, cryptographic defenses,
+          secure software development lifecycle (DevSecOps), and operational resilience of your application.
+
+          How to complete this assessment:
+          1. Answer accurately: Select the choices that best reflect the current architecture and operational state of your application.
+          2. Dynamic tracks: Questions in Chapter 1 (Data Classification, Hosting Model, and Network Exposure) dynamically trigger advanced tracks:
+             - Confidential / Secret Data Protection (Encryption in Transit & Rest, Non-Prod Data Masking, Compliant Destruction)
+             - Internet-Facing Controls (API Rate Limiting, CSP, External Pentesting)
+             - SaaS Contractual Governance (Security Exhibits, Audit Rights, Incident Reporting SLAs)
+          3. Evidence: For assessable requirements, ensure supporting documentation (architecture diagrams, CI/CD pipelines, KMS configs, pentest reports) can be provided upon audit review.
+          4. Progress & Submission: You can complete this questionnaire progressively. Once submitted, CISO Assistant will automatically calculate likelihood and impact across all risk scenarios.
+        annotation: >
+          Introductory splash screen explaining questionnaire navigation, answering guidelines, dynamic section triggering based on data classification and hosting model, and audit evidence expectations.
+        implementation_groups: ["info"]
+
+      # === CHAPTER 1: APPLICATION INFORMATION & GOVERNANCE ===
+      - urn: urn:intuitem:risk:req_node:appsec:info
+        assessable: false
+        depth: 1
+        ref_id: info
+        name: "Application Information & Governance"
+        description: "Basic application profiling, ownership, hosting, exposure, and architecture context."
+        annotation: >
+          High-level application profiling and organizational governance context. Captures essential metadata to determine ownership, data sensitivity, and applicable compliance baseline tracks.
+        implementation_groups: ["info"]
+
+      # Requirement: Identify stakeholders for the application
+      - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:info
+        ref_id: stakeholder_identification
+        name: Stakeholder identification
+        description: "Stakeholders have been identified for the application"
+        annotation: >
+          Accountability and ownership governance. Ensures that every application deployed across the organization has clearly identified, registered, and active business, IT, and data governance points of contact.
+        typical_evidence: >
+          - Enterprise Architecture repository extract (e.g. LeanIX application fact sheet)
+          - CMDB / Service Catalog configuration item entry with assigned technical & business owners
+          - Data Governance RACI matrix or formal appointment documentation
+        vulnerabilities: ["urn:intuitem:risk:vulnerability:appsec:unclear_accountability"]
+        implementation_groups: ["info"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:stakeholder_designation
+        questions:
+          urn:intuitem:risk:req_node:appsec:stakeholder_identification:question:1:
+            type: unique_choice
+            text: "Is there a designated business contact?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification:question:1:choice:1
+                value: "Yes"
+                add_score: 25
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification:question:1:choice:2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:stakeholder_identification:question:2:
+            type: unique_choice
+            text: "Is there a designated IT contact?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification:question:2:choice:1
+                value: "Yes"
+                add_score: 25
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification:question:2:choice:2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:stakeholder_identification:question:3:
+            type: unique_choice
+            text: "Is there a designated data owner?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification:question:3:choice:1
+                value: "Yes"
+                add_score: 25
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification:question:3:choice:2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:stakeholder_identification:question:4:          
+            type: unique_choice
+            text: "Is the information about stakeholders updated in LeanIX / CMDB?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification:question:4:choice:1
+                value: "Yes"
+                add_score: 25
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification:question:4:choice:2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # Requirement: Classify data handled by application
+      - urn: urn:intuitem:risk:req_node:appsec:data_classification
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:info
+        ref_id: data_classification
+        name: Data classification
+        description: "Classify data handled by the application according to organizational policy."
+        annotation: >
+          Data categorization according to the enterprise information security classification policy:
+          - Public: Information intended for public distribution with zero confidentiality impact.
+          - Internal: Operational data for internal use only; disclosure would cause minor organizational friction.
+          - Confidential: Sensitive business, customer, or employee data requiring restricted access controls and encryption.
+          - Secret: Highly sensitive intellectual property, cryptographic keys, or critical strategic assets requiring stringent isolation.
+        typical_evidence: >
+          - Data classification assessment form or registry
+          - Information asset register entry
+          - Data flow diagram identifying sensitivity tags on data stores and APIs
+        reference_controls: ["urn:intuitem:risk:control:appsec:identify_data_classification"]
+        vulnerabilities: ["urn:intuitem:risk:vulnerability:appsec:lack_of_data_classification"]
+        implementation_groups: ["info"]
+        questions:
+          urn:intuitem:risk:req_node:appsec:data_classification:q1:
+            type: unique_choice
+            text: "What is the maximum classification level handled?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:data_classification:q1:c1
+                value: "Public"                
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:data_classification:q1:c2
+                value: "Internal"            
+                color: "#fd7e14"
+              - urn: urn:intuitem:risk:req_node:appsec:data_classification:q1:c3
+                value: "Confidential"
+                select_implementation_groups: ["confidential_app"]
+                color: "#fd7e14"
+              - urn: urn:intuitem:risk:req_node:appsec:data_classification:q1:c4
+                value: "Secret"
+                select_implementation_groups: ["secret_app", "confidential_app"]
+                color: "#dc3545"
+
+      # Requirement: Determine hosting model
+      - urn: urn:intuitem:risk:req_node:appsec:hosting
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:info
+        ref_id: hosting
+        name: Application Hosting Model
+        description: "Determine whether the application is hosted in-house or outsourced as a SaaS solution."
+        annotation: >
+          Infrastructure hosting architecture classification:
+          - In-house: On-premises data centers, private cloud, or internally managed infrastructure.
+          - SaaS: Third-party Software-as-a-Service platforms where infrastructure and application management are outsourced to an external cloud vendor.
+        typical_evidence: >
+          - Architecture design document (ADD) / System topology diagram
+          - Cloud hosting provider procurement record or contract
+        implementation_groups: ["info"]
+        questions:
+          urn:intuitem:risk:req_node:appsec:hosting:q1:
+            type: unique_choice
+            text: "What is the hosting model?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:hosting:q1:c1
+                value: "In-house"
+                color: "#17a2b8"
+              - urn: urn:intuitem:risk:req_node:appsec:hosting:q1:c2
+                value: "SaaS"
+                select_implementation_groups: ["saas_app"]
+                color: "#17a2b8"
+
+      # Requirement: Determine network exposure
+      - urn: urn:intuitem:risk:req_node:appsec:network_exposure
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:info
+        ref_id: network_exposure
+        name: Application Network Exposure
+        description: "Determine whether the application is accessible from the public Internet or restricted to private networks."
+        annotation: >
+          Network accessibility tier:
+          - Internal / Restricted: Accessible exclusively from internal corporate networks or via VPN with zero public Internet reachability.
+          - Internet-facing: Accessible directly over the public Internet (customer portals, public web apps, mobile backends). Triggers external security controls.
+        typical_evidence: >
+          - Network zoning diagram showing DMZ, perimeter firewalls, and reverse proxies
+          - DNS configuration and IP address allocation records
+        implementation_groups: ["info"]
+        questions:
+          urn:intuitem:risk:req_node:appsec:network_exposure:q1:
+            type: unique_choice
+            text: "What is the network exposure of the application?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:network_exposure:q1:c1
+                value: "Internal / Restricted Network only"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:network_exposure:q1:c2
+                value: "Internet-facing (Public Web / Mobile API)"
+                add_score: 50
+                compute_result: true
+                select_implementation_groups: ["internet_facing"]
+                color: "#fd7e14"
+
+      # Requirement: Architecture review & Threat Modeling
+      - urn: urn:intuitem:risk:req_node:appsec:architecture_and_threat_modeling
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:info
+        ref_id: architecture_and_threat_modeling
+        name: Architecture & Threat Modeling
+        description: "Conduct formal threat modeling and security architecture reviews during application design."
+        annotation: >
+          Ensures that security architecture and trust boundaries are formally evaluated using methodologies like STRIDE or PASTA.
+        typical_evidence: >
+          - Threat model report or architectural security review sign-off
+          - Data flow diagram (DFD) with documented trust boundaries
+        implementation_groups: ["info"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:threat_modeling_and_secure_design
+        questions:
+          urn:intuitem:risk:req_node:appsec:architecture_and_threat_modeling:q1:
+            type: unique_choice
+            text: "Has a formal threat model (e.g. STRIDE) or security architecture review been conducted for this application?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:architecture_and_threat_modeling:q1:c1
+                value: "Yes"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:architecture_and_threat_modeling:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # === CHAPTER 2: IDENTITY, AUTHENTICATION & ACCESS CONTROL ===
+      - urn: urn:intuitem:risk:req_node:appsec:iam_chapter
+        assessable: false
+        depth: 1
+        ref_id: iam_chapter
+        name: "Identity, Authentication & Access Control"
+        description: "Enforce strong authentication, Multi-Factor Authentication (MFA), federated SSO, and granular authorization controls."
+        annotation: >
+          Comprehensive IAM controls aligned with OWASP ASVS V2 (Authentication) and V4 (Access Control).
+        implementation_groups: ["baseline"]
+
+      # Requirement: Multi-factor authentication & password policy
+      - urn: urn:intuitem:risk:req_node:appsec:authentication_and_mfa
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:iam_chapter
+        ref_id: authentication_and_mfa
+        name: Multi-Factor Authentication & Credential Security
+        description: "Enforce Multi-Factor Authentication (MFA) for privileged access and implement strong credential hygiene."
+        annotation: >
+          Mandates MFA across all administrative and sensitive interfaces, along with brute-force rate-limiting and credential complexity rules.
+        typical_evidence: >
+          - IAM identity provider policy enforcing MFA for admins
+          - Brute-force lockout and rate-limiting configuration
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:weak_authentication_controls
+        implementation_groups: ["baseline"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:enforce_mfa_and_strong_auth
+        questions:
+          urn:intuitem:risk:req_node:appsec:authentication_and_mfa:q1:
+            type: unique_choice
+            text: "Is Multi-Factor Authentication (MFA) enforced for all administrative and privileged access?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:authentication_and_mfa:q1:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:authentication_and_mfa:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:authentication_and_mfa:q2:
+            type: unique_choice
+            text: "Are strong password policies and brute-force lockout protections implemented?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:authentication_and_mfa:q2:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:authentication_and_mfa:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # Requirement: Single Sign-On & Federation
+      - urn: urn:intuitem:risk:req_node:appsec:federation_and_sso
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:iam_chapter
+        ref_id: federation_and_sso
+        name: Centralized Identity & Single Sign-On (SSO)
+        description: "Integrate application authentication with corporate enterprise Identity Provider via SAML 2.0 or OIDC."
+        annotation: >
+          Avoids fragmented local user credentials and ensures immediate revocation upon employee offboarding.
+        typical_evidence: >
+          - Enterprise IdP federation metadata / configuration document
+          - SCIM user provisioning / deprovisioning audit log
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:weak_authentication_controls
+        implementation_groups: ["baseline"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:centralized_identity_sso
+        questions:
+          urn:intuitem:risk:req_node:appsec:federation_and_sso:q1:
+            type: unique_choice
+            text: "Is user authentication delegated to a centralized enterprise Identity Provider (SSO / SAML 2.0 / OIDC)?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:federation_and_sso:q1:c1
+                value: "Yes"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:federation_and_sso:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # Requirement: Authorization, Least Privilege & RBAC
+      - urn: urn:intuitem:risk:req_node:appsec:access_control_and_rbac
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:iam_chapter
+        ref_id: access_control_and_rbac
+        name: Authorization, Least Privilege & RBAC
+        description: "Implement Role-Based Access Control (RBAC) enforcing least privilege and preventing privilege escalation."
+        annotation: >
+          Enforces server-side object-level and function-level access control on every request (preventing BOLA, IDOR, and privilege escalation).
+        typical_evidence: >
+          - RBAC matrix detailing roles and permissions
+          - Annual User Access Review (UAR) recertification sign-offs
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:broken_authorization_rbac
+        implementation_groups: ["baseline"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:enforce_least_privilege_rbac
+        questions:
+          urn:intuitem:risk:req_node:appsec:access_control_and_rbac:q1:
+            type: unique_choice
+            text: "Is access controlled via granular roles (RBAC/ABAC) enforcing least privilege across all business functions and APIs?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:access_control_and_rbac:q1:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:access_control_and_rbac:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:access_control_and_rbac:q2:
+            type: unique_choice
+            text: "Are access permissions reviewed and recertified on a periodic basis (at least biannually)?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:access_control_and_rbac:q2:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:access_control_and_rbac:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # Requirement: Session management
+      - urn: urn:intuitem:risk:req_node:appsec:session_management
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:iam_chapter
+        ref_id: session_management
+        name: Secure Session Management
+        description: "Enforce secure session generation, timeouts, secure cookie flags, and token invalidation on logout."
+        annotation: >
+          Guards against session hijacking, fixation, and CSRF attacks by enforcing HttpOnly, Secure, SameSite flags, and inactivity timeouts.
+        typical_evidence: >
+          - Web application session cookie configuration audit
+          - Automated session timeout configuration specification
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:weak_authentication_controls
+        implementation_groups: ["baseline"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:enforce_mfa_and_strong_auth
+        questions:
+          urn:intuitem:risk:req_node:appsec:session_management:q1:
+            type: unique_choice
+            text: "Are session tokens securely generated, transmitted with secure cookie flags (HttpOnly, Secure, SameSite), and invalidated on logout or inactivity?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:session_management:q1:c1
+                value: "Yes"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:session_management:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # === CHAPTER 3: APPLICATION DEFENSES & CODE HYGIENE ===
+      - urn: urn:intuitem:risk:req_node:appsec:app_defenses_chapter
+        assessable: false
+        depth: 1
+        ref_id: app_defenses_chapter
+        name: "Application Vulnerability Defense & Code Hygiene"
+        description: "Protect application code against OWASP Top 10 injection flaws, cross-site scripting, and information leakage."
+        annotation: >
+          Defensive coding practices aligned with OWASP ASVS V5 (Validation, Sanitization and Encoding) and V13 (API & Web Service).
+        implementation_groups: ["baseline"]
+
+      # Requirement: Input validation & Parameterized Queries
+      - urn: urn:intuitem:risk:req_node:appsec:input_validation_and_injection_defense
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:app_defenses_chapter
+        ref_id: input_validation_and_injection_defense
+        name: Input Validation & Injection Prevention
+        description: "Enforce server-side input validation and parameterized queries to prevent SQL, NoSQL, and command injection."
+        annotation: >
+          Strict schema validation on untrusted inputs combined with parameterized queries / ORMs eliminates SQLi and command injection.
+        typical_evidence: >
+          - Server-side input validation schema definitions
+          - SAST audit verifying parameterized query enforcement across database calls
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:flawed_input_validation
+        implementation_groups: ["baseline"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:secure_input_validation_and_encoding
+        questions:
+          urn:intuitem:risk:req_node:appsec:input_validation_and_injection_defense:q1:
+            type: unique_choice
+            text: "Are all user-supplied inputs validated on the server side using strict allow-lists and schema rules?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:input_validation_and_injection_defense:q1:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:input_validation_and_injection_defense:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:input_validation_and_injection_defense:q2:
+            type: unique_choice
+            text: "Are database interactions executed via parameterized queries or ORMs to prevent SQL/NoSQL injections?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:input_validation_and_injection_defense:q2:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:input_validation_and_injection_defense:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # Requirement: Output encoding & Web security headers
+      - urn: urn:intuitem:risk:req_node:appsec:output_encoding_and_web_defenses
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:app_defenses_chapter
+        ref_id: output_encoding_and_web_defenses
+        name: Output Encoding & Web Security Headers
+        description: "Enforce context-aware output encoding to prevent XSS and configure standard HTTP security headers."
+        annotation: >
+          Mitigates Cross-Site Scripting (XSS), clickjacking, and MIME sniffing via context encoding, CSP, HSTS, and X-Content-Type-Options.
+        typical_evidence: >
+          - Web response HTTP headers scan report (e.g. securityheaders.com)
+          - Template engine auto-escaping configuration documentation
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:flawed_input_validation
+        implementation_groups: ["baseline"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:secure_input_validation_and_encoding
+        questions:
+          urn:intuitem:risk:req_node:appsec:output_encoding_and_web_defenses:q1:
+            type: unique_choice
+            text: "Is context-aware output encoding enforced across all dynamic responses to prevent Cross-Site Scripting (XSS)?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:output_encoding_and_web_defenses:q1:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:output_encoding_and_web_defenses:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:output_encoding_and_web_defenses:q2:
+            type: unique_choice
+            text: "Are standard HTTP security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options) configured?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:output_encoding_and_web_defenses:q2:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:output_encoding_and_web_defenses:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # Requirement: Error handling & debug mode
+      - urn: urn:intuitem:risk:req_node:appsec:error_handling_and_info_leakage
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:app_defenses_chapter
+        ref_id: error_handling_and_info_leakage
+        name: Error Handling & Debug Protection
+        description: "Disable debug modes, detailed stack traces, and internal server paths in production responses."
+        annotation: >
+          Prevents information disclosure and reconnaissance by returning generic error handlers to clients while logging full details internally.
+        typical_evidence: >
+          - Production configuration verification proving DEBUG=False
+          - Custom error page handler configuration (4xx, 5xx)
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:flawed_input_validation
+        implementation_groups: ["baseline"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:secure_input_validation_and_encoding
+        questions:
+          urn:intuitem:risk:req_node:appsec:error_handling_and_info_leakage:q1:
+            type: unique_choice
+            text: "Are debug modes and detailed stack traces disabled in production environments?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:error_handling_and_info_leakage:q1:c1
+                value: "Yes"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:error_handling_and_info_leakage:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # === CHAPTER 4: CRYPTOGRAPHY & SECRETS MANAGEMENT ===
+      - urn: urn:intuitem:risk:req_node:appsec:crypto_chapter
+        assessable: false
+        depth: 1
+        ref_id: crypto_chapter
+        name: "Cryptography & Secrets Management"
+        description: "Enforce cryptographic protection for data in transit and at rest, and maintain centralized secrets management."
+        annotation: >
+          Comprehensive cryptographic controls incorporating newDPP data protection and centralized secrets vaults.
+        implementation_groups: ["baseline", "confidential_app", "secret_app"]
+
+      # Requirement: Secrets management
+      - urn: urn:intuitem:risk:req_node:appsec:secrets_management
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:crypto_chapter
+        ref_id: secrets_management
+        name: Centralized Secrets Management
+        description: "Eliminate hardcoded credentials and store all API keys, database tokens, and certificates in dedicated secrets vaults."
+        annotation: >
+          Prohibits plaintext credentials in source code and configuration files. Mandates dynamic injection via dedicated secret managers.
+        typical_evidence: >
+          - Secrets manager (e.g. HashiCorp Vault, AWS Secrets Manager) integration configuration
+          - Pre-commit secret scanning pipeline report (e.g. Gitleaks / TruffleHog)
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:hardcoded_secrets
+        implementation_groups: ["baseline"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:centralized_secrets_management
+        questions:
+          urn:intuitem:risk:req_node:appsec:secrets_management:q1:
+            type: unique_choice
+            text: "Are application credentials, API keys, and cryptographic secrets stored exclusively in a dedicated secrets manager rather than in code or configuration files?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:secrets_management:q1:c1
+                value: "Yes"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:secrets_management:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # Requirement: Encrypt data during transmission (from newDPP)
+      - urn: urn:intuitem:risk:req_node:appsec:data_in_transit
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:crypto_chapter
+        ref_id: data_in_transit
+        name: Encryption in Transit
+        description: "Encrypt data in transit across internal and external network boundaries."
+        annotation: >
+          Cryptographic protection of data during network transmission across internal, external, and cloud boundaries.
+          Mandates modern secure communication protocols (e.g., TLS 1.3 / TLS 1.2 with strong cipher suites, SSHv2, IPsec, mutual TLS / mTLS for API services).
+        typical_evidence: >
+          - TLS / SSL configuration inspection report (e.g., Qualys SSL Labs report, testssl.sh output)
+          - API gateway / Load balancer TLS cipher suite and protocol enforcement configuration
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:lack_of_encryption
+        implementation_groups: ["confidential_app", "secret_app"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:encrypt_data_in_transit
+        questions:
+          urn:intuitem:risk:req_node:appsec:data_in_transit:q1:
+            type: unique_choice
+            text: "Is data encrypted during transit?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:data_in_transit:q1:c1
+                value: "Yes"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:data_in_transit:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # Requirement: Encrypt data at rest (from newDPP)
+      - urn: urn:intuitem:risk:req_node:appsec:data_at_rest
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:crypto_chapter
+        ref_id: data_at_rest
+        name: Encryption at Rest
+        description: "Encrypt data at rest in databases, file systems, and backups."
+        annotation: >
+          Cryptographic protection of stored data across persistent storage tiers (databases, object storage, file systems, volume storage, backups).
+          Requires robust symmetric encryption standards (e.g., AES-256 / AES-GCM) with centralized key management (KMS / HSM) and regular key rotation.
+        typical_evidence: >
+          - Database encryption configuration (e.g., Transparent Data Encryption / TDE enabled)
+          - Cloud storage bucket / disk volume encryption configuration (e.g., AWS KMS / Azure Key Vault / GCP KMS)
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:lack_of_encryption
+        implementation_groups: ["confidential_app", "secret_app"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:encrypt_data_at_rest
+        questions:
+          urn:intuitem:risk:req_node:appsec:data_at_rest:q1:
+            type: unique_choice
+            text: "Is data encrypted at rest?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:data_at_rest:q1:c1
+                value: "Yes"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:data_at_rest:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # === CHAPTER 5: SECURE SDLC & DEVSECOPS ===
+      - urn: urn:intuitem:risk:req_node:appsec:sdlc_chapter
+        assessable: false
+        depth: 1
+        ref_id: sdlc_chapter
+        name: "Secure SDLC & DevSecOps"
+        description: "Integrate security automation into CI/CD pipelines, manage open-source supply chains, and enforce peer code review."
+        annotation: >
+          Shift-left application security controls aligned with modern DevSecOps standards and OWASP ASVS V14 (Build and Deployment).
+        implementation_groups: ["baseline"]
+
+      # Requirement: Automated security testing (SAST/DAST)
+      - urn: urn:intuitem:risk:req_node:appsec:automated_security_testing
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:sdlc_chapter
+        ref_id: automated_security_testing
+        name: Automated Security Testing (SAST & DAST)
+        description: "Integrate Static Application Security Testing (SAST) and Dynamic Testing (DAST) into automated deployment pipelines."
+        annotation: >
+          Automated vulnerability scanning during build and deployment ensures security regressions are detected before reaching production.
+        typical_evidence: >
+          - CI/CD pipeline definition showing automated SAST / DAST stages
+          - Quality gate policy documentation blocking builds on High/Critical vulnerabilities
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:vulnerable_dependencies
+        implementation_groups: ["baseline"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:automated_devsecops_testing
+        questions:
+          urn:intuitem:risk:req_node:appsec:automated_security_testing:q1:
+            type: unique_choice
+            text: "Is automated Static Application Security Testing (SAST) integrated into the CI/CD pipeline with blocking quality gates?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:automated_security_testing:q1:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:automated_security_testing:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:automated_security_testing:q2:
+            type: unique_choice
+            text: "Is Dynamic Application Security Testing (DAST) or API security scanning performed prior to release?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:automated_security_testing:q2:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:automated_security_testing:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # Requirement: Supply chain & dependencies (SCA / SBOM)
+      - urn: urn:intuitem:risk:req_node:appsec:supply_chain_and_dependencies
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:sdlc_chapter
+        ref_id: supply_chain_and_dependencies
+        name: Software Supply Chain & Dependency Management (SCA / SBOM)
+        description: "Continuously scan open-source dependencies for known vulnerabilities and generate a Software Bill of Materials (SBOM)."
+        annotation: >
+          Mitigates third-party software supply chain risk by detecting unpatched CVEs and maintaining visibility over external packages.
+        typical_evidence: >
+          - Software Composition Analysis (SCA) scan reports (e.g. Snyk, Dependabot, Trivy)
+          - Generated SBOM file (CycloneDX or SPDX format)
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:vulnerable_dependencies
+        implementation_groups: ["baseline"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:supply_chain_dependency_management
+        questions:
+          urn:intuitem:risk:req_node:appsec:supply_chain_and_dependencies:q1:
+            type: unique_choice
+            text: "Is Software Composition Analysis (SCA) automated to detect known vulnerabilities in open-source dependencies and packages?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:supply_chain_and_dependencies:q1:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:supply_chain_and_dependencies:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:supply_chain_and_dependencies:q2:
+            type: unique_choice
+            text: "Is an accurate Software Bill of Materials (SBOM) maintained and audited for all released application artifacts?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:supply_chain_and_dependencies:q2:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:supply_chain_and_dependencies:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # Requirement: Peer code review & branch protection
+      - urn: urn:intuitem:risk:req_node:appsec:code_review_and_ci_cd_integrity
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:sdlc_chapter
+        ref_id: code_review_and_ci_cd_integrity
+        name: Peer Code Review & Branch Protection
+        description: "Enforce mandatory peer code reviews and protected branch policies before merging changes into production code."
+        annotation: >
+          Prevents rogue commits and human errors by requiring at least one independent qualified peer approval prior to merge.
+        typical_evidence: >
+          - Repository branch protection settings export (e.g. GitHub / GitLab protected branch settings)
+          - Sample pull request / merge request review audit trail
+        implementation_groups: ["baseline"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:automated_devsecops_testing
+        questions:
+          urn:intuitem:risk:req_node:appsec:code_review_and_ci_cd_integrity:q1:
+            type: unique_choice
+            text: "Are mandatory peer code reviews and branch protection rules enforced before any merge into deployment branches?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:code_review_and_ci_cd_integrity:q1:c1
+                value: "Yes"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:code_review_and_ci_cd_integrity:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # === CHAPTER 6: API SECURITY & DATA EXCHANGES ===
+      - urn: urn:intuitem:risk:req_node:appsec:api_chapter
+        assessable: false
+        depth: 1
+        ref_id: api_chapter
+        name: "API Security & Data Exchange Governance"
+        description: "Protect application interfaces and APIs against abuse, and govern cross-organizational data flows."
+        annotation: >
+          Protections for web services and external data transmissions aligned with OWASP API Security Top 10.
+        implementation_groups: ["baseline", "confidential_app", "secret_app"]
+
+      # Requirement: API Security & Rate limiting
+      - urn: urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:api_chapter
+        ref_id: api_security_and_rate_limiting
+        name: API Gateway, Rate Limiting & Throttling
+        description: "Protect API endpoints via rate limiting, automated throttling, and schema validation."
+        annotation: >
+          Guards against automated scraping, credential stuffing, and volumetric exhaustion via API gateways.
+        typical_evidence: >
+          - API gateway rate limiting and throttling policy definition
+          - OpenAPI / Swagger schema validation configuration
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:unmitigated_api_abuse
+        implementation_groups: ["baseline", "internet_facing"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:api_security_and_rate_limiting
+        questions:
+          urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting:q1:
+            type: unique_choice
+            text: "Are exposed API endpoints protected against abusive traffic via rate limiting and automated throttling controls?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting:q1:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting:q2:
+            type: unique_choice
+            text: "Are API payloads strictly validated against documented API specifications (e.g. OpenAPI / JSON schema)?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting:q2:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # Requirement: Control data exchange beyond organization (from newDPP)
+      - urn: urn:intuitem:risk:req_node:appsec:data_exchange
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:api_chapter
+        ref_id: data_exchange
+        name: Control of Data Exchange
+        description: "Data exchange beyond the group is controlled"
+        annotation: >
+          Cross-organizational data sharing and external transmission governance.
+          Ensures all outbound and inbound data exchanges with third parties or external systems are governed by formal information sharing agreements.
+        typical_evidence: >
+          - Signed Data Transfer Agreement (DTA) / Data Processing Addendum (DPA)
+          - Non-Disclosure Agreement (NDA) with external recipients
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:contractual_gap
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:information_exchange_contract
+        implementation_groups: ["confidential_app", "secret_app"]
+        questions:
+          urn:intuitem:risk:req_node:appsec:data_exchange:question:1:
+            type: unique_choice
+            text: "Are there data exchanges beyond the group?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:data_exchange:question:1:choice:1
+                value: "No"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:data_exchange:question:1:choice:2
+                value: "Yes"
+                add_score: 0
+                compute_result: false
+                color: "#fd7e14"
+          urn:intuitem:risk:req_node:appsec:data_exchange:question:2:
+            type: unique_choice
+            text: "Is there a data exchange contract with the appropriate confidentiality clauses?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec:data_exchange:question:1
+              answers: ["urn:intuitem:risk:req_node:appsec:data_exchange:question:1:choice:2"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:data_exchange:question:2:choice:1
+                value: "No contract"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:data_exchange:question:2:choice:2
+                value: "Contract!"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+
+      # === CHAPTER 7: DATA LIFECYCLE & SANITIZATION ===
+      - urn: urn:intuitem:risk:req_node:appsec:data_lifecycle_chapter
+        assessable: false
+        depth: 1
+        ref_id: data_lifecycle_chapter
+        name: "Data Lifecycle & Sanitization"
+        description: "Enforce strict non-production data protection and formal data retention and destruction processes."
+        annotation: >
+          Protects sensitive production data from unauthorized exposure during development, testing, and end-of-lifecycle purging.
+        implementation_groups: ["confidential_app", "secret_app"]
+
+      # Requirement: Protect production data in non-production environments (from newDPP)
+      - urn: urn:intuitem:risk:req_node:appsec:non_prod_data
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:data_lifecycle_chapter
+        ref_id: non_prod_data
+        name: Non-Production Data Protection
+        description: "Non prod data is adequately protected"
+        annotation: >
+          Data sanitization and privacy preservation in non-production environments (development, testing, staging, QA).
+          Direct use of raw production data in non-production environments is strictly prohibited unless sanitized via pseudonymisation, tokenization, masking, or cryptographic hashing.
+        typical_evidence: >
+          - Data masking / anonymization / synthetic test data generation pipeline procedure
+          - Non-production environment database audit logs verifying absence of raw PII/sensitive production records
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:unprotected_non_prod
+        implementation_groups: ["secret_app", "confidential_app"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:protect_prod_data_in_non_prod
+        questions:
+          urn:intuitem:risk:req_node:appsec:non_prod_data:question:0:
+            type: unique_choice
+            text: "Do you have a dedicated non-production environment?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:question:0:choice:1
+                value: "No"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:question:0:choice:2
+                value: "Yes"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:non_prod_data:question:1:
+            type: unique_choice
+            text: "Do you use prod data in a non-prod environment?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec:non_prod_data:question:0
+              answers: ["urn:intuitem:risk:req_node:appsec:non_prod_data:question:0:choice:2"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:question:1:choice:1
+                value: "No"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:question:1:choice:2
+                value: "Yes"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:non_prod_data:question:2:
+            type: unique_choice
+            text: "How do you protect them?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec:non_prod_data:question:1
+              answers: ["urn:intuitem:risk:req_node:appsec:non_prod_data:question:1:choice:2"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:question:2:choice:1
+                value: "No, no protection"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:question:2:choice:2
+                value: "Hashing"
+                add_score: 90
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:question:2:choice:3
+                value: "Pseudonymisation"
+                add_score: 90
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:question:2:choice:4
+                value: "Encryption"
+                add_score: 90
+                compute_result: true
+                color: "#33a745"
+          urn:intuitem:risk:req_node:appsec:non_prod_data:question:3:
+            type: unique_choice
+            text: "Do you clean the prod data after use in non-prod?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec:non_prod_data:question:1
+              answers: ["urn:intuitem:risk:req_node:appsec:non_prod_data:question:1:choice:2"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:question:3:choice:1
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:question:3:choice:2
+                value: "Yes"
+                add_score: 10
+                compute_result: true
+                color: "#33a745"
+
+      # Requirement: Compliant data destruction (from newDPP)
+      - urn: urn:intuitem:risk:req_node:appsec:data_destruction
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:data_lifecycle_chapter
+        ref_id: data_destruction
+        name: Compliant Data Destruction
+        description: "There is a compliant data destruction process for this application"
+        annotation: >
+          Compliant information disposal and data purging lifecycle.
+          Ensures defined retention schedules are enforced and data is sanitized or destroyed using approved cryptographic erasure or de-allocation upon expiry.
+        typical_evidence: >
+          - Formal Data Retention and Destruction Policy & SOP
+          - Automated database purge scripts / scheduled job execution logs
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:uncontrolled_data_retention
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:data_destruction_process
+        implementation_groups: ["confidential_app", "secret_app"]
+        questions:
+          urn:intuitem:risk:req_node:appsec:data_destruction:question:1:
+            type: unique_choice
+            text: "Is there a data destruction process for this application?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:data_destruction:question:1:choice:1
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:data_destruction:question:1:choice:2
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+          urn:intuitem:risk:req_node:appsec:data_destruction:question:2:
+            type: unique_choice
+            text: "Is the process compliant with the policy (responsibilities, methods, reporting)?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec:data_destruction:question:1
+              answers: ["urn:intuitem:risk:req_node:appsec:data_destruction:question:1:choice:2"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:data_destruction:question:2:choice:1
+                value: "No, not compliant"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:data_destruction:question:2:choice:2
+                value: "Yes, compliant!"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+
+      # === CHAPTER 8: SECURITY LOGGING & MONITORING ===
+      - urn: urn:intuitem:risk:req_node:appsec:logging_chapter
+        assessable: false
+        depth: 1
+        ref_id: logging_chapter
+        name: "Security Logging & Monitoring"
+        description: "Log security-relevant events, mask sensitive fields, and forward telemetry to a central SIEM."
+        annotation: >
+          Aligned with OWASP ASVS V7 (Error Handling and Logging) and ISO/IEC 27001 A.8.15 / A.8.16.
+        implementation_groups: ["baseline"]
+
+      # Requirement: Security event logging & masking
+      - urn: urn:intuitem:risk:req_node:appsec:security_event_logging
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:logging_chapter
+        ref_id: security_event_logging
+        name: Security Event Logging & Data Masking
+        description: "Log authentication, authorization, and administrative events while systematically masking sensitive fields."
+        annotation: >
+          Ensures auditability while strictly preventing the exposure of credentials, passwords, session tokens, or payment card numbers in log files.
+        typical_evidence: >
+          - Application log configuration demonstrating event capture
+          - Log masking / sanitization filter rule definitions
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:insufficient_security_logging
+        implementation_groups: ["baseline"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:centralized_security_logging
+        questions:
+          urn:intuitem:risk:req_node:appsec:security_event_logging:q1:
+            type: unique_choice
+            text: "Does the application log key security events (failed logins, privilege escalation, administrative changes, access to sensitive assets)?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:security_event_logging:q1:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:security_event_logging:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:security_event_logging:q2:
+            type: unique_choice
+            text: "Are sensitive data fields (passwords, payment cards, tokens, PII) systematically sanitized/masked from log outputs?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:security_event_logging:q2:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:security_event_logging:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # Requirement: Centralized SIEM monitoring & alerting
+      - urn: urn:intuitem:risk:req_node:appsec:centralized_monitoring_and_alerting
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:logging_chapter
+        ref_id: centralized_monitoring_and_alerting
+        name: Centralized SIEM Forwarding & Security Alerting
+        description: "Stream application logs in real-time to a centralized SIEM/SOC with anomaly detection and automated alerting."
+        annotation: >
+          Enables rapid incident detection and containment. Prevents attackers from covering their tracks on local application hosts.
+        typical_evidence: >
+          - SIEM log forwarding daemon configuration (e.g. Fluentd, Splunk Universal Forwarder, OpenTelemetry)
+          - Active SOC alerting rule documentation for anomalous application behavior
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:insufficient_security_logging
+        implementation_groups: ["baseline"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:centralized_security_logging
+        questions:
+          urn:intuitem:risk:req_node:appsec:centralized_monitoring_and_alerting:q1:
+            type: unique_choice
+            text: "Are application logs forwarded in near-real-time to a central SIEM/SOC platform with alerting rules for suspicious activities?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:centralized_monitoring_and_alerting:q1:c1
+                value: "Yes"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:centralized_monitoring_and_alerting:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # === CHAPTER 9: PENETRATION TESTING & RESILIENCE ===
+      - urn: urn:intuitem:risk:req_node:appsec:resilience_chapter
+        assessable: false
+        depth: 1
+        ref_id: resilience_chapter
+        name: "Penetration Testing & Resilience"
+        description: "Perform independent penetration testing, enforce patch remediation SLAs, and maintain disaster recovery readiness."
+        annotation: >
+          Validates operational defense-in-depth and business continuity.
+        implementation_groups: ["baseline", "internet_facing"]
+
+      # Requirement: Penetration testing & vulnerability remediation
+      - urn: urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:resilience_chapter
+        ref_id: penetration_testing_and_vulnerability_management
+        name: Penetration Testing & Vulnerability Remediation
+        description: "Conduct independent penetration tests at least annually and remediate identified vulnerabilities within defined SLAs."
+        annotation: >
+          Mandates annual black-box or grey-box penetration testing and rigorous SLA enforcement (e.g. Critical <= 7 days, High <= 30 days).
+        typical_evidence: >
+          - Penetration test executive summary and certificate
+          - Vulnerability remediation tracker demonstrating compliance with defined remediation timeframes
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:untested_application_security
+        implementation_groups: ["baseline", "internet_facing"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:regular_penetration_testing
+        questions:
+          urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management:q1:
+            type: unique_choice
+            text: "Is an independent penetration test performed on the application at least annually or following major architectural changes?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management:q1:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management:q2:
+            type: unique_choice
+            text: "Are identified vulnerabilities remediated within defined SLAs (e.g. Critical within 7 days, High within 30 days)?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management:q2:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # Requirement: Backup strategy & disaster recovery
+      - urn: urn:intuitem:risk:req_node:appsec:backup_and_disaster_recovery
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:resilience_chapter
+        ref_id: backup_and_disaster_recovery
+        name: Backup Strategy & Disaster Recovery
+        description: "Maintain automated encrypted backups and test restoration drills against documented RTO and RPO targets."
+        annotation: >
+          Protects against catastrophic ransomware, physical failure, or accidental deletion through verified automated recovery pipelines.
+        typical_evidence: >
+          - Automated backup policy and configuration verification
+          - Annual disaster recovery drill report showing measured restoration times
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:inadequate_resilience_backup
+        implementation_groups: ["baseline"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:backup_and_disaster_recovery
+        questions:
+          urn:intuitem:risk:req_node:appsec:backup_and_disaster_recovery:q1:
+            type: unique_choice
+            text: "Are automated and encrypted backups maintained for application state and databases, with restoration tests performed at least annually?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:backup_and_disaster_recovery:q1:c1
+                value: "Yes"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:backup_and_disaster_recovery:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # === CHAPTER 10: SAAS-SPECIFIC REQUIREMENTS ===
+      - urn: urn:intuitem:risk:req_node:appsec:saas_chapter
+        assessable: false
+        depth: 1
+        ref_id: saas_chapter
+        name: "SaaS Requirements"
+        description: "Third-party cloud and SaaS provider security governance and contractual compliance."
+        annotation: >
+          Supply chain risk management and security governance requirements applicable when application workloads or data are hosted by external SaaS vendors.
+        implementation_groups: ["saas_app"]
+
+      # Requirement: Ensure SaaS contract includes security clauses (from newDPP)
+      - urn: urn:intuitem:risk:req_node:appsec:saas_contract
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
+        ref_id: saas_contract_compliance
+        name: SaaS Contractual Compliance
+        description: "Ensure SaaS contract includes security clauses"
+        annotation: >
+          Comprehensive SaaS vendor contract security review.
+          Validates that contractual agreements with SaaS vendors contain mandatory cybersecurity clauses:
+          1. Right to Audit / Third-Party Assurance (SOC 2 Type II, ISO/IEC 27001 certification).
+          2. Security Incident Notification window (e.g. notification within 24 to 72 hours of discovery).
+          3. Strong Identity & Access Management (SSO / SAML 2.0 integration, Multi-Factor Authentication, Role-Based Access Control).
+          4. Binding Confidentiality / Non-Disclosure Agreement (NDA) and Data Processing Agreement (DPA).
+        typical_evidence: >
+          - Signed SaaS Master Services Agreement (MSA) with Security Schedule / Exhibit
+          - Executed Data Processing Agreement (DPA) and Confidentiality Agreement (NDA)
+          - Vendor SOC 2 Type II / ISO 27001 audit report and security assessment questionnaire
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:contractual_gap
+        implementation_groups: ["saas_app"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:saas_contract
+        questions:
+          urn:intuitem:risk:req_node:appsec:saas_contract:question:1:
+            type: unique_choice
+            text: "Is there a signed SaaS contract?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_contract:question:1:choice:2
+                value: "Yes"
+                add_score: 20
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_contract:question:1:choice:1
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:saas_contract:question:2:
+            type: unique_choice
+            text: "Does the contract include an Audit clause?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec:saas_contract:question:1
+              answers: ["urn:intuitem:risk:req_node:appsec:saas_contract:question:1:choice:2"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_contract:question:2:choice:1
+                value: "Yes"
+                add_score: 20
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_contract:question:2:choice:2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:saas_contract:question:3:
+            type: unique_choice
+            text: "Does the contract include an Incident Notification process?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec:saas_contract:question:1
+              answers: ["urn:intuitem:risk:req_node:appsec:saas_contract:question:1:choice:2"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_contract:question:3:choice:1
+                value: "Yes"
+                add_score: 20
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_contract:question:3:choice:2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:saas_contract:question:4:
+            type: unique_choice
+            text: "Does the contract include Strong IAM requirements?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec:saas_contract:question:1
+              answers: ["urn:intuitem:risk:req_node:appsec:saas_contract:question:1:choice:2"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_contract:question:4:choice:1
+                value: "Yes"
+                add_score: 20
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_contract:question:4:choice:2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:saas_contract:question:5:
+            type: unique_choice
+            text: "Does the contract include a Confidentiality agreement (NDA)?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec:saas_contract:question:1
+              answers: ["urn:intuitem:risk:req_node:appsec:saas_contract:question:1:choice:2"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_contract:question:5:choice:1
+                value: "Yes"
+                add_score: 20
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_contract:question:5:choice:2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # === COMPLETION SPLASH SCREEN ===
+      - urn: urn:intuitem:risk:req_node:appsec:thank_you_splash
+        assessable: false
+        display_mode: splash
+        depth: 1
+        ref_id: thank_you_splash
+        name: "Assessment Completed - Thank You"
+        description: >
+          Thank you for completing the Application Security Assessment (AppSec).
+
+          Your responses have been successfully submitted and will serve as the baseline for evaluating application risk scenarios and governing cybersecurity controls.
+
+          Next Steps:
+          1. Automated Risk Modeling: CISO Assistant will automatically calculate likelihood and impact across applicable threat scenarios based on your answers.
+          2. Controls Verification: Recommended and applied technical controls will be linked to mitigate identified risk scenarios.
+          3. Governance & Follow-Up: If any compliance gaps, findings, or security exceptions are required, the security team will reach out to coordinate remediation planning and stakeholder sign-offs.
+
+          If your application architecture, hosting model, or exposure profile changes in the future, please re-evaluate this assessment.
+        annotation: >
+          Concluding splash screen expressing gratitude to the respondent and detailing subsequent compliance verification, risk assessment, and remediation workflows.
+        implementation_groups: ["info"]
+
+# ============================================================================
+# AUDIT CONFIGURATION
+# ============================================================================
+# Settings for compliance assessment and audit field visibility
+audit:
+  score_method: sum
+  score_visibility:
+    score:
+      auditor: "edit"
+      respondent: "hidden"
+    status:
+      auditor: "edit"
+      respondent: "hidden"
+    result:
+      auditor: "edit"
+      respondent: "hidden"
+    extended_result:
+      auditor: "edit"
+      respondent: "hidden"
+
+# ============================================================================
+# CRITICALITY MAPPING
+# ============================================================================
+# Maps security objectives (confidentiality, integrity, availability) to risk levels
+# based on data classification requirements URNs
+criticality_mapping:
+  confidentiality:
+    urn:intuitem:risk:req_node:appsec:data_classification:q1:c1: 0  # Public
+    urn:intuitem:risk:req_node:appsec:data_classification:q1:c2: 1  # Internal
+    urn:intuitem:risk:req_node:appsec:data_classification:q1:c3: 2  # Confidential
+    urn:intuitem:risk:req_node:appsec:data_classification:q1:c4: 3  # Secret
+  integrity: {}
+  availability: {}
+
+# ============================================================================
+# TEST METADATA & INTEGRITY SPECIFICATION
+# ============================================================================
+# Defines baseline expectations for automated relational and logic integrity tests.
+# Framework-independent test runners validate framework consistency against these specs.
+test_metadata:
+  expected_risk_scenarios_count: 16
+  expected_threats_count: 9
+  expected_vulnerabilities_count: 15
+  expected_reference_controls_count: 20
+  expected_requirement_nodes_count: 39
+  matrix_dimensions:
+    likelihood_levels: 4
+    impact_levels: 4
+  classification_node_ref: "data_classification"
+  availability_node_ref: null

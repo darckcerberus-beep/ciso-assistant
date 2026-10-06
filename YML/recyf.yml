@@ -72,6 +72,52 @@ objects:
       description: null
 
     # ========================================================================
+    # DÉFINITION DES TYPES D'ACTIFS RECYF / NIS 2
+    # Objets et catégories sur lesquels les exigences de sécurité sont évaluées.
+    # ========================================================================
+    asset_types_definition:
+    - ref_id: governance_organization
+      name: "Gouvernance, Organisation & RH"
+      type: "PR"
+      description: "Politiques (PSSI), gouvernance, rôles RSSI/ANSSI, gestion des risques, gestion de crise, exercices, audits et processus RH."
+    - ref_id: information_systems
+      name: "Systèmes d'Information & Applications Métier"
+      type: "PR"
+      description: "Applications métier, bases de données, cartographie applicative, MCO/MCS, gestion des vulnérabilités, correctifs et PCA/PRA."
+    - ref_id: ecosystem_suppliers
+      name: "Écosystème & Fournisseurs Tiers"
+      type: "PR"
+      description: "Cartographie des prestataires, clauses contractuelles de sécurité, plans d'assurance sécurité (PAS) et audits tiers."
+    - ref_id: network_architecture
+      name: "Architecture Réseau & Accès Distants"
+      type: "SP"
+      description: "Cloisonnement réseau, zonage, passerelles DMZ/Proxy, filtrage firewall, accès distants VPN/TLS et authentification forte."
+    - ref_id: endpoints
+      name: "Postes de Travail & Terminaux Nomades"
+      type: "SP"
+      description: "Parc de postes utilisateurs, terminaux mobiles, chiffrement des disques nomades, protection EDR/antivirus et contrôle des supports amovibles."
+    - ref_id: iam_directories
+      name: "Identités, Accès & Annuaires (IAM / AD)"
+      type: "SP"
+      description: "Cycle de vie des comptes, authentification, MFA, principe du moindre privilège, contrôleurs de domaine et annuaires d'entreprise."
+    - ref_id: administration_pav
+      name: "Ressources d'Administration Dédiées (PAV)"
+      type: "SP"
+      description: "Comptes à privilèges d'administration, réseau d'administration dédié hors-bande, postes physiques d'administration dédiés (PAV)."
+    - ref_id: infrastructure_servers
+      name: "Serveurs & Équipements d'Infrastructure"
+      type: "SP"
+      description: "Durcissement (hardening), suppression des services inutiles, application des guides de configuration sécurisée et revues de conformité."
+    - ref_id: supervision_soc
+      name: "Supervision, Logs & Détection (SOC / SIEM)"
+      type: "SP"
+      description: "Détection des incidents, centralisation et intégrité des logs, horodatage synchronisé (NTP), rétention sécurisée et notification ANSSI."
+    - ref_id: physical_security
+      name: "Locaux Physiques & Salles Serveurs"
+      type: "SP"
+      description: "Contrôle d'accès physique, protection des salles serveurs et baies réseau, gestion des habilitations d'accès et accompagnement des visiteurs."
+
+    # ========================================================================
     # OBJECTIFS DE SÉCURITÉ ET MOYENS ACCEPTABLES DE CONFORMITÉ (MAC)
     # Le référentiel ReCyF s'articule autour de 20 objectifs de sécurité déclinés
     # en sous-sections thématiques et en exigences de sécurité assessables.
@@ -89,6 +135,7 @@ objects:
       ref_id: '1'
       name: "Objectif de s\xE9curit\xE9 1: Recensement des syst\xE8mes d'information"
     # Exigence 1.1 [EI / EE] : Recensement de l'ensemble des activités, services et SI supports avec identification des responsables
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:1.1
       assessable: true
       depth: 2
@@ -106,6 +153,9 @@ objects:
         \ de service auquel est rattach\xE9e l'activit\xE9 ou le service, un directeur\
         \ m\xE9tier, la direction g\xE9n\xE9rale) ;\n\u2022\tliste les syst\xE8mes\
         \ d\u2019information les supportant."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EI
       - EE
@@ -134,6 +184,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 1.2 [EI / EE] : Justification documentée des systèmes d'information exclus du champ des obligations de sécurité
+    # Type d'actif cible : Systèmes d'Information & Applications Métier
     - urn: urn:intuitem:risk:req_node:recyf:1.2
       assessable: true
       depth: 2
@@ -143,6 +194,9 @@ objects:
         \ les syst\xE8mes d\u2019information qui ne sont expos\xE9s \xE0 aucun des\
         \ risques mentionn\xE9s \xE0 l\u2019alin\xE9a 2 de l\u2019objectif de s\xE9\
         curit\xE9.\nL\u2019entit\xE9 renseigne les justifications de ces choix."
+      annotation: "Type d'actif évalué : Systèmes d'Information & Applications Métier"
+      target_asset_types:
+      - "Systèmes d'Information & Applications Métier"
       implementation_groups:
       - EI
       - EE
@@ -166,6 +220,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 1.3 [EI / EE] : Revue, validation et réexamen annuel de l'inventaire des activités et systèmes d'information
+    # Type d'actif cible : Systèmes d'Information & Applications Métier
     - urn: urn:intuitem:risk:req_node:recyf:1.3
       assessable: true
       depth: 2
@@ -175,6 +230,9 @@ objects:
         \ pr\xE9vue au 1.1-EI/EE, et en tant que de besoin, notamment en cas d\u2019\
         \xE9volution des activit\xE9s et services de l\u2019entit\xE9 ou en cas de\
         \ mise en service d\u2019un nouveau syst\xE8me d\u2019information."
+      annotation: "Type d'actif évalué : Systèmes d'Information & Applications Métier"
+      target_asset_types:
+      - "Systèmes d'Information & Applications Métier"
       implementation_groups:
       - EI
       - EE
@@ -225,6 +283,7 @@ objects:
       ref_id: 2.A
       name: "R\xF4les et responsabilit\xE9s"
     # Exigence 2.A.1 [EI / EE] : Responsabilité formelle du dirigeant exécutif pour la sécurité numérique et le respect des obligations
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:2.a.1
       assessable: true
       depth: 3
@@ -234,6 +293,9 @@ objects:
         \ la s\xE9curit\xE9 num\xE9rique au sein de son entit\xE9 et en particulier\
         \ du suivi de la conformit\xE9 des syst\xE8mes d\u2019information aux pr\xE9\
         sentes mesures."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EI
       - EE
@@ -261,6 +323,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 2.A.2 [EE] : Désignation d'un RSSI et du point de contact officiel pour l'ANSSI
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:2.a.2
       assessable: true
       depth: 3
@@ -272,6 +335,9 @@ objects:
         \ s\xE9curit\xE9 des syst\xE8mes d\u2019information pour tous les sujets relatifs\
         \ \xE0 la s\xE9curit\xE9 num\xE9rique (notamment incidents de s\xE9curit\xE9\
         , communications de l\u2019ANSSI sur les sujets relatifs aux entit\xE9s essentielles)"
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EE
       reference_controls:
@@ -293,6 +359,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 2.A.3 [EI / EE] : Organisation dédiée et allocation des moyens adaptés pour piloter la sécurité numérique
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:2.a.3
       assessable: true
       depth: 3
@@ -302,6 +369,9 @@ objects:
         \ adapt\xE9e pour assurer sa s\xE9curit\xE9 num\xE9rique (par exemple : la\
         \ d\xE9signation d\u2019un responsable de la s\xE9curit\xE9 num\xE9rique,\
         \ l\u2019\xE9tablissement d\u2019un RACI, la mise en place d\u2019une comitologie)."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EI
       - EE
@@ -341,6 +411,7 @@ objects:
       ref_id: 2.B
       name: "Politique de s\xE9curit\xE9 des syst\xE8mes d'information"
     # Exigence 2.B.1 [EI / EE] : Élaboration et formalisation d'une Politique de Sécurité des Systèmes d'Information (PSSI)
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:2.b.1
       assessable: true
       depth: 3
@@ -348,6 +419,9 @@ objects:
       ref_id: 2.B.1
       description: "L\u2019entit\xE9 d\xE9finit et met en \u0153uvre une politique\
         \ de s\xE9curit\xE9 des syst\xE8mes d\u2019information (PSSI)."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EI
       - EE
@@ -374,6 +448,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 2.B.2 [EI / EE] : Contenu socle obligatoire de la PSSI (gouvernance, règles opérationnelles, périmètre d'application)
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:2.b.2
       assessable: true
       depth: 3
@@ -393,6 +468,9 @@ objects:
         \ PSSI tient \xE9galement compte des exigences, proc\xE9dures et sp\xE9cificit\xE9\
         s propres au(x) secteur(s) dans lesquels l\u2019entit\xE9 exerce ses activit\xE9\
         s."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EI
       - EE
@@ -421,12 +499,16 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 2.B.3 [EI / EE] : Approbation formelle de la PSSI par le dirigeant exécutif de l'entité
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:2.b.3
       assessable: true
       depth: 3
       parent_urn: urn:intuitem:risk:req_node:recyf:2.b
       ref_id: 2.B.3
       description: "Le dirigeant ex\xE9cutif de l\u2019entit\xE9 approuve la PSSI."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EI
       - EE
@@ -449,6 +531,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 2.B.4 [EI / EE] : Revue annuelle obligatoire et mise à jour de la PSSI lors de tout changement majeur
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:2.b.4
       assessable: true
       depth: 3
@@ -458,6 +541,9 @@ objects:
         \ n\xE9cessaire, notamment en cas d\u2019\xE9volutions majeures de la menace,\
         \ du contexte m\xE9tier, technique ou organisationnel intervenues apr\xE8\
         s son approbation."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EI
       - EE
@@ -485,6 +571,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 2.B.5 [EI / EE] : Déclinaison de la PSSI en politiques thématiques et procédures opérationnelles spécialisées
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:2.b.5
       assessable: true
       depth: 3
@@ -498,6 +585,9 @@ objects:
         De contr\xF4le d\u2019acc\xE8s physique et logique ;\n\u2022\tDe revue de\
         \ l\u2019application des mesures de s\xE9curit\xE9 mises en \u0153uvre ;\n\
         \u2022\tDe gestion des comptes."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EI
       - EE
@@ -538,6 +628,7 @@ objects:
       ref_id: 2.C
       name: "Gestion de la conformit\xE9"
     # Exigence 2.C.1 [EI / EE] : Évaluation et maintien à jour de l'analyse de conformité de chaque SI vis-à-vis de la PSSI
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:2.c.1
       assessable: true
       depth: 3
@@ -550,6 +641,9 @@ objects:
         \ les mesures mises en \u0153uvre par l\u2019entit\xE9 et les mesures pr\xE9\
         vues dans le pr\xE9sent r\xE9f\xE9rentiel.\nCette analyse tient compte de\
         \ la PSSI de l\u2019entit\xE9."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EI
       - EE
@@ -578,6 +672,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 2.C.2 [EI / EE] : Établissement, mise en œuvre et suivi dans la durée d'un plan d'actions de remédiation
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:2.c.2
       assessable: true
       depth: 3
@@ -594,6 +689,9 @@ objects:
         \ chaque action.\nCe plan d\u2019action ne pr\xE9juge pas de l\u2019appr\xE9\
         ciation du respect de ses obligations l\xE9gales et r\xE9glementaires lors\
         \ d\u2019un contr\xF4le de l\u2019ANSSI."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EI
       - EE
@@ -621,6 +719,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 2.C.3 [EI / EE] : Modalités d'application volontaire du référentiel pour les entités non assujetties
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:2.c.3
       assessable: true
       depth: 3
@@ -634,6 +733,9 @@ objects:
         \ dans son analyse de la conformit\xE9. L\u2019ANSSI peut appr\xE9cier la\
         \ pertinence de la mesure retenue pour satisfaire la mesure du r\xE9f\xE9\
         rentiel non retenue lors d\u2019un contr\xF4le."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EI
       - EE
@@ -678,6 +780,7 @@ objects:
       ref_id: 3.A
       name: "Cartographie de l'\xE9cosyst\xE8me"
     # Exigence 3.A.1 [EI / EE] : Cartographie exhaustive et tenue à jour de l'écosystème de prestataires et fournisseurs informatiques
+    # Type d'actif cible : Écosystème & Fournisseurs Tiers
     - urn: urn:intuitem:risk:req_node:recyf:3.a.1
       assessable: true
       depth: 3
@@ -696,6 +799,9 @@ objects:
         \ d\xE9j\xE0 r\xE9alis\xE9es par l\u2019entit\xE9 pour r\xE9aliser une telle\
         \ liste. Par exemple, la d\xE9claration de sous-traitance r\xE9alis\xE9e dans\
         \ le cadre d\u2019un contrat de la commande publique)."
+      annotation: "Type d'actif évalué : Écosystème & Fournisseurs Tiers"
+      target_asset_types:
+      - "Écosystème & Fournisseurs Tiers"
       implementation_groups:
       - EI
       - EE
@@ -724,6 +830,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 3.A.2 [EI / EE] : Enregistrement et maintien à jour des coordonnées d'au moins un contact de sécurité par prestataire
+    # Type d'actif cible : Écosystème & Fournisseurs Tiers
     - urn: urn:intuitem:risk:req_node:recyf:3.a.2
       assessable: true
       depth: 3
@@ -732,6 +839,9 @@ objects:
       description: "L\u2019entit\xE9 renseigne et maintient \xE0 jour les coordonn\xE9\
         es d\u2019au moins un point de contact pour chaque entr\xE9e figurant dans\
         \ la cartographie de l\u2019\xE9cosyst\xE8me."
+      annotation: "Type d'actif évalué : Écosystème & Fournisseurs Tiers"
+      target_asset_types:
+      - "Écosystème & Fournisseurs Tiers"
       implementation_groups:
       - EI
       - EE
@@ -770,6 +880,7 @@ objects:
       name: "S\xE9curit\xE9 num\xE9rique dans les contrats avec les prestataires et\
         \ fournisseurs informatiques"
     # Exigence 3.B.1 [EI / EE] : Clauses de sécurité contractuelles, plans d'assurance sécurité (PAS) et engagement de conformité
+    # Type d'actif cible : Écosystème & Fournisseurs Tiers
     - urn: urn:intuitem:risk:req_node:recyf:3.b.1
       assessable: true
       depth: 3
@@ -783,6 +894,9 @@ objects:
         assure de disposer des assurances contractuelles de cette conformit\xE9 (par\
         \ exemple : plan d\u2019assurance s\xE9curit\xE9, charte de t\xE9l\xE9maintenance,\
         \ mise en place d\u2019indicateurs de suivi de la conformit\xE9)."
+      annotation: "Type d'actif évalué : Écosystème & Fournisseurs Tiers"
+      target_asset_types:
+      - "Écosystème & Fournisseurs Tiers"
       implementation_groups:
       - EI
       - EE
@@ -810,6 +924,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 3.B.2 [EI / EE] : Vérification et audits périodiques de conformité des prestataires aux obligations de sécurité
+    # Type d'actif cible : Écosystème & Fournisseurs Tiers
     - urn: urn:intuitem:risk:req_node:recyf:3.b.2
       assessable: true
       depth: 3
@@ -822,6 +937,9 @@ objects:
         \ importants. L\u2019entit\xE9 peut s\u2019appuyer sur des audits dont les\
         \ conditions sont pr\xE9cis\xE9es par les Moyens acceptables de conformit\xE9\
         \ 17.2-EE, 17.4-EE et 17.5-EE relatifs \xE0 l\u2019audit."
+      annotation: "Type d'actif évalué : Écosystème & Fournisseurs Tiers"
+      target_asset_types:
+      - "Écosystème & Fournisseurs Tiers"
       implementation_groups:
       - EI
       - EE
@@ -861,6 +979,7 @@ objects:
       name: "Objectif de s\xE9curit\xE9 4: Prise en compte de la s\xE9curit\xE9 num\xE9\
         rique dans la gestion des ressources humaines"
     # Exigence 4.1 [EI / EE] : Définition, mise en œuvre et opposabilité d'une charte d'usage des systèmes d'information
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:4.1
       assessable: true
       depth: 2
@@ -872,6 +991,9 @@ objects:
         \ sp\xE9cifiques pour les administrateurs.\nCette charte peut \xE9galement\
         \ couvrir les syst\xE8mes d'information pour lesquels l'entit\xE9 a d\xE9\
         cid\xE9 de ne pas appliquer les objectifs de s\xE9curit\xE9."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EI
       - EE
@@ -898,6 +1020,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 4.2 [EI / EE] : Programme régulier de sensibilisation à la cybersécurité pour l'ensemble des collaborateurs
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:4.2
       assessable: true
       depth: 2
@@ -907,6 +1030,9 @@ objects:
         \ de sensibilisation \xE0 la s\xE9curit\xE9 num\xE9rique de l\u2019ensemble\
         \ des utilisateurs.\nCe programme doit comporter des actions tout au long\
         \ de la pr\xE9sence des utilisateurs dans l\u2019entit\xE9."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EI
       - EE
@@ -934,6 +1060,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 4.3 [EE] : Clauses de sécurité, de confidentialité et de responsabilité dans les contrats de travail
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:4.3
       assessable: true
       depth: 2
@@ -944,6 +1071,9 @@ objects:
         \ nature \xE0 garantir la confidentialit\xE9 des informations auxquelles les\
         \ salari\xE9s ont acc\xE8s au cours de leur contrat et \xE0 l\u2019issu de\
         \ celui-ci)."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EE
       reference_controls:
@@ -965,6 +1095,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 4.4 [EI / EE] : Processus formalisé de gestion des arrivées, mobilités internes et départs des collaborateurs
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:4.4
       assessable: true
       depth: 2
@@ -980,6 +1111,9 @@ objects:
         \ du d\xE9part, la restitution de l\u2019ensemble du mat\xE9riel qui a \xE9\
         t\xE9 mis \xE0 disposition et la d\xE9sactivation de l\u2019ensemble des acc\xE8\
         s logiques aux syst\xE8mes d\u2019information et physiques aux locaux et salles."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EI
       - EE
@@ -1008,6 +1142,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 4.5 [EI / EE] : Formation continue et habilitation spécifique pour les fonctions à responsabilités ou privilèges
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:4.5
       assessable: true
       depth: 2
@@ -1017,6 +1152,9 @@ objects:
         \ assumant des responsabilit\xE9s dans le domaine du num\xE9rique, un programme\
         \ de formations d\xE9di\xE9es \xE0 la s\xE9curit\xE9 num\xE9rique adapt\xE9\
         \ \xE0 leurs responsabilit\xE9s."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EI
       - EE
@@ -1068,6 +1206,7 @@ objects:
       ref_id: 5.A
       name: "Cartographie des syst\xE8mes d'information"
     # Exigence 5.A.1 [EI / EE] : Élaboration et maintien à jour de la cartographie matérielle, logicielle et réseau du SI
+    # Type d'actif cible : Systèmes d'Information & Applications Métier
     - urn: urn:intuitem:risk:req_node:recyf:5.a.1
       assessable: true
       depth: 3
@@ -1086,6 +1225,9 @@ objects:
         \ limiter les cons\xE9quences de l\u2019incident).\nCette cartographie peut\
         \ s\u2019appuyer sur les recommandations de l\u2019autorit\xE9 nationale de\
         \ s\xE9curit\xE9 des syst\xE8mes d\u2019information en mati\xE8re de cartographie."
+      annotation: "Type d'actif évalué : Systèmes d'Information & Applications Métier"
+      target_asset_types:
+      - "Systèmes d'Information & Applications Métier"
       implementation_groups:
       - EI
       - EE
@@ -1124,6 +1266,7 @@ objects:
       ref_id: 5.B
       name: "Maintien en condition op\xE9rationnelle et de s\xE9curit\xE9"
     # Exigence 5.B.1 [EE] : Procédure formelle de maintien en conditions opérationnelles et de sécurité (MCO / MCS)
+    # Type d'actif cible : Systèmes d'Information & Applications Métier
     - urn: urn:intuitem:risk:req_node:recyf:5.b.1
       assessable: true
       depth: 3
@@ -1133,6 +1276,9 @@ objects:
         \ jour une proc\xE9dure de maintien en conditions op\xE9rationnelle et de\
         \ s\xE9curit\xE9 des ressources mat\xE9rielles et logicielles de ses syst\xE8\
         mes d\u2019information."
+      annotation: "Type d'actif évalué : Systèmes d'Information & Applications Métier"
+      target_asset_types:
+      - "Systèmes d'Information & Applications Métier"
       implementation_groups:
       - EE
       reference_controls:
@@ -1160,6 +1306,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 5.B.2 [EI / EE] : Maintien à jour continu des bases de signatures et connaissances antivirales et de sécurité
+    # Type d'actif cible : Systèmes d'Information & Applications Métier
     - urn: urn:intuitem:risk:req_node:recyf:5.b.2
       assessable: true
       depth: 3
@@ -1169,6 +1316,9 @@ objects:
         \ des outils de protection contre les codes malveillants qu\u2019elle utilise\
         \ (par exemple : la mise \xE0 jour de la base antivirale de l\u2019antivirus,\
         \ la mise \xE0 jour des signatures utilis\xE9es par la solution d\u2019EDR)."
+      annotation: "Type d'actif évalué : Systèmes d'Information & Applications Métier"
+      target_asset_types:
+      - "Systèmes d'Information & Applications Métier"
       implementation_groups:
       - EI
       - EE
@@ -1197,6 +1347,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 5.B.3 [EI / EE] : Veille proactive sur les vulnérabilités, correctifs et menaces cyber affectant les composants du SI
+    # Type d'actif cible : Systèmes d'Information & Applications Métier
     - urn: urn:intuitem:risk:req_node:recyf:5.b.3
       assessable: true
       depth: 3
@@ -1211,6 +1362,9 @@ objects:
         \ s\xE9curit\xE9 tels que le CERT-FR (centre gouvernemental de veille, d\u2019\
         alerte et de r\xE9ponse aux attaques informatiques) ou les CSIRT (centres\
         \ de r\xE9ponse aux incidents de s\xE9curit\xE9 informatique)."
+      annotation: "Type d'actif évalué : Systèmes d'Information & Applications Métier"
+      target_asset_types:
+      - "Systèmes d'Information & Applications Métier"
       implementation_groups:
       - EI
       - EE
@@ -1238,6 +1392,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 5.B.4 [EI / EE] : Mise en œuvre sans délai des actions correctives pour les vulnérabilités critiques identifiées
+    # Type d'actif cible : Systèmes d'Information & Applications Métier
     - urn: urn:intuitem:risk:req_node:recyf:5.b.4
       assessable: true
       depth: 3
@@ -1252,6 +1407,9 @@ objects:
         \ actions pr\xE9c\xE9dentes\nsur les ressources expos\xE9es \xE0 des syst\xE8\
         mes d\u2019information tiers (par exemple : un serveur Web, un pare-feu expos\xE9\
         \ sur Internet, un serveur de messagerie) et les postes de travail des utilisateurs."
+      annotation: "Type d'actif évalué : Systèmes d'Information & Applications Métier"
+      target_asset_types:
+      - "Systèmes d'Information & Applications Métier"
       implementation_groups:
       - EI
       - EE
@@ -1279,6 +1437,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 5.B.5 [EE] : Planification et installation régulière des correctifs de sécurité sur l'ensemble des ressources
+    # Type d'actif cible : Systèmes d'Information & Applications Métier
     - urn: urn:intuitem:risk:req_node:recyf:5.b.5
       assessable: true
       depth: 3
@@ -1287,6 +1446,9 @@ objects:
       description: "L\u2019entit\xE9 planifie et installe sur l\u2019ensemble de ses\
         \ ressources, y compris celles non expos\xE9es \xE0 des syst\xE8mes d\u2019\
         information tiers, les correctifs de s\xE9curit\xE9."
+      annotation: "Type d'actif évalué : Systèmes d'Information & Applications Métier"
+      target_asset_types:
+      - "Systèmes d'Information & Applications Métier"
       implementation_groups:
       - EE
       reference_controls:
@@ -1313,6 +1475,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 5.B.6 [EI / EE] : Mesures de protection compensatoires en cas d'impossibilité technique de déployer un correctif
+    # Type d'actif cible : Systèmes d'Information & Applications Métier
     - urn: urn:intuitem:risk:req_node:recyf:5.b.6
       assessable: true
       depth: 3
@@ -1325,6 +1488,9 @@ objects:
         une version comportant des vuln\xE9rabilit\xE9s connues (par exemple : isoler\
         \ la ressource du reste du SI, mettre en place un contr\xF4le d'acc\xE8s renforc\xE9\
         )."
+      annotation: "Type d'actif évalué : Systèmes d'Information & Applications Métier"
+      target_asset_types:
+      - "Systèmes d'Information & Applications Métier"
       implementation_groups:
       - EI
       - EE
@@ -1347,6 +1513,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 5.B.7 [EI / EE] : Installation et maintien à niveau des versions supportées pour les composants exposés
+    # Type d'actif cible : Systèmes d'Information & Applications Métier
     - urn: urn:intuitem:risk:req_node:recyf:5.b.7
       assessable: true
       depth: 3
@@ -1357,6 +1524,9 @@ objects:
         \ de ses syst\xE8mes d\u2019information, y compris les logiciels embarqu\xE9\
         s, dans des versions b\xE9n\xE9ficiant d\u2019un support par leurs fournisseurs\
         \ ou leurs fabricants et comportant les mises \xE0 jour de s\xE9curit\xE9."
+      annotation: "Type d'actif évalué : Systèmes d'Information & Applications Métier"
+      target_asset_types:
+      - "Systèmes d'Information & Applications Métier"
       implementation_groups:
       - EI
       - EE
@@ -1384,6 +1554,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 5.B.8 [EI / EE] : Téléchargement et vérification d'intégrité des logiciels depuis les canaux et sources officielles
+    # Type d'actif cible : Systèmes d'Information & Applications Métier
     - urn: urn:intuitem:risk:req_node:recyf:5.b.8
       assessable: true
       depth: 3
@@ -1392,6 +1563,9 @@ objects:
       description: "L\u2019entit\xE9 v\xE9rifie que toute nouvelle version d\u2019\
         un logiciel est t\xE9l\xE9charg\xE9e depuis les ressources officielles mises\
         \ \xE0 disposition par les \xE9diteurs ou les fournisseurs."
+      annotation: "Type d'actif évalué : Systèmes d'Information & Applications Métier"
+      target_asset_types:
+      - "Systèmes d'Information & Applications Métier"
       implementation_groups:
       - EI
       - EE
@@ -1414,6 +1588,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 5.B.9 [EI / EE] : Mesures compensatoires et isolement renforcé en cas de maintien d'une version logicielle obsolète
+    # Type d'actif cible : Systèmes d'Information & Applications Métier
     - urn: urn:intuitem:risk:req_node:recyf:5.b.9
       assessable: true
       depth: 3
@@ -1424,6 +1599,9 @@ objects:
         \ ou l\u2019\xE9diteur, l\u2019entit\xE9 met en \u0153uvre des mesures pour\
         \ r\xE9duire les risques li\xE9s \xE0 l\u2019utilisation d\u2019une version\
         \ obsol\xE8te."
+      annotation: "Type d'actif évalué : Systèmes d'Information & Applications Métier"
+      target_asset_types:
+      - "Systèmes d'Information & Applications Métier"
       implementation_groups:
       - EI
       - EE
@@ -1457,6 +1635,7 @@ objects:
       ref_id: '6'
       name: "Objectif de s\xE9curit\xE9 6: Maitrise des acc\xE8s physiques aux locaux"
     # Exigence 6.1 [EI / EE] : Mesures de contrôle d'accès physique limitant l'intrusion de personnes non autorisées
+    # Type d'actif cible : Locaux Physiques & Salles Serveurs
     - urn: urn:intuitem:risk:req_node:recyf:6.1
       assessable: true
       depth: 2
@@ -1466,6 +1645,9 @@ objects:
         \ de limiter l\u2019acc\xE8s de personnes non autoris\xE9es \xE0 ses locaux,\
         \ ses salles serveurs et ses locaux techniques (par exemple : tenue d\u2019\
         un registre des visiteurs, badges d\u2019acc\xE8s, etc)."
+      annotation: "Type d'actif évalué : Locaux Physiques & Salles Serveurs"
+      target_asset_types:
+      - "Locaux Physiques & Salles Serveurs"
       implementation_groups:
       - EI
       - EE
@@ -1494,6 +1676,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 6.2 [EE] : Protection physique renforcée des locaux sensibles, répartiteurs et salles serveurs
+    # Type d'actif cible : Locaux Physiques & Salles Serveurs
     - urn: urn:intuitem:risk:req_node:recyf:6.2
       assessable: true
       depth: 2
@@ -1503,6 +1686,9 @@ objects:
         \ salles serveurs et locaux techniques (par exemple : vid\xE9osurveillance,\
         \ gardiennage, alarme).\nCette protection physique permet de pr\xE9venir,\
         \ de surveiller et de r\xE9agir aux acc\xE8s non autoris\xE9s \xE0 ces locaux."
+      annotation: "Type d'actif évalué : Locaux Physiques & Salles Serveurs"
+      target_asset_types:
+      - "Locaux Physiques & Salles Serveurs"
       implementation_groups:
       - EE
       reference_controls:
@@ -1525,6 +1711,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 6.3 [EE] : Attribution des accès physiques selon le strict besoin d'en connaître et revue des droits
+    # Type d'actif cible : Locaux Physiques & Salles Serveurs
     - urn: urn:intuitem:risk:req_node:recyf:6.3
       assessable: true
       depth: 2
@@ -1533,6 +1720,9 @@ objects:
       description: "L\u2019entit\xE9 s\u2019assure que les droits d'acc\xE8s physique\
         \ sont attribu\xE9s au regard du besoin strictement n\xE9cessaire \xE0 l\u2019\
         ex\xE9cution des missions des personnes."
+      annotation: "Type d'actif évalué : Locaux Physiques & Salles Serveurs"
+      target_asset_types:
+      - "Locaux Physiques & Salles Serveurs"
       implementation_groups:
       - EE
       reference_controls:
@@ -1560,6 +1750,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 6.4 [EI / EE] : Encadrement, enregistrement et accompagnement permanent des visiteurs et prestataires externes
+    # Type d'actif cible : Locaux Physiques & Salles Serveurs
     - urn: urn:intuitem:risk:req_node:recyf:6.4
       assessable: true
       depth: 2
@@ -1568,6 +1759,9 @@ objects:
       description: "L'entit\xE9 s'assure que les personnes externes acc\xE9dant aux\
         \ locaux techniques et salles serveurs de l\u2019entit\xE9 sont accompagn\xE9\
         es ou d\xFBment autoris\xE9es."
+      annotation: "Type d'actif évalué : Locaux Physiques & Salles Serveurs"
+      target_asset_types:
+      - "Locaux Physiques & Salles Serveurs"
       implementation_groups:
       - EI
       - EE
@@ -1613,6 +1807,7 @@ objects:
       ref_id: 7.A
       name: Cloisonnement
     # Exigence 7.A.1 [EI / EE] : Cloisonnement physique ou logique du SI vis-à-vis des réseaux tiers et d'Internet
+    # Type d'actif cible : Architecture Réseau & Accès Distants
     - urn: urn:intuitem:risk:req_node:recyf:7.a.1
       assessable: true
       depth: 3
@@ -1625,6 +1820,9 @@ objects:
         curit\xE9 et les syst\xE8mes d\u2019information tiers (par exemple : cloisonnement\
         \ logique par VLAN \u2013 r\xE9seau local virtuel - (r\xE9seau), par VM \u2013\
         \ machine virtuelle - (calcul) ou par volume (stockage))."
+      annotation: "Type d'actif évalué : Architecture Réseau & Accès Distants"
+      target_asset_types:
+      - "Architecture Réseau & Accès Distants"
       implementation_groups:
       - EI
       - EE
@@ -1654,6 +1852,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 7.A.2 [EE] : Cloisonnement physique ou logique entre les différents systèmes d'information internes de l'entité
+    # Type d'actif cible : Architecture Réseau & Accès Distants
     - urn: urn:intuitem:risk:req_node:recyf:7.a.2
       assessable: true
       depth: 3
@@ -1668,6 +1867,9 @@ objects:
         \ de l\u2019entit\xE9. Il est aussi cloisonn\xE9 physiquement des syst\xE8\
         mes d\u2019information de l\u2019entit\xE9 pour lesquels elle a d\xE9cid\xE9\
         \ de ne pas appliquer les objectifs de s\xE9curit\xE9)."
+      annotation: "Type d'actif évalué : Architecture Réseau & Accès Distants"
+      target_asset_types:
+      - "Architecture Réseau & Accès Distants"
       implementation_groups:
       - EE
       reference_controls:
@@ -1695,6 +1897,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 7.A.3 [EE] : Analyse d'opportunité et définition de sous-systèmes homogènes par niveau de sensibilité
+    # Type d'actif cible : Architecture Réseau & Accès Distants
     - urn: urn:intuitem:risk:req_node:recyf:7.a.3
       assessable: true
       depth: 3
@@ -1706,6 +1909,9 @@ objects:
         \ en apporte la justification.\nUn sous-syst\xE8me regroupe des ressources\
         \ assurant des fonctionnalit\xE9s similaires et ayant des niveaux de sensibilit\xE9\
         , d\u2019exposition et de s\xE9curit\xE9 homog\xE8nes."
+      annotation: "Type d'actif évalué : Architecture Réseau & Accès Distants"
+      target_asset_types:
+      - "Architecture Réseau & Accès Distants"
       implementation_groups:
       - EE
       reference_controls:
@@ -1727,6 +1933,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 7.A.4 [EE] : Cloisonnement effectif et étanche des sous-systèmes identifiés
+    # Type d'actif cible : Architecture Réseau & Accès Distants
     - urn: urn:intuitem:risk:req_node:recyf:7.a.4
       assessable: true
       depth: 3
@@ -1734,6 +1941,9 @@ objects:
       ref_id: 7.A.4
       description: "Les sous-syst\xE8mes identifi\xE9s \xE0 la mesure 7.A.3-EE sont\
         \ cloisonn\xE9s entre eux physiquement et/ou logiquement."
+      annotation: "Type d'actif évalué : Architecture Réseau & Accès Distants"
+      target_asset_types:
+      - "Architecture Réseau & Accès Distants"
       implementation_groups:
       - EE
       reference_controls:
@@ -1761,6 +1971,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 7.A.5 [EE] : Mise en place d'une passerelle sortante sécurisée (proxy sortant, filtrage des flux)
+    # Type d'actif cible : Architecture Réseau & Accès Distants
     - urn: urn:intuitem:risk:req_node:recyf:7.a.5
       assessable: true
       depth: 3
@@ -1772,6 +1983,9 @@ objects:
         informations tiers ;\n\u2022\td\u2019authentifier, de filtrer et de tracer\
         \ les acc\xE8s aux syst\xE8mes d\u2019information tiers (par exemple : un\
         \ serveur mandataire)."
+      annotation: "Type d'actif évalué : Architecture Réseau & Accès Distants"
+      target_asset_types:
+      - "Architecture Réseau & Accès Distants"
       implementation_groups:
       - EE
       reference_controls:
@@ -1793,6 +2007,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 7.A.6 [EE] : Mise en place d'une passerelle entrante sécurisée (DMZ, reverse-proxy, WAF)
+    # Type d'actif cible : Architecture Réseau & Accès Distants
     - urn: urn:intuitem:risk:req_node:recyf:7.a.6
       assessable: true
       depth: 3
@@ -1804,6 +2019,9 @@ objects:
         information tiers ;\n\u2022\tde filtrer et de tracer les acc\xE8s depuis des\
         \ syst\xE8mes d\u2019information tiers (par exemple : un serveur mandataire\
         \ inverse ou un relai)."
+      annotation: "Type d'actif évalué : Architecture Réseau & Accès Distants"
+      target_asset_types:
+      - "Architecture Réseau & Accès Distants"
       implementation_groups:
       - EE
       reference_controls:
@@ -1826,6 +2044,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 7.A.7 [EI / EE] : Restriction stricte des interconnexions au seul besoin opérationnel avéré et documenté
+    # Type d'actif cible : Architecture Réseau & Accès Distants
     - urn: urn:intuitem:risk:req_node:recyf:7.a.7
       assessable: true
       depth: 3
@@ -1838,6 +2057,9 @@ objects:
         mes d\u2019information tiers et, d\u2019autre part les autres syst\xE8mes\
         \ d\u2019information sous la responsabilit\xE9 de l\u2019entit\xE9 pour lesquels\
         \ elle a d\xE9cid\xE9 de ne pas appliquer les objectifs de s\xE9curit\xE9."
+      annotation: "Type d'actif évalué : Architecture Réseau & Accès Distants"
+      target_asset_types:
+      - "Architecture Réseau & Accès Distants"
       implementation_groups:
       - EI
       - EE
@@ -1860,6 +2082,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 7.A.8 [EE] : Formalisation, analyse d'impact et validation préalable de toute nouvelle interconnexion réseau
+    # Type d'actif cible : Architecture Réseau & Accès Distants
     - urn: urn:intuitem:risk:req_node:recyf:7.a.8
       assessable: true
       depth: 3
@@ -1873,6 +2096,9 @@ objects:
         \ sous la responsabilit\xE9 de l\u2019entit\xE9 pour lesquels elle a d\xE9\
         cid\xE9 de ne pas appliquer les objectifs de s\xE9curit\xE9, ou entre les\
         \ sous-syst\xE8mes du syst\xE8me d\u2019information."
+      annotation: "Type d'actif évalué : Architecture Réseau & Accès Distants"
+      target_asset_types:
+      - "Architecture Réseau & Accès Distants"
       implementation_groups:
       - EE
       reference_controls:
@@ -1910,6 +2136,7 @@ objects:
       ref_id: 7.B
       name: Filtrage des communications
     # Exigence 7.B.1 [EI / EE] : Documentation exhaustive des communications et flux applicatifs métier nécessaires
+    # Type d'actif cible : Architecture Réseau & Accès Distants
     - urn: urn:intuitem:risk:req_node:recyf:7.b.1
       assessable: true
       depth: 3
@@ -1922,6 +2149,9 @@ objects:
         mes d\u2019information pour lesquels elle a d\xE9cid\xE9 de ne pas appliquer\
         \ les objectifs de s\xE9curit\xE9, d\u2019une part, et les syst\xE8mes d\u2019\
         information tiers, d\u2019autre part."
+      annotation: "Type d'actif évalué : Architecture Réseau & Accès Distants"
+      target_asset_types:
+      - "Architecture Réseau & Accès Distants"
       implementation_groups:
       - EI
       - EE
@@ -1949,6 +2179,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 7.B.2 [EE] : Documentation des communications nécessaires à l'administration et au maintien opérationnel
+    # Type d'actif cible : Architecture Réseau & Accès Distants
     - urn: urn:intuitem:risk:req_node:recyf:7.b.2
       assessable: true
       depth: 3
@@ -1957,6 +2188,9 @@ objects:
       description: "L\u2019entit\xE9 d\xE9finit et documente les communications n\xE9\
         cessaires au maintien en condition op\xE9rationnelle de s\xE9curit\xE9 circulant\
         \ entre les sous-syst\xE8mes du syst\xE8me d\u2019information."
+      annotation: "Type d'actif évalué : Architecture Réseau & Accès Distants"
+      target_asset_types:
+      - "Architecture Réseau & Accès Distants"
       implementation_groups:
       - EE
       reference_controls:
@@ -1978,6 +2212,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 7.B.3 [EI / EE] : Règles de filtrage interdisant tout flux non expressément autorisé (déni par défaut)
+    # Type d'actif cible : Architecture Réseau & Accès Distants
     - urn: urn:intuitem:risk:req_node:recyf:7.b.3
       assessable: true
       depth: 3
@@ -1987,6 +2222,9 @@ objects:
         \ les r\xE8gles de filtrage pour n\u2019autoriser que les communications identifi\xE9\
         es \xE0 la mesure 7.B.1-EI/EE ou 7.B.2-EE. Les autres communications sont\
         \ bloqu\xE9es par d\xE9faut."
+      annotation: "Type d'actif évalué : Architecture Réseau & Accès Distants"
+      target_asset_types:
+      - "Architecture Réseau & Accès Distants"
       implementation_groups:
       - EI
       - EE
@@ -2010,6 +2248,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 7.B.4 [EI / EE] : Filtrage des communications au moyen d'un ou plusieurs pare-feux dédiés à cet usage
+    # Type d'actif cible : Architecture Réseau & Accès Distants
     - urn: urn:intuitem:risk:req_node:recyf:7.b.4
       assessable: true
       depth: 3
@@ -2024,6 +2263,9 @@ objects:
         \ (pour lesquels elle applique les objectifs de s\xE9curit\xE9 ou non) d\u2019\
         une part et les syst\xE8mes d\u2019information tiers d\u2019autre part est\
         \ une solution acceptable."
+      annotation: "Type d'actif évalué : Architecture Réseau & Accès Distants"
+      target_asset_types:
+      - "Architecture Réseau & Accès Distants"
       implementation_groups:
       - EI
       - EE
@@ -2046,6 +2288,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 7.B.5 [EI / EE] : Revue annuelle obligatoire de la conformité et de l'efficacité technique des règles de filtrage
+    # Type d'actif cible : Architecture Réseau & Accès Distants
     - urn: urn:intuitem:risk:req_node:recyf:7.b.5
       assessable: true
       depth: 3
@@ -2054,6 +2297,9 @@ objects:
       description: "L\u2019entit\xE9 effectue annuellement une revue de la mise en\
         \ \u0153uvre technique des r\xE8gles de filtrage mentionn\xE9es \xE0 la mesure\
         \ 7.B.4-EI/EE."
+      annotation: "Type d'actif évalué : Architecture Réseau & Accès Distants"
+      target_asset_types:
+      - "Architecture Réseau & Accès Distants"
       implementation_groups:
       - EI
       - EE
@@ -2094,6 +2340,7 @@ objects:
       name: "Objectif de s\xE9curit\xE9 8: S\xE9curisation des acc\xE8s distants aux\
         \ syst\xE8mes d'information"
     # Exigence 8.1 [EI / EE] : Encadrement et protection technique des accès distants aux systèmes d'information
+    # Type d'actif cible : Architecture Réseau & Accès Distants
     - urn: urn:intuitem:risk:req_node:recyf:8.1
       assessable: true
       depth: 2
@@ -2105,6 +2352,9 @@ objects:
         \ de l\u2019autorit\xE9 nationale de s\xE9curit\xE9 des syst\xE8mes d\u2019\
         information (par exemple : VPN TLS ou IPSec, protocoles applicatifs chiffr\xE9\
         s comme TLS, SSH, etc.)."
+      annotation: "Type d'actif évalué : Architecture Réseau & Accès Distants"
+      target_asset_types:
+      - "Architecture Réseau & Accès Distants"
       implementation_groups:
       - EI
       - EE
@@ -2133,6 +2383,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 8.2 [EI / EE] : Chiffrement robuste de bout en bout des canaux de communication distants (VPN/TLS)
+    # Type d'actif cible : Architecture Réseau & Accès Distants
     - urn: urn:intuitem:risk:req_node:recyf:8.2
       assessable: true
       depth: 2
@@ -2143,6 +2394,9 @@ objects:
         entit\xE9 prot\xE8ge les acc\xE8s aux syst\xE8mes d\u2019information par un\
         \ m\xE9canisme d'authentification conforme aux mesures relatives \xE0 l\u2019\
         Authentification."
+      annotation: "Type d'actif évalué : Architecture Réseau & Accès Distants"
+      target_asset_types:
+      - "Architecture Réseau & Accès Distants"
       implementation_groups:
       - EI
       - EE
@@ -2166,6 +2420,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 8.3 [EE] : Authentification multi-facteurs (MFA) obligatoire pour tout accès distant au SI
+    # Type d'actif cible : Architecture Réseau & Accès Distants
     - urn: urn:intuitem:risk:req_node:recyf:8.3
       assessable: true
       depth: 2
@@ -2175,6 +2430,9 @@ objects:
         \ d\u2019authentification est multifacteur et repose sur au moins un facteur\
         \ de connaissance (par exemple : authentification avec une carte \xE0 puce\
         \ et un code PIN)."
+      annotation: "Type d'actif évalué : Architecture Réseau & Accès Distants"
+      target_asset_types:
+      - "Architecture Réseau & Accès Distants"
       implementation_groups:
       - EE
       reference_controls:
@@ -2201,6 +2459,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 8.4 [EE] : Mesures compensatoires strictes en cas d'impossibilité technique de mettre en œuvre du MFA
+    # Type d'actif cible : Architecture Réseau & Accès Distants
     - urn: urn:intuitem:risk:req_node:recyf:8.4
       assessable: true
       depth: 2
@@ -2210,6 +2469,9 @@ objects:
         \ pas la mise en \u0153uvre d\u2019une authentification multifacteur, l\u2019\
         entit\xE9 met en \u0153uvre des mesures permettant de r\xE9duire le risque\
         \ associ\xE9."
+      annotation: "Type d'actif évalué : Architecture Réseau & Accès Distants"
+      target_asset_types:
+      - "Architecture Réseau & Accès Distants"
       implementation_groups:
       - EE
       reference_controls:
@@ -2231,6 +2493,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 8.5 [EE] : Chiffrement intégral des mémoires de masse (disques) des postes nomades et équipements mobiles
+    # Type d'actif cible : Postes de Travail & Terminaux Nomades
     - urn: urn:intuitem:risk:req_node:recyf:8.5
       assessable: true
       depth: 2
@@ -2245,6 +2508,9 @@ objects:
         \xE9tat de l\u2019art tel que recommand\xE9 par l\u2019autorit\xE9 nationale\
         \ de s\xE9curit\xE9 des syst\xE8mes d\u2019information (par exemple : disques\
         \ chiffr\xE9s avec code PIN exig\xE9 pour le d\xE9chiffrement au d\xE9marrage)."
+      annotation: "Type d'actif évalué : Postes de Travail & Terminaux Nomades"
+      target_asset_types:
+      - "Postes de Travail & Terminaux Nomades"
       implementation_groups:
       - EE
       reference_controls:
@@ -2284,6 +2550,7 @@ objects:
       name: "Objectif de s\xE9curit\xE9 9: Protection des syst\xE8mes d'information\
         \ contre les codes malveillants"
     # Exigence 9.1 [EI / EE] : Définition des catégories de ressources matérielles et terminaux autorisés à se connecter au SI
+    # Type d'actif cible : Postes de Travail & Terminaux Nomades
     - urn: urn:intuitem:risk:req_node:recyf:9.1
       assessable: true
       depth: 2
@@ -2293,6 +2560,9 @@ objects:
         \ particulier les terminaux, autoris\xE9es \xE0 se connecter \xE0 ses syst\xE8\
         mes d\u2019information.\nNB : Cette mesure autorise le AVEC (Apportez votre\
         \ \xE9quipement de communication) ou BYOD en anglais."
+      annotation: "Type d'actif évalué : Postes de Travail & Terminaux Nomades"
+      target_asset_types:
+      - "Postes de Travail & Terminaux Nomades"
       implementation_groups:
       - EI
       - EE
@@ -2315,6 +2585,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 9.2 [EE] : Connexion restreinte aux seuls équipements matériels sous la maîtrise de l'entité ou de ses prestataires
+    # Type d'actif cible : Postes de Travail & Terminaux Nomades
     - urn: urn:intuitem:risk:req_node:recyf:9.2
       assessable: true
       depth: 2
@@ -2327,6 +2598,9 @@ objects:
         \ s\xE9curit\xE9 se connectent aux syst\xE8mes d\u2019information.\nNB : Cette\
         \ mesure interdit le AVEC (Apportez votre \xE9quipement de communication)\
         \ ou BYOD en anglais."
+      annotation: "Type d'actif évalué : Postes de Travail & Terminaux Nomades"
+      target_asset_types:
+      - "Postes de Travail & Terminaux Nomades"
       implementation_groups:
       - EE
       reference_controls:
@@ -2354,6 +2628,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 9.3 [EI / EE] : Mesures techniques et organisationnelles empêchant la connexion d'équipements non autorisés
+    # Type d'actif cible : Postes de Travail & Terminaux Nomades
     - urn: urn:intuitem:risk:req_node:recyf:9.3
       assessable: true
       depth: 2
@@ -2363,6 +2638,9 @@ objects:
         \ ou techniques visant \xE0 emp\xEAcher la connexion des ressources mat\xE9\
         rielles autres que celles identifi\xE9es \xE0 la mesure 9.1-EI/EE sur ses\
         \ syst\xE8mes d\u2019information."
+      annotation: "Type d'actif évalué : Postes de Travail & Terminaux Nomades"
+      target_asset_types:
+      - "Postes de Travail & Terminaux Nomades"
       implementation_groups:
       - EI
       - EE
@@ -2385,6 +2663,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 9.4 [EE] : Blocage des connexions réseau non autorisées (contrôle d'accès au réseau local et sans-fil)
+    # Type d'actif cible : Postes de Travail & Terminaux Nomades
     - urn: urn:intuitem:risk:req_node:recyf:9.4
       assessable: true
       depth: 2
@@ -2394,6 +2673,9 @@ objects:
         \ ou techniques visant \xE0 emp\xEAcher la connexion des ressources mat\xE9\
         rielles autres que celles identifi\xE9es \xE0 la mesure 9.2-EE sur ses syst\xE8\
         mes d\u2019information."
+      annotation: "Type d'actif évalué : Postes de Travail & Terminaux Nomades"
+      target_asset_types:
+      - "Postes de Travail & Terminaux Nomades"
       implementation_groups:
       - EE
       reference_controls:
@@ -2420,6 +2702,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 9.5 [EI / EE] : Encadrement strict et limitation de l'usage des supports amovibles (clés USB réinscriptibles)
+    # Type d'actif cible : Postes de Travail & Terminaux Nomades
     - urn: urn:intuitem:risk:req_node:recyf:9.5
       assessable: true
       depth: 2
@@ -2430,6 +2713,9 @@ objects:
         \ ou au maintien en condition op\xE9rationnelle ou de s\xE9curit\xE9 se connectent\
         \ \xE0 ses syst\xE8mes d\u2019information (par exemple : clefs USB ou disques\
         \ dur amovibles)."
+      annotation: "Type d'actif évalué : Postes de Travail & Terminaux Nomades"
+      target_asset_types:
+      - "Postes de Travail & Terminaux Nomades"
       implementation_groups:
       - EI
       - EE
@@ -2457,6 +2743,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 9.6 [EI / EE] : Déploiement d'une solution de protection antivirus / EDR active sur postes et serveurs
+    # Type d'actif cible : Postes de Travail & Terminaux Nomades
     - urn: urn:intuitem:risk:req_node:recyf:9.6
       assessable: true
       depth: 2
@@ -2470,6 +2757,9 @@ objects:
         \ et l\u2019int\xE9grit\xE9 sont v\xE9rifi\xE9es, disposent de m\xE9canismes\
         \ de protection contre les risques d'ex\xE9cution de codes malveillants (par\
         \ exemple : un antivirus ou un EDR)."
+      annotation: "Type d'actif évalué : Postes de Travail & Terminaux Nomades"
+      target_asset_types:
+      - "Postes de Travail & Terminaux Nomades"
       implementation_groups:
       - EI
       - EE
@@ -2498,6 +2788,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 9.7 [EI / EE] : Analyse antivirale et filtrage systématique des fichiers et données provenant de sources externes
+    # Type d'actif cible : Postes de Travail & Terminaux Nomades
     - urn: urn:intuitem:risk:req_node:recyf:9.7
       assessable: true
       depth: 2
@@ -2510,6 +2801,9 @@ objects:
         int\xE9grit\xE9 sont v\xE9rifi\xE9es (par exemple : une passerelle mail analysant\
         \ les pi\xE8ces jointes avant distribution, un SAS de d\xE9contamination antivirale\
         \ pour les clefs USB)."
+      annotation: "Type d'actif évalué : Postes de Travail & Terminaux Nomades"
+      target_asset_types:
+      - "Postes de Travail & Terminaux Nomades"
       implementation_groups:
       - EI
       - EE
@@ -2556,6 +2850,7 @@ objects:
       ref_id: 10.A
       name: Identification
     # Exigence 10.A.1 [EI / EE] : Identification nominative et unique de chaque utilisateur et processus automatique accédant au SI
+    # Type d'actif cible : Identités, Accès & Annuaires (IAM / AD)
     - urn: urn:intuitem:risk:req_node:recyf:10.a.1
       assessable: true
       depth: 3
@@ -2565,6 +2860,9 @@ objects:
         \ ressources des syst\xE8mes d\u2019information de l\u2019entit\xE9 disposent\
         \ de comptes individuels. Les utilisateurs peuvent, le cas \xE9ch\xE9ant,\
         \ disposer de plusieurs comptes individuels."
+      annotation: "Type d'actif évalué : Identités, Accès & Annuaires (IAM / AD)"
+      target_asset_types:
+      - "Identités, Accès & Annuaires (IAM / AD)"
       implementation_groups:
       - EI
       - EE
@@ -2592,6 +2890,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 10.A.2 [EI / EE] : Usage strictement individuel et personnel du compte utilisateur par son titulaire
+    # Type d'actif cible : Identités, Accès & Annuaires (IAM / AD)
     - urn: urn:intuitem:risk:req_node:recyf:10.a.2
       assessable: true
       depth: 3
@@ -2600,6 +2899,9 @@ objects:
       description: "L\u2019emploi d\u2019un compte individuel du syst\xE8me d\u2019\
         information est r\xE9serv\xE9 \xE0 l\u2019utilisateur ou au processus automatique\
         \ auquel ce compte a \xE9t\xE9 attribu\xE9."
+      annotation: "Type d'actif évalué : Identités, Accès & Annuaires (IAM / AD)"
+      target_asset_types:
+      - "Identités, Accès & Annuaires (IAM / AD)"
       implementation_groups:
       - EI
       - EE
@@ -2621,6 +2923,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 10.A.3 [EI / EE] : Encadrement dérogatoire, traçabilité et justification formelle des comptes partagés ou génériques
+    # Type d'actif cible : Identités, Accès & Annuaires (IAM / AD)
     - urn: urn:intuitem:risk:req_node:recyf:10.a.3
       assessable: true
       depth: 3
@@ -2633,6 +2936,9 @@ objects:
         s et d'assurer la tra\xE7abilit\xE9 de l'utilisation de ces comptes (par exemple\
         \ : carnet de quart dans une salle de supervision, badgeuse \xE0 l\u2019entr\xE9\
         e de la salle)."
+      annotation: "Type d'actif évalué : Identités, Accès & Annuaires (IAM / AD)"
+      target_asset_types:
+      - "Identités, Accès & Annuaires (IAM / AD)"
       implementation_groups:
       - EI
       - EE
@@ -2660,6 +2966,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 10.A.4 [EI / EE] : Dispense d'identification nominative pour les systèmes de diffusion d'informations publiques
+    # Type d'actif cible : Identités, Accès & Annuaires (IAM / AD)
     - urn: urn:intuitem:risk:req_node:recyf:10.a.4
       assessable: true
       depth: 3
@@ -2671,6 +2978,9 @@ objects:
         \ : l\u2019acc\xE8s \xE0 un site vitrine ne n\xE9cessite pas d\u2019authentifier\
         \ les visiteurs alors que l\u2019acc\xE8s \xE0 l\u2019intranet doit authentifier\
         \ les utilisateurs)."
+      annotation: "Type d'actif évalué : Identités, Accès & Annuaires (IAM / AD)"
+      target_asset_types:
+      - "Identités, Accès & Annuaires (IAM / AD)"
       implementation_groups:
       - EI
       - EE
@@ -2692,6 +3002,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 10.A.5 [EI / EE] : Désactivation immédiate des comptes utilisateurs devenus obsolètes ou lors des départs
+    # Type d'actif cible : Identités, Accès & Annuaires (IAM / AD)
     - urn: urn:intuitem:risk:req_node:recyf:10.a.5
       assessable: true
       depth: 3
@@ -2700,6 +3011,9 @@ objects:
       description: "L\u2019entit\xE9 d\xE9sactive les comptes qui ne sont plus n\xE9\
         cessaires dans les d\xE9lais pr\xE9vus par sa politique de gestion des comptes\
         \ (par exemple : sous 7 jours)."
+      annotation: "Type d'actif évalué : Identités, Accès & Annuaires (IAM / AD)"
+      target_asset_types:
+      - "Identités, Accès & Annuaires (IAM / AD)"
       implementation_groups:
       - EI
       - EE
@@ -2727,6 +3041,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 10.A.6 [EI / EE] : Revue périodique au moins annuelle de l'ensemble des comptes actifs du système d'information
+    # Type d'actif cible : Identités, Accès & Annuaires (IAM / AD)
     - urn: urn:intuitem:risk:req_node:recyf:10.a.6
       assessable: true
       depth: 3
@@ -2736,6 +3051,9 @@ objects:
         \ une revue des comptes. Cette revue doit notamment v\xE9rifier le respect\
         \ des pr\xE9sentes mesures relatives \xE0 l'identification et, le cas \xE9\
         ch\xE9ant, corriger les anomalies."
+      annotation: "Type d'actif évalué : Identités, Accès & Annuaires (IAM / AD)"
+      target_asset_types:
+      - "Identités, Accès & Annuaires (IAM / AD)"
       implementation_groups:
       - EI
       - EE
@@ -2774,6 +3092,7 @@ objects:
       ref_id: 10.B
       name: Authentification
     # Exigence 10.B.1 [EI / EE] : Authentification préalable obligatoire avant tout accès aux ressources des systèmes d'information
+    # Type d'actif cible : Identités, Accès & Annuaires (IAM / AD)
     - urn: urn:intuitem:risk:req_node:recyf:10.b.1
       assessable: true
       depth: 3
@@ -2785,6 +3104,9 @@ objects:
         \ secret (par exemple : un m\xE9canisme d\u2019authentification mono-facteur\
         \ tel qu\u2019un mot de passe, ou multi-facteur, tel qu\u2019une carte \xE0\
         \ puce avec code PIN)."
+      annotation: "Type d'actif évalué : Identités, Accès & Annuaires (IAM / AD)"
+      target_asset_types:
+      - "Identités, Accès & Annuaires (IAM / AD)"
       implementation_groups:
       - EI
       - EE
@@ -2806,6 +3128,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 10.B.2 [EI / EE] : Modification obligatoire de tout secret, mot de passe ou clé configuré par défaut avant mise en service
+    # Type d'actif cible : Identités, Accès & Annuaires (IAM / AD)
     - urn: urn:intuitem:risk:req_node:recyf:10.b.2
       assessable: true
       depth: 3
@@ -2816,6 +3139,9 @@ objects:
         \ l\u2019entit\xE9 s'assure aupr\xE8s du fabricant ou du fournisseur de la\
         \ ressource qu'elle dispose des moyens et des droits permettant d\u2019effectuer\
         \ ces changements."
+      annotation: "Type d'actif évalué : Identités, Accès & Annuaires (IAM / AD)"
+      target_asset_types:
+      - "Identités, Accès & Annuaires (IAM / AD)"
       implementation_groups:
       - EI
       - EE
@@ -2839,6 +3165,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 10.B.3 [EI / EE] : Renouvellement systématique du secret d'un compte partagé lors du départ d'un utilisateur
+    # Type d'actif cible : Identités, Accès & Annuaires (IAM / AD)
     - urn: urn:intuitem:risk:req_node:recyf:10.b.3
       assessable: true
       depth: 3
@@ -2846,6 +3173,9 @@ objects:
       ref_id: 10.B.3
       description: "L\u2019\xE9l\xE9ment secret d'un compte partag\xE9 est renouvel\xE9\
         \ \xE0 chaque retrait d'un utilisateur de ce compte."
+      annotation: "Type d'actif évalué : Identités, Accès & Annuaires (IAM / AD)"
+      target_asset_types:
+      - "Identités, Accès & Annuaires (IAM / AD)"
       implementation_groups:
       - EI
       - EE
@@ -2868,6 +3198,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 10.B.4 [EI / EE] : Confidentialité stricte des éléments secrets d'authentification et interdiction de transmission
+    # Type d'actif cible : Identités, Accès & Annuaires (IAM / AD)
     - urn: urn:intuitem:risk:req_node:recyf:10.b.4
       assessable: true
       depth: 3
@@ -2877,6 +3208,9 @@ objects:
         \ que des utilisateurs autoris\xE9s \xE0 utiliser le compte (par exemple :\
         \ les mots de passe des comptes partag\xE9s peuvent \xEAtre stock\xE9s dans\
         \ un coffre-fort de mots de passe)."
+      annotation: "Type d'actif évalué : Identités, Accès & Annuaires (IAM / AD)"
+      target_asset_types:
+      - "Identités, Accès & Annuaires (IAM / AD)"
       implementation_groups:
       - EI
       - EE
@@ -2904,6 +3238,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 10.B.5 [EI / EE] : Conformité des mécanismes d'authentification aux recommandations et guides de l'ANSSI
+    # Type d'actif cible : Identités, Accès & Annuaires (IAM / AD)
     - urn: urn:intuitem:risk:req_node:recyf:10.b.5
       assessable: true
       depth: 3
@@ -2914,6 +3249,9 @@ objects:
         information en mati\xE8re de complexit\xE9, en tenant compte du niveau de\
         \ complexit\xE9 maximal permis par la ressource concern\xE9e, et en mati\xE8\
         re de fr\xE9quence de renouvellement."
+      annotation: "Type d'actif évalué : Identités, Accès & Annuaires (IAM / AD)"
+      target_asset_types:
+      - "Identités, Accès & Annuaires (IAM / AD)"
       implementation_groups:
       - EI
       - EE
@@ -2940,6 +3278,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 10.B.6 [EI / EE] : Mesures compensatoires en cas d'impossibilité technique de modifier un secret par défaut
+    # Type d'actif cible : Identités, Accès & Annuaires (IAM / AD)
     - urn: urn:intuitem:risk:req_node:recyf:10.b.6
       assessable: true
       depth: 3
@@ -2950,6 +3289,9 @@ objects:
         \ un contr\xF4le d'acc\xE8s appropri\xE9 \xE0 la ressource concern\xE9e ainsi\
         \ que des mesures de r\xE9duction du risque li\xE9 \xE0 l'utilisation d'un\
         \ \xE9l\xE9ment secret d'authentification fixe."
+      annotation: "Type d'actif évalué : Identités, Accès & Annuaires (IAM / AD)"
+      target_asset_types:
+      - "Identités, Accès & Annuaires (IAM / AD)"
       implementation_groups:
       - EI
       - EE
@@ -2972,6 +3314,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 10.B.7 [EE] : Surveillance renforcée et isolement réseau des ressources dotées de secrets non modifiables
+    # Type d'actif cible : Identités, Accès & Annuaires (IAM / AD)
     - urn: urn:intuitem:risk:req_node:recyf:10.b.7
       assessable: true
       depth: 3
@@ -2980,6 +3323,9 @@ objects:
       description: "Dans le cadre de cette exception, l\u2019entit\xE9 met \xE9galement\
         \ en \u0153uvre des mesures de s\xE9curit\xE9 permettant d'assurer la tra\xE7\
         abilit\xE9 des acc\xE8s."
+      annotation: "Type d'actif évalué : Identités, Accès & Annuaires (IAM / AD)"
+      target_asset_types:
+      - "Identités, Accès & Annuaires (IAM / AD)"
       implementation_groups:
       - EE
       reference_controls:
@@ -3012,6 +3358,7 @@ objects:
       ref_id: 10.C
       name: "Droits d'acc\xE8s"
     # Exigence 10.C.1 [EI / EE] : Attribution des droits d'accès exclusivement aux utilisateurs et processus dûment authentifiés
+    # Type d'actif cible : Identités, Accès & Annuaires (IAM / AD)
     - urn: urn:intuitem:risk:req_node:recyf:10.c.1
       assessable: true
       depth: 3
@@ -3019,6 +3366,9 @@ objects:
       ref_id: 10.C.1
       description: "L\u2019entit\xE9 n\u2019attribue des droits qu\u2019aux utilisateurs\
         \ et processus automatiques authentifi\xE9s."
+      annotation: "Type d'actif évalué : Identités, Accès & Annuaires (IAM / AD)"
+      target_asset_types:
+      - "Identités, Accès & Annuaires (IAM / AD)"
       implementation_groups:
       - EI
       - EE
@@ -3040,6 +3390,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 10.C.2 [EI / EE] : Application stricte du principe du moindre privilège selon les missions et responsabilités confiées
+    # Type d'actif cible : Identités, Accès & Annuaires (IAM / AD)
     - urn: urn:intuitem:risk:req_node:recyf:10.c.2
       assessable: true
       depth: 3
@@ -3049,6 +3400,9 @@ objects:
         entit\xE9 n'attribue les droits d'acc\xE8s qu\u2019aux seules ressources n\xE9\
         cessaires \xE0 la r\xE9alisation des activit\xE9s et services de l\u2019entit\xE9\
         \ ou au maintien en condition op\xE9rationnelle ou de s\xE9curit\xE9."
+      annotation: "Type d'actif évalué : Identités, Accès & Annuaires (IAM / AD)"
+      target_asset_types:
+      - "Identités, Accès & Annuaires (IAM / AD)"
       implementation_groups:
       - EI
       - EE
@@ -3076,6 +3430,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 10.C.3 [EI / EE] : Contrôle granulaire des droits d'accès au niveau de chaque ressource du système d'information
+    # Type d'actif cible : Identités, Accès & Annuaires (IAM / AD)
     - urn: urn:intuitem:risk:req_node:recyf:10.c.3
       assessable: true
       depth: 3
@@ -3085,6 +3440,9 @@ objects:
         entit\xE9 n\u2019attribue les droits d\u2019acc\xE8s qu\u2019aux seuls utilisateurs\
         \ et processus automatiques justifiant d\u2019un besoin au regard de leurs\
         \ missions."
+      annotation: "Type d'actif évalué : Identités, Accès & Annuaires (IAM / AD)"
+      target_asset_types:
+      - "Identités, Accès & Annuaires (IAM / AD)"
       implementation_groups:
       - EI
       - EE
@@ -3112,6 +3470,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 10.C.4 [EI / EE] : Revue périodique au moins annuelle des habilitations et privilèges d'accès attribués
+    # Type d'actif cible : Identités, Accès & Annuaires (IAM / AD)
     - urn: urn:intuitem:risk:req_node:recyf:10.c.4
       assessable: true
       depth: 3
@@ -3121,6 +3480,9 @@ objects:
         \ une revue des droits d\u2019acc\xE8s. Cette revue doit notamment v\xE9rifier\
         \ le respect des pr\xE9sentes mesures relatives au droit d\u2019acc\xE8s et,\
         \ le cas \xE9ch\xE9ant, corriger les anomalies."
+      annotation: "Type d'actif évalué : Identités, Accès & Annuaires (IAM / AD)"
+      target_asset_types:
+      - "Identités, Accès & Annuaires (IAM / AD)"
       implementation_groups:
       - EI
       - EE
@@ -3171,6 +3533,7 @@ objects:
       ref_id: 11.A
       name: Comptes d'administration
     # Exigence 11.A.1 [EI / EE] : Exclusivité des actions d'administration via des comptes d'administration dédiés
+    # Type d'actif cible : Ressources d'Administration Dédiées (PAV)
     - urn: urn:intuitem:risk:req_node:recyf:11.a.1
       assessable: true
       depth: 3
@@ -3183,6 +3546,9 @@ objects:
         \ exclusivement pour l\u2019administration de ce poste. L\u2019utilisateur\
         \ de ce poste dispose d\u2019un compte bureautique non administrateur pour\
         \ son utilisation quotidienne."
+      annotation: "Type d'actif évalué : Ressources d'Administration Dédiées (PAV)"
+      target_asset_types:
+      - "Ressources d'Administration Dédiées (PAV)"
       implementation_groups:
       - EI
       - EE
@@ -3211,6 +3577,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 11.A.2 [EI / EE] : Comptes d'administration réservés aux seuls administrateurs dûment habilités
+    # Type d'actif cible : Ressources d'Administration Dédiées (PAV)
     - urn: urn:intuitem:risk:req_node:recyf:11.a.2
       assessable: true
       depth: 3
@@ -3218,6 +3585,9 @@ objects:
       ref_id: 11.A.2
       description: "Les comptes d\u2019administration ne sont utilis\xE9s que par\
         \ des administrateurs ou des personnes autoris\xE9es."
+      annotation: "Type d'actif évalué : Ressources d'Administration Dédiées (PAV)"
+      target_asset_types:
+      - "Ressources d'Administration Dédiées (PAV)"
       implementation_groups:
       - EI
       - EE
@@ -3240,6 +3610,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 11.A.3 [EI / EE] : Application des exigences renforcées d'identification et d'authentification aux comptes d'admin
+    # Type d'actif cible : Ressources d'Administration Dédiées (PAV)
     - urn: urn:intuitem:risk:req_node:recyf:11.a.3
       assessable: true
       depth: 3
@@ -3248,6 +3619,9 @@ objects:
       description: "Les comptes d\u2019administration respectent les mesures relatives\
         \ \xE0 la gestion des identit\xE9s et des acc\xE8s des utilisateurs aux syst\xE8\
         mes d\u2019information."
+      annotation: "Type d'actif évalué : Ressources d'Administration Dédiées (PAV)"
+      target_asset_types:
+      - "Ressources d'Administration Dédiées (PAV)"
       implementation_groups:
       - EI
       - EE
@@ -3275,6 +3649,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 11.A.4 [EE] : Usage exclusif du compte d'administration sur son périmètre technique autorisé
+    # Type d'actif cible : Ressources d'Administration Dédiées (PAV)
     - urn: urn:intuitem:risk:req_node:recyf:11.a.4
       assessable: true
       depth: 3
@@ -3285,6 +3660,9 @@ objects:
         \ d\u2019administration, ou \xE0 une ressource d\u2019administration (par\
         \ exemple : le compte administrateur d\u2019un routeur est utilis\xE9 depuis\
         \ un poste d\u2019administration ou sur le routeur pour l\u2019administrer)."
+      annotation: "Type d'actif évalué : Ressources d'Administration Dédiées (PAV)"
+      target_asset_types:
+      - "Ressources d'Administration Dédiées (PAV)"
       implementation_groups:
       - EE
       reference_controls:
@@ -3306,6 +3684,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 11.A.5 [EI / EE] : Mesures compensatoires en cas d'impossibilité technique de séparer les rôles d'administration
+    # Type d'actif cible : Ressources d'Administration Dédiées (PAV)
     - urn: urn:intuitem:risk:req_node:recyf:11.a.5
       assessable: true
       depth: 3
@@ -3317,6 +3696,9 @@ objects:
         \ permettant d'assurer le contr\xF4le de ces actions d'administration et des\
         \ mesures de r\xE9duction du risque li\xE9 \xE0 l'utilisation d'un compte\
         \ non d\xE9di\xE9 \xE0 l'administration."
+      annotation: "Type d'actif évalué : Ressources d'Administration Dédiées (PAV)"
+      target_asset_types:
+      - "Ressources d'Administration Dédiées (PAV)"
       implementation_groups:
       - EI
       - EE
@@ -3339,6 +3721,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 11.A.6 [EE] : Registre exhaustif et tenu à jour de l'ensemble des comptes d'administration du SI
+    # Type d'actif cible : Ressources d'Administration Dédiées (PAV)
     - urn: urn:intuitem:risk:req_node:recyf:11.a.6
       assessable: true
       depth: 3
@@ -3346,6 +3729,9 @@ objects:
       ref_id: 11.A.6
       description: "L\u2019entit\xE9 \xE9tablit et tient \xE0 jour la liste des comptes\
         \ d'administration de ses syst\xE8mes d\u2019information."
+      annotation: "Type d'actif évalué : Ressources d'Administration Dédiées (PAV)"
+      target_asset_types:
+      - "Ressources d'Administration Dédiées (PAV)"
       implementation_groups:
       - EE
       reference_controls:
@@ -3372,6 +3758,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 11.A.7 [EE] : Traçabilité et justification formelle de toute création, modification ou suppression de compte d'admin
+    # Type d'actif cible : Ressources d'Administration Dédiées (PAV)
     - urn: urn:intuitem:risk:req_node:recyf:11.a.7
       assessable: true
       depth: 3
@@ -3386,6 +3773,9 @@ objects:
         \ autant que possible au p\xE9rim\xE8tre fonctionnel et technique de ce dernier.\n\
         Pour ceci, il est recommand\xE9 d\u2019octroyer les droits d\u2019administration\
         \ au travers des groupes dont les comptes d\u2019administration sont membres."
+      annotation: "Type d'actif évalué : Ressources d'Administration Dédiées (PAV)"
+      target_asset_types:
+      - "Ressources d'Administration Dédiées (PAV)"
       implementation_groups:
       - EE
       reference_controls:
@@ -3419,6 +3809,7 @@ objects:
       ref_id: 11.B
       name: "S\xE9curit\xE9 des annuaires"
     # Exigence 11.B.1 [EI / EE] : Application prioritaire et sans délai des correctifs de sécurité sur les serveurs d'annuaire
+    # Type d'actif cible : Identités, Accès & Annuaires (IAM / AD)
     - urn: urn:intuitem:risk:req_node:recyf:11.b.1
       assessable: true
       depth: 3
@@ -3427,6 +3818,9 @@ objects:
       description: "L\u2019entit\xE9 applique sans retard injustifi\xE9 les correctifs\
         \ de s\xE9curit\xE9 sur les annuaires g\xE9rant les utilisateurs ou les ressources\
         \ de ses syst\xE8mes d\u2019information."
+      annotation: "Type d'actif évalué : Identités, Accès & Annuaires (IAM / AD)"
+      target_asset_types:
+      - "Identités, Accès & Annuaires (IAM / AD)"
       implementation_groups:
       - EI
       - EE
@@ -3455,6 +3849,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 11.B.2 [EE] : Identification, délimitation et protection renforcée du cœur de confiance (Active Directory / annuaires)
+    # Type d'actif cible : Identités, Accès & Annuaires (IAM / AD)
     - urn: urn:intuitem:risk:req_node:recyf:11.b.2
       assessable: true
       depth: 3
@@ -3470,6 +3865,9 @@ objects:
         \ \xBB (par exemple : Le Tier0 un annuaire AD DS constitue le c\u0153ur de\
         \ confiance du syst\xE8me d\u2019information).\nPour chacun de ses annuaires,\
         \ l\u2019entit\xE9 identifie les ressources constituant son c\u0153ur de confiance."
+      annotation: "Type d'actif évalué : Identités, Accès & Annuaires (IAM / AD)"
+      target_asset_types:
+      - "Identités, Accès & Annuaires (IAM / AD)"
       implementation_groups:
       - EE
       reference_controls:
@@ -3496,6 +3894,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 11.B.3 [EE] : Administration du cœur de confiance réalisée exclusivement depuis des comptes dédiés de niveau supérieur
+    # Type d'actif cible : Identités, Accès & Annuaires (IAM / AD)
     - urn: urn:intuitem:risk:req_node:recyf:11.b.3
       assessable: true
       depth: 3
@@ -3504,6 +3903,9 @@ objects:
       description: "Les actions d\u2019administration d\u2019un c\u0153ur de confiance\
         \ sont r\xE9alis\xE9es depuis des comptes d\u2019administration d\xE9di\xE9\
         s \xE0 l\u2019administration de c\u0153urs de confiance."
+      annotation: "Type d'actif évalué : Identités, Accès & Annuaires (IAM / AD)"
+      target_asset_types:
+      - "Identités, Accès & Annuaires (IAM / AD)"
       implementation_groups:
       - EE
       reference_controls:
@@ -3525,6 +3927,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 11.B.4 [EE] : Administration du cœur de confiance réalisée depuis des ressources dédiées et strictement isolées
+    # Type d'actif cible : Identités, Accès & Annuaires (IAM / AD)
     - urn: urn:intuitem:risk:req_node:recyf:11.b.4
       assessable: true
       depth: 3
@@ -3533,6 +3936,9 @@ objects:
       description: "Les actions d'administration d\u2019un c\u0153ur de confiance\
         \ sont r\xE9alis\xE9es depuis des ressources d\xE9di\xE9es exclusivement \xE0\
         \ l\u2019administration de c\u0153urs de confiance."
+      annotation: "Type d'actif évalué : Identités, Accès & Annuaires (IAM / AD)"
+      target_asset_types:
+      - "Identités, Accès & Annuaires (IAM / AD)"
       implementation_groups:
       - EE
       reference_controls:
@@ -3559,6 +3965,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 11.B.5 [EE] : Interdiction de connexions externes directes à destination des ressources du cœur de confiance
+    # Type d'actif cible : Identités, Accès & Annuaires (IAM / AD)
     - urn: urn:intuitem:risk:req_node:recyf:11.b.5
       assessable: true
       depth: 3
@@ -3569,6 +3976,9 @@ objects:
         \ par un dispositif de filtrage sur les ressources d\u2019administration (par\
         \ exemple : le filtrage peut \xEAtre r\xE9alis\xE9 par le pare-feu local de\
         \ la ressource d\u2019administration du c\u0153ur de confiance)."
+      annotation: "Type d'actif évalué : Identités, Accès & Annuaires (IAM / AD)"
+      target_asset_types:
+      - "Identités, Accès & Annuaires (IAM / AD)"
       implementation_groups:
       - EE
       reference_controls:
@@ -3591,6 +4001,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 11.B.6 [EE] : Revue annuelle obligatoire de la configuration de sécurité et des relations d'approbation des annuaires
+    # Type d'actif cible : Identités, Accès & Annuaires (IAM / AD)
     - urn: urn:intuitem:risk:req_node:recyf:11.b.6
       assessable: true
       depth: 3
@@ -3601,6 +4012,9 @@ objects:
         mes d\u2019information, afin d\u2019identifier tout \xE9l\xE9ment inutile\
         \ ou anormal.\nIl est recommand\xE9 que cette revue s\u2019appuie sur un outil\
         \ automatis\xE9."
+      annotation: "Type d'actif évalué : Identités, Accès & Annuaires (IAM / AD)"
+      target_asset_types:
+      - "Identités, Accès & Annuaires (IAM / AD)"
       implementation_groups:
       - EE
       reference_controls:
@@ -3627,6 +4041,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 11.B.7 [EE] : Conformité de la configuration des annuaires aux recommandations officielles de l'ANSSI
+    # Type d'actif cible : Identités, Accès & Annuaires (IAM / AD)
     - urn: urn:intuitem:risk:req_node:recyf:11.b.7
       assessable: true
       depth: 3
@@ -3637,6 +4052,9 @@ objects:
         \ au c\u0153ur de confiance sont mises en \u0153uvre (par exemple : guide\
         \ de s\xE9curisation, guide de r\xE9ponses \xE0 incidents, m\xE9mos techniques,\
         \ recommandations issues des outils de revues de configurations)."
+      annotation: "Type d'actif évalué : Identités, Accès & Annuaires (IAM / AD)"
+      target_asset_types:
+      - "Identités, Accès & Annuaires (IAM / AD)"
       implementation_groups:
       - EE
       reference_controls:
@@ -3675,6 +4093,7 @@ objects:
       name: "Objectif de s\xE9curit\xE9 12: Identification et r\xE9action aux incidents\
         \ de s\xE9curit\xE9"
     # Exigence 12.1 [EE] : Élaboration, maintien à jour et mise en œuvre d'une procédure formalisée de gestion des incidents
+    # Type d'actif cible : Supervision, Logs & Détection (SOC / SIEM)
     - urn: urn:intuitem:risk:req_node:recyf:12.1
       assessable: true
       depth: 2
@@ -3683,6 +4102,9 @@ objects:
       description: "L\u2019entit\xE9 s\u2019assure de l\u2019\xE9laboration, du maintien\
         \ \xE0 jour et de la mise en \u0153uvre d\u2019une proc\xE9dure de traitement\
         \ des incidents de s\xE9curit\xE9 affectant ses syst\xE8mes d\u2019information."
+      annotation: "Type d'actif évalué : Supervision, Logs & Détection (SOC / SIEM)"
+      target_asset_types:
+      - "Supervision, Logs & Détection (SOC / SIEM)"
       implementation_groups:
       - EE
       reference_controls:
@@ -3709,6 +4131,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 12.2 [EE] : Mise en place d'outils et de canaux centralisés de collecte des signalements d'incidents de sécurité
+    # Type d'actif cible : Supervision, Logs & Détection (SOC / SIEM)
     - urn: urn:intuitem:risk:req_node:recyf:12.2
       assessable: true
       depth: 2
@@ -3720,6 +4143,9 @@ objects:
         \ ;\n\u2022\tLes clients et les usagers des activit\xE9s et services mis en\
         \ \u0153uvre par l\u2019entit\xE9 essentielle ;\n\u2022\tLes prestataires\
         \ et les fournisseurs contractant avec l\u2019entit\xE9 essentielle."
+      annotation: "Type d'actif évalué : Supervision, Logs & Détection (SOC / SIEM)"
+      target_asset_types:
+      - "Supervision, Logs & Détection (SOC / SIEM)"
       implementation_groups:
       - EE
       reference_controls:
@@ -3746,6 +4172,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 12.3 [EI / EE] : Définition et mise en œuvre des mécanismes d'analyse technique et de qualification des incidents
+    # Type d'actif cible : Supervision, Logs & Détection (SOC / SIEM)
     - urn: urn:intuitem:risk:req_node:recyf:12.3
       assessable: true
       depth: 2
@@ -3755,6 +4182,9 @@ objects:
         \ en \u0153uvre des m\xE9canismes permettant d\u2019analyser et de qualifier\
         \ les \xE9v\xE9nements remont\xE9s et d\u2019identifier les incidents potentiels\
         \ ou av\xE9r\xE9s."
+      annotation: "Type d'actif évalué : Supervision, Logs & Détection (SOC / SIEM)"
+      target_asset_types:
+      - "Supervision, Logs & Détection (SOC / SIEM)"
       implementation_groups:
       - EI
       - EE
@@ -3783,6 +4213,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 12.4 [EE] : Organisation opérationnelle de traitement, confinement, éradication et remédiation des incidents
+    # Type d'actif cible : Supervision, Logs & Détection (SOC / SIEM)
     - urn: urn:intuitem:risk:req_node:recyf:12.4
       assessable: true
       depth: 2
@@ -3794,6 +4225,9 @@ objects:
         \ la fourniture des services.\nCes m\xE9canismes sont repris, le cas \xE9\
         ch\xE9ant, dans la d\xE9finition des plans de continuit\xE9 et de reprise\
         \ d\u2019activit\xE9."
+      annotation: "Type d'actif évalué : Supervision, Logs & Détection (SOC / SIEM)"
+      target_asset_types:
+      - "Supervision, Logs & Détection (SOC / SIEM)"
       implementation_groups:
       - EE
       reference_controls:
@@ -3821,6 +4255,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 12.5 [EE] : Procédure de notification des incidents majeurs à l'ANSSI conformément aux obligations légales (NIS 2)
+    # Type d'actif cible : Supervision, Logs & Détection (SOC / SIEM)
     - urn: urn:intuitem:risk:req_node:recyf:12.5
       assessable: true
       depth: 2
@@ -3833,6 +4268,9 @@ objects:
         \ les mesures de s\xE9curit\xE9 permettant de limiter la vraisemblance d\u2019\
         un nouvel incident ou d\u2019en r\xE9duire l\u2019impact. L\u2019entit\xE9\
         \ conserve des preuves de cette analyse."
+      annotation: "Type d'actif évalué : Supervision, Logs & Détection (SOC / SIEM)"
+      target_asset_types:
+      - "Supervision, Logs & Détection (SOC / SIEM)"
       implementation_groups:
       - EE
       reference_controls:
@@ -3859,6 +4297,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 12.6 [EE] : Collecte et conservation sécurisée des preuves numériques et relevés techniques d'analyse (forensic)
+    # Type d'actif cible : Supervision, Logs & Détection (SOC / SIEM)
     - urn: urn:intuitem:risk:req_node:recyf:12.6
       assessable: true
       depth: 2
@@ -3871,6 +4310,9 @@ objects:
         \ Ces relev\xE9s techniques sont conserv\xE9s pour une dur\xE9e pertinente\
         \ au regard de la protection des donn\xE9es \xE0 caract\xE8re personnel et\
         \ en particulier la finalit\xE9 du traitement."
+      annotation: "Type d'actif évalué : Supervision, Logs & Détection (SOC / SIEM)"
+      target_asset_types:
+      - "Supervision, Logs & Détection (SOC / SIEM)"
       implementation_groups:
       - EE
       reference_controls:
@@ -3892,6 +4334,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 12.7 [EE] : Protection et scellement des relevés techniques relatifs aux incidents contre toute altération
+    # Type d'actif cible : Supervision, Logs & Détection (SOC / SIEM)
     - urn: urn:intuitem:risk:req_node:recyf:12.7
       assessable: true
       depth: 2
@@ -3901,6 +4344,9 @@ objects:
         \ sont prot\xE9g\xE9s d\u2019un incident qui les rendrait inexploitables (par\
         \ exemple : le stockage hors-ligne pour r\xE9pondre \xE0 un incident de type\
         \ ran\xE7ongiciel)."
+      annotation: "Type d'actif évalué : Supervision, Logs & Détection (SOC / SIEM)"
+      target_asset_types:
+      - "Supervision, Logs & Détection (SOC / SIEM)"
       implementation_groups:
       - EE
       reference_controls:
@@ -3934,6 +4380,7 @@ objects:
       ref_id: '13'
       name: "Objectif de s\xE9curit\xE9 13: Continuit\xE9 et reprise d'activit\xE9"
     # Exigence 13.1 [EI / EE] : Politique et procédures de sauvegarde et de restauration documentées et opérationnelles
+    # Type d'actif cible : Systèmes d'Information & Applications Métier
     - urn: urn:intuitem:risk:req_node:recyf:13.1
       assessable: true
       depth: 2
@@ -3942,6 +4389,9 @@ objects:
       description: "L\u2019entit\xE9 d\xE9finit et met en \u0153uvre des proc\xE9\
         dures de sauvegarde et de restauration de ses syst\xE8mes d\u2019information\
         \ et des donn\xE9es qu\u2019ils manipulent."
+      annotation: "Type d'actif évalué : Systèmes d'Information & Applications Métier"
+      target_asset_types:
+      - "Systèmes d'Information & Applications Métier"
       implementation_groups:
       - EI
       - EE
@@ -3968,6 +4418,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 13.2 [EI / EE] : Tests périodiques de restauration des sauvegardes au minimum annuels pour garantir l'exploitabilité
+    # Type d'actif cible : Systèmes d'Information & Applications Métier
     - urn: urn:intuitem:risk:req_node:recyf:13.2
       assessable: true
       depth: 2
@@ -3977,6 +4428,9 @@ objects:
         \ et de restauration sont test\xE9s au minimum une fois par an. Ces tests\
         \ visent notamment \xE0 v\xE9rifier la bonne r\xE9alisation des sauvegardes\
         \ et leur bonne restauration."
+      annotation: "Type d'actif évalué : Systèmes d'Information & Applications Métier"
+      target_asset_types:
+      - "Systèmes d'Information & Applications Métier"
       implementation_groups:
       - EI
       - EE
@@ -4004,6 +4458,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 13.3 [EI / EE] : Sauvegardes immuables / hors-ligne protégées contre les incidents destructeurs et ransomwares
+    # Type d'actif cible : Systèmes d'Information & Applications Métier
     - urn: urn:intuitem:risk:req_node:recyf:13.3
       assessable: true
       depth: 2
@@ -4012,6 +4467,9 @@ objects:
       description: "Les sauvegardes sont prot\xE9g\xE9es d\u2019un incident les rendant\
         \ inexploitables (par exemple : le stockage hors-ligne pour r\xE9pondre \xE0\
         \ un incident de type ran\xE7ongiciel)."
+      annotation: "Type d'actif évalué : Systèmes d'Information & Applications Métier"
+      target_asset_types:
+      - "Systèmes d'Information & Applications Métier"
       implementation_groups:
       - EI
       - EE
@@ -4039,6 +4497,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 13.4 [EE] : Définition documentée de la DMIA (RTO) et de la PDMA (RPO) pour chaque activité et service
+    # Type d'actif cible : Systèmes d'Information & Applications Métier
     - urn: urn:intuitem:risk:req_node:recyf:13.4
       assessable: true
       depth: 2
@@ -4047,6 +4506,9 @@ objects:
       description: "L\u2019entit\xE9, pour chacun de ses activit\xE9s et services,\
         \ d\xE9finit et documente la dur\xE9e maximale d\u2019interruption admissible\
         \ (DMIA) et le point de r\xE9tablissement des donn\xE9es (PRD)."
+      annotation: "Type d'actif évalué : Systèmes d'Information & Applications Métier"
+      target_asset_types:
+      - "Systèmes d'Information & Applications Métier"
       implementation_groups:
       - EE
       reference_controls:
@@ -4073,6 +4535,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 13.5 [EI / EE] : Dimensionnement technique des mécanismes de sauvegarde adapté aux exigences de continuité
+    # Type d'actif cible : Systèmes d'Information & Applications Métier
     - urn: urn:intuitem:risk:req_node:recyf:13.5
       assessable: true
       depth: 2
@@ -4081,6 +4544,9 @@ objects:
       description: "Les m\xE9canismes de sauvegarde sont dimensionn\xE9s pour r\xE9\
         pondre aux besoins de disponibilit\xE9 associ\xE9s aux diff\xE9rents services\
         \ et aux diff\xE9rentes activit\xE9s fournis par l\u2019entit\xE9."
+      annotation: "Type d'actif évalué : Systèmes d'Information & Applications Métier"
+      target_asset_types:
+      - "Systèmes d'Information & Applications Métier"
       implementation_groups:
       - EI
       - EE
@@ -4103,6 +4569,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 13.6 [EE] : Élaboration, mise en œuvre et maintien opérationnel d'un PCA et d'un PRA formalisés
+    # Type d'actif cible : Systèmes d'Information & Applications Métier
     - urn: urn:intuitem:risk:req_node:recyf:13.6
       assessable: true
       depth: 2
@@ -4113,6 +4580,9 @@ objects:
         \ adapt\xE9s aux sc\xE9narios de crises d\u2019origine cyber et coh\xE9rents\
         \ avec la dur\xE9e maximale d\u2019interruption admissible et le point de\
         \ r\xE9tablissement des donn\xE9es."
+      annotation: "Type d'actif évalué : Systèmes d'Information & Applications Métier"
+      target_asset_types:
+      - "Systèmes d'Information & Applications Métier"
       implementation_groups:
       - EE
       reference_controls:
@@ -4140,6 +4610,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 13.7 [EE] : Articulation des mesures de continuité basée sur la cartographie des activités et de l'écosystème
+    # Type d'actif cible : Systèmes d'Information & Applications Métier
     - urn: urn:intuitem:risk:req_node:recyf:13.7
       assessable: true
       depth: 2
@@ -4151,6 +4622,9 @@ objects:
         \ et r\xE9agir au plus t\xF4t aux incidents ;\n\u2022\tSur la proc\xE9dure\
         \ de gestion des crises d\u2019origine cyber pour permettre la reprise au\
         \ plus t\xF4t des services."
+      annotation: "Type d'actif évalué : Systèmes d'Information & Applications Métier"
+      target_asset_types:
+      - "Systèmes d'Information & Applications Métier"
       implementation_groups:
       - EE
       reference_controls:
@@ -4185,6 +4659,7 @@ objects:
       ref_id: '14'
       name: "Objectif de s\xE9curit\xE9 14: R\xE9action aux crises d'origine cyber"
     # Exigence 14.1 [EI / EE] : Définition, maintien à jour et mise en œuvre d'une procédure formalisée de gestion de crise cyber
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:14.1
       assessable: true
       depth: 2
@@ -4195,6 +4670,9 @@ objects:
         \ de crises en cas d\u2019incident de s\xE9curit\xE9 sur ses syst\xE8mes d\u2019\
         information n\xE9cessitant le passage en mode crise (par exemple : pour les\
         \ incidents importants au sens de l\u2019article 17 du PJL)."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EI
       - EE
@@ -4222,6 +4700,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 14.2 [EI / EE] : Maintien d'une liste imprimée (version papier) à jour des personnes mobilisables pour la crise
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:14.2
       assessable: true
       depth: 2
@@ -4231,6 +4710,9 @@ objects:
         \ liste imprim\xE9e des personnes mobilisables dans la gestion de la crise\
         \ sur les sujets relatifs \xE0 la s\xE9curit\xE9 num\xE9rique ainsi que leurs\
         \ coordonn\xE9es."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EI
       - EE
@@ -4253,6 +4735,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 14.3 [EI / EE] : Disponibilité permanente et accessibilité garantie de la liste imprimée des contacts de crise
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:14.3
       assessable: true
       depth: 2
@@ -4264,6 +4747,9 @@ objects:
         \ papier si les syst\xE8mes d\u2019information ne sont plus disponibles, et\
         \ elle doit \xEAtre accessible au format num\xE9rique si la version papier\
         \ n\u2019est pas accessible)."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EI
       - EE
@@ -4286,6 +4772,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 14.4 [EI / EE] : Maintien à jour d'un annuaire des parties prenantes externes pertinentes (autorités, prestataires, CSIRT)
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:14.4
       assessable: true
       depth: 2
@@ -4295,6 +4782,9 @@ objects:
         \ annuaire des parties prenantes externes \xE0 l\u2019entit\xE9 pertinente\
         \ dans la gestion de la crise en s\u2019appuyant sur la cartographie de l\u2019\
         \xE9cosyst\xE8me."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EI
       - EE
@@ -4323,6 +4813,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 14.5 [EI / EE] : Réalisation systématique d'un retour d'expérience (RETEX) suite à chaque exercice ou crise cyber
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:14.5
       assessable: true
       depth: 2
@@ -4332,6 +4823,9 @@ objects:
         uvre de retour d\u2019exp\xE9rience (RETEX) permettant d\u2019identifier les\
         \ axes d\u2019am\xE9lioration et les mesures associ\xE9es \xE0 mettre en \u0153\
         uvre suite \xE0 un entra\xEEnement, un exercice ou une crise r\xE9elle."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EI
       - EE
@@ -4360,6 +4854,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 14.6 [EE] : Critères formalisés d'activation et de désactivation de la cellule de crise cyber
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:14.6
       assessable: true
       depth: 2
@@ -4369,6 +4864,9 @@ objects:
         \ \xE0 jour et de la mise en \u0153uvre des crit\xE8res permettant d\u2019\
         activer et de d\xE9sactiver le dispositif de gestion de crise prenant en compte\
         \ les menaces cyber."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EE
       reference_controls:
@@ -4389,6 +4887,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 14.7 [EE] : Procédures d'escalade, fiches réflexes opérationnelles et modalités de commandement de crise
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:14.7
       assessable: true
       depth: 2
@@ -4399,6 +4898,9 @@ objects:
         \ de gestion de la crise adapt\xE9s \xE0 la menace cyber en s\u2019appuyant\
         \ sur les recommandations de l\u2019autorit\xE9 nationale de s\xE9curit\xE9\
         \ des syst\xE8mes d\u2019information."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EE
       reference_controls:
@@ -4425,6 +4927,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 14.8 [EE] : Mesures préétablies pour isoler, protéger ou déconnecter d'urgence les systèmes critiques
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:14.8
       assessable: true
       depth: 2
@@ -4437,6 +4940,9 @@ objects:
         \ les infrastructures, applicatifs et services num\xE9riques externalis\xE9\
         s \xE0 des prestataires et sont mises en place en coh\xE9rence avec les plans\
         \ de continuit\xE9 et de reprise d\u2019activit\xE9."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EE
       reference_controls:
@@ -4459,6 +4965,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 14.9 [EE] : Stratégie de communication de crise adaptée aux parties prenantes internes et externes
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:14.9
       assessable: true
       depth: 2
@@ -4471,6 +4978,9 @@ objects:
         \ des \xE9l\xE9ments de langage sur des sujets sensibles ou de crise. Cette\
         \ strat\xE9gie prend en compte les sc\xE9narios de menaces cyber identifi\xE9\
         s."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EE
       reference_controls:
@@ -4497,6 +5007,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 14.10 [EE] : Disponibilité de moyens de communication de secours indépendants et sécurisés (hors-bande)
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:14.10
       assessable: true
       depth: 2
@@ -4505,6 +5016,9 @@ objects:
       description: "L\u2019entit\xE9 s\u2019assure de la disponibilit\xE9 de moyens\
         \ de communication de secours, si possible, s\xE9curis\xE9s en temps de crise\
         \ lorsque les moyens de communication habituels sont indisponibles."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EE
       reference_controls:
@@ -4536,6 +5050,7 @@ objects:
       ref_id: '15'
       name: "Objectif de s\xE9curit\xE9 15: Exercices, tests et entrainements"
     # Exigence 15.1 [EI / EE] : Sensibilisation et réalisation régulière d'exercices sur table (tabletop) de crise cyber
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:15.1
       assessable: true
       depth: 2
@@ -4545,6 +5060,9 @@ objects:
         \ mise en \u0153uvre d\u2019un exercice sur table \xE0 une fr\xE9quence qu\u2019\
         elle d\xE9finit pour les personnes mobilisables dans le dispositif de gestion\
         \ des crises d\u2019origine cyber."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EI
       - EE
@@ -4572,6 +5090,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 15.2 [EE] : Définition et mise en œuvre d'une stratégie d'entraînement pluriannuelle formalisée
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:15.2
       assessable: true
       depth: 2
@@ -4588,6 +5107,9 @@ objects:
         attaques \xE0 tester en priorit\xE9 ;\n\u2022\tLa comitologie de suivi de\
         \ la strat\xE9gie.\nCette strat\xE9gie peut \xEAtre mutualis\xE9e avec d\u2019\
         autres livrables."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EE
       reference_controls:
@@ -4610,6 +5132,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 15.3 [EE] : Objectifs des entraînements : tester la chaîne d'alerte, la résilience PCA/PRA et la cellule de crise
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:15.3
       assessable: true
       depth: 2
@@ -4620,6 +5143,9 @@ objects:
         \tDe gestion des alertes relatives aux incidents, aux vuln\xE9rabilit\xE9\
         s et menaces ;\n\u2022\tDe continuit\xE9 et de reprise d\u2019activit\xE9\
         \ ;\n\u2022\tDe gestion des crises d\u2019origine cyber."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EE
       reference_controls:
@@ -4647,6 +5173,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 15.4 [EE] : Déclinaison de la stratégie dans un programme triennal d'exercices cyber avec RETEX formalisé
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:15.4
       assessable: true
       depth: 2
@@ -4660,6 +5187,9 @@ objects:
         \ des incidents, de gestion des crises d\u2019origine cyber et de coop\xE9\
         ration avec l\u2019\xE9cosyst\xE8me et, le cas \xE9ch\xE9ant, le volet cyber\
         \ des plans de continuit\xE9 et de reprise d\u2019activit\xE9."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EE
       reference_controls:
@@ -4699,6 +5229,7 @@ objects:
       name: "Objectif de s\xE9curit\xE9 16: Mise en \u0153uvre d'une approche par\
         \ les risques"
     # Exigence 16.1 [EE] : Définition, mise en œuvre et maintien à jour d'une gouvernance par les risques de sécurité numérique
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:16.1
       assessable: true
       depth: 2
@@ -4715,6 +5246,9 @@ objects:
         \ une approche par les risques, r\xE9alis\xE9e dans les conditions d\xE9finies\
         \ ci-apr\xE8s. Ces approches sont compl\xE9mentaires et peuvent \xEAtre mutualis\xE9\
         es, notamment en termes de livrables attendus."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EE
       reference_controls:
@@ -4742,6 +5276,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 16.2 [EE] : Réalisation d'une analyse de risques formalisée pour chaque système d'information de l'entité
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:16.2
       assessable: true
       depth: 2
@@ -4758,6 +5293,9 @@ objects:
         trise du syst\xE8me d\u2019information ;\n\u2022\tDe l\u2019approche par conformit\xE9\
         \ ;\n\u2022\tDes audits.\nLa m\xE9thode EBIOS RM peut \xEAtre utilis\xE9e\
         \ pour r\xE9aliser cette analyse de risques."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EE
       reference_controls:
@@ -4784,6 +5322,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 16.3 [EE] : Validation formelle de l'analyse, acceptation des risques résiduels et pilotage du plan de traitement
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:16.3
       assessable: true
       depth: 2
@@ -4794,6 +5333,9 @@ objects:
         triser ces risques.\nLe plan d\u2019action pr\xE9voit, au minimum, une \xE9\
         ch\xE9ance raisonnable et un responsable pour la r\xE9alisation de chaque\
         \ action."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EE
       reference_controls:
@@ -4821,6 +5363,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 16.4 [EE] : Réexamen périodique au minimum triennal de l'analyse de risques ou en cas d'évolution majeure
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:16.4
       assessable: true
       depth: 2
@@ -4830,6 +5373,9 @@ objects:
         \ tous les trois ans et en tant que de besoin, notamment en cas d\u2019incident\
         \ de s\xE9curit\xE9 ou d\u2019\xE9volutions majeures du contexte m\xE9tier,\
         \ technique ou organisationnel."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EE
       reference_controls:
@@ -4868,6 +5414,7 @@ objects:
       name: "Objectif de s\xE9curit\xE9 17: Audit de la s\xE9curit\xE9 des syst\xE8\
         mes d'information"
     # Exigence 17.1 [EE] : Définition et mise en œuvre d'un programme pluriannuel d'audit couvrant l'ensemble des systèmes d'information
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:17.1
       assessable: true
       depth: 2
@@ -4884,6 +5431,9 @@ objects:
         \ les recommandations de l\u2019autorit\xE9 nationale de s\xE9curit\xE9 des\
         \ syst\xE8mes d\u2019information en mati\xE8re de gestion des risques num\xE9\
         riques."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EE
       reference_controls:
@@ -4910,6 +5460,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 17.2 [EE] : Conduite d'audits de sécurité indépendants vérifiant l'atteinte des objectifs et identifiant les vulnérabilités
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:17.2
       assessable: true
       depth: 2
@@ -4922,6 +5473,9 @@ objects:
         \ ; et\n\u2022\tD\u2019\xE9valuer le niveau de s\xE9curit\xE9 du ou des syst\xE8\
         mes d\u2019information couverts au regard des menaces et des vuln\xE9rabilit\xE9\
         s connues."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EE
       reference_controls:
@@ -4942,6 +5496,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 17.3 [EE] : Typologies d'audit obligatoires (organisationnel, architecture, configuration, tests d'intrusion)
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:17.3
       assessable: true
       depth: 2
@@ -4956,6 +5511,9 @@ objects:
         \ tiers), un audit de configuration, un audit d\u2019architecture, un audit\
         \ organisationnel et physique et, lorsque cela est pertinent, un audit de\
         \ code."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EE
       reference_controls:
@@ -4985,6 +5543,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 17.4 [EE] : Rapport d'audit présentant la synthèse de conformité, la cotation des vulnérabilités et les recommandations
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:17.4
       assessable: true
       depth: 2
@@ -4997,6 +5556,9 @@ objects:
         information audit\xE9s ;\n\u2022\tLes constats de non-conformit\xE9 et les\
         \ vuln\xE9rabilit\xE9s identifi\xE9es ;\n\u2022\tLes recommandations pour\
         \ y rem\xE9dier."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EE
       reference_controls:
@@ -5018,6 +5580,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 17.5 [EE] : Élaboration et suivi rigoureux d'un plan d'actions de remédiation des non-conformités et vulnérabilités
+    # Type d'actif cible : Gouvernance, Organisation & RH
     - urn: urn:intuitem:risk:req_node:recyf:17.5
       assessable: true
       depth: 2
@@ -5028,6 +5591,9 @@ objects:
         s identifi\xE9es.\nCe plan d\u2019action pr\xE9voit, au minimum, une \xE9\
         ch\xE9ance raisonnable et un responsable pour la r\xE9alisation de chaque\
         \ action."
+      annotation: "Type d'actif évalué : Gouvernance, Organisation & RH"
+      target_asset_types:
+      - "Gouvernance, Organisation & RH"
       implementation_groups:
       - EE
       reference_controls:
@@ -5067,6 +5633,7 @@ objects:
       name: "Objectif de s\xE9curit\xE9 18: S\xE9curisation de la configuration des\
         \ ressources des syst\xE8mes d'information"
     # Exigence 18.1 [EE] : Installation et maintien des seules ressources logicielles strictement nécessaires aux activités de l'entité
+    # Type d'actif cible : Serveurs & Équipements d'Infrastructure
     - urn: urn:intuitem:risk:req_node:recyf:18.1
       assessable: true
       depth: 2
@@ -5079,6 +5646,9 @@ objects:
         \ (par exemple : utilisation d\u2019un mod\xE8le de configuration centralis\xE9\
         \ (master) contenant exclusivement les logiciels/services strictement n\xE9\
         cessaires aux besoins m\xE9tiers et d\u2019administration)."
+      annotation: "Type d'actif évalué : Serveurs & Équipements d'Infrastructure"
+      target_asset_types:
+      - "Serveurs & Équipements d'Infrastructure"
       implementation_groups:
       - EE
       reference_controls:
@@ -5106,6 +5676,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 18.2 [EE] : Mesures compensatoires strictes en cas d'impossibilité technique de désactiver un composant superflu
+    # Type d'actif cible : Serveurs & Équipements d'Infrastructure
     - urn: urn:intuitem:risk:req_node:recyf:18.2
       assessable: true
       depth: 2
@@ -5115,6 +5686,9 @@ objects:
         \ pas de d\xE9sactiver ou d\xE9sinstaller une ressource logicielle, l\u2019\
         entit\xE9 met en \u0153uvre des mesures permettant de r\xE9duire le risque\
         \ associ\xE9."
+      annotation: "Type d'actif évalué : Serveurs & Équipements d'Infrastructure"
+      target_asset_types:
+      - "Serveurs & Équipements d'Infrastructure"
       implementation_groups:
       - EE
       reference_controls:
@@ -5136,6 +5710,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 18.3 [EE] : Configuration sécurisée des ressources logicielles selon les référentiels et guides de durcissement ANSSI
+    # Type d'actif cible : Serveurs & Équipements d'Infrastructure
     - urn: urn:intuitem:risk:req_node:recyf:18.3
       assessable: true
       depth: 2
@@ -5146,6 +5721,9 @@ objects:
         \ de l\u2019\xE9diteur de la fonctionnalit\xE9, du fabricant de la ressource\
         \ ou de l\u2019autorit\xE9 nationale de s\xE9curit\xE9 des syst\xE8mes d\u2019\
         information."
+      annotation: "Type d'actif évalué : Serveurs & Équipements d'Infrastructure"
+      target_asset_types:
+      - "Serveurs & Équipements d'Infrastructure"
       implementation_groups:
       - EE
       reference_controls:
@@ -5172,6 +5750,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 18.4 [EE] : Revue annuelle obligatoire de la configuration de sécurité de l'ensemble des ressources du SI
+    # Type d'actif cible : Serveurs & Équipements d'Infrastructure
     - urn: urn:intuitem:risk:req_node:recyf:18.4
       assessable: true
       depth: 2
@@ -5183,6 +5762,9 @@ objects:
         \ revue s\u2019appuie sur un ou des outils automatis\xE9s (par exemple : scan\
         \ de port et de vuln\xE9rabilit\xE9, revue (manuel ou automatique) des configurations\
         \ des pares-feux par rapport aux matrices de flux)."
+      annotation: "Type d'actif évalué : Serveurs & Équipements d'Infrastructure"
+      target_asset_types:
+      - "Serveurs & Équipements d'Infrastructure"
       implementation_groups:
       - EE
       reference_controls:
@@ -5222,6 +5804,7 @@ objects:
       name: "Objectif de s\xE9curit\xE9 19: Administration des syst\xE8mes d'information\
         \ depuis des ressources d\xE9di\xE9es"
     # Exigence 19.1 [EE] : Réalisation des actions d'administration exclusivement au moyen d'un réseau d'administration dédié
+    # Type d'actif cible : Ressources d'Administration Dédiées (PAV)
     - urn: urn:intuitem:risk:req_node:recyf:19.1
       assessable: true
       depth: 2
@@ -5229,6 +5812,9 @@ objects:
       ref_id: '19.1'
       description: "Les actions d\u2019administration sont effectu\xE9es au moyen\
         \ d\u2019un r\xE9seau d\u2019administration d\xE9di\xE9."
+      annotation: "Type d'actif évalué : Ressources d'Administration Dédiées (PAV)"
+      target_asset_types:
+      - "Ressources d'Administration Dédiées (PAV)"
       implementation_groups:
       - EE
       reference_controls:
@@ -5256,6 +5842,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 19.2 [EE] : Gestion et configuration exclusive des équipements du réseau d'administration par l'entité ou son mandataire
+    # Type d'actif cible : Ressources d'Administration Dédiées (PAV)
     - urn: urn:intuitem:risk:req_node:recyf:19.2
       assessable: true
       depth: 2
@@ -5264,6 +5851,9 @@ objects:
       description: "Les ressources des r\xE9seaux d'administration sont g\xE9r\xE9\
         es et configur\xE9es par l\u2019entit\xE9 ou par le prestataire qu'elle a\
         \ mandat\xE9 pour r\xE9aliser les actions d'administration."
+      annotation: "Type d'actif évalué : Ressources d'Administration Dédiées (PAV)"
+      target_asset_types:
+      - "Ressources d'Administration Dédiées (PAV)"
       implementation_groups:
       - EE
       reference_controls:
@@ -5285,6 +5875,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 19.3 [EE] : Utilisation exclusive des ressources matérielles du réseau d'administration aux seules tâches d'admin
+    # Type d'actif cible : Ressources d'Administration Dédiées (PAV)
     - urn: urn:intuitem:risk:req_node:recyf:19.3
       assessable: true
       depth: 2
@@ -5292,6 +5883,9 @@ objects:
       ref_id: '19.3'
       description: "Les ressources mat\xE9rielles des r\xE9seaux d\u2019administration\
         \ sont utilis\xE9es exclusivement pour r\xE9aliser des actions d\u2019administration."
+      annotation: "Type d'actif évalué : Ressources d'Administration Dédiées (PAV)"
+      target_asset_types:
+      - "Ressources d'Administration Dédiées (PAV)"
       implementation_groups:
       - EE
       reference_controls:
@@ -5313,6 +5907,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 19.4 [EE] : Poste de travail physique dédié exclusivement à l'administration (interdiction des usages bureautiques/web)
+    # Type d'actif cible : Ressources d'Administration Dédiées (PAV)
     - urn: urn:intuitem:risk:req_node:recyf:19.4
       assessable: true
       depth: 2
@@ -5320,6 +5915,9 @@ objects:
       ref_id: '19.4'
       description: "Le poste physique utilis\xE9 pour effectuer des actions d'administration\
         \ est utilis\xE9 exclusivement pour r\xE9aliser des actions d\u2019administration."
+      annotation: "Type d'actif évalué : Ressources d'Administration Dédiées (PAV)"
+      target_asset_types:
+      - "Ressources d'Administration Dédiées (PAV)"
       implementation_groups:
       - EE
       reference_controls:
@@ -5346,6 +5944,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 19.5 [EE] : Connexion des administrateurs depuis un poste physique dédié avec authentification forte
+    # Type d'actif cible : Ressources d'Administration Dédiées (PAV)
     - urn: urn:intuitem:risk:req_node:recyf:19.5
       assessable: true
       depth: 2
@@ -5354,6 +5953,9 @@ objects:
       description: "La connexion des administrateurs \xE0 un r\xE9seau d\u2019administration\
         \ s\u2019effectue au moyen d\u2019un poste physique utilis\xE9 exclusivement\
         \ pour des actions d\u2019administration."
+      annotation: "Type d'actif évalué : Ressources d'Administration Dédiées (PAV)"
+      target_asset_types:
+      - "Ressources d'Administration Dédiées (PAV)"
       implementation_groups:
       - EE
       reference_controls:
@@ -5374,6 +5976,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 19.6 [EE] : Mesures compensatoires et renforcement de sécurité en cas d'exception temporaire au poste dédié
+    # Type d'actif cible : Ressources d'Administration Dédiées (PAV)
     - urn: urn:intuitem:risk:req_node:recyf:19.6
       assessable: true
       depth: 2
@@ -5388,6 +5991,9 @@ objects:
         \ pour les autres actions. Ces mesures sont conformes aux recommandations\
         \ de l\u2019autorit\xE9 nationale de s\xE9curit\xE9 des syst\xE8mes d\u2019\
         information, y compris les recommandations alternatives."
+      annotation: "Type d'actif évalué : Ressources d'Administration Dédiées (PAV)"
+      target_asset_types:
+      - "Ressources d'Administration Dédiées (PAV)"
       implementation_groups:
       - EE
       reference_controls:
@@ -5410,6 +6016,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 19.7 [EE] : Raccordement contrôlé et filtré du réseau d'administration aux ressources du SI à administrer
+    # Type d'actif cible : Ressources d'Administration Dédiées (PAV)
     - urn: urn:intuitem:risk:req_node:recyf:19.7
       assessable: true
       depth: 2
@@ -5420,6 +6027,9 @@ objects:
         \ r\xE9seau physique utilis\xE9e exclusivement pour les actions d'administration.\
         \ Ces ressources sont administr\xE9es au travers de leur interface d'administration\
         \ physique."
+      annotation: "Type d'actif évalué : Ressources d'Administration Dédiées (PAV)"
+      target_asset_types:
+      - "Ressources d'Administration Dédiées (PAV)"
       implementation_groups:
       - EE
       reference_controls:
@@ -5441,6 +6051,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 19.8 [EE] : Modalités de cloisonnement strict et filtrage renforcé des accès au réseau d'administration
+    # Type d'actif cible : Ressources d'Administration Dédiées (PAV)
     - urn: urn:intuitem:risk:req_node:recyf:19.8
       assessable: true
       depth: 2
@@ -5452,6 +6063,9 @@ objects:
         \ (par exemple : deux machines ne pouvant pas communiquer au travers des syst\xE8\
         mes d\u2019information ne peuvent pas communiquer au travers du r\xE9seau\
         \ d\u2019administration)."
+      annotation: "Type d'actif évalué : Ressources d'Administration Dédiées (PAV)"
+      target_asset_types:
+      - "Ressources d'Administration Dédiées (PAV)"
       implementation_groups:
       - EE
       reference_controls:
@@ -5474,6 +6088,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 19.9 [EE] : Mesures compensatoires en cas d'impossibilité d'administrer une ressource via le réseau dédié
+    # Type d'actif cible : Ressources d'Administration Dédiées (PAV)
     - urn: urn:intuitem:risk:req_node:recyf:19.9
       assessable: true
       depth: 2
@@ -5486,6 +6101,9 @@ objects:
         curit\xE9 logique. Ces mesures sont conformes aux recommandations de l\u2019\
         autorit\xE9 nationale de s\xE9curit\xE9 des syst\xE8mes d\u2019information\
         \ y compris les recommandations alternatives."
+      annotation: "Type d'actif évalué : Ressources d'Administration Dédiées (PAV)"
+      target_asset_types:
+      - "Ressources d'Administration Dédiées (PAV)"
       implementation_groups:
       - EE
       reference_controls:
@@ -5507,6 +6125,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 19.10 [EE] : Protection cryptographique de bout en bout des communications associées aux actions d'administration
+    # Type d'actif cible : Ressources d'Administration Dédiées (PAV)
     - urn: urn:intuitem:risk:req_node:recyf:19.10
       assessable: true
       depth: 2
@@ -5519,6 +6138,9 @@ objects:
         \ (par exemple : en utilisant des protocoles s\xE9curis\xE9s garantissant\
         \ l\u2019authentification de l\u2019administrateur, l\u2019int\xE9grit\xE9\
         \ et la confidentialit\xE9 des messages)."
+      annotation: "Type d'actif évalué : Ressources d'Administration Dédiées (PAV)"
+      target_asset_types:
+      - "Ressources d'Administration Dédiées (PAV)"
       implementation_groups:
       - EE
       reference_controls:
@@ -5540,6 +6162,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 19.11 [EE] : Chiffrement impératif des flux d'administration transitant sur des réseaux non dédiés ou externes
+    # Type d'actif cible : Ressources d'Administration Dédiées (PAV)
     - urn: urn:intuitem:risk:req_node:recyf:19.11
       assessable: true
       depth: 2
@@ -5551,6 +6174,9 @@ objects:
         authentification conformes aux mesures recommand\xE9es par l\u2019autorit\xE9\
         \ nationale de s\xE9curit\xE9 des syst\xE8mes d\u2019information (par exemple\
         \ : au travers de tunnels VPN)."
+      annotation: "Type d'actif évalué : Ressources d'Administration Dédiées (PAV)"
+      target_asset_types:
+      - "Ressources d'Administration Dédiées (PAV)"
       implementation_groups:
       - EE
       reference_controls:
@@ -5572,6 +6198,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 19.12 [EE] : Mesures compensatoires et d'isolement en cas d'impossibilité de chiffrer les flux d'administration
+    # Type d'actif cible : Ressources d'Administration Dédiées (PAV)
     - urn: urn:intuitem:risk:req_node:recyf:19.12
       assessable: true
       depth: 2
@@ -5583,6 +6210,9 @@ objects:
         \ de prot\xE9ger la confidentialit\xE9 et l\u2019int\xE9grit\xE9 de ces flux\
         \ et de renforcer le contr\xF4le et la tra\xE7abilit\xE9 des actions d\u2019\
         administration."
+      annotation: "Type d'actif évalué : Ressources d'Administration Dédiées (PAV)"
+      target_asset_types:
+      - "Ressources d'Administration Dédiées (PAV)"
       implementation_groups:
       - EE
       reference_controls:
@@ -5616,6 +6246,7 @@ objects:
       name: "Objectif de s\xE9curit\xE9 20: Supervision de la s\xE9curit\xE9 des syst\xE8\
         mes d'information"
     # Exigence 20.1 [EE] : Dimensionnement, qualification et formation continue des équipes en charge de la supervision (SOC)
+    # Type d'actif cible : Supervision, Logs & Détection (SOC / SIEM)
     - urn: urn:intuitem:risk:req_node:recyf:20.1
       assessable: true
       depth: 2
@@ -5629,6 +6260,9 @@ objects:
         curit\xE9, sans retard injustifi\xE9 et au maximum sous 24h ouvr\xE9s (Par\
         \ exemple : l\u2019ensemble des \xE9v\xE8nements de s\xE9curit\xE9 issus de\
         \ l\u2019EDR)."
+      annotation: "Type d'actif évalué : Supervision, Logs & Détection (SOC / SIEM)"
+      target_asset_types:
+      - "Supervision, Logs & Détection (SOC / SIEM)"
       implementation_groups:
       - EE
       reference_controls:
@@ -5655,6 +6289,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 20.2 [EE] : Démarche d'amélioration continue de l'activité de supervision face à l'évolution des menaces
+    # Type d'actif cible : Supervision, Logs & Détection (SOC / SIEM)
     - urn: urn:intuitem:risk:req_node:recyf:20.2
       assessable: true
       depth: 2
@@ -5671,6 +6306,9 @@ objects:
         \ centralisation des journaux et des \xE9v\xE8nements de s\xE9curit\xE9, mise\
         \ en place de corr\xE9lation, prise en compte de sc\xE9narios de menace suppl\xE9\
         mentaires)."
+      annotation: "Type d'actif évalué : Supervision, Logs & Détection (SOC / SIEM)"
+      target_asset_types:
+      - "Supervision, Logs & Détection (SOC / SIEM)"
       implementation_groups:
       - EE
       reference_controls:
@@ -5697,6 +6335,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 20.3 [EE] : Maîtrise de l'architecture technique, des outils et des règles de configuration de la supervision
+    # Type d'actif cible : Supervision, Logs & Détection (SOC / SIEM)
     - urn: urn:intuitem:risk:req_node:recyf:20.3
       assessable: true
       depth: 2
@@ -5708,6 +6347,9 @@ objects:
         curit\xE9 (par exemple : Le syst\xE8me peut \xEAtre compos\xE9 d\u2019une\
         \ ou plusieurs des cha\xEEnes suivantes : collecte, analyse, investigation,\
         \ signalement)."
+      annotation: "Type d'actif évalué : Supervision, Logs & Détection (SOC / SIEM)"
+      target_asset_types:
+      - "Supervision, Logs & Détection (SOC / SIEM)"
       implementation_groups:
       - EE
       reference_controls:
@@ -5730,6 +6372,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 20.4 [EE] : Collecte et centralisation des journaux d'événements de sécurité (système, réseau, applicatif)
+    # Type d'actif cible : Supervision, Logs & Détection (SOC / SIEM)
     - urn: urn:intuitem:risk:req_node:recyf:20.4
       assessable: true
       depth: 2
@@ -5742,6 +6385,9 @@ objects:
         \ et \xE9v\xE8nements refl\xE8tent, la vari\xE9t\xE9 des activit\xE9s du syst\xE8\
         me d\u2019information associ\xE9es (par exemple : r\xE9seau, syst\xE8me, applicatif,\
         \ utilisateur)."
+      annotation: "Type d'actif évalué : Supervision, Logs & Détection (SOC / SIEM)"
+      target_asset_types:
+      - "Supervision, Logs & Détection (SOC / SIEM)"
       implementation_groups:
       - EE
       reference_controls:
@@ -5770,6 +6416,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 20.5 [EE] : Conservation sécurisée pour une durée définie et synchronisation temporelle (NTP) des journaux d'événements
+    # Type d'actif cible : Supervision, Logs & Détection (SOC / SIEM)
     - urn: urn:intuitem:risk:req_node:recyf:20.5
       assessable: true
       depth: 2
@@ -5780,6 +6427,9 @@ objects:
         e d'au moins trois mois, sans pr\xE9judice d\u2019autres obligations l\xE9\
         gales et r\xE9glementaires (par exemple : le r\xE8glement g\xE9n\xE9ral sur\
         \ la protection des donn\xE9es \xE0 caract\xE8re personnel)."
+      annotation: "Type d'actif évalué : Supervision, Logs & Détection (SOC / SIEM)"
+      target_asset_types:
+      - "Supervision, Logs & Détection (SOC / SIEM)"
       implementation_groups:
       - EE
       reference_controls:
@@ -5806,6 +6456,7 @@ objects:
             compute_result: false
             color: '#dc3545'
     # Exigence 20.6 [EE] : Protection renforcée des données de supervision et journaux d'audit contre l'altération et la suppression
+    # Type d'actif cible : Supervision, Logs & Détection (SOC / SIEM)
     - urn: urn:intuitem:risk:req_node:recyf:20.6
       assessable: true
       depth: 2
@@ -5815,6 +6466,9 @@ objects:
         curit\xE9 sont prot\xE9g\xE9s d\u2019un incident les rendant inexploitables\
         \ (par exemple : le stockage hors-ligne pour r\xE9pondre \xE0 un incident\
         \ de type ran\xE7ongiciel)."
+      annotation: "Type d'actif évalué : Supervision, Logs & Détection (SOC / SIEM)"
+      target_asset_types:
+      - "Supervision, Logs & Détection (SOC / SIEM)"
       implementation_groups:
       - EE
       reference_controls:

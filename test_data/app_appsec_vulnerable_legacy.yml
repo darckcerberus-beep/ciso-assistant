@@ -1,0 +1,478 @@
+# ==============================================================================
+# Application: App-AppSec-Vulnerable-Legacy
+# Profile: Legacy Monolithic ERP System (Internal / On-Prem / High Risk)
+# ==============================================================================
+# This profile represents a legacy monolithic application built in 2008, hosted
+# on-premises with significant technical debt and minimal security controls.
+# Demonstrates critical vulnerability exposure across authentication, authorization,
+# data storage, dependency management, and lack of logging or disaster recovery.
+# ==============================================================================
+
+application:
+  order: 14
+  id: "app_appsec_vulnerable_legacy"
+  name: "App-AppSec-Vulnerable-Legacy"
+  label: "App-AppSec-Vulnerable-Legacy (Internal / On-Prem / 0% Compliant / High Risk)"
+  description: "Legacy monolithic application; minimal AppSec controls; high risk profile; remediation planning required."
+  classification: "Internal"
+  hosting: "In-house"
+  compliance_target: "25%"
+  expected_risk: "High"
+  framework_ref: "appsec"
+  framework_name: "Application Security Assessment Framework (AppSec)"
+  framework_yaml: "YML/appsec.yml"
+  user:
+    email: "robert.legacy@example-erp.com"
+    first_name: "Robert"
+    last_name: "LegacyAdmin"
+  tprm:
+    criticality: 2
+    maturity: 1
+    trust: 1
+    conclusion: "critical"
+
+answers:
+  # ============================================================================
+  # CHAPTER 1: APPLICATION INFORMATION & GOVERNANCE
+  # ============================================================================
+
+  - requirement: "stakeholder_identification"
+    question: "Is there a designated business contact?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Business sponsor retired in 2021; no replacement business owner officially assigned."
+
+  - requirement: "stakeholder_identification"
+    question: "Is there a designated IT contact?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Robert Chen (Infrastructure Admin) maintains the on-premises virtual machine."
+
+  - requirement: "stakeholder_identification"
+    question: "Is there a designated data owner?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "No formal data steward or governance charter for internal ERP records."
+
+  - requirement: "stakeholder_identification"
+    question: "Is the information about stakeholders updated in LeanIX / CMDB?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "CMDB entry stale since 2019; no automated synchronization exists."
+
+  - requirement: "data_classification"
+    question: "What is the maximum classification level handled?"
+    answer: "Internal"
+    result: "compliant"
+    observation: "Handles employee directory and operational inventory records classified as Internal."
+
+  - requirement: "hosting"
+    question: "What is the hosting model?"
+    answer: "In-house"
+    result: "compliant"
+    observation: "Hosted on legacy VMware ESXi cluster in corporate on-premises datacenter."
+
+  - requirement: "network_exposure"
+    question: "What is the network exposure of the application?"
+    answer: "Internal / Restricted Network only"
+    result: "compliant"
+    observation: "Accessible only via corporate intranet and legacy LAN subnets."
+
+  - requirement: "architecture_and_threat_modeling"
+    question: "Has a formal threat model (e.g. STRIDE) or security architecture review been conducted for this application?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "No formal threat model or architecture security review ever completed."
+
+  # ============================================================================
+  # CHAPTER 2: IDENTITY, AUTHENTICATION & ACCESS CONTROL
+  # ============================================================================
+
+  - requirement: "authentication_and_mfa"
+    question: "Is Multi-Factor Authentication (MFA) enforced for all administrative and privileged access?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Single-factor password authentication only; no MFA enforcement on admin portal."
+
+  - requirement: "authentication_and_mfa"
+    question: "Are strong password policies and brute-force lockout protections implemented?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Permits short 6-character passwords with no rate limiting or lockout protection."
+
+  - requirement: "federation_and_sso"
+    question: "Is user authentication delegated to a centralized enterprise Identity Provider (SSO / SAML 2.0 / OIDC)?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Uses standalone local database with legacy unsalted MD5 password hashes."
+
+  - requirement: "access_control_and_rbac"
+    question: "Is access controlled via granular roles (RBAC/ABAC) enforcing least privilege across all business functions and APIs?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Shared admin credentials used across operations team; coarse all-or-nothing permissions."
+
+  - requirement: "access_control_and_rbac"
+    question: "Are access permissions reviewed and recertified on a periodic basis (at least biannually)?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "No access recertification performed; former employees still present in user table."
+
+  - requirement: "session_management"
+    question: "Are session tokens securely generated, transmitted with secure cookie flags (HttpOnly, Secure, SameSite), and invalidated on logout or inactivity?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Sequential session identifiers transmitted over unencrypted HTTP without HttpOnly flag."
+
+  # ============================================================================
+  # CHAPTER 3: APPLICATION VULNERABILITY DEFENSE & CODE HYGIENE
+  # ============================================================================
+
+  - requirement: "input_validation_and_injection_defense"
+    question: "Are all user-supplied inputs validated on the server side using strict allow-lists and schema rules?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Client-side validation only; API endpoints lack server-side input schema enforcement."
+
+  - requirement: "input_validation_and_injection_defense"
+    question: "Are database interactions executed via parameterized queries or ORMs to prevent SQL/NoSQL injections?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Direct SQL string concatenation used throughout legacy stored procedures."
+
+  - requirement: "output_encoding_and_web_defenses"
+    question: "Is context-aware output encoding enforced across all dynamic responses to prevent Cross-Site Scripting (XSS)?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Unencoded output rendering in web views exposes multiple reflected XSS vulnerabilities."
+
+  - requirement: "output_encoding_and_web_defenses"
+    question: "Are standard HTTP security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options) configured?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Missing all defensive HTTP headers; vulnerable to clickjacking and MIME-sniffing."
+
+  - requirement: "error_handling_and_info_leakage"
+    question: "Are debug modes and detailed stack traces disabled in production environments?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Production server displays full ASP.NET debug stack traces including database connection strings."
+
+  - requirement: "secrets_management"
+    question: "Are application credentials, API keys, and cryptographic secrets stored exclusively in a dedicated secrets manager rather than in code or configuration files?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Database credentials and service account passwords hardcoded in cleartext in web.config."
+
+  # ============================================================================
+  # CHAPTER 4: CRYPTOGRAPHY & DATA PROTECTION
+  # ============================================================================
+
+  - requirement: "data_in_transit"
+    question: "Is data encrypted during transit?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Plaintext HTTP 1.1 used across all internal user sessions and database connections."
+
+  - requirement: "data_at_rest"
+    question: "Is data encrypted at rest?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "SQL Server 2008 R2 database files and backups stored unencrypted on local disk."
+
+  # ============================================================================
+  # CHAPTER 5: SECURE SDLC & DEVSECOPS
+  # ============================================================================
+
+  - requirement: "automated_security_testing"
+    question: "Is automated Static Application Security Testing (SAST) integrated into the CI/CD pipeline with blocking quality gates?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "No CI/CD pipeline exists; code manually deployed via FTP directly to production."
+
+  - requirement: "automated_security_testing"
+    question: "Is Dynamic Application Security Testing (DAST) or API security scanning performed prior to release?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "No automated or manual DAST testing performed before releases."
+
+  - requirement: "supply_chain_and_dependencies"
+    question: "Is Software Composition Analysis (SCA) automated to detect known vulnerabilities in open-source dependencies and packages?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "End-of-life third-party libraries (jQuery 1.4, log4net 1.2) containing known CVEs."
+
+  - requirement: "supply_chain_and_dependencies"
+    question: "Is an accurate Software Bill of Materials (SBOM) maintained and audited for all released application artifacts?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "No inventory or SBOM of third-party dependencies maintained."
+
+  - requirement: "code_review_and_ci_cd_integrity"
+    question: "Are mandatory peer code reviews and branch protection rules enforced before any merge into deployment branches?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "No peer code reviews conducted; lone developer modifies production files directly."
+
+  # ============================================================================
+  # CHAPTER 6: API SECURITY & RATE LIMITING
+  # ============================================================================
+
+  - requirement: "api_security_and_rate_limiting"
+    question: "Are exposed API endpoints protected against abusive traffic via rate limiting and automated throttling controls?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "No rate limiting or throttling; vulnerable to denial of service."
+
+  - requirement: "api_security_and_rate_limiting"
+    question: "Are API payloads strictly validated against documented API specifications (e.g. OpenAPI / JSON schema)?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Unchecked XML and JSON endpoints without specification schemas."
+
+  # ============================================================================
+  # CHAPTER 7: DATA EXCHANGE & NON-PRODUCTION DATA PROTECTION
+  # ============================================================================
+
+  - requirement: "data_exchange"
+    question: "Are there data exchanges beyond the group?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Data exported to external maintenance contractors via unencrypted email attachments."
+
+  - requirement: "data_exchange"
+    question: "Is there a data exchange contract with the appropriate confidentiality clauses?"
+    answer: "No contract"
+    result: "not_compliant"
+    observation: "No confidentiality agreements or Data Processing Agreements in place."
+
+  - requirement: "non_prod_data"
+    question: "Do you have a dedicated non-production environment?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Shared staging VM used for testing."
+
+  - requirement: "non_prod_data"
+    question: "Do you use prod data in a non-prod environment?"
+    answer: "Yes"
+    result: "not_compliant"
+    observation: "Direct production database clones restored to test server without sanitization."
+
+  - requirement: "non_prod_data"
+    question: "How do you protect them?"
+    answer: "No, no protection"
+    result: "not_compliant"
+    observation: "No masking, hashing, or pseudonymization applied to staging database."
+
+  - requirement: "non_prod_data"
+    question: "Do you clean the prod data after use in non-prod?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Production clones retained indefinitely on staging server."
+
+  - requirement: "data_destruction"
+    question: "Is there a data destruction process for this application?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "No data retention limits or disposal procedures defined."
+
+  - requirement: "data_destruction"
+    question: "Is the process compliant with the policy (responsibilities, methods, reporting)?"
+    answer: "No, not compliant"
+    result: "not_compliant"
+    observation: "Records accumulated indefinitely since 2008 without purge mechanism."
+
+  # ============================================================================
+  # CHAPTER 8: SECURITY LOGGING, MONITORING & INCIDENT RESPONSE
+  # ============================================================================
+
+  - requirement: "security_event_logging"
+    question: "Does the application log key security events (failed logins, privilege escalation, administrative changes, access to sensitive assets)?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "No application security audit trail; failed authentication attempts are not logged."
+
+  - requirement: "security_event_logging"
+    question: "Are sensitive data fields (passwords, payment cards, tokens, PII) systematically sanitized/masked from log outputs?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Basic error log writes cleartext passwords to text file when login exceptions occur."
+
+  - requirement: "centralized_monitoring_and_alerting"
+    question: "Are application logs forwarded in near-real-time to a central SIEM/SOC platform with alerting rules for suspicious activities?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "No central logging or SIEM forwarding; logs remain isolated on local disk."
+
+  # ============================================================================
+  # CHAPTER 9: TESTING, PATCHING & RESILIENCE
+  # ============================================================================
+
+  - requirement: "penetration_testing_and_vulnerability_management"
+    question: "Is an independent penetration test performed on the application at least annually or following major architectural changes?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "No penetration test ever conducted on the application."
+
+  - requirement: "penetration_testing_and_vulnerability_management"
+    question: "Are identified vulnerabilities remediated within defined SLAs (e.g. Critical within 7 days, High within 30 days)?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Known legacy OS and web server vulnerabilities unpatched for over 5 years."
+
+  - requirement: "backup_and_disaster_recovery"
+    question: "Are automated and encrypted backups maintained for application state and databases, with restoration tests performed at least annually?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Manual ad-hoc backups to unencrypted shared NAS; restoration never tested."
+
+# ==============================================================================
+# Expected Risk Scenarios & Evaluation (AppSec Framework)
+# ==============================================================================
+# In-House Application -> 15 in-scope scenarios (SaaS provider leakage excluded).
+# Impact Level: 2 (Internal). All likelihoods: 4 (Very Likely, 0-25% compliance).
+# Grid[3][1] (Likelihood 4, Impact 2) = 2 (Medium Risk, Level 3) -> Priority 2 (High)
+# ==============================================================================
+expected_evaluation:
+  impact_level: 2
+  confidentiality_impact: 2
+  availability_impact: 2
+  scenario_count: 15
+  excluded_scenarios:
+    - "SaaS provider data leakage"
+
+expected_risk_scenarios:
+  - scenario: "Exposure of unencrypted data in transit"
+    likelihood_requirement: "data_in_transit"
+    likelihood_score: 0
+    scaled_likelihood: 4
+    scaled_impact: 2
+    matrix_risk_id: 2
+    risk_level: 3
+    control_priority: 2
+
+  - scenario: "Exposure of unencrypted data at rest"
+    likelihood_requirement: "data_at_rest"
+    likelihood_score: 0
+    scaled_likelihood: 4
+    scaled_impact: 2
+    matrix_risk_id: 2
+    risk_level: 3
+    control_priority: 2
+
+  - scenario: "Disclosure of production data in non-production environments"
+    likelihood_requirement: "non_prod_data"
+    likelihood_score: 0
+    scaled_likelihood: 4
+    scaled_impact: 2
+    matrix_risk_id: 2
+    risk_level: 3
+    control_priority: 2
+
+  - scenario: "Third-party data leakage"
+    likelihood_requirement: "data_exchange"
+    likelihood_score: 0
+    scaled_likelihood: 4
+    scaled_impact: 2
+    matrix_risk_id: 2
+    risk_level: 3
+    control_priority: 2
+
+  - scenario: "Missing application stakeholders"
+    likelihood_requirement: "stakeholder_identification"
+    likelihood_score: 25
+    scaled_likelihood: 4
+    scaled_impact: 2
+    matrix_risk_id: 2
+    risk_level: 3
+    control_priority: 2
+
+  - scenario: "Excessive retention of sensitive data"
+    likelihood_requirement: "data_destruction"
+    likelihood_score: 0
+    scaled_likelihood: 4
+    scaled_impact: 2
+    matrix_risk_id: 2
+    risk_level: 3
+    control_priority: 2
+
+  - scenario: "Account takeover via weak authentication"
+    likelihood_requirement: "authentication_and_mfa"
+    likelihood_score: 0
+    scaled_likelihood: 4
+    scaled_impact: 2
+    matrix_risk_id: 2
+    risk_level: 3
+    control_priority: 2
+
+  - scenario: "Unauthorized data access via broken authorization"
+    likelihood_requirement: "access_control_and_rbac"
+    likelihood_score: 0
+    scaled_likelihood: 4
+    scaled_impact: 2
+    matrix_risk_id: 2
+    risk_level: 3
+    control_priority: 2
+
+  - scenario: "Application compromise via injection attack"
+    likelihood_requirement: "input_validation_and_injection_defense"
+    likelihood_score: 0
+    scaled_likelihood: 4
+    scaled_impact: 2
+    matrix_risk_id: 2
+    risk_level: 3
+    control_priority: 2
+
+  - scenario: "Credential leakage via hardcoded secrets"
+    likelihood_requirement: "secrets_management"
+    likelihood_score: 0
+    scaled_likelihood: 4
+    scaled_impact: 2
+    matrix_risk_id: 2
+    risk_level: 3
+    control_priority: 2
+
+  - scenario: "Supply chain compromise via vulnerable dependency"
+    likelihood_requirement: "supply_chain_and_dependencies"
+    likelihood_score: 0
+    scaled_likelihood: 4
+    scaled_impact: 2
+    matrix_risk_id: 2
+    risk_level: 3
+    control_priority: 2
+
+  - scenario: "API abuse and denial of service"
+    likelihood_requirement: "api_security_and_rate_limiting"
+    likelihood_score: 0
+    scaled_likelihood: 4
+    scaled_impact: 2
+    matrix_risk_id: 2
+    risk_level: 3
+    control_priority: 2
+
+  - scenario: "Undetected breach due to missing security logging"
+    likelihood_requirement: "centralized_monitoring_and_alerting"
+    likelihood_score: 0
+    scaled_likelihood: 4
+    scaled_impact: 2
+    matrix_risk_id: 2
+    risk_level: 3
+    control_priority: 2
+
+  - scenario: "Catastrophic data loss due to unverified backups"
+    likelihood_requirement: "backup_and_disaster_recovery"
+    likelihood_score: 0
+    scaled_likelihood: 4
+    scaled_impact: 2
+    matrix_risk_id: 2
+    risk_level: 3
+    control_priority: 2
+
+  - scenario: "Exploitation of unpatched vulnerability"
+    likelihood_requirement: "penetration_testing_and_vulnerability_management"
+    likelihood_score: 0
+    scaled_likelihood: 4
+    scaled_impact: 2
+    matrix_risk_id: 2
+    risk_level: 3
+    control_priority: 2
