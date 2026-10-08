@@ -972,6 +972,7 @@ class ExamplesManager:
         framework_id: str | None = None,
         framework_name: str | None = None,
         framework_ref: str | None = None,
+        framework_installed: bool = False,
         yaml_path: str | None = None,
         domain_id: str | None = None,
         domain_name: str | None = None,
@@ -1032,6 +1033,7 @@ class ExamplesManager:
             "framework_id": framework_id,
             "framework_name": framework_name,
             "framework_ref": framework_ref,
+            "framework_installed": framework_installed,
             "exists": item_exists,
             "app_created": app_created,
             "audit_created": audit_created,
@@ -1181,16 +1183,33 @@ class ExamplesManager:
             fw_id = ca_obj.get_framework_id() if (ca_obj and hasattr(ca_obj, "get_framework_id")) else None
             fw_name = None
             fw_ref = None
+            fw_installed = False
             if fw_id and data.get("framework_dict"):
                 fw_obj = data["framework_dict"].get_framework_by_identifier(fw_id)
                 if fw_obj:
                     fw_name = fw_obj.get_name()
                     fw_json = getattr(fw_obj, "json_object", {}) or {}
                     fw_ref = fw_json.get("ref_id")
+                    fw_installed = True
             if not fw_name:
-                fw_name = app.get("framework_name", DEFAULT_FRAMEWORK_NAME)
+                fw_name = app.get("framework_name")
             if not fw_ref:
-                fw_ref = app.get("framework_ref", DEFAULT_FRAMEWORK_REF)
+                fw_ref = app.get("framework_ref")
+
+            if fw_ref and not fw_name:
+                for cat in FRAMEWORK_CATALOG:
+                    if cat["ref_id"].lower() == str(fw_ref).lower():
+                        fw_name = cat["name"]
+                        break
+
+            if not fw_name:
+                fw_name = DEFAULT_FRAMEWORK_NAME
+            if not fw_ref:
+                fw_ref = DEFAULT_FRAMEWORK_REF
+
+            if not fw_installed and data.get("framework_dict"):
+                matched_fw = data["framework_dict"].get_framework_by_identifier(fw_ref) or data["framework_dict"].get_framework_by_identifier(fw_name)
+                fw_installed = matched_fw is not None
 
             # Resolve domain / folder
             app_domain_id = None
@@ -1242,6 +1261,7 @@ class ExamplesManager:
                 framework_id=fw_id,
                 framework_name=fw_name,
                 framework_ref=fw_ref,
+                framework_installed=fw_installed,
                 yaml_path=app.get("yaml_path", ""),
                 domain_id=app_domain_id,
                 domain_name=app_domain_name,
@@ -1387,6 +1407,7 @@ class ExamplesManager:
                 framework_id=fw_id,
                 framework_name=fw_name,
                 framework_ref=fw_ref,
+                framework_installed=bool(fw_id),
                 yaml_path="-",
                 domain_id=ent_fid or folder_id,
                 domain_name=custom_domain_name,
@@ -2000,6 +2021,17 @@ class ExamplesManager:
                 if ea.get_id() == ea_id:
                     ea.assign_requirements_to_representatives([user_id] if user_id else None)
                     break
+            compliance_dict.requirement_assignments.reload()
+            assignment_ids = compliance_dict.requirement_assignments.get_requirement_assignment_id_list_from_compliance_assessment_id(ca_id)
+
+        # Fallback to perimeter owner assignment if representative assignment did not produce an assignment
+        if not assignment_ids and req_ids:
+            compliance_dict.assign_requirements_to_perimeter_owner(
+                perimeter_dict,
+                compliance_dict,
+                compliance_dict.requirement_assessments,
+                compliance_dict.requirement_assignments,
+            )
             compliance_dict.requirement_assignments.reload()
             assignment_ids = compliance_dict.requirement_assignments.get_requirement_assignment_id_list_from_compliance_assessment_id(ca_id)
 

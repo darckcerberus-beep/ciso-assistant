@@ -371,6 +371,37 @@ class EntityRepresentativeDict:
             )
             return None
 
+        # Check if representative already exists with this email or user_id
+        all_representatives = utils.get_all_results('/api/representatives/', force_reload=True)
+        norm_email = user_email.strip().lower()
+        existing_rep = None
+        for rep in all_representatives:
+            if not isinstance(rep, dict):
+                continue
+            rep_email = str(rep.get('email') or '').strip().lower()
+            rep_user = rep.get('user', {})
+            rep_user_id = rep_user.get('id') if isinstance(rep_user, dict) else rep_user
+            if (rep_email and rep_email == norm_email) or (rep_user_id and str(rep_user_id) == str(user_id)):
+                existing_rep = rep
+                break
+
+        if existing_rep:
+            rep_id = existing_rep.get('id')
+            utils.log(
+                f"Representative with email '{user_email}' already exists (ID: {rep_id}); linking to entity {entity_id}",
+                level=logging.INFO,
+            )
+            patch_payload = {'entity': entity_id}
+            if role:
+                patch_payload['role'] = role
+            if user_id and not existing_rep.get('user'):
+                patch_payload['user'] = user_id
+            patch_res = utils.get_return(f'/api/representatives/{rep_id}/', method='PATCH', payload=patch_payload, log_errors=False)
+            self.reload()
+            if patch_res and (not isinstance(patch_res, dict) or not patch_res.get('error')):
+                return patch_res
+            return existing_rep
+
         payload = {
             'entity': entity_id,
             'user': user_id,
@@ -379,10 +410,20 @@ class EntityRepresentativeDict:
             'last_name': user.get('last_name', '') if isinstance(user, dict) else '',
             'role': role,
         }
-        result = utils.get_return('/api/representatives/', method='POST', payload=payload)
+        result = utils.get_return('/api/representatives/', method='POST', payload=payload, log_errors=False)
         if result and (not isinstance(result, dict) or not result.get('error')):
             self.reload()
             return result
+
+        if isinstance(result, dict) and "already exists" in str(result.get('details', '')):
+            all_reps = utils.get_all_results('/api/representatives/', force_reload=True)
+            for rep in all_reps:
+                if isinstance(rep, dict) and str(rep.get('email') or '').strip().lower() == norm_email:
+                    rep_id = rep.get('id')
+                    patch_res = utils.get_return(f'/api/representatives/{rep_id}/', method='PATCH', payload={'entity': entity_id}, log_errors=False)
+                    self.reload()
+                    return patch_res or rep
+
         utils.log(f"Failed to create entity representative for entity {entity_id} and user {user_id}: {result}", level=logging.ERROR)
         return None
 

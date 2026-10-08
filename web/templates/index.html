@@ -225,8 +225,6 @@
           </select>
           <select id="framework-filter" onchange="filterApplications()" class="text-xs rounded-lg bg-surface-800 border border-slate-700 text-slate-200 px-3 py-1.5 focus:outline-none focus:border-brand-500">
             <option value="all">All Frameworks</option>
-            <option value="mls">Multi-level DPP (mls)</option>
-            <option value="vendor-due-diligence">Vendor Due Diligence (VDD)</option>
           </select>
         </div>
       </div>
@@ -427,11 +425,17 @@
 
           <!-- Framework Selection -->
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1.5">Compliance Framework</label>
-            <select id="audit-framework-select" class="w-full px-3.5 py-2 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white focus:outline-none focus:border-brand-500">
-              <option value="mls">Multi-level DPP (mls) - Installed</option>
-              <option value="vendor-due-diligence">Vendor Due Diligence (VDD) - simple - Installed</option>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="block text-xs font-medium text-slate-300">Compliance Framework</label>
+              <span id="audit-framework-status-badge" class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">Checking...</span>
+            </div>
+            <select id="audit-framework-select" class="w-full px-3.5 py-2 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white focus:outline-none focus:border-brand-500 transition">
+              <option value="" disabled selected>Loading installed frameworks...</option>
             </select>
+            <div id="audit-framework-warning" class="hidden mt-2 p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center space-x-2">
+              <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0"></i>
+              <span id="audit-framework-warning-text">No compliance frameworks are currently installed in CISO Assistant. Please load or import a framework first.</span>
+            </div>
           </div>
 
           <!-- Target Domain / Folder Selection -->
@@ -1033,6 +1037,8 @@
       applications: [],
       catalog: [],
       installedFrameworks: [],
+      availableFrameworks: [],
+      catalogFrameworks: [],
       domains: [],
       summary: {},
       activeTaskId: null,
@@ -1088,6 +1094,8 @@
         APP_STATE.applications = data.applications || [];
         APP_STATE.catalog = data.catalog || [];
         APP_STATE.installedFrameworks = data.installed_frameworks || [];
+        APP_STATE.availableFrameworks = data.available_frameworks || [];
+        APP_STATE.catalogFrameworks = data.catalog_frameworks || [];
         APP_STATE.domains = data.domains || [];
         APP_STATE.summary = data.summary || {};
 
@@ -1231,9 +1239,15 @@
           </td>
           <td class="py-3 px-4">${domainDisplay}</td>
           <td class="py-3 px-4">
-            <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-surface-800 text-slate-300 border border-slate-700 font-mono">
-              ${app.framework_name || 'Multi-level DPP'}
-            </span>
+            ${(() => {
+              const fwName = app.framework_name || app.framework_ref || 'Unassigned';
+              const isInstalled = Boolean(app.framework_installed || (APP_STATE.installedFrameworks || []).some(f => (f.ref_id && f.ref_id.toLowerCase() === (app.framework_ref || '').toLowerCase()) || (f.name && f.name.toLowerCase() === (app.framework_name || '').toLowerCase())));
+              if (isInstalled) {
+                return `<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-surface-800 text-slate-300 border border-slate-700 font-mono">${fwName}</span>`;
+              } else {
+                return `<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/30 font-mono inline-flex items-center space-x-1" title="Framework not installed in CISO Assistant"><span>${fwName}</span><span class="text-[9px] font-bold text-rose-400"> (Not Installed)</span></span>`;
+              }
+            })()}
           </td>
           <td class="py-3 px-4">${statusBadge}</td>
           <td class="py-3 px-4">${auditProgress}</td>
@@ -1478,16 +1492,195 @@
         parentDomainSelect.value = cur;
       }
 
+      // Compliance Frameworks for Audit Demo Form
+      const auditFwSelect = document.getElementById("audit-framework-select");
+      const auditFwBadge = document.getElementById("audit-framework-status-badge");
+      const auditFwWarn = document.getElementById("audit-framework-warning");
+      const auditSubmitBtn = document.getElementById("audit-submit-btn");
+
+      if (auditFwSelect) {
+        const curFwVal = auditFwSelect.value;
+        auditFwSelect.innerHTML = "";
+
+        const installedFws = APP_STATE.installedFrameworks || [];
+        const availableFws = APP_STATE.availableFrameworks || [];
+        const catalogFws = APP_STATE.catalogFrameworks || [];
+
+        // Build list of uninstalled catalog frameworks
+        const uninstalledFws = [];
+        const seenFwKeys = new Set(installedFws.map(f => (f.ref_id || f.name || "").toLowerCase()));
+
+        (availableFws.length ? availableFws : catalogFws).forEach(f => {
+          const ref = (f.ref_id || "").toLowerCase();
+          const name = (f.name || "").toLowerCase();
+          const isInst = Boolean(f.installed || f.in_ciso_assistant);
+          if (!seenFwKeys.has(ref) && !seenFwKeys.has(name) && !isInst) {
+            uninstalledFws.push(f);
+            seenFwKeys.add(ref);
+            seenFwKeys.add(name);
+          }
+        });
+
+        if (installedFws.length === 0) {
+          const opt = document.createElement("option");
+          opt.value = "";
+          opt.disabled = true;
+          opt.selected = true;
+          opt.innerText = "⚠️ No frameworks installed in CISO Assistant";
+          auditFwSelect.appendChild(opt);
+
+          if (auditFwBadge) {
+            auditFwBadge.className = "text-[10px] px-2 py-0.5 rounded bg-rose-500/15 text-rose-400 border border-rose-500/30 font-semibold";
+            auditFwBadge.innerText = "0 Installed";
+          }
+          if (auditFwWarn) auditFwWarn.classList.remove("hidden");
+          if (auditSubmitBtn) {
+            auditSubmitBtn.disabled = true;
+            auditSubmitBtn.classList.add("opacity-50", "cursor-not-allowed");
+            auditSubmitBtn.title = "Cannot create audit: No compliance frameworks installed in CISO Assistant";
+          }
+        } else {
+          if (auditFwBadge) {
+            auditFwBadge.className = "text-[10px] px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-semibold";
+            auditFwBadge.innerText = `${installedFws.length} Installed & Ready`;
+          }
+          if (auditFwWarn) auditFwWarn.classList.add("hidden");
+          if (auditSubmitBtn) {
+            auditSubmitBtn.disabled = false;
+            auditSubmitBtn.classList.remove("opacity-50", "cursor-not-allowed");
+            auditSubmitBtn.title = "";
+          }
+
+          const installedGroup = document.createElement("optgroup");
+          installedGroup.label = "Installed in CISO Assistant (Ready for Audit)";
+          installedFws.forEach(fw => {
+            const opt = document.createElement("option");
+            opt.value = fw.ref_id || fw.id;
+            opt.innerText = `${fw.name} (${fw.ref_id || 'ID: ' + (fw.id || '').substring(0, 8)})`;
+            installedGroup.appendChild(opt);
+          });
+          auditFwSelect.appendChild(installedGroup);
+
+          if (curFwVal && installedFws.some(f => (f.ref_id === curFwVal || f.id === curFwVal))) {
+            auditFwSelect.value = curFwVal;
+          } else {
+            auditFwSelect.value = installedFws[0].ref_id || installedFws[0].id;
+          }
+        }
+
+        // Add uninstalled frameworks as disabled options
+        if (uninstalledFws.length > 0) {
+          const uninstalledGroup = document.createElement("optgroup");
+          uninstalledGroup.label = "Catalog Frameworks (Not Installed in CISO Assistant)";
+          uninstalledFws.forEach(fw => {
+            const opt = document.createElement("option");
+            opt.value = fw.ref_id || fw.name;
+            opt.disabled = true;
+            opt.className = "text-slate-500";
+            opt.innerText = `${fw.name} (${fw.ref_id}) — Not Installed (Unavailable)`;
+            uninstalledGroup.appendChild(opt);
+          });
+          auditFwSelect.appendChild(uninstalledGroup);
+        }
+      }
+
+      // Framework Filter for Application Inventory Table
+      const fwFilter = document.getElementById("framework-filter");
+      if (fwFilter) {
+        const curFwVal = fwFilter.value;
+        fwFilter.innerHTML = `<option value="all">All Frameworks</option>`;
+
+        const knownFws = new Map();
+        (APP_STATE.applications || []).forEach(a => {
+          const ref = (a.framework_ref || "").toLowerCase();
+          const name = a.framework_name || ref;
+          if (ref && !knownFws.has(ref)) {
+            knownFws.set(ref, { ref, name, installed: Boolean(a.framework_installed) });
+          }
+        });
+        (APP_STATE.installedFrameworks || []).forEach(f => {
+          const ref = (f.ref_id || f.id || "").toLowerCase();
+          const name = f.name || ref;
+          if (ref && !knownFws.has(ref)) {
+            knownFws.set(ref, { ref, name, installed: true });
+          } else if (ref && knownFws.has(ref)) {
+            knownFws.get(ref).installed = true;
+          }
+        });
+
+        knownFws.forEach(info => {
+          const opt = document.createElement("option");
+          opt.value = info.ref;
+          const statusText = info.installed ? "" : " (Not Installed)";
+          opt.innerText = `${info.name} (${info.ref})${statusText}`;
+          fwFilter.appendChild(opt);
+        });
+
+        if (curFwVal && (curFwVal === "all" || knownFws.has(curFwVal.toLowerCase()))) {
+          fwFilter.value = curFwVal;
+        } else {
+          fwFilter.value = "all";
+        }
+      }
+
       // Frameworks for Diagnostics
       const diagFwList = document.getElementById("diag-frameworks");
       if (diagFwList) {
         diagFwList.innerHTML = "";
-        (APP_STATE.installedFrameworks || []).forEach(fw => {
-          const li = document.createElement("li");
-          li.className = "flex items-center space-x-2";
-          li.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span><span>${fw.name} (${fw.ref_id})</span>`;
-          diagFwList.appendChild(li);
-        });
+        const installed = APP_STATE.installedFrameworks || [];
+        const catalog = APP_STATE.catalogFrameworks || APP_STATE.availableFrameworks || [];
+
+        if (installed.length === 0) {
+          const emptyLi = document.createElement("li");
+          emptyLi.className = "flex items-center space-x-2 text-rose-400 py-1";
+          emptyLi.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span><span class="font-medium">No frameworks installed in CISO Assistant</span>`;
+          diagFwList.appendChild(emptyLi);
+        } else {
+          installed.forEach(fw => {
+            const li = document.createElement("li");
+            li.className = "flex items-center justify-between text-xs py-1 border-b border-slate-900/60";
+            li.innerHTML = `
+              <div class="flex items-center space-x-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                <span class="text-white font-medium">${fw.name}</span>
+                <span class="text-slate-400 font-mono text-[10px]">(${fw.ref_id || 'ID: ' + (fw.id || '').substring(0, 8)})</span>
+              </div>
+              <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">INSTALLED</span>
+            `;
+            diagFwList.appendChild(li);
+          });
+        }
+
+        // Catalog Status Breakdown
+        if (catalog.length > 0) {
+          const headerLi = document.createElement("li");
+          headerLi.className = "pt-2 mt-2 border-t border-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between";
+          headerLi.innerHTML = `<span>Catalog Templates (${catalog.length})</span><span class="text-[9px] text-slate-500 lowercase font-normal">status in ciso assistant</span>`;
+          diagFwList.appendChild(headerLi);
+
+          catalog.forEach(cat => {
+            const isInst = installed.some(f =>
+              (f.ref_id && f.ref_id.toLowerCase() === (cat.ref_id || "").toLowerCase()) ||
+              (f.name && f.name.toLowerCase() === (cat.name || "").toLowerCase())
+            ) || Boolean(cat.installed || cat.in_ciso_assistant);
+
+            const catLi = document.createElement("li");
+            catLi.className = "flex items-center justify-between text-xs py-0.5 text-slate-300";
+            const badge = isInst
+              ? `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">INSTALLED</span>`
+              : `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">NOT INSTALLED</span>`;
+            const dot = isInst ? "bg-emerald-500" : "bg-amber-500";
+            catLi.innerHTML = `
+              <div class="flex items-center space-x-2">
+                <span class="w-2 h-2 rounded-full ${dot} shrink-0"></span>
+                <span>${cat.name}</span>
+                <span class="text-slate-500 font-mono text-[10px]">(${cat.ref_id})</span>
+              </div>
+              ${badge}
+            `;
+            diagFwList.appendChild(catLi);
+          });
+        }
       }
     }
 
@@ -1511,6 +1704,13 @@
 
     function submitAuditDemo(e) {
       e.preventDefault();
+      const fwSelect = document.getElementById("audit-framework-select");
+      const selectedFw = fwSelect ? fwSelect.value.trim() : "";
+      if (!selectedFw) {
+        showToast("Cannot create audit: No compliance framework is installed in CISO Assistant.", "error");
+        return;
+      }
+
       const domainInput = document.getElementById("audit-domain-name").value.trim();
       const domainSelect = document.getElementById("audit-domain-select");
       let selectedDomain = domainInput;
@@ -1524,7 +1724,7 @@
         first_name: document.getElementById("audit-user-first").value.trim(),
         last_name: document.getElementById("audit-user-last").value.trim(),
         is_third_party: document.getElementById("audit-user-tprm").checked,
-        framework: document.getElementById("audit-framework-select").value,
+        framework: selectedFw,
         domain: selectedDomain || null,
       };
 
@@ -2011,10 +2211,12 @@
       const app = APP_STATE.applications[index];
       if (!app) return;
 
-      document.getElementById("modal-title").innerText = `Resource Breakdown: ${app.name}`;
+      const isFwInst = Boolean(app.framework_installed || (APP_STATE.installedFrameworks || []).some(f => (f.ref_id && f.ref_id.toLowerCase() === (app.framework_ref || '').toLowerCase()) || (f.name && f.name.toLowerCase() === (app.framework_name || '').toLowerCase())));
+      const fwStatusText = isFwInst ? "Installed" : "Not Installed in CISO Assistant";
+      const fwDisplay = `${app.framework_name || app.framework_ref || 'None'}${app.framework_ref ? ` (${app.framework_ref})` : ''} — [${fwStatusText}]`;
       const fields = [
         ["Domain / Folder", `${app.domain_name || app.domain || 'None'}${app.domain_id ? ` (ID: ${app.domain_id})` : ''}`],
-        ["Framework", `${app.framework_name || 'Multi-level DPP'} (${app.framework_ref || 'mls'})`],
+        ["Framework", fwDisplay],
         ["Lifecycle Status", app.lifecycle_status || (app.exists ? "DEPLOYED" : "NOT CREATED")],
         ["Perimeter ID", app.perimeter_id || "None"],
         ["Asset ID", app.asset_id || "None"],

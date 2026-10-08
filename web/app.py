@@ -270,6 +270,8 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
                 "folder_name": target_folder,
                 "applications": [],
                 "installed_frameworks": [],
+                "available_frameworks": manager.get_available_frameworks(installed_only=False),
+                "catalog_frameworks": FRAMEWORK_CATALOG,
                 "catalog": manager.get_example_applications(),
                 "domains": [],
                 "summary": {
@@ -328,6 +330,8 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
             "folder_name": target_folder,
             "applications": status_list,
             "installed_frameworks": installed_fws,
+            "available_frameworks": manager.get_available_frameworks(installed_only=False),
+            "catalog_frameworks": FRAMEWORK_CATALOG,
             "catalog": catalog_apps,
             "domains": domains_list,
             "summary": {
@@ -394,9 +398,11 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
     def api_frameworks():
         """Retrieve installed and catalog frameworks."""
         installed = manager.get_installed_frameworks()
+        available = manager.get_available_frameworks(installed_only=False)
         return jsonify({
             "installed": installed,
             "catalog": FRAMEWORK_CATALOG,
+            "available": available,
         })
 
     @app.route("/api/catalog")
@@ -561,21 +567,47 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
         first_name = payload.get("first_name", "").strip()
         last_name = payload.get("last_name", "").strip()
         is_third_party = bool(payload.get("is_third_party", True))
-        framework = payload.get("framework", "mls").strip()
+        framework = payload.get("framework", "").strip()
         target_domain = payload.get("domain")
 
         if not user_email or "@" not in user_email:
             return jsonify({"error": "A valid 'user_email' is required."}), 400
 
+        # Check installed frameworks before initiating audit task
+        installed_fws = manager.get_installed_frameworks()
+        if not installed_fws:
+            return jsonify({
+                "error": "No compliance frameworks are currently installed in CISO Assistant. Cannot create audit demonstration. Please import or load a framework first."
+            }), 400
+
+        # Resolve target framework: if specified, verify it is installed; if not, use default or first installed
+        if framework:
+            matching_fw = manager.find_target_framework(framework)
+            if not matching_fw:
+                installed_names = ", ".join(f"'{f.get('name')}' ({f.get('ref_id')})" for f in installed_fws)
+                return jsonify({
+                    "error": f"Framework '{framework}' is not installed in CISO Assistant. Available installed frameworks: {installed_names}"
+                }), 400
+            target_fw_ref = framework
+        else:
+            default_fw = manager.find_target_framework(None)
+            if default_fw:
+                target_fw_ref = (
+                    getattr(default_fw, "json_object", {}).get("ref_id")
+                    or default_fw.get_name()
+                )
+            else:
+                target_fw_ref = installed_fws[0].get("ref_id") or installed_fws[0].get("name")
+
         def _job():
-            print(f"---> Provisioning application '{app_name}' and assigning audit to '{user_email}'...")
+            print(f"---> Provisioning application '{app_name}' and assigning audit to '{user_email}' (Framework: {target_fw_ref})...")
             res = manager.create_application_for_audit(
                 app_name=app_name,
                 user_email=user_email,
                 first_name=first_name,
                 last_name=last_name,
                 is_third_party=is_third_party,
-                framework_ref_or_name=framework,
+                framework_ref_or_name=target_fw_ref,
                 domain_name=target_domain,
             )
             print(f"     [OK] Application: {res.get('app_name')}")

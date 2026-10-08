@@ -1,6 +1,7 @@
 """Requirement assessment models and collection helpers."""
 
 import logging
+import time
 from typing import Any
 
 from .. import utils
@@ -329,15 +330,62 @@ class RequirementAssessmentDict:
 
     def assign_requirements_to_perimeter_owner(self, perimeter_dict, compliance_assessment_dict, requirement_assessment_dict, requirement_assignment_dict):
         """Create assignments for all non-assigned requirement assessments."""
+        if hasattr(self, "reload"):
+            self.reload()
+        if hasattr(compliance_assessment_dict, "reload"):
+            compliance_assessment_dict.reload()
+        if hasattr(requirement_assignment_dict, "reload"):
+            requirement_assignment_dict.reload()
+
         assigned_assessments = requirement_assignment_dict.get_requirement_assignment_id_list()
         created = False
 
         for ca in compliance_assessment_dict.get_compliance_assessments().values():
             req_assigned_ids = requirement_assignment_dict.get_requirement_assignment_id_list_from_compliance_assessment_id(ca.get_id())
             req_assessment_ids = self.get_requirement_assessment_id_list_from_compliance_assessment_id(ca.get_id())
-            unassigned_assessments = list(set(assigned_assessments) ^ set(req_assessment_ids))
 
-            if req_assigned_ids == []:
+            if not req_assigned_ids and not req_assessment_ids:
+                for _ in range(10):
+                    time.sleep(0.5)
+                    self.reload()
+                    req_assessment_ids = self.get_requirement_assessment_id_list_from_compliance_assessment_id(ca.get_id())
+                    if req_assessment_ids:
+                        break
+
+            unassigned_assessments = [r for r in req_assessment_ids if r not in assigned_assessments]
+
+            if not req_assigned_ids and unassigned_assessments:
+                owner_id = perimeter_dict.get_owner_id_from_perimeter_id(ca.get_perimeter_id())
+                actor_id = None
+                actor_records = utils.get_all_results("/api/actors/", force_reload=True)
+                if owner_id:
+                    for actor in actor_records:
+                        if not isinstance(actor, dict):
+                            continue
+                        specific = actor.get("specific")
+                        specific_id = (
+                            specific.get("id")
+                            if isinstance(specific, dict)
+                            else str(specific)
+                            if specific
+                            else ""
+                        )
+                        if actor.get("id") == owner_id or specific_id == str(owner_id):
+                            actor_id = actor.get("id")
+                            break
+                    if not actor_id:
+                        actor_id = owner_id
+                if not actor_id and actor_records:
+                    if isinstance(actor_records[0], dict) and actor_records[0].get("id"):
+                        actor_id = actor_records[0].get("id")
+
+                if not actor_id:
+                    utils.log(
+                        f"Skipping requirement assignment for compliance assessment {ca.get_name()}: no actor available",
+                        level=logging.WARNING,
+                    )
+                    continue
+
                 utils.log(
                     "Creating assignment for unassigned requirement assessments: "
                     + str(unassigned_assessments)
@@ -348,7 +396,7 @@ class RequirementAssessmentDict:
                     "requirement_assessments": unassigned_assessments,
                     "compliance_assessment": ca.get_id(),
                     "folder": perimeter_dict.get_folder_uuid_from_perimeter_id(ca.get_perimeter_id()),
-                    "actor": [perimeter_dict.get_owner_id_from_perimeter_id(ca.get_perimeter_id())]
+                    "actor": [actor_id]
                 }
                 req_assign_json = create_requirement_assignment(payload)
                 if not req_assign_json or (isinstance(req_assign_json, dict) and req_assign_json.get('error')):
@@ -359,7 +407,8 @@ class RequirementAssessmentDict:
                         + str(req_assign_json),
                         level=logging.ERROR,
                     )
-                created = True
+                else:
+                    created = True
             else:
                 utils.log(f"Requirement assessments are already assigned for compliance assessment: {ca.get_name()}")
                 utils.log(f"Requirement assessments: {req_assessment_ids}")

@@ -17,9 +17,16 @@ import time
 import unittest
 from unittest.mock import MagicMock, patch
 
-from web.app import TASK_MANAGER, create_app
+try:
+    from web.app import TASK_MANAGER, create_app
+    HAS_FLASK = True
+except ImportError:
+    HAS_FLASK = False
+    TASK_MANAGER = None
+    create_app = None
 
 
+@unittest.skipUnless(HAS_FLASK, "Flask is not installed in the test environment")
 class TestWebUI(unittest.TestCase):
     """Test suite for the Web UI and REST API."""
 
@@ -48,6 +55,9 @@ class TestWebUI(unittest.TestCase):
         self.assertIn("applications", data)
         self.assertIn("domains", data)
         self.assertIn("summary", data)
+        self.assertIn("installed_frameworks", data)
+        self.assertIn("available_frameworks", data)
+        self.assertIn("catalog_frameworks", data)
         self.assertIn("total_catalog", data["summary"])
         self.assertIn("total_domains", data["summary"])
 
@@ -89,6 +99,7 @@ class TestWebUI(unittest.TestCase):
         data = response.get_json()
         self.assertIn("installed", data)
         self.assertIn("catalog", data)
+        self.assertIn("available", data)
         cat_refs = [f["ref_id"] for f in data["catalog"]]
         self.assertIn("mls", cat_refs)
         self.assertIn("vendor-due-diligence", cat_refs)
@@ -188,15 +199,19 @@ class TestWebUI(unittest.TestCase):
         self.assertEqual(task["status"], "completed")
         mock_create.assert_called_once()
 
+    @patch("classes.examples_manager.ExamplesManager.find_target_framework")
+    @patch("classes.examples_manager.ExamplesManager.get_installed_frameworks")
     @patch("classes.examples_manager.ExamplesManager.create_application_for_audit")
-    def test_audit_demo_endpoint(self, mock_create_audit):
-        """Test POST /api/audit-demo launches unanswered audit creation task."""
+    def test_audit_demo_endpoint(self, mock_create_audit, mock_get_inst, mock_find_fw):
+        """Test POST /api/audit-demo launches unanswered audit creation task with framework validation."""
         mock_create_audit.return_value = {
             "app_name": "App-Test-Demo",
             "user_email": "test@demo.com",
             "perimeter_id": "p-test",
             "compliance_assessment_name": "Audit Demo",
         }
+        mock_get_inst.return_value = [{"id": "fw-1", "name": "Multi-level DPP", "ref_id": "mls"}]
+        mock_find_fw.return_value = MagicMock(get_name=lambda: "Multi-level DPP")
 
         # Invalid email validation
         bad_resp = self.client.post(
@@ -206,7 +221,29 @@ class TestWebUI(unittest.TestCase):
         )
         self.assertEqual(bad_resp.status_code, 400)
 
-        # Valid submission
+        # Rejection when no frameworks are installed in CISO Assistant
+        mock_get_inst.return_value = []
+        no_fw_resp = self.client.post(
+            "/api/audit-demo",
+            data=json.dumps({"app_name": "App-Test-Demo", "user_email": "test@demo.com"}),
+            content_type="application/json",
+        )
+        self.assertEqual(no_fw_resp.status_code, 400)
+        self.assertIn("No compliance frameworks are currently installed", no_fw_resp.get_json()["error"])
+
+        # Rejection when requested framework is not installed in CISO Assistant
+        mock_get_inst.return_value = [{"id": "fw-1", "name": "Multi-level DPP", "ref_id": "mls"}]
+        mock_find_fw.return_value = None
+        missing_fw_resp = self.client.post(
+            "/api/audit-demo",
+            data=json.dumps({"app_name": "App-Test-Demo", "user_email": "test@demo.com", "framework": "uninstalled-fw"}),
+            content_type="application/json",
+        )
+        self.assertEqual(missing_fw_resp.status_code, 400)
+        self.assertIn("Framework 'uninstalled-fw' is not installed", missing_fw_resp.get_json()["error"])
+
+        # Valid submission with installed framework
+        mock_find_fw.return_value = MagicMock(get_name=lambda: "Multi-level DPP")
         response = self.client.post(
             "/api/audit-demo",
             data=json.dumps({

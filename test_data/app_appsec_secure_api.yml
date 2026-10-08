@@ -78,12 +78,6 @@ answers:
     result: "compliant"
     observation: "Public REST API endpoints (api.example-paymentapi.com) fronted by CloudFlare DDoS protection and AWS WAF."
 
-  - requirement: "architecture_and_threat_modeling"
-    question: "Has a formal threat model (e.g. STRIDE) or security architecture review been conducted for this application?"
-    answer: "Yes"
-    result: "compliant"
-    observation: "Comprehensive STRIDE threat model conducted by external security firm in Jan 2026 with documented trust boundaries and mitigation matrix."
-
   # ============================================================================
   # CHAPTER 2: IDENTITY, AUTHENTICATION & ACCESS CONTROL
   # ============================================================================
@@ -113,10 +107,16 @@ answers:
     observation: "Fine-grained RBAC/ABAC enforced via Open Policy Agent (OPA) with least privilege principles applied across all endpoints."
 
   - requirement: "access_control_and_rbac"
-    question: "Are access permissions reviewed and recertified on a periodic basis (at least biannually)?"
+    question: "Is the application integrated with the enterprise Identity Governance and Administration (IGA) solution (such as SailPoint) for centralized user lifecycle, role management, and automated provisioning/deprovisioning?"
     answer: "Yes"
     result: "compliant"
-    observation: "Quarterly User Access Review (UAR) process automated via Okta and certified by business data owners."
+    observation: "Onboarded into enterprise SailPoint IdentityIQ for automated JML provisioning and role governance."
+
+  - requirement: "access_control_and_rbac"
+    question: "Are user entitlements and privileged permissions reviewed and recertified on a periodic basis via formal recertification campaigns (e.g., SailPoint certification campaigns at least annually for standard users, biannually for privileged accounts)?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Quarterly User Access Review (UAR) recertification campaigns executed and certified in SailPoint by business data owners."
 
   - requirement: "session_management"
     question: "Are session tokens securely generated, transmitted with secure cookie flags (HttpOnly, Secure, SameSite), and invalidated on logout or inactivity?"

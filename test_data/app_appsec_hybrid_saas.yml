@@ -79,12 +79,6 @@ answers:
     result: "compliant"
     observation: "Customer portal and REST API endpoints publicly accessible over HTTPS."
 
-  - requirement: "architecture_and_threat_modeling"
-    question: "Has a formal threat model (e.g. STRIDE) or security architecture review been conducted for this application?"
-    answer: "Yes"
-    result: "compliant"
-    observation: "Architecture review and data flow diagram completed during initial design phase."
-
   # ============================================================================
   # CHAPTER 2: IDENTITY, AUTHENTICATION & ACCESS CONTROL
   # ============================================================================
@@ -114,10 +108,16 @@ answers:
     observation: "Role-Based Access Control implemented separating Viewer, Editor, and Organization Admin roles."
 
   - requirement: "access_control_and_rbac"
-    question: "Are access permissions reviewed and recertified on a periodic basis (at least biannually)?"
+    question: "Is the application integrated with the enterprise Identity Governance and Administration (IGA) solution (such as SailPoint) for centralized user lifecycle, role management, and automated provisioning/deprovisioning?"
     answer: "No"
     result: "not_compliant"
-    observation: "Periodic user access recertification is not formalized or tracked."
+    observation: "Direct enterprise IGA / SailPoint connector is planned on roadmap but not yet implemented."
+
+  - requirement: "access_control_and_rbac"
+    question: "Are user entitlements and privileged permissions reviewed and recertified on a periodic basis via formal recertification campaigns (e.g., SailPoint certification campaigns at least annually for standard users, biannually for privileged accounts)?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Periodic user access recertification is not formalized in SailPoint or tracked."
 
   - requirement: "session_management"
     question: "Are session tokens securely generated, transmitted with secure cookie flags (HttpOnly, Secure, SameSite), and invalidated on logout or inactivity?"

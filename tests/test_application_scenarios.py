@@ -721,13 +721,6 @@ class TestApplicationProfileScenarioConsistency(unittest.TestCase):
         with open(yaml_file, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
 
-        # Transform answers to use SaaS contract-defined choices
-        for a in data["answers"]:
-            if a.get("answer") == "Yes":
-                a["answer"] = "Yes - Defined with a contract"
-            elif a.get("answer") == "SaaS":
-                a["answer"] = "SaaS (controls defined with a contract)"
-
         simulator = ApplicationRiskSimulator("YML/appsec.yml")
         mock_ras = simulator.build_mock_requirement_assessments(data)
         results = simulator.evaluate_from_requirement_assessments(mock_ras)

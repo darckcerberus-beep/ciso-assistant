@@ -1,6 +1,7 @@
 """Entity assessment models and external-entity audit orchestration."""
 
 import logging
+import time
 import uuid
 
 from .. import utils
@@ -260,13 +261,23 @@ class EntityAssessment:
                     actor_ids.append(str(actor_id))
                     break
 
-                specific = actor.get('specific', {})
-                if isinstance(specific, dict):
-                    if specific.get('id') == normalized:
-                        actor_ids.append(str(actor.get('id')))
-                        break
+                specific = actor.get('specific')
+                specific_id = (
+                    specific.get('id')
+                    if isinstance(specific, dict)
+                    else str(specific)
+                    if specific
+                    else ''
+                )
+                if specific_id and str(specific_id) == normalized:
+                    actor_ids.append(str(actor.get('id')))
+                    break
 
-                if _normalize(actor.get('str')) in representative_aliases:
+                actor_str = _normalize(actor.get('str'))
+                if actor_str in representative_aliases:
+                    actor_ids.append(str(actor.get('id')))
+                    break
+                if any(alias and (alias in actor_str or actor_str in alias) for alias in representative_aliases):
                     actor_ids.append(str(actor.get('id')))
                     break
             else:
@@ -274,7 +285,8 @@ class EntityAssessment:
                     for actor in assignment.get('actor', []) or []:
                         if not isinstance(actor, dict):
                             continue
-                        if _normalize(actor.get('str')) in representative_aliases and actor.get('id'):
+                        actor_str = _normalize(actor.get('str'))
+                        if (actor_str in representative_aliases or any(alias and (alias in actor_str or actor_str in alias) for alias in representative_aliases)) and actor.get('id'):
                             actor_ids.append(str(actor['id']))
                             break
                     else:
@@ -373,10 +385,20 @@ class EntityAssessment:
             representative_ids = representative_ids[:1]
 
         compliance_assessment_id = self.get_compliance_assessment_id()
-        if not compliance_assessment_id or not representative_ids:
+        if not compliance_assessment_id:
             return None
 
-        actor_ids = self.resolve_actor_ids(representative_ids)
+        actor_ids = self.resolve_actor_ids(representative_ids) if representative_ids else []
+        if not actor_ids:
+            actor_records = utils.get_all_results('/api/actors/', force_reload=True)
+            if actor_records and isinstance(actor_records[0], dict) and actor_records[0].get('id'):
+                fallback_actor_id = str(actor_records[0].get('id'))
+                actor_ids = [fallback_actor_id]
+                utils.log(
+                    f"No specific actor record for representative(s) {representative_ids}; using fallback actor {fallback_actor_id}",
+                    level=logging.INFO,
+                )
+
         if not actor_ids:
             utils.log(
                 f"Skipping representative assignment for entity assessment {self.get_id()}: "
@@ -386,6 +408,13 @@ class EntityAssessment:
             return None
 
         requirement_assessment_ids = self._get_requirement_assessment_ids(compliance_assessment_id)
+        if not requirement_assessment_ids:
+            for _ in range(10):
+                time.sleep(0.5)
+                requirement_assessment_ids = self._get_requirement_assessment_ids(compliance_assessment_id)
+                if requirement_assessment_ids:
+                    break
+
         if not requirement_assessment_ids:
             existing_assignment_without_requirements = self._find_matching_requirement_assignment(
                 compliance_assessment_id,
@@ -797,13 +826,17 @@ class EntityAssessmentDict:
             if is_success:
                 self.reload()
                 if isinstance(response, dict):
-                    created_assessment = EntityAssessment(response)
+                    created_id = response.get('id')
+                    created_assessment = next(
+                        (ea for ea in self.entity_assessments if ea.get_id() == created_id),
+                        EntityAssessment(response)
+                    )
                     created_assessment.synchronize_implementation_groups()
-                    if created_assessment.ensure_representative_links(representative_ids):
-                        created_assessment.assign_requirements_to_representatives(
-                            representative_ids,
-                            first_only=bool(create_audit),
-                        )
+                    created_assessment.ensure_representative_links(representative_ids)
+                    created_assessment.assign_requirements_to_representatives(
+                        representative_ids,
+                        first_only=bool(create_audit),
+                    )
                 return response
 
             if not self._is_name_collision_response(response):
@@ -844,13 +877,17 @@ class EntityAssessmentDict:
             if is_success:
                 self.reload()
                 if isinstance(response, dict):
-                    created_assessment = EntityAssessment(response)
+                    created_id = response.get('id')
+                    created_assessment = next(
+                        (ea for ea in self.entity_assessments if ea.get_id() == created_id),
+                        EntityAssessment(response)
+                    )
                     created_assessment.synchronize_implementation_groups()
-                    if created_assessment.ensure_representative_links(representative_ids):
-                        created_assessment.assign_requirements_to_representatives(
-                            representative_ids,
-                            first_only=bool(create_audit),
-                        )
+                    created_assessment.ensure_representative_links(representative_ids)
+                    created_assessment.assign_requirements_to_representatives(
+                        representative_ids,
+                        first_only=bool(create_audit),
+                    )
                 return response
 
             if not self._is_name_collision_response(response):
@@ -906,12 +943,12 @@ class EntityAssessmentDict:
                     matching_assessment.synchronize_implementation_groups()
                 if not has_linked_audit and default_framework_id:
                     matching_assessment.ensure_linked_audit(default_framework_id, representative_ids, self)
-                if has_linked_audit:
+                if matching_assessment.has_linked_audit():
                     matching_assessment.assign_requirements_to_representatives(representative_ids)
                 continue
 
             representative_ids = entity_representative_ids
-            self.create_entity_assessment(
+            created_res = self.create_entity_assessment(
                 name=f"Entity assessment of {entity.get_name()}",
                 entity_id=entity.get_id(),
                 compliance_assessment_id=None,
@@ -920,3 +957,11 @@ class EntityAssessmentDict:
                 create_audit=True,
                 status="in_progress",
             )
+            if created_res and isinstance(created_res, dict) and created_res.get('id'):
+                self.reload()
+                new_assessment = next(
+                    (ea for ea in self.entity_assessments if ea.get_id() == created_res.get('id')),
+                    None,
+                )
+                if new_assessment and new_assessment.has_linked_audit():
+                    new_assessment.assign_requirements_to_representatives(representative_ids)

@@ -1731,6 +1731,233 @@ class TestFrameworkSelection(unittest.TestCase):
         self.assertEqual(trig_pm_ai, 64)
 
 
+class TestAuditAssignmentAndOrchestration(unittest.TestCase):
+    """Test suite for audit assignment, representative upsert, and actor resolution."""
+
+    @patch("classes.utils.get_all_results")
+    @patch("classes.utils.get_return")
+    def test_upsert_entity_representative_reuses_existing_by_email(self, mock_get_return, mock_get_all):
+        """Verify upsert_entity_representative reuses existing representative with the same email."""
+        from classes.organization.entity import EntityRepresentativeDict
+
+        mock_get_return.side_effect = lambda endpoint, **kwargs: {
+            "/api/users/user-uuid-1/": {"id": "user-uuid-1", "email": "rpignard@redoute.fr"},
+            "/api/representatives/rep-existing-1/": {"id": "rep-existing-1", "entity": "new-entity-1"},
+        }.get(endpoint, {})
+
+        mock_get_all.return_value = [
+            {"id": "rep-existing-1", "email": "rpignard@redoute.fr", "user": "user-uuid-1", "entity": "old-entity"}
+        ]
+
+        with patch.object(EntityRepresentativeDict, "reload"):
+            rep_dict = EntityRepresentativeDict.__new__(EntityRepresentativeDict)
+            rep_dict.entity_representatives = []
+            res = rep_dict.upsert_entity_representative(
+                entity_id="new-entity-1",
+                user_id="user-uuid-1",
+            )
+
+        self.assertIsNotNone(res)
+        self.assertEqual(res.get("id"), "rep-existing-1")
+
+    @patch("classes.utils.get_all_results")
+    @patch("classes.utils.get_return")
+    def test_upsert_entity_representative_handles_400_duplicate_email(self, mock_get_return, mock_get_all):
+        """Verify upsert_entity_representative catches 400 already exists error and patches."""
+        from classes.organization.entity import EntityRepresentativeDict
+
+        mock_get_all.side_effect = [
+            [],
+            [{"id": "rep-dup-99", "email": "rpignard@redoute.fr"}],
+            [],
+        ]
+        mock_get_return.side_effect = [
+            {"id": "user-uuid-2", "email": "rpignard@redoute.fr"},
+            {"error": 400, "details": {"email": ["representative with this email already exists."]}},
+            {"id": "rep-dup-99", "entity": "new-entity-2"},
+        ]
+
+        with patch.object(EntityRepresentativeDict, "reload"):
+            rep_dict = EntityRepresentativeDict.__new__(EntityRepresentativeDict)
+            rep_dict.entity_representatives = []
+            res = rep_dict.upsert_entity_representative(
+                entity_id="new-entity-2",
+                user_id="user-uuid-2",
+            )
+
+        self.assertIsNotNone(res)
+        self.assertEqual(res.get("id"), "rep-dup-99")
+
+    @patch("classes.utils.get_all_results")
+    def test_entity_assessment_resolve_actor_ids_string_specific(self, mock_get_all):
+        """Verify resolve_actor_ids handles string UUID in specific and email in str."""
+        from classes.audits.entity_assessment import EntityAssessment
+
+        mock_get_all.side_effect = lambda endpoint, **kwargs: {
+            "/api/actors/": [
+                {"id": "actor-uuid-1", "specific": "user-uuid-1", "str": "Romain PIGNARD"},
+                {"id": "actor-uuid-2", "specific": "user-uuid-2", "str": "rpignard@redoute.fr"},
+            ],
+            "/api/users/": [
+                {"id": "user-uuid-1", "email": "romain@example.com"},
+                {"id": "user-uuid-2", "email": "rpignard@redoute.fr"},
+            ],
+            "/api/representatives/": [
+                {"id": "rep-1", "user": "user-uuid-1", "email": "romain@example.com"},
+                {"id": "rep-2", "user": "user-uuid-2", "email": "rpignard@redoute.fr"},
+            ],
+            "/api/requirement-assignments/": [],
+        }.get(endpoint, [])
+
+        ea = EntityAssessment({"id": "ea-1", "name": "Test EA"})
+        actor_ids = ea.resolve_actor_ids(["user-uuid-1", "user-uuid-2"])
+        self.assertEqual(actor_ids, ["actor-uuid-1", "actor-uuid-2"])
+
+    @patch("classes.audits.compliance.create_requirement_assignment")
+    @patch("classes.utils.get_all_results")
+    def test_compliance_assign_requirements_to_perimeter_owner_with_fallback(self, mock_get_all, mock_create_assignment):
+        """Verify ComplianceAssessmentDict.assign_requirements_to_perimeter_owner assigns to perimeter owner or actor."""
+        from classes.audits.compliance import ComplianceAssessmentDict, ComplianceAssessment
+
+        mock_create_assignment.return_value = {"id": "assign-created-1"}
+        mock_get_all.side_effect = lambda endpoint, **kwargs: {
+            "/api/compliance-assessments/": [
+                {"id": "ca-1", "name": "CA 1", "framework": "fw-1", "perimeter": "perm-1"}
+            ],
+            "/api/actors/": [
+                {"id": "actor-1", "specific": "owner-user-1", "str": "Owner"}
+            ],
+        }.get(endpoint, [])
+
+        perimeter_dict = MagicMock()
+        perimeter_dict.get_owner_id_from_perimeter_id.return_value = "owner-user-1"
+        perimeter_dict.get_folder_uuid_from_perimeter_id.return_value = "folder-1"
+
+        req_assessment_dict = MagicMock()
+        req_assessment_dict.get_requirement_assessment_id_list_from_compliance_assessment_id.return_value = ["ra-1", "ra-2"]
+
+        req_assignment_dict = MagicMock()
+        req_assignment_dict.get_requirement_assignment_id_list_from_compliance_assessment_id.return_value = []
+
+        with patch.object(ComplianceAssessmentDict, "reload"):
+            ca_dict = ComplianceAssessmentDict.__new__(ComplianceAssessmentDict)
+            ca_dict.compliance_assessments = {"ca-1": ComplianceAssessment({"id": "ca-1", "name": "CA 1", "framework": "fw-1", "perimeter": "perm-1"})}
+            ca_dict.assign_requirements_to_perimeter_owner(
+                perimeter_dict,
+                ca_dict,
+                req_assessment_dict,
+                req_assignment_dict,
+            )
+
+        mock_create_assignment.assert_called_once()
+        payload = mock_create_assignment.call_args[0][0]
+        self.assertEqual(payload["compliance_assessment"], "ca-1")
+        self.assertEqual(payload["requirement_assessments"], ["ra-1", "ra-2"])
+        self.assertEqual(payload["actor"], ["actor-1"])
+
+    @patch("classes.audits.requirement_assessment.create_requirement_assignment")
+    @patch("classes.utils.get_all_results")
+    def test_requirement_dict_assign_requirements_to_perimeter_owner(self, mock_get_all, mock_create_assignment):
+        """Verify RequirementAssessmentDict.assign_requirements_to_perimeter_owner assigns unassigned requirements."""
+        from classes.audits.requirement_assessment import RequirementAssessmentDict
+        from classes.audits.compliance import ComplianceAssessment
+
+        mock_create_assignment.return_value = {"id": "assign-created-2"}
+        mock_get_all.side_effect = lambda endpoint, **kwargs: {
+            "/api/actors/": [
+                {"id": "actor-2", "specific": "owner-user-2", "str": "Owner 2"}
+            ],
+        }.get(endpoint, [])
+
+        perimeter_dict = MagicMock()
+        perimeter_dict.get_owner_id_from_perimeter_id.return_value = "owner-user-2"
+        perimeter_dict.get_folder_uuid_from_perimeter_id.return_value = "folder-2"
+
+        ca_obj = ComplianceAssessment({"id": "ca-2", "name": "CA 2", "framework": "fw-2", "perimeter": "perm-2"})
+        ca_dict = MagicMock()
+        ca_dict.get_compliance_assessments.return_value = {"ca-2": ca_obj}
+
+        req_assignment_dict = MagicMock()
+        req_assignment_dict.get_requirement_assignment_id_list.return_value = ["ra-already-assigned-other-ca"]
+        req_assignment_dict.get_requirement_assignment_id_list_from_compliance_assessment_id.return_value = []
+
+        with patch.object(RequirementAssessmentDict, "reload"):
+            ra_dict = RequirementAssessmentDict.__new__(RequirementAssessmentDict)
+            ra_dict.requirement_assessments = {}
+            with patch.object(ra_dict, "get_requirement_assessment_id_list_from_compliance_assessment_id", return_value=["ra-10", "ra-20"]):
+                ra_dict.assign_requirements_to_perimeter_owner(
+                    perimeter_dict,
+                    ca_dict,
+                    ra_dict,
+                    req_assignment_dict,
+                )
+
+        mock_create_assignment.assert_called_once()
+        payload = mock_create_assignment.call_args[0][0]
+        self.assertEqual(payload["compliance_assessment"], "ca-2")
+        self.assertEqual(payload["requirement_assessments"], ["ra-10", "ra-20"])
+        self.assertEqual(payload["actor"], ["actor-2"])
+
+    def test_create_application_for_audit_fallback_perimeter_owner_assignment(self):
+        """Verify create_application_for_audit falls back to perimeter owner assignment when representative assignment yields no assignment."""
+        mock_data = {
+            "perimeter_dict": MagicMock(),
+            "asset_dict": MagicMock(),
+            "compliance_assessment_dict": MagicMock(),
+            "entity_dict": MagicMock(),
+            "entity_representative_dict": MagicMock(),
+            "entity_assessment_dict": MagicMock(),
+            "user_dict": MagicMock(),
+            "domain_dict": MagicMock(),
+        }
+
+        mock_data["user_dict"].get_id_from_email.return_value = "user-uuid-3"
+        mock_data["entity_dict"].create_entity.return_value = {"id": "entity-uuid-3"}
+        mock_data["entity_dict"].get_id_from_name.return_value = "entity-uuid-3"
+        mock_data["perimeter_dict"].create_perimeter.return_value = {"id": "perm-uuid-3"}
+        mock_data["perimeter_dict"].get_id_from_name.return_value = "perm-uuid-3"
+        mock_data["asset_dict"].create_asset.return_value = {"id": "asset-uuid-3"}
+        mock_data["asset_dict"].get_asset_id_from_perimeter_name.return_value = "asset-uuid-3"
+        mock_data["asset_dict"].get_assets.return_value = []
+
+        mock_fw = MagicMock()
+        mock_fw.get_id.return_value = "fw-uuid-3"
+        mock_fw.get_name.return_value = "AppSec"
+
+        mock_ca = MagicMock()
+        mock_ca.get_id.return_value = "ca-uuid-3"
+        mock_ca.get_name.return_value = "Assessment of AppSec in App-Fallback"
+        mock_ca.get_status.return_value = "in_progress"
+        mock_data["compliance_assessment_dict"].get_compliance_assessments.return_value = {"ca-uuid-3": mock_ca}
+        mock_data["compliance_assessment_dict"].requirement_assessments.get_requirement_assessment_id_list_from_compliance_assessment_id.return_value = ["ra-30"]
+
+        mock_data["compliance_assessment_dict"].requirement_assignments.get_requirement_assignment_id_list_from_compliance_assessment_id.side_effect = [
+            [],
+            [],
+            ["assign-fallback-3"],
+        ]
+
+        mock_ea = MagicMock()
+        mock_ea.get_id.return_value = "ea-uuid-3"
+        mock_data["entity_assessment_dict"].create_entity_assessment.return_value = {"id": "ea-uuid-3"}
+        mock_data["entity_assessment_dict"].get_entity_assessments.return_value = [mock_ea]
+
+        manager = ExamplesManager()
+        with patch.object(manager, "_init_data", return_value=mock_data), \
+             patch.object(manager, "get_or_create_folder", return_value="folder-uuid-3"), \
+             patch.object(manager, "get_default_assignee_id", return_value="assignee-uuid-3"), \
+             patch.object(manager, "find_target_framework", return_value=mock_fw), \
+             patch("time.sleep"):
+
+            res = manager.create_application_for_audit(
+                app_name="App-Fallback",
+                user_email="fallback@example.com",
+            )
+
+            mock_data["compliance_assessment_dict"].assign_requirements_to_perimeter_owner.assert_called_once()
+            self.assertEqual(res["assignment_id"], "assign-fallback-3")
+
+
 if __name__ == "__main__":
     unittest.main()
 

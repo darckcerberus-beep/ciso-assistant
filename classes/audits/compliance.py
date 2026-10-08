@@ -1,6 +1,7 @@
 """Compliance assessment models and orchestration helpers."""
 
 import logging
+import time
 from pathlib import Path
 
 from .. import utils
@@ -175,6 +176,12 @@ class ComplianceAssessmentDict:
         if created:
             utils.log("Compliance assessments created.")
             self.reload()
+            self.assign_requirements_to_perimeter_owner(
+                perimeter_dict,
+                self,
+                self.requirement_assessments,
+                self.requirement_assignments,
+            )
         else:
             utils.log("No new compliance assessments created.")
 
@@ -231,6 +238,12 @@ class ComplianceAssessmentDict:
     def assign_requirements_to_perimeter_owner(self, perimeter_dict, compliance_assessment_dict, requirement_assessment_dict, requirement_assignment_dict):
         """Create requirement assignments for perimeter owners when no assignment exists."""
         self.reload()
+        if hasattr(requirement_assessment_dict, "reload"):
+            requirement_assessment_dict.reload()
+        if hasattr(requirement_assignment_dict, "reload"):
+            requirement_assignment_dict.reload()
+
+        created_any = False
         for ca in self.compliance_assessments.values():
             if not ca.has_perimeter():
                 utils.log(
@@ -239,19 +252,47 @@ class ComplianceAssessmentDict:
                 )
                 continue
 
-            requirement_assessment_ids = requirement_assessment_dict.get_requirement_assessment_id_list_from_compliance_assessment_id(ca.get_id())
             requirement_assignment_ids = requirement_assignment_dict.get_requirement_assignment_id_list_from_compliance_assessment_id(ca.get_id())
+            requirement_assessment_ids = requirement_assessment_dict.get_requirement_assessment_id_list_from_compliance_assessment_id(ca.get_id())
+
+            if not requirement_assignment_ids and not requirement_assessment_ids:
+                for _ in range(10):
+                    time.sleep(0.5)
+                    if hasattr(requirement_assessment_dict, "reload"):
+                        requirement_assessment_dict.reload()
+                    requirement_assessment_ids = requirement_assessment_dict.get_requirement_assessment_id_list_from_compliance_assessment_id(ca.get_id())
+                    if requirement_assessment_ids:
+                        break
 
             utils.log(f"Requirement assessment IDs for compliance assessment {ca.get_name()}: {requirement_assessment_ids}")
             utils.log(f"Requirement assignment IDs for compliance assessment {ca.get_name()}: {requirement_assignment_ids}")
 
             if requirement_assessment_ids and not requirement_assignment_ids:
                 owner_id = perimeter_dict.get_owner_id_from_perimeter_id(ca.get_perimeter_id())
-                if not owner_id:
-                    actor_records = utils.get_all_results("/api/actors/")
-                    if actor_records and isinstance(actor_records[0], dict):
-                        owner_id = actor_records[0].get("id")
-                if not owner_id:
+                actor_id = None
+                actor_records = utils.get_all_results("/api/actors/", force_reload=True)
+                if owner_id:
+                    for actor in actor_records:
+                        if not isinstance(actor, dict):
+                            continue
+                        specific = actor.get("specific")
+                        specific_id = (
+                            specific.get("id")
+                            if isinstance(specific, dict)
+                            else str(specific)
+                            if specific
+                            else ""
+                        )
+                        if actor.get("id") == owner_id or specific_id == str(owner_id):
+                            actor_id = actor.get("id")
+                            break
+                    if not actor_id:
+                        actor_id = owner_id
+                if not actor_id and actor_records:
+                    if isinstance(actor_records[0], dict) and actor_records[0].get("id"):
+                        actor_id = actor_records[0].get("id")
+
+                if not actor_id:
                     utils.log(
                         f"Skipping requirement assignment for compliance assessment {ca.get_name()}: no actor available",
                         level=logging.WARNING,
@@ -263,7 +304,7 @@ class ComplianceAssessmentDict:
                     "requirement_assessments": requirement_assessment_ids,
                     "compliance_assessment": ca.get_id(),
                     "folder": perimeter_dict.get_folder_uuid_from_perimeter_id(ca.get_perimeter_id()),
-                    "actor": [owner_id]
+                    "actor": [actor_id]
                 }
                 req_assign_json = create_requirement_assignment(payload)
                 if not req_assign_json or (isinstance(req_assign_json, dict) and req_assign_json.get('error')):
@@ -271,10 +312,18 @@ class ComplianceAssessmentDict:
                         f"Failed to create requirement assignment for compliance assessment {ca.get_name()}: {req_assign_json}",
                         level=logging.ERROR,
                     )
+                else:
+                    created_any = True
             else:
                 utils.log(f"Requirement assignments already exist for compliance assessment: {ca.get_name()}")
                 utils.log(f"Requirement assessment IDs: {requirement_assessment_ids}")
                 utils.log(f"Requirement assignment IDs: {requirement_assignment_ids}")
+
+        if created_any:
+            if hasattr(requirement_assignment_dict, "reload"):
+                requirement_assignment_dict.reload()
+            if hasattr(self, "requirement_assignments") and hasattr(self.requirement_assignments, "reload"):
+                self.requirement_assignments.reload()
 
     def get_score_from_requirement_node_name(self, requirement_node_name):
         """Search all assessments for a requirement node name and return its score."""

@@ -496,25 +496,23 @@ class TestYamlIntegrity(unittest.TestCase):
         if not appsec_fw:
             return
 
-        # 1. Check hosting question has SaaS contract choice
+        # 1. Check hosting question choices are In-house and SaaS
         hosting_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:hosting")
         self.assertIsNotNone(hosting_node)
         q1 = hosting_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:hosting:q1")
         self.assertIsNotNone(q1)
         choice_values = [c.get("value") for c in q1.get("choices", [])]
-        self.assertIn("SaaS (controls defined with a contract)", choice_values)
+        self.assertEqual(choice_values, ["In-house", "SaaS"])
 
-        # 2. Check technical questions have "Yes - Defined with a contract" choice
-        contract_choices_count = 0
+        # 2. Check questions do not contain redundant "Yes - Defined with a contract" choices
+        yes_contract_choices = []
         for rn_urn, rn in appsec_fw["req_nodes"].items():
             for q_urn, q in rn.get("questions", {}).items():
                 for c in q.get("choices", []):
-                    if "contract" in str(c.get("value", "")).lower():
-                        contract_choices_count += 1
-                        if c.get("add_score", 0) > 0:
-                            self.assertTrue(c.get("compute_result"))
+                    if "Yes - Defined with a contract" in str(c.get("value", "")):
+                        yes_contract_choices.append((q_urn, c.get("value")))
 
-        self.assertGreaterEqual(contract_choices_count, 25)
+        self.assertEqual(len(yes_contract_choices), 0, f"Found unexpected 'Yes - Defined with a contract' choices: {yes_contract_choices}")
 
         # 3. Check reference controls evidence mentions SaaS / contracts
         ref_ctrls_with_contract_evidence = 0
@@ -525,21 +523,35 @@ class TestYamlIntegrity(unittest.TestCase):
 
         self.assertEqual(ref_ctrls_with_contract_evidence, len(appsec_fw["ref_ctrls"]))
 
-        # 4. Check Chapter 10 (SaaS Requirements) richness
+        # 4. Check Chapter 10 (SaaS Requirements) richness - Annexe Sécurité V1.5
         saas_chapter_children = [
             rn for rn in appsec_fw["req_nodes"].values()
             if rn.get("parent_urn") == "urn:intuitem:risk:req_node:appsec:saas_chapter"
         ]
-        self.assertEqual(len(saas_chapter_children), 8, "Expected 8 assessable requirement nodes in Chapter 10")
+        self.assertEqual(len(saas_chapter_children), 22, "Expected 22 assessable requirement nodes in Chapter 10")
         expected_saas_nodes = {
             "saas_contract_compliance",
-            "saas_audit_and_certifications",
-            "saas_tenant_isolation_and_residency",
-            "saas_cryptographic_sovereignty",
-            "saas_vendor_access_governance",
-            "saas_resilience_and_data_portability",
-            "saas_subprocessor_and_supply_chain",
-            "saas_telemetry_and_audit_export",
+            "saas_governance_and_policy",
+            "saas_confidentiality_and_data_protection",
+            "saas_security_awareness",
+            "saas_iam",
+            "saas_entitlements_and_privileges",
+            "saas_logging_and_incidents",
+            "saas_workstation_security",
+            "saas_mobile_security",
+            "saas_network_security",
+            "saas_environment_isolation",
+            "saas_secure_development",
+            "saas_web_app_security",
+            "saas_data_exchange_security",
+            "saas_data_hosting_and_residency",
+            "saas_physical_security",
+            "saas_backup_and_business_continuity",
+            "saas_secure_data_destruction",
+            "saas_subcontractor_management",
+            "saas_audit_and_compliance",
+            "saas_pci_dss",
+            "saas_non_conformity_remediation",
         }
         actual_saas_nodes = {rn.get("ref_id") for rn in saas_chapter_children}
         self.assertEqual(actual_saas_nodes, expected_saas_nodes)
@@ -566,6 +578,70 @@ class TestYamlIntegrity(unittest.TestCase):
         }
         for vuln_urn in expected_saas_vulns:
             self.assertIn(vuln_urn, appsec_fw["vulns"])
+
+        # 6. Check saas_iam conditional branching: SSO bypasses password and MFA questions
+        saas_iam_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:saas_iam")
+        self.assertIsNotNone(saas_iam_node, "saas_iam node missing in AppSec")
+        iam_questions = saas_iam_node.get("questions", {})
+        self.assertEqual(len(iam_questions), 4, "saas_iam should define 4 questions (q1: auth mode, q2: SSO/SCIM, q3: local passwords, q4: local MFA)")
+
+        q1 = iam_questions.get("urn:intuitem:risk:req_node:appsec:saas_iam:q1")
+        self.assertIsNotNone(q1)
+        q1_choices = {c["urn"]: c for c in q1.get("choices", [])}
+        sso_choice_urn = "urn:intuitem:risk:req_node:appsec:saas_iam:q1:c1"
+        direct_choice_urn = "urn:intuitem:risk:req_node:appsec:saas_iam:q1:c2"
+        self.assertIn(sso_choice_urn, q1_choices)
+        self.assertIn(direct_choice_urn, q1_choices)
+        self.assertEqual(q1_choices[sso_choice_urn]["add_score"], 50)
+        self.assertEqual(q1_choices[direct_choice_urn]["add_score"], 0)
+
+        # q2 depends on SSO choice
+        q2 = iam_questions.get("urn:intuitem:risk:req_node:appsec:saas_iam:q2")
+        self.assertIsNotNone(q2)
+        self.assertEqual(q2.get("depends_on", {}).get("answers"), [sso_choice_urn])
+        q2_yes = next(c for c in q2.get("choices", []) if c["value"] == "Yes")
+        self.assertEqual(q2_yes["add_score"], 50)
+
+        # q3 and q4 depend on direct authentication (passwords & MFA are irrelevant under SSO)
+        q3 = iam_questions.get("urn:intuitem:risk:req_node:appsec:saas_iam:q3")
+        self.assertIsNotNone(q3)
+        self.assertEqual(q3.get("depends_on", {}).get("answers"), [direct_choice_urn])
+        q3_yes = next(c for c in q3.get("choices", []) if c["value"] == "Yes")
+        self.assertEqual(q3_yes["add_score"], 50)
+
+        q4 = iam_questions.get("urn:intuitem:risk:req_node:appsec:saas_iam:q4")
+        self.assertIsNotNone(q4)
+        self.assertEqual(q4.get("depends_on", {}).get("answers"), [direct_choice_urn])
+        q4_yes = next(c for c in q4.get("choices", []) if c["value"] == "Yes")
+        self.assertEqual(q4_yes["add_score"], 50)
+
+        # 7. Check access_control_and_rbac (baseline / on-premise / all apps) IGA (SailPoint) & recertifications
+        rbac_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:access_control_and_rbac")
+        self.assertIsNotNone(rbac_node, "access_control_and_rbac node missing in AppSec")
+        rbac_questions = rbac_node.get("questions", {})
+        self.assertEqual(len(rbac_questions), 3, "access_control_and_rbac should define 3 questions (RBAC, IGA/SailPoint, recertifications)")
+        q1_rbac = rbac_questions.get("urn:intuitem:risk:req_node:appsec:access_control_and_rbac:q1")
+        q2_iga = rbac_questions.get("urn:intuitem:risk:req_node:appsec:access_control_and_rbac:q2")
+        q3_recert = rbac_questions.get("urn:intuitem:risk:req_node:appsec:access_control_and_rbac:q3")
+        self.assertIn("sailpoint", q2_iga.get("text", "").lower())
+        self.assertIn("recertif", q3_recert.get("text", "").lower())
+        self.assertEqual(next(c for c in q1_rbac["choices"] if c["value"] == "Yes")["add_score"], 50)
+        self.assertEqual(next(c for c in q2_iga["choices"] if c["value"] == "Yes")["add_score"], 25)
+        self.assertEqual(next(c for c in q3_recert["choices"] if c["value"] == "Yes")["add_score"], 25)
+
+        # 8. Check saas_entitlements_and_privileges (SaaS) IGA (SailPoint) & recertifications
+        saas_priv_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:saas_entitlements_and_privileges")
+        self.assertIsNotNone(saas_priv_node, "saas_entitlements_and_privileges node missing in AppSec")
+        saas_priv_questions = saas_priv_node.get("questions", {})
+        self.assertEqual(len(saas_priv_questions), 3, "saas_entitlements_and_privileges should define 3 questions (least privilege, IGA/SailPoint, recertifications)")
+        q1_saas_priv = saas_priv_questions.get("urn:intuitem:risk:req_node:appsec:saas_entitlements_and_privileges:q1")
+        q2_saas_iga = saas_priv_questions.get("urn:intuitem:risk:req_node:appsec:saas_entitlements_and_privileges:q2")
+        q3_saas_recert = saas_priv_questions.get("urn:intuitem:risk:req_node:appsec:saas_entitlements_and_privileges:q3")
+        self.assertIn("sailpoint", q2_saas_iga.get("text", "").lower())
+        self.assertIn("recertif", q3_saas_recert.get("text", "").lower())
+        self.assertEqual(next(c for c in q1_saas_priv["choices"] if c["value"] == "Yes")["add_score"], 50)
+        self.assertEqual(next(c for c in q2_saas_iga["choices"] if c["value"] == "Yes")["add_score"], 25)
+        self.assertEqual(next(c for c in q3_saas_recert["choices"] if c["value"] == "Yes")["add_score"], 25)
 
 
 if __name__ == "__main__":
