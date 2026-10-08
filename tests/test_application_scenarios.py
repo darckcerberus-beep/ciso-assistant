@@ -712,6 +712,32 @@ class TestApplicationProfileScenarioConsistency(unittest.TestCase):
             with self.subTest(application=app_file.stem):
                 self._assert_profile_evaluation(self, app_file)
 
+    def test_appsec_saas_contract_defined_controls_evaluation(self):
+        """Verify that a SaaS application whose controls are defined with a contract evaluates correctly."""
+        yaml_file = Path("test_data/app_appsec_secure_api.yml")
+        if not yaml_file.exists():
+            return
+
+        with open(yaml_file, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+
+        # Transform answers to use SaaS contract-defined choices
+        for a in data["answers"]:
+            if a.get("answer") == "Yes":
+                a["answer"] = "Yes - Defined with a contract"
+            elif a.get("answer") == "SaaS":
+                a["answer"] = "SaaS (controls defined with a contract)"
+
+        simulator = ApplicationRiskSimulator("YML/appsec.yml")
+        mock_ras = simulator.build_mock_requirement_assessments(data)
+        results = simulator.evaluate_from_requirement_assessments(mock_ras)
+
+        self.assertEqual(results["confidentiality_impact"], 4)
+        self.assertEqual(len(results["scenarios"]), 16)
+        for name, sc in results["scenarios"].items():
+            self.assertEqual(sc["scaled_likelihood"], 1, f"Expected min likelihood for {name}")
+            self.assertEqual(sc["matrix_risk_id"], 1, f"Expected low risk for {name}")
+
 
 # -----------------------------------------------------------------------------
 # Dynamic test method generation

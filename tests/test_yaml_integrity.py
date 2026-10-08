@@ -490,6 +490,83 @@ class TestYamlIntegrity(unittest.TestCase):
 
         self.assertGreater(total_recurrent, 0, "Expected at least one recurrent control across frameworks")
 
+    def test_appsec_saas_contract_support(self):
+        """Ensure AppSec framework comprehensively supports SaaS apps with contract-defined controls."""
+        appsec_fw = next((fw for fw in self.frameworks if fw["ref_id"] == "appsec"), None)
+        if not appsec_fw:
+            return
+
+        # 1. Check hosting question has SaaS contract choice
+        hosting_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:hosting")
+        self.assertIsNotNone(hosting_node)
+        q1 = hosting_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:hosting:q1")
+        self.assertIsNotNone(q1)
+        choice_values = [c.get("value") for c in q1.get("choices", [])]
+        self.assertIn("SaaS (controls defined with a contract)", choice_values)
+
+        # 2. Check technical questions have "Yes - Defined with a contract" choice
+        contract_choices_count = 0
+        for rn_urn, rn in appsec_fw["req_nodes"].items():
+            for q_urn, q in rn.get("questions", {}).items():
+                for c in q.get("choices", []):
+                    if "contract" in str(c.get("value", "")).lower():
+                        contract_choices_count += 1
+                        if c.get("add_score", 0) > 0:
+                            self.assertTrue(c.get("compute_result"))
+
+        self.assertGreaterEqual(contract_choices_count, 25)
+
+        # 3. Check reference controls evidence mentions SaaS / contracts
+        ref_ctrls_with_contract_evidence = 0
+        for ctrl in appsec_fw["ref_ctrls"].values():
+            evidence = ctrl.get("typical_evidence", "")
+            if "contract" in evidence.lower() or "saas" in evidence.lower():
+                ref_ctrls_with_contract_evidence += 1
+
+        self.assertEqual(ref_ctrls_with_contract_evidence, len(appsec_fw["ref_ctrls"]))
+
+        # 4. Check Chapter 10 (SaaS Requirements) richness
+        saas_chapter_children = [
+            rn for rn in appsec_fw["req_nodes"].values()
+            if rn.get("parent_urn") == "urn:intuitem:risk:req_node:appsec:saas_chapter"
+        ]
+        self.assertEqual(len(saas_chapter_children), 8, "Expected 8 assessable requirement nodes in Chapter 10")
+        expected_saas_nodes = {
+            "saas_contract_compliance",
+            "saas_audit_and_certifications",
+            "saas_tenant_isolation_and_residency",
+            "saas_cryptographic_sovereignty",
+            "saas_vendor_access_governance",
+            "saas_resilience_and_data_portability",
+            "saas_subprocessor_and_supply_chain",
+            "saas_telemetry_and_audit_export",
+        }
+        actual_saas_nodes = {rn.get("ref_id") for rn in saas_chapter_children}
+        self.assertEqual(actual_saas_nodes, expected_saas_nodes)
+
+        # 5. Check SaaS-specific reference controls and vulnerabilities
+        expected_saas_controls = {
+            "urn:intuitem:risk:control:appsec:saas_contract",
+            "urn:intuitem:risk:control:appsec:saas_third_party_assurance",
+            "urn:intuitem:risk:control:appsec:saas_tenant_isolation_and_residency",
+            "urn:intuitem:risk:control:appsec:saas_cryptographic_sovereignty",
+            "urn:intuitem:risk:control:appsec:saas_vendor_access_governance",
+            "urn:intuitem:risk:control:appsec:saas_resilience_and_data_portability",
+            "urn:intuitem:risk:control:appsec:saas_subprocessor_and_supply_chain",
+            "urn:intuitem:risk:control:appsec:saas_telemetry_and_audit_export",
+        }
+        for ctrl_urn in expected_saas_controls:
+            self.assertIn(ctrl_urn, appsec_fw["ref_ctrls"])
+
+        expected_saas_vulns = {
+            "urn:intuitem:risk:vulnerability:appsec:contractual_gap",
+            "urn:intuitem:risk:vulnerability:appsec:unverified_saas_security",
+            "urn:intuitem:risk:vulnerability:appsec:weak_tenant_isolation",
+            "urn:intuitem:risk:vulnerability:appsec:uncontrolled_vendor_access",
+        }
+        for vuln_urn in expected_saas_vulns:
+            self.assertIn(vuln_urn, appsec_fw["vulns"])
+
 
 if __name__ == "__main__":
     unittest.main()

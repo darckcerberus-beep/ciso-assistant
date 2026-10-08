@@ -26,6 +26,8 @@ description: >
   extending baseline data protection with full-spectrum AppSec requirements:
   Identity & Access Management, Secure SDLC, Input Validation, Cryptography & Secrets,
   API Security, Security Logging, Resilience, Vulnerability Management, and Third-Party Risk.
+  Supports both internally managed applications and SaaS solutions whose security controls
+  are defined with a contract and certified via third-party audit reports (SOC 2, ISO 27001).
 copyright: ACME Corp
 version: 1
 publication_date: 2026-10-02
@@ -631,6 +633,53 @@ objects:
         - urn:intuitem:risk:threat:appsec:unauthorized_access
         - urn:intuitem:risk:threat:appsec:injection_attacks
 
+    - urn: urn:intuitem:risk:vulnerability:appsec:unverified_saas_security
+      ref_id: unverified_saas_security
+      name: "Unverified SaaS security posture and missing certifications"
+      description: "Reliance on an external SaaS provider without independent third-party audit reports (SOC 2 Type II, ISO 27001) or recent penetration testing."
+      associated_controls:
+        - urn:intuitem:risk:control:appsec:saas_contract
+        - urn:intuitem:risk:control:appsec:saas_third_party_assurance
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:saas_contract
+        - urn:intuitem:risk:control:appsec:saas_third_party_assurance
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+
+    - urn: urn:intuitem:risk:vulnerability:appsec:weak_tenant_isolation
+      ref_id: weak_tenant_isolation
+      name: "Flawed multi-tenant isolation and uncontrolled residency"
+      description: "Inadequate logical tenant segregation or unverified cross-border data routing enabling cross-tenant data leakage or regulatory non-compliance."
+      associated_controls:
+        - urn:intuitem:risk:control:appsec:saas_tenant_isolation_and_residency
+        - urn:intuitem:risk:control:appsec:saas_cryptographic_sovereignty
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:saas_tenant_isolation_and_residency
+        - urn:intuitem:risk:control:appsec:saas_cryptographic_sovereignty
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+
+    - urn: urn:intuitem:risk:vulnerability:appsec:uncontrolled_vendor_access
+      ref_id: uncontrolled_vendor_access
+      name: "Uncontrolled vendor access, sub-processor opacity, and lock-in"
+      description: "Unrestricted vendor personnel access to customer data, lack of sub-processor visibility, or absence of data exit portability."
+      associated_controls:
+        - urn:intuitem:risk:control:appsec:saas_vendor_access_governance
+        - urn:intuitem:risk:control:appsec:saas_resilience_and_data_portability
+        - urn:intuitem:risk:control:appsec:saas_subprocessor_and_supply_chain
+        - urn:intuitem:risk:control:appsec:saas_telemetry_and_audit_export
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:saas_vendor_access_governance
+        - urn:intuitem:risk:control:appsec:saas_resilience_and_data_portability
+        - urn:intuitem:risk:control:appsec:saas_subprocessor_and_supply_chain
+        - urn:intuitem:risk:control:appsec:saas_telemetry_and_audit_export
+      threats:
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+        - urn:intuitem:risk:threat:appsec:supply_chain_tampering
+        - urn:intuitem:risk:threat:appsec:service_disruption
+
   # ========================================================================
   # REFERENCE CONTROLS - Mitigation controls and recurring tasks
   # ========================================================================
@@ -645,6 +694,7 @@ objects:
         - LeanIX application fact sheet or CMDB configuration item record
         - RACI matrix documenting business, IT, and data owner responsibilities
         - Formal stakeholder appointment / delegation confirmation
+        - For SaaS applications: Vendor management register and designated SaaS business/technical relationship owner
       threats:
         - urn:intuitem:risk:threat:appsec:data_loss
         - urn:intuitem:risk:threat:appsec:unauthorized_access
@@ -666,6 +716,7 @@ objects:
         - SSL/TLS configuration report (e.g. Qualys SSL Labs report / testssl.sh audit)
         - Web server / Ingress controller / Load balancer TLS configuration files
         - API gateway mTLS certificate and policy definitions
+        - For SaaS applications where controls are defined with a contract: Executed SaaS agreement (MSA/DPA) mandating TLS 1.2+ encryption in transit or SOC 2 Type II report (CC6.6 / CC6.7)
       threats:
         - urn:intuitem:risk:threat:appsec:data_exfiltration
         - urn:intuitem:risk:threat:appsec:unauthorized_access
@@ -687,6 +738,7 @@ objects:
         - Database Transparent Data Encryption (TDE) configuration
         - Cloud storage bucket / disk volume KMS encryption policy confirmation
         - Key management system (KMS) key rotation schedule and access audit logs
+        - For SaaS applications where controls are defined with a contract: Executed SaaS agreement (MSA/DPA) mandating AES-256 encryption at rest or SOC 2 Type II report (CC6.1 / CC6.3)
       threats:
         - urn:intuitem:risk:threat:appsec:data_exfiltration
         - urn:intuitem:risk:threat:appsec:unauthorized_access
@@ -708,6 +760,7 @@ objects:
         - Information asset register / data classification registry entry
         - Data flow diagram with data sensitivity tagging
         - Data Protection Impact Assessment (DPIA) or classification sign-off
+        - For SaaS applications where controls are defined with a contract: Vendor Data Processing Agreement (DPA) specifying data classification and processing scope
       threats:
         - urn:intuitem:risk:threat:appsec:unauthorized_access
       is_recurrent: true
@@ -728,6 +781,7 @@ objects:
         - Executed SaaS Master Services Agreement (MSA) with Security Exhibit
         - Signed Data Processing Agreement (DPA) and Non-Disclosure Agreement (NDA)
         - Third-party audit assurance reports (SOC 2 Type II / ISO 27001 certificate)
+        - For SaaS applications where controls are defined with a contract: Contractual security exhibits and SLAs defining supplier obligations and third-party audit rights
       threats:
         - urn:intuitem:risk:threat:appsec:data_exfiltration
       is_recurrent: true
@@ -748,6 +802,7 @@ objects:
         - Data masking / pseudonymization procedure and tool configuration
         - Non-production database content audit verifying absence of real PII
         - Test data management policy and test environment data purge logs
+        - For SaaS applications where controls are defined with a contract: SaaS agreement or DPA restricting production data to tenant sandbox environments with masking controls
       threats:
         - urn:intuitem:risk:threat:appsec:data_exfiltration
         - urn:intuitem:risk:threat:appsec:unauthorized_access
@@ -769,6 +824,7 @@ objects:
         - Signed Data Transfer Agreement (DTA) / Cross-border transfer agreement
         - Executed bilateral Non-Disclosure Agreement (NDA)
         - Data exchange register and technical interface specification
+        - For SaaS applications where controls are defined with a contract: Executed SaaS Data Processing Agreement (DPA) with Standard Contractual Clauses (SCCs)
       threats:
         - urn:intuitem:risk:threat:appsec:data_exfiltration
       is_recurrent: true
@@ -789,6 +845,7 @@ objects:
         - Standard Operating Procedure (SOP) for data retention and disposal
         - Scheduled automated database purge scripts and deletion logs
         - Certificate of Destruction or cryptographic erasure verification report
+        - For SaaS applications where controls are defined with a contract: Contractual data return and deletion clause (e.g. NIST SP 800-88, 30-day post-termination purge SLA) and vendor disposal attestation
       threats:
         - urn:intuitem:risk:threat:appsec:data_exfiltration
         - urn:intuitem:risk:threat:appsec:unauthorized_access
@@ -810,6 +867,7 @@ objects:
         - IAM identity provider MFA enforcement policy screenshot or export
         - Password policy configuration in directory service (min length >= 12, complexity, lockout)
         - Brute-force protection / rate-limiting configuration on login endpoints
+        - For SaaS applications where controls are defined with a contract: Contractual requirement for MFA/SSO enforcement and vendor SOC 2 Type II report verifying administrative MFA (CC6.1)
       threats:
         - urn:intuitem:risk:threat:appsec:account_takeover
         - urn:intuitem:risk:threat:appsec:unauthorized_access
@@ -830,6 +888,7 @@ objects:
       typical_evidence: >
         - SAML 2.0 / OIDC federation configuration in application and IdP
         - Automated user provisioning (SCIM) and deprovisioning logs
+        - For SaaS applications where controls are defined with a contract: SaaS subscription agreement or technical exhibit mandating enterprise SAML 2.0 / OIDC SSO integration
       threats:
         - urn:intuitem:risk:threat:appsec:account_takeover
         - urn:intuitem:risk:threat:appsec:unauthorized_access
@@ -851,6 +910,7 @@ objects:
         - RBAC permission matrix documenting roles and authorized operations
         - Code audit report verifying server-side object-level authorization checks
         - Periodic user access review (UAR) sign-off records
+        - For SaaS applications where controls are defined with a contract: SaaS agreement and SOC 2 Type II report verifying logical tenant isolation and granular RBAC controls
       threats:
         - urn:intuitem:risk:threat:appsec:unauthorized_access
         - urn:intuitem:risk:threat:appsec:data_exfiltration
@@ -872,6 +932,7 @@ objects:
         - Static code analysis (SAST) rule configuration demonstrating parameterized query enforcement
         - Input validation filter middleware specifications and schema validators
         - Content Security Policy (CSP) and HTTP security response headers verification report
+        - For SaaS applications where controls are defined with a contract: Vendor security exhibit committing to OWASP Top 10 defenses and SOC 2 Type II report (CC7.1)
       threats:
         - urn:intuitem:risk:threat:appsec:injection_attacks
         - urn:intuitem:risk:threat:appsec:data_exfiltration
@@ -894,6 +955,7 @@ objects:
         - Dedicated secrets manager vault configuration and access policy
         - Pre-commit git hook and CI/CD secret scanning tool configuration (e.g., Gitleaks, TruffleHog)
         - Secret rotation schedule and vault audit logs
+        - For SaaS applications where controls are defined with a contract: SaaS contract security exhibit and SOC 2 Type II report confirming centralized HSM / KMS secrets management
       threats:
         - urn:intuitem:risk:threat:appsec:secrets_compromise
         - urn:intuitem:risk:threat:appsec:unauthorized_access
@@ -915,6 +977,7 @@ objects:
         - CI/CD pipeline definition file (.gitlab-ci.yml, Jenkinsfile, GitHub Actions workflow) with SAST/DAST steps
         - Automated quality gate rules blocking merges on High/Critical vulnerabilities
         - Historical SAST/DAST pipeline execution logs and scan reports
+        - For SaaS applications where controls are defined with a contract: Vendor contract commitment to automated secure SDLC testing (SAST/DAST) and SOC 2 Type II report (CC8.1)
       threats:
         - urn:intuitem:risk:threat:appsec:injection_attacks
         - urn:intuitem:risk:threat:appsec:unauthorized_access
@@ -936,6 +999,7 @@ objects:
         - Generated CycloneDX or SPDX Software Bill of Materials (SBOM) artifact
         - SCA scanner configuration and dashboard showing zero unmanaged High/Critical CVEs
         - Dependency update policy and vulnerability patch lead time metrics
+        - For SaaS applications where controls are defined with a contract: SaaS contract clause committing to open-source SCA vulnerability management, patch SLAs, and SBOM availability
       threats:
         - urn:intuitem:risk:threat:appsec:supply_chain_tampering
         - urn:intuitem:risk:threat:appsec:unauthorized_access
@@ -957,6 +1021,7 @@ objects:
         - API gateway configuration (Kong, Apigee, AWS API Gateway, Envoy) showing rate limiting rules
         - OpenAPI / JSON Schema definition and runtime schema validation policy
         - WAF / bot protection rule configuration
+        - For SaaS applications where controls are defined with a contract: SaaS SLA and API specification defining rate limits, DDoS mitigations, and schema validation
       threats:
         - urn:intuitem:risk:threat:appsec:service_disruption
         - urn:intuitem:risk:threat:appsec:data_exfiltration
@@ -978,6 +1043,7 @@ objects:
         - Application logging framework configuration showing log levels and security events
         - SIEM data ingestion pipeline confirmation and active alert rules
         - Log redaction filter specification proving absence of cleartext PII or credentials
+        - For SaaS applications where controls are defined with a contract: Contractual commitment for audit logging, security event forwarding / SIEM integration API, and SOC 2 Type II report (CC7.2)
       threats:
         - urn:intuitem:risk:threat:appsec:undetected_intrusion
         - urn:intuitem:risk:threat:appsec:data_exfiltration
@@ -999,6 +1065,7 @@ objects:
         - Executive summary and technical report of recent independent penetration test
         - Vulnerability remediation tracking ticket list showing SLA compliance
         - Retesting confirmation report verifying closure of discovered vulnerabilities
+        - For SaaS applications where controls are defined with a contract: Annual independent third-party penetration test executive summary and vendor contractual SLA remediation commitment
       threats:
         - urn:intuitem:risk:threat:appsec:unauthorized_access
         - urn:intuitem:risk:threat:appsec:injection_attacks
@@ -1020,6 +1087,7 @@ objects:
         - Backup policy and automated backup schedule configuration
         - Annual disaster recovery drill report documenting measured RTO and RPO
         - Backup encryption key management configuration
+        - For SaaS applications where controls are defined with a contract: SaaS SLA defining guaranteed RPO and RTO, automated encrypted backup commitments, and annual DR drill attestation
       threats:
         - urn:intuitem:risk:threat:appsec:data_loss
         - urn:intuitem:risk:threat:appsec:service_disruption
@@ -1041,6 +1109,7 @@ objects:
         - Threat model diagram and analysis report (e.g., Microsoft Threat Modeling Tool, OWASP Threat Dragon)
         - Security architecture review sign-off document
         - Traceability matrix linking identified threats to implemented countermeasures
+        - For SaaS applications where controls are defined with a contract: Vendor security whitepaper, architectural security design exhibit, or SOC 2 Type II review of secure system design
       threats:
         - urn:intuitem:risk:threat:appsec:unauthorized_access
         - urn:intuitem:risk:threat:appsec:data_exfiltration
@@ -1051,6 +1120,154 @@ objects:
         description: "Review and update the application threat model and architecture documentation to account for recent feature additions and topology changes."
         frequency: "YEARLY"
         interval: 1
+
+    - urn: urn:intuitem:risk:control:appsec:saas_third_party_assurance
+      ref_id: saas_third_party_assurance
+      name: "Verify SaaS third-party assurance reports and certifications"
+      description: "Inspect annual independent SOC 2 Type II assurance reports, ISO/IEC 27001 certifications, and third-party penetration test summaries."
+      annotation: >
+        Validates that the SaaS provider undergoes rigorous external audits covering AICPA Trust Services Criteria (Security, Availability, Confidentiality) and resolves Complementary User Entity Controls (CUECs).
+      typical_evidence: >
+        - Independent SOC 2 Type II audit report issued within the last 12 months
+        - Valid ISO/IEC 27001 / ISO 27017 / ISO 27701 certificates
+        - Annual third-party penetration test executive summary letter
+        - For SaaS applications where controls are defined with a contract: Contractual clause guaranteeing annual delivery of SOC 2 Type II reports and third-party pentest attestations
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      is_recurrent: true
+      cadence: annually
+      task:
+        name: "Annual SaaS Provider Third-Party Assurance Review"
+        description: "Review SaaS vendor annual SOC 2 Type II report, ISO certifications, and third-party pentest summary letter."
+        frequency: "YEARLY"
+        interval: 1
+
+    - urn: urn:intuitem:risk:control:appsec:saas_tenant_isolation_and_residency
+      ref_id: saas_tenant_isolation_and_residency
+      name: "Enforce multi-tenant isolation and verify data residency"
+      description: "Validate logical and architectural tenant isolation and confirm compliance with contractual geographic data residency requirements."
+      annotation: >
+        Prevents cross-tenant data contamination in multi-tenant architectures and ensures compliance with cross-border transfer laws (GDPR, Swiss FADP, CCPA).
+      typical_evidence: >
+        - Vendor architectural whitepaper detailing multi-tenant database partitioning and compute isolation
+        - Cloud hosting region confirmation and Data Processing Addendum specifying primary and backup data center locations
+        - For SaaS applications where controls are defined with a contract: Executed DPA specifying data residency boundaries and SOC 2 Type II CC6.6 testing verifying tenant boundary segmentation
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      is_recurrent: true
+      cadence: annually
+      task:
+        name: "Annual SaaS Multi-Tenancy and Residency Verification"
+        description: "Confirm logical tenant isolation controls and verify data remains within authorized geographic regions."
+        frequency: "YEARLY"
+        interval: 1
+
+    - urn: urn:intuitem:risk:control:appsec:saas_cryptographic_sovereignty
+      ref_id: saas_cryptographic_sovereignty
+      name: "Implement customer cryptographic key control and exit purging"
+      description: "Deploy Customer-Managed Keys (BYOK/HYOK) for data at rest and mandate verifiable post-termination cryptographic erasure."
+      annotation: >
+        Ensures the enterprise retains cryptographic ownership over data stored in third-party clouds and guarantees irreversible purging upon subscription termination.
+      typical_evidence: >
+        - BYOK / Customer-Managed KMS key configuration in SaaS admin portal
+        - Cloud KMS key policy and key access audit logs
+        - For SaaS applications where controls are defined with a contract: Contractual data retention and destruction exhibit with Certificate of Destruction SLA (<= 30 days)
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      is_recurrent: true
+      cadence: annually
+      task:
+        name: "Annual SaaS Cryptographic Key Governance and Deletion Terms Review"
+        description: "Review BYOK/CMK key usage and recertify contractually guaranteed termination data purging procedures."
+        frequency: "YEARLY"
+        interval: 1
+
+    - urn: urn:intuitem:risk:control:appsec:saas_vendor_access_governance
+      ref_id: saas_vendor_access_governance
+      name: "Govern vendor privileged access with Customer Lockbox approval"
+      description: "Require explicit customer approval prior to vendor personnel accessing customer tenant environments, backed by audit logging."
+      annotation: >
+        Enforces zero standing access for SaaS vendor support and operations teams, requiring explicit ticket-linked customer consent (e.g. Salesforce Customer Lockbox, Microsoft Customer Lockbox).
+      typical_evidence: >
+        - Customer Lockbox / Support Access approval configuration screenshot or policy export
+        - SaaS administrative access audit trail showing zero unauthorized vendor access sessions
+        - For SaaS applications where controls are defined with a contract: Security schedule requiring customer approval for vendor support access and vendor SOC 2 PAM review
+      threats:
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+      is_recurrent: true
+      cadence: biannually
+      task:
+        name: "Biannual SaaS Vendor Privileged Access and Lockbox Audit"
+        description: "Audit vendor engineer access requests, lockbox approval records, and emergency access logs."
+        frequency: "MONTHLY"
+        interval: 6
+
+    - urn: urn:intuitem:risk:control:appsec:saas_resilience_and_data_portability
+      ref_id: saas_resilience_and_data_portability
+      name: "Enforce SaaS availability SLAs, DR drills, and data portability"
+      description: "Monitor contractual uptime SLAs, verify disaster recovery RTO/RPO drill results, and periodically test automated data extraction."
+      annotation: >
+        Mitigates vendor downtime impact, ransomware exposure, and vendor lock-in by maintaining verified offsite data portability.
+      typical_evidence: >
+        - Historical monthly SLA uptime reports and financial credit policy
+        - Vendor Business Continuity / Disaster Recovery (BC/DR) annual testing executive attestation
+        - For SaaS applications where controls are defined with a contract: Contractual SLA defining availability >= 99.9%, RTO/RPO limits, and frictionless programmatic data export formats
+      threats:
+        - urn:intuitem:risk:threat:appsec:service_disruption
+        - urn:intuitem:risk:threat:appsec:data_loss
+      is_recurrent: true
+      cadence: biannually
+      task:
+        name: "Biannual SaaS SLA Review and Data Portability Test"
+        description: "Review vendor availability against contractual SLAs and execute automated tenant data export drill."
+        frequency: "MONTHLY"
+        interval: 6
+
+    - urn: urn:intuitem:risk:control:appsec:saas_subprocessor_and_supply_chain
+      ref_id: saas_subprocessor_and_supply_chain
+      name: "Govern sub-processors, cloud supply chain, and AI model usage"
+      description: "Maintain oversight of vendor fourth-party sub-processors and contractually restrict unauthorized use of customer data for AI model training."
+      annotation: >
+        Ensures third-party supply chain visibility, right to object to new sub-processors, and legal protection against enterprise IP leakage into commercial AI models.
+      typical_evidence: >
+        - SaaS provider published and dated Sub-Processor Register
+        - Sub-processor notification subscription confirmation (e.g., RSS / email advisory signup)
+        - For SaaS applications where controls are defined with a contract: Contractual DPA clause requiring 30 days notice with right to object, and explicit ban on AI model training on customer data
+      threats:
+        - urn:intuitem:risk:threat:appsec:supply_chain_tampering
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+      is_recurrent: true
+      cadence: annually
+      task:
+        name: "Annual SaaS Sub-Processor Registry and AI Governance Audit"
+        description: "Audit vendor sub-processor list updates, verify notification alerts, and confirm compliance with AI data protection restrictions."
+        frequency: "YEARLY"
+        interval: 1
+
+    - urn: urn:intuitem:risk:control:appsec:saas_telemetry_and_audit_export
+      ref_id: saas_telemetry_and_audit_export
+      name: "Stream SaaS audit telemetry to centralized enterprise SIEM"
+      description: "Ingest SaaS tenant administrative, authentication, and data access audit trails into enterprise SIEM platforms for continuous monitoring."
+      annotation: >
+        Bridges cloud SaaS visibility gaps by streaming audit telemetry into corporate SOC detection pipelines (Splunk, Microsoft Sentinel, Datadog).
+      typical_evidence: >
+        - SaaS audit log API integration / webhook / Amazon S3 bucket forwarding configuration
+        - SIEM parser specification and active correlation alert rules for anomalous SaaS tenant behavior
+        - For SaaS applications where controls are defined with a contract: SaaS SLA committing to programmatic audit log export API and immutable log retention >= 12 months
+      threats:
+        - urn:intuitem:risk:threat:appsec:undetected_intrusion
+        - urn:intuitem:risk:threat:appsec:account_takeover
+      is_recurrent: true
+      cadence: quarterly
+      task:
+        name: "Quarterly SaaS Audit Log Streaming and SIEM Ingestion Audit"
+        description: "Verify operational status of automated log streaming from SaaS provider to corporate SIEM/SOC."
+        frequency: "MONTHLY"
+        interval: 3
 
   # ========================================================================
   # FRAMEWORK - Assessment framework with chapters, requirements & questions
@@ -1088,7 +1305,7 @@ objects:
       - urn: urn:intuitem:risk:ig:appsec:saas_app
         name: "SaaS Application Track"
         ref_id: "saas_app"
-        description: "Requirements for third-party SaaS applications"
+        description: "Requirements and contractual governance for third-party SaaS applications where security controls are defined with a contract (e.g. MSA, DPA, SLA, SOC 2 / ISO 27001)"
 
     # ====================================================================
     # REQUIREMENT NODES - Hierarchical assessment structure
@@ -1113,8 +1330,9 @@ objects:
              - Confidential / Secret Data Protection (Encryption in Transit & Rest, Non-Prod Data Masking, Compliant Destruction)
              - Internet-Facing Controls (API Rate Limiting, CSP, External Pentesting)
              - SaaS Contractual Governance (Security Exhibits, Audit Rights, Incident Reporting SLAs)
-          3. Evidence: For assessable requirements, ensure supporting documentation (architecture diagrams, CI/CD pipelines, KMS configs, pentest reports) can be provided upon audit review.
-          4. Progress & Submission: You can complete this questionnaire progressively. Once submitted, CISO Assistant will automatically calculate likelihood and impact across all risk scenarios.
+          3. SaaS Applications & Contract-Defined Controls: For third-party SaaS solutions where the codebase and infrastructure are managed by an external vendor, security controls are typically defined with a contract (Master Services Agreement, Security Exhibit, SLA, DPA) and verified through independent assurance reports (SOC 2 Type II, ISO/IEC 27001). Assessors can select "Yes - Defined with a contract" across technical controls when backed by binding vendor agreements and certifications.
+          4. Evidence: For assessable requirements, ensure supporting documentation (architecture diagrams, CI/CD pipelines, KMS configs, pentest reports, or executed SaaS contracts and SOC 2 reports) can be provided upon audit review.
+          5. Progress & Submission: You can complete this questionnaire progressively. Once submitted, CISO Assistant will automatically calculate likelihood and impact across all risk scenarios.
         annotation: >
           Introductory splash screen explaining questionnaire navigation, answering guidelines, dynamic section triggering based on data classification and hosting model, and audit evidence expectations.
         implementation_groups: ["info"]
@@ -1259,6 +1477,7 @@ objects:
           Infrastructure hosting architecture classification:
           - In-house: On-premises data centers, private cloud, or internally managed infrastructure.
           - SaaS: Third-party Software-as-a-Service platforms where infrastructure and application management are outsourced to an external cloud vendor.
+          - SaaS (controls defined with a contract): Third-party SaaS solutions where security controls (encryption, backups, pentesting, access management, etc.) are formally defined and governed via vendor contracts (MSA, DPA, SLA) and certified audit reports.
         typical_evidence: >
           - Architecture design document (ADD) / System topology diagram
           - Cloud hosting provider procurement record or contract
@@ -1273,6 +1492,10 @@ objects:
                 color: "#17a2b8"
               - urn: urn:intuitem:risk:req_node:appsec:hosting:q1:c2
                 value: "SaaS"
+                select_implementation_groups: ["saas_app"]
+                color: "#17a2b8"
+              - urn: urn:intuitem:risk:req_node:appsec:hosting:q1:c3
+                value: "SaaS (controls defined with a contract)"
                 select_implementation_groups: ["saas_app"]
                 color: "#17a2b8"
 
@@ -1340,6 +1563,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:architecture_and_threat_modeling:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 100
+                compute_result: true
+                color: "#17a2b8"
 
       # === CHAPTER 2: IDENTITY, AUTHENTICATION & ACCESS CONTROL ===
       - urn: urn:intuitem:risk:req_node:appsec:iam_chapter
@@ -1385,6 +1613,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:authentication_and_mfa:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
           urn:intuitem:risk:req_node:appsec:authentication_and_mfa:q2:
             type: unique_choice
             text: "Are strong password policies and brute-force lockout protections implemented?"
@@ -1399,6 +1632,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:authentication_and_mfa:q2:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
 
       # Requirement: Single Sign-On & Federation
       - urn: urn:intuitem:risk:req_node:appsec:federation_and_sso
@@ -1433,6 +1671,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:federation_and_sso:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 100
+                compute_result: true
+                color: "#17a2b8"
 
       # Requirement: Authorization, Least Privilege & RBAC
       - urn: urn:intuitem:risk:req_node:appsec:access_control_and_rbac
@@ -1467,6 +1710,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:access_control_and_rbac:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
           urn:intuitem:risk:req_node:appsec:access_control_and_rbac:q2:
             type: unique_choice
             text: "Are access permissions reviewed and recertified on a periodic basis (at least biannually)?"
@@ -1481,6 +1729,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:access_control_and_rbac:q2:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
 
       # Requirement: Session management
       - urn: urn:intuitem:risk:req_node:appsec:session_management
@@ -1515,6 +1768,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:session_management:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 100
+                compute_result: true
+                color: "#17a2b8"
 
       # === CHAPTER 3: APPLICATION DEFENSES & CODE HYGIENE ===
       - urn: urn:intuitem:risk:req_node:appsec:app_defenses_chapter
@@ -1560,6 +1818,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:input_validation_and_injection_defense:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
           urn:intuitem:risk:req_node:appsec:input_validation_and_injection_defense:q2:
             type: unique_choice
             text: "Are database interactions executed via parameterized queries or ORMs to prevent SQL/NoSQL injections?"
@@ -1574,6 +1837,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:input_validation_and_injection_defense:q2:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
 
       # Requirement: Output encoding & Web security headers
       - urn: urn:intuitem:risk:req_node:appsec:output_encoding_and_web_defenses
@@ -1608,6 +1876,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:output_encoding_and_web_defenses:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
           urn:intuitem:risk:req_node:appsec:output_encoding_and_web_defenses:q2:
             type: unique_choice
             text: "Are standard HTTP security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options) configured?"
@@ -1622,6 +1895,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:output_encoding_and_web_defenses:q2:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
 
       # Requirement: Error handling & debug mode
       - urn: urn:intuitem:risk:req_node:appsec:error_handling_and_info_leakage
@@ -1656,6 +1934,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:error_handling_and_info_leakage:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 100
+                compute_result: true
+                color: "#17a2b8"
 
       # === CHAPTER 4: CRYPTOGRAPHY & SECRETS MANAGEMENT ===
       - urn: urn:intuitem:risk:req_node:appsec:crypto_chapter
@@ -1701,6 +1984,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:secrets_management:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 100
+                compute_result: true
+                color: "#17a2b8"
 
       # Requirement: Encrypt data during transmission (from newDPP)
       - urn: urn:intuitem:risk:req_node:appsec:data_in_transit
@@ -1736,6 +2024,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:data_in_transit:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 100
+                compute_result: true
+                color: "#17a2b8"
 
       # Requirement: Encrypt data at rest (from newDPP)
       - urn: urn:intuitem:risk:req_node:appsec:data_at_rest
@@ -1771,6 +2064,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:data_at_rest:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 100
+                compute_result: true
+                color: "#17a2b8"
 
       # === CHAPTER 5: SECURE SDLC & DEVSECOPS ===
       - urn: urn:intuitem:risk:req_node:appsec:sdlc_chapter
@@ -1816,6 +2114,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:automated_security_testing:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
           urn:intuitem:risk:req_node:appsec:automated_security_testing:q2:
             type: unique_choice
             text: "Is Dynamic Application Security Testing (DAST) or API security scanning performed prior to release?"
@@ -1830,6 +2133,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:automated_security_testing:q2:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
 
       # Requirement: Supply chain & dependencies (SCA / SBOM)
       - urn: urn:intuitem:risk:req_node:appsec:supply_chain_and_dependencies
@@ -1864,6 +2172,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:supply_chain_and_dependencies:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
           urn:intuitem:risk:req_node:appsec:supply_chain_and_dependencies:q2:
             type: unique_choice
             text: "Is an accurate Software Bill of Materials (SBOM) maintained and audited for all released application artifacts?"
@@ -1878,6 +2191,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:supply_chain_and_dependencies:q2:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
 
       # Requirement: Peer code review & branch protection
       - urn: urn:intuitem:risk:req_node:appsec:code_review_and_ci_cd_integrity
@@ -1910,6 +2228,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:code_review_and_ci_cd_integrity:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 100
+                compute_result: true
+                color: "#17a2b8"
 
       # === CHAPTER 6: API SECURITY & DATA EXCHANGES ===
       - urn: urn:intuitem:risk:req_node:appsec:api_chapter
@@ -1955,6 +2278,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
           urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting:q2:
             type: unique_choice
             text: "Are API payloads strictly validated against documented API specifications (e.g. OpenAPI / JSON schema)?"
@@ -1969,6 +2297,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting:q2:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
 
       # Requirement: Control data exchange beyond organization (from newDPP)
       - urn: urn:intuitem:risk:req_node:appsec:data_exchange
@@ -2022,6 +2355,11 @@ objects:
                 add_score: 100
                 compute_result: true
                 color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:data_exchange:question:2:choice:3
+                value: "Yes - Defined with a contract"
+                add_score: 100
+                compute_result: true
+                color: "#17a2b8"
 
       # === CHAPTER 7: DATA LIFECYCLE & SANITIZATION ===
       - urn: urn:intuitem:risk:req_node:appsec:data_lifecycle_chapter
@@ -2114,6 +2452,11 @@ objects:
                 add_score: 90
                 compute_result: true
                 color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:question:2:choice:5
+                value: "Defined with a contract (Vendor sandbox isolation)"
+                add_score: 90
+                compute_result: true
+                color: "#17a2b8"
           urn:intuitem:risk:req_node:appsec:non_prod_data:question:3:
             type: unique_choice
             text: "Do you clean the prod data after use in non-prod?"
@@ -2132,6 +2475,11 @@ objects:
                 add_score: 10
                 compute_result: true
                 color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:question:3:choice:3
+                value: "Yes - Defined with a contract"
+                add_score: 10
+                compute_result: true
+                color: "#17a2b8"
 
       # Requirement: Compliant data destruction (from newDPP)
       - urn: urn:intuitem:risk:req_node:appsec:data_destruction
@@ -2167,12 +2515,17 @@ objects:
                 add_score: 50
                 compute_result: true
                 color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:data_destruction:question:1:choice:3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
           urn:intuitem:risk:req_node:appsec:data_destruction:question:2:
             type: unique_choice
             text: "Is the process compliant with the policy (responsibilities, methods, reporting)?"
             depends_on:
               question: urn:intuitem:risk:req_node:appsec:data_destruction:question:1
-              answers: ["urn:intuitem:risk:req_node:appsec:data_destruction:question:1:choice:2"]
+              answers: ["urn:intuitem:risk:req_node:appsec:data_destruction:question:1:choice:2", "urn:intuitem:risk:req_node:appsec:data_destruction:question:1:choice:3"]
               condition: any
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:data_destruction:question:2:choice:1
@@ -2185,6 +2538,11 @@ objects:
                 add_score: 50
                 compute_result: true
                 color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:data_destruction:question:2:choice:3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
 
       # === CHAPTER 8: SECURITY LOGGING & MONITORING ===
       - urn: urn:intuitem:risk:req_node:appsec:logging_chapter
@@ -2230,6 +2588,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:security_event_logging:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
           urn:intuitem:risk:req_node:appsec:security_event_logging:q2:
             type: unique_choice
             text: "Are sensitive data fields (passwords, payment cards, tokens, PII) systematically sanitized/masked from log outputs?"
@@ -2244,6 +2607,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:security_event_logging:q2:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
 
       # Requirement: Centralized SIEM monitoring & alerting
       - urn: urn:intuitem:risk:req_node:appsec:centralized_monitoring_and_alerting
@@ -2278,6 +2646,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:centralized_monitoring_and_alerting:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 100
+                compute_result: true
+                color: "#17a2b8"
 
       # === CHAPTER 9: PENETRATION TESTING & RESILIENCE ===
       - urn: urn:intuitem:risk:req_node:appsec:resilience_chapter
@@ -2323,6 +2696,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
           urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management:q2:
             type: unique_choice
             text: "Are identified vulnerabilities remediated within defined SLAs (e.g. Critical within 7 days, High within 30 days)?"
@@ -2337,6 +2715,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management:q2:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
 
       # Requirement: Backup strategy & disaster recovery
       - urn: urn:intuitem:risk:req_node:appsec:backup_and_disaster_recovery
@@ -2371,6 +2754,11 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:backup_and_disaster_recovery:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 100
+                compute_result: true
+                color: "#17a2b8"
 
       # === CHAPTER 10: SAAS-SPECIFIC REQUIREMENTS ===
       - urn: urn:intuitem:risk:req_node:appsec:saas_chapter
@@ -2390,14 +2778,17 @@ objects:
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_contract_compliance
         name: SaaS Contractual Compliance
-        description: "Ensure SaaS contract includes security clauses"
+        description: "Ensure SaaS contract includes security clauses governing application security controls"
         annotation: >
           Comprehensive SaaS vendor contract security review.
+          For SaaS applications, contractual agreements (Master Services Agreement, Security Exhibit, SLA, DPA)
+          serve as the authoritative legal and operational baseline defining the application's security controls.
           Validates that contractual agreements with SaaS vendors contain mandatory cybersecurity clauses:
           1. Right to Audit / Third-Party Assurance (SOC 2 Type II, ISO/IEC 27001 certification).
           2. Security Incident Notification window (e.g. notification within 24 to 72 hours of discovery).
           3. Strong Identity & Access Management (SSO / SAML 2.0 integration, Multi-Factor Authentication, Role-Based Access Control).
           4. Binding Confidentiality / Non-Disclosure Agreement (NDA) and Data Processing Agreement (DPA).
+          5. Service Level Agreements (SLAs) for disaster recovery, vulnerability remediation lead times, and uptime.
         typical_evidence: >
           - Signed SaaS Master Services Agreement (MSA) with Security Schedule / Exhibit
           - Executed Data Processing Agreement (DPA) and Confidentiality Agreement (NDA)
@@ -2495,6 +2886,415 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
+      # Requirement: Third-party assurance & certifications
+      - urn: urn:intuitem:risk:req_node:appsec:saas_audit_and_certifications
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
+        ref_id: saas_audit_and_certifications
+        name: Third-Party Assurance & Independent Certifications
+        description: "Verify independent third-party audit reports (SOC 2 Type II, ISO 27001) and annual penetration testing assessments."
+        annotation: >
+          Validates that the SaaS provider undergoes rigorous external audits covering AICPA Trust Services Criteria (Security, Availability, Confidentiality) and resolves Complementary User Entity Controls (CUECs).
+        typical_evidence: >
+          - Independent SOC 2 Type II audit report issued within the last 12 months
+          - Valid ISO/IEC 27001 / ISO 27017 / ISO 27701 certificates
+          - Annual third-party penetration test executive summary letter
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:unverified_saas_security
+        implementation_groups: ["saas_app"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:saas_third_party_assurance
+        questions:
+          urn:intuitem:risk:req_node:appsec:saas_audit_and_certifications:q1:
+            type: unique_choice
+            text: "Does the SaaS provider deliver an annual independent SOC 2 Type II report (covering Security, Availability, and Confidentiality) with zero critical unqualified opinions?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_audit_and_certifications:q1:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_audit_and_certifications:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_audit_and_certifications:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
+          urn:intuitem:risk:req_node:appsec:saas_audit_and_certifications:q2:
+            type: unique_choice
+            text: "Does the SaaS provider hold active ISO/IEC 27001 certification and provide an executive summary of an annual independent penetration test?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_audit_and_certifications:q2:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_audit_and_certifications:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_audit_and_certifications:q2:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
+
+      # Requirement: Multi-tenant isolation & data residency
+      - urn: urn:intuitem:risk:req_node:appsec:saas_tenant_isolation_and_residency
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
+        ref_id: saas_tenant_isolation_and_residency
+        name: Multi-Tenant Isolation & Data Residency
+        description: "Ensure robust logical tenant isolation and compliance with geographic data residency requirements."
+        annotation: >
+          Prevents cross-tenant data contamination in multi-tenant architectures and ensures compliance with cross-border transfer laws (GDPR, Swiss FADP, CCPA).
+        typical_evidence: >
+          - Vendor architectural whitepaper detailing multi-tenant database partitioning and compute isolation
+          - Cloud hosting region confirmation and Data Processing Addendum specifying primary and backup data center locations
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:weak_tenant_isolation
+        implementation_groups: ["saas_app"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:saas_tenant_isolation_and_residency
+        questions:
+          urn:intuitem:risk:req_node:appsec:saas_tenant_isolation_and_residency:q1:
+            type: unique_choice
+            text: "Does the SaaS architecture enforce strict logical tenant isolation across compute and database layers, preventing cross-tenant data access?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_tenant_isolation_and_residency:q1:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_tenant_isolation_and_residency:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_tenant_isolation_and_residency:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
+          urn:intuitem:risk:req_node:appsec:saas_tenant_isolation_and_residency:q2:
+            type: unique_choice
+            text: "Is all customer data stored, processed, and backed up strictly within agreed geographic jurisdictions (e.g. EU/EEA, US Sovereign) with contractual residency commitments?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_tenant_isolation_and_residency:q2:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_tenant_isolation_and_residency:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_tenant_isolation_and_residency:q2:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
+
+      # Requirement: Customer cryptographic sovereignty & key control
+      - urn: urn:intuitem:risk:req_node:appsec:saas_cryptographic_sovereignty
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
+        ref_id: saas_cryptographic_sovereignty
+        name: Customer Cryptographic Sovereignty & Key Control
+        description: "Maintain customer cryptographic sovereignty through tenant-specific encryption keys or Customer-Managed Keys (BYOK/HYOK)."
+        annotation: >
+          Ensures the enterprise retains cryptographic ownership over data stored in third-party clouds and guarantees irreversible purging upon subscription termination.
+        typical_evidence: >
+          - BYOK / Customer-Managed KMS key configuration in SaaS admin portal
+          - Cloud KMS key policy and key access audit logs
+          - Contractual data retention and destruction exhibit with Certificate of Destruction SLA (<= 30 days)
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:weak_tenant_isolation
+        implementation_groups: ["saas_app"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:saas_cryptographic_sovereignty
+        questions:
+          urn:intuitem:risk:req_node:appsec:saas_cryptographic_sovereignty:q1:
+            type: unique_choice
+            text: "Does the SaaS platform provide tenant-dedicated cryptographic keys or support Customer-Managed Keys (BYOK / KMS key bring-in) for data at rest?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_cryptographic_sovereignty:q1:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_cryptographic_sovereignty:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_cryptographic_sovereignty:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
+          urn:intuitem:risk:req_node:appsec:saas_cryptographic_sovereignty:q2:
+            type: unique_choice
+            text: "Does the contract guarantee irreversible data purging upon subscription termination, backed by a formal Certificate of Destruction within 30 to 60 days?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_cryptographic_sovereignty:q2:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_cryptographic_sovereignty:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_cryptographic_sovereignty:q2:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
+
+      # Requirement: Vendor privileged access governance & Lockbox
+      - urn: urn:intuitem:risk:req_node:appsec:saas_vendor_access_governance
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
+        ref_id: saas_vendor_access_governance
+        name: Vendor Privileged Access Governance & Lockbox Approval
+        description: "Control and audit SaaS vendor personnel access to customer data and production environments."
+        annotation: >
+          Enforces zero standing access for SaaS vendor support and operations teams, requiring explicit ticket-linked customer consent (e.g. Salesforce Customer Lockbox, Microsoft Customer Lockbox).
+        typical_evidence: >
+          - Customer Lockbox / Support Access approval configuration screenshot or policy export
+          - SaaS administrative access audit trail showing zero unauthorized vendor access sessions
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:uncontrolled_vendor_access
+        implementation_groups: ["saas_app"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:saas_vendor_access_governance
+        questions:
+          urn:intuitem:risk:req_node:appsec:saas_vendor_access_governance:q1:
+            type: unique_choice
+            text: "Does the SaaS provider enforce zero-standing-privilege with Just-In-Time (JIT) access and mandatory phishing-resistant MFA for vendor support engineers?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_vendor_access_governance:q1:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_vendor_access_governance:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_vendor_access_governance:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
+          urn:intuitem:risk:req_node:appsec:saas_vendor_access_governance:q2:
+            type: unique_choice
+            text: "Is explicit customer authorization required before vendor support technicians can access customer tenant data (Customer Lockbox / Support Elevation Approval)?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_vendor_access_governance:q2:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_vendor_access_governance:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_vendor_access_governance:q2:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
+
+      # Requirement: High availability SLAs & data portability
+      - urn: urn:intuitem:risk:req_node:appsec:saas_resilience_and_data_portability
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
+        ref_id: saas_resilience_and_data_portability
+        name: High Availability SLAs, Disaster Recovery & Exit Portability
+        description: "Enforce high-availability SLAs, verify disaster recovery RTO/RPO targets, and ensure frictionless data export capabilities."
+        annotation: >
+          Mitigates vendor downtime impact, ransomware exposure, and vendor lock-in by maintaining verified offsite data portability.
+        typical_evidence: >
+          - Historical monthly SLA uptime reports and financial credit policy
+          - Vendor Business Continuity / Disaster Recovery (BC/DR) annual testing executive attestation
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:uncontrolled_vendor_access
+        implementation_groups: ["saas_app"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:saas_resilience_and_data_portability
+        questions:
+          urn:intuitem:risk:req_node:appsec:saas_resilience_and_data_portability:q1:
+            type: unique_choice
+            text: "Does the SaaS contract commit to a High Availability SLA of at least 99.9% uptime backed by financial remedies, with documented RTO and RPO targets?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_resilience_and_data_portability:q1:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_resilience_and_data_portability:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_resilience_and_data_portability:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
+          urn:intuitem:risk:req_node:appsec:saas_resilience_and_data_portability:q2:
+            type: unique_choice
+            text: "Can customer data be completely and programmatically extracted at any time in standardized structured formats (JSON, CSV, SQL dumps) without vendor lock-in?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_resilience_and_data_portability:q2:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_resilience_and_data_portability:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_resilience_and_data_portability:q2:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
+
+      # Requirement: Sub-processor governance & AI training restrictions
+      - urn: urn:intuitem:risk:req_node:appsec:saas_subprocessor_and_supply_chain
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
+        ref_id: saas_subprocessor_and_supply_chain
+        name: Sub-Processor Governance & Cloud AI Training Restrictions
+        description: "Manage sub-processor risks, cloud supply chain changes, and contractual AI/ML model data protections."
+        annotation: >
+          Ensures third-party supply chain visibility, right to object to new sub-processors, and legal protection against enterprise IP leakage into commercial AI models.
+        typical_evidence: >
+          - SaaS provider published and dated Sub-Processor Register
+          - Sub-processor notification subscription confirmation (e.g., RSS / email advisory signup)
+          - Executed AI Data Usage Addendum confirming customer data is not used for foundational model training
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:uncontrolled_vendor_access
+        implementation_groups: ["saas_app"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:saas_subprocessor_and_supply_chain
+        questions:
+          urn:intuitem:risk:req_node:appsec:saas_subprocessor_and_supply_chain:q1:
+            type: unique_choice
+            text: "Does the SaaS provider maintain a formal Sub-Processor Register with mandatory 30-day advance notice and customer right to object before onboarding new sub-processors?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_subprocessor_and_supply_chain:q1:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_subprocessor_and_supply_chain:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_subprocessor_and_supply_chain:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
+          urn:intuitem:risk:req_node:appsec:saas_subprocessor_and_supply_chain:q2:
+            type: unique_choice
+            text: "Does the contract strictly prohibit using customer tenant data to train commercial AI models or external machine learning algorithms without explicit written consent?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_subprocessor_and_supply_chain:q2:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_subprocessor_and_supply_chain:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_subprocessor_and_supply_chain:q2:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
+
+      # Requirement: Security telemetry & SIEM streaming
+      - urn: urn:intuitem:risk:req_node:appsec:saas_telemetry_and_audit_export
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
+        ref_id: saas_telemetry_and_audit_export
+        name: SaaS Security Telemetry & SIEM Integration
+        description: "Ensure tenant administrative and user audit logs are streamed to customer SIEM platforms for continuous monitoring."
+        annotation: >
+          Bridges cloud SaaS visibility gaps by streaming audit telemetry into corporate SOC detection pipelines (Splunk, Microsoft Sentinel, Datadog).
+        typical_evidence: >
+          - SaaS audit log API integration / webhook / Amazon S3 bucket forwarding configuration
+          - SIEM parser specification and active correlation alert rules for anomalous SaaS tenant behavior
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:uncontrolled_vendor_access
+        implementation_groups: ["saas_app"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:saas_telemetry_and_audit_export
+        questions:
+          urn:intuitem:risk:req_node:appsec:saas_telemetry_and_audit_export:q1:
+            type: unique_choice
+            text: "Does the SaaS solution record tamper-resistant audit logs of all user logins, privilege grants, and administrative actions with retention of at least 12 months?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_telemetry_and_audit_export:q1:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_telemetry_and_audit_export:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_telemetry_and_audit_export:q1:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
+          urn:intuitem:risk:req_node:appsec:saas_telemetry_and_audit_export:q2:
+            type: unique_choice
+            text: "Does the SaaS platform support automated streaming or programmatic export of audit logs into the enterprise SIEM/SOC (e.g. via API, webhooks, or cloud object storage)?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_telemetry_and_audit_export:q2:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_telemetry_and_audit_export:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_telemetry_and_audit_export:q2:c3
+                value: "Yes - Defined with a contract"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
+
       # === COMPLETION SPLASH SCREEN ===
       - urn: urn:intuitem:risk:req_node:appsec:thank_you_splash
         assessable: false
@@ -2559,9 +3359,9 @@ criticality_mapping:
 test_metadata:
   expected_risk_scenarios_count: 16
   expected_threats_count: 9
-  expected_vulnerabilities_count: 15
-  expected_reference_controls_count: 20
-  expected_requirement_nodes_count: 39
+  expected_vulnerabilities_count: 18
+  expected_reference_controls_count: 27
+  expected_requirement_nodes_count: 46
   matrix_dimensions:
     likelihood_levels: 4
     impact_levels: 4
