@@ -76,3 +76,20 @@ class TaskTemplateDict:
             utils.log(f"Name: {template.get_name()}")
             utils.log(f"ID: {template.get_id()}")
             utils.log(f"Is Recurrent: {template.get_is_reccurring()}")
+
+    def delete_templates_for_applied_control(self, applied_control_id):
+        """Delete task templates associated with a specific applied control ID."""
+        deleted_count = 0
+        for template in list(self.task_templates):
+            applied_controls = template.json_object.get("applied_controls", [])
+            ctrl_ids = [
+                c.get("id") if isinstance(c, dict) else str(c)
+                for c in applied_controls
+            ]
+            if applied_control_id in ctrl_ids:
+                res = utils.get_return(f"/api/task-templates/{template.get_id()}/", method="DELETE")
+                if not (isinstance(res, dict) and res.get("error")):
+                    deleted_count += 1
+        if deleted_count:
+            self.reload()
+        return deleted_count

@@ -60,7 +60,7 @@ class AppliedControl:
 
     def get_reference_control_id(self):
         """Return the reference control UUID."""
-        c = self.json_object.get('control')
+        c = self.json_object.get('reference_control') or self.json_object.get('control')
         if isinstance(c, dict):
             return c.get('id', '')
         return c or ''
@@ -390,6 +390,44 @@ class AppliedControlDict:
             return control.json_object
         return None
 
+    def ensure_requirement_assessment_for_control(
+        self, name, requirement_assessment_id, compliance_assessment_id=None
+    ):
+        """Ensure an applied control has the requirement assessment (and compliance assessment) linked."""
+        if not requirement_assessment_id:
+            return None
+        for control in self.controls.values():
+            if control.get_name() != name:
+                continue
+            current_ras = [
+                r.get("id", "") if isinstance(r, dict) else str(r)
+                for r in control.json_object.get("requirement_assessments", [])
+            ]
+            current_cas = [
+                c.get("id", "") if isinstance(c, dict) else str(c)
+                for c in control.json_object.get("compliance_assessments", [])
+            ]
+            merged_ras = list(dict.fromkeys(current_ras + [requirement_assessment_id]))
+            merged_cas = list(
+                dict.fromkeys(current_cas + ([compliance_assessment_id] if compliance_assessment_id else []))
+            )
+            patch_payload = {}
+            if merged_ras != current_ras:
+                patch_payload["requirement_assessments"] = merged_ras
+            if merged_cas != current_cas:
+                patch_payload["compliance_assessments"] = merged_cas
+            if patch_payload:
+                response = utils.get_return(
+                    f"/api/applied-controls/{control.get_id()}/",
+                    method="PATCH",
+                    payload=patch_payload,
+                )
+                if isinstance(response, dict) and not response.get("error"):
+                    control.json_object = response
+                return response
+            return control.json_object
+        return None
+
     def create_missing_applied_controls(self, perimeter_dict, requirement_assessment,
                                      reference_control_dict, compliance_assessment_dict):
         """Create missing applied controls based on requirement assessments.
@@ -494,7 +532,23 @@ class AppliedControlDict:
                     self.update_folder_for_control(name, folder_id)
                     if control_assets:
                         self.ensure_assets_for_control(name, control_assets)
+                    self.ensure_requirement_assessment_for_control(
+                        name,
+                        ra.get_id(),
+                        compliance_assessment_id=ra.get_compliance_assessment_id(),
+                    )
                     if not ra.is_score_compliant():
+                        for control in self.controls.values():
+                            if control.get_name() == name and control.get_status() == "active":
+                                patch_data = {"status": "to_do", "owner": owner_ids}
+                                patch_res = utils.get_return(
+                                    f"/api/applied-controls/{control.get_id()}/",
+                                    method="PATCH",
+                                    payload=patch_data,
+                                )
+                                if isinstance(patch_res, dict) and not patch_res.get("error"):
+                                    control.json_object = patch_res
+                                break
                         self.update_priority_for_requirement_assessment(
                             name,
                             ra.get_compliance_assessment_id(),
@@ -536,8 +590,38 @@ class AppliedControlDict:
                     **({"priority": priority} if priority is not None else {})
                 }
                 utils.log(f"Payload for creating applied control: {payload}")
-                utils.get_return("/api/applied-controls/", method="POST", payload=payload)
-                created += 1
+                res = utils.get_return("/api/applied-controls/", method="POST", payload=payload)
+                if isinstance(res, dict) and not res.get("error") and res.get("id"):
+                    new_ctrl = AppliedControl(res)
+                    self.controls[new_ctrl.get_id()] = new_ctrl
+                    created += 1
+                elif isinstance(res, dict) and res.get("error"):
+                    err_msg = str(res.get("details", "")) + " " + str(res.get("error", ""))
+                    if "already used in this scope" in err_msg or "already exists" in err_msg:
+                        found_ctrls = utils.get_all_results("/api/applied-controls/", force_reload=True)
+                        for c in found_ctrls:
+                            if c.get("name") == name:
+                                new_ctrl = AppliedControl(c)
+                                self.controls[new_ctrl.get_id()] = new_ctrl
+                                self.update_folder_for_control(name, folder_id)
+                                if control_assets:
+                                    self.ensure_assets_for_control(name, control_assets)
+                                self.ensure_requirement_assessment_for_control(
+                                    name,
+                                    ra.get_id(),
+                                    compliance_assessment_id=ra.get_compliance_assessment_id(),
+                                )
+                                if not is_compliant:
+                                    self.update_priority_for_requirement_assessment(
+                                        name,
+                                        ra.get_compliance_assessment_id(),
+                                        ra.get_urn(),
+                                        compliance_assessment_dict=compliance_assessment_dict,
+                                        risk_assessments=risk_assessments,
+                                        risk_scenarios=risk_scenarios,
+                                        framework_file=framework_file,
+                                    )
+                                break
 
         # Log completion status
         if created > 0:
@@ -545,6 +629,75 @@ class AppliedControlDict:
             self.reload()
         else:
             utils.log("No new applied controls created.")
+
+    def create_tasks_for_applied_controls(
+        self,
+        reference_control_dict,
+        task_template_dict=None,
+        perimeter_dict=None,
+        user_id=None,
+    ):
+        """Create recurring task templates for recurrent applied controls."""
+        created = []
+        if not reference_control_dict:
+            return created
+
+        existing_names = set()
+        if task_template_dict:
+            try:
+                task_template_dict.reload()
+                for tt in task_template_dict.get_task_templates():
+                    existing_names.add(tt.get_name())
+            except Exception as e:
+                utils.log(f"Could not load existing task templates: {e}", level=logging.DEBUG)
+
+        for ctrl in self.controls.values():
+            ref_id = ctrl.get_reference_control_id()
+            if not ref_id:
+                continue
+            ref_ctrl = reference_control_dict.get_control_from_id(ref_id)
+            if not ref_ctrl:
+                continue
+            ref_json = ref_ctrl.get_json() if hasattr(ref_ctrl, "get_json") else ref_ctrl
+            if not isinstance(ref_json, dict) or not ref_json.get("is_recurrent"):
+                continue
+
+            task_cfg = ref_json.get("task")
+            if not isinstance(task_cfg, dict) or not task_cfg.get("name"):
+                continue
+
+            ctrl_name = ctrl.get_name()
+            scope_suffix = ctrl_name.split(" on ", 1)[-1] if " on " in ctrl_name else ""
+            template_name = f"{task_cfg['name']} on {scope_suffix}" if scope_suffix else task_cfg["name"]
+
+            if template_name in existing_names:
+                continue
+
+            folder_id = ctrl.json_object.get("folder")
+            if isinstance(folder_id, dict):
+                folder_id = folder_id.get("id")
+            if not folder_id and perimeter_dict and scope_suffix:
+                folder_id = perimeter_dict.get_folder_uuid_from_perimeter_id(scope_suffix)
+
+            payload = {
+                "name": template_name,
+                "description": task_cfg.get("description", ""),
+                "is_recurrent": True,
+                "folder": folder_id,
+                "applied_controls": [ctrl.get_id()],
+                "assigned_to": [user_id] if user_id else [],
+            }
+            res = utils.get_return("/api/task-templates/", method="POST", payload=payload)
+            if isinstance(res, dict) and not res.get("error") and res.get("id"):
+                created.append(res)
+                existing_names.add(template_name)
+
+        if created and task_template_dict:
+            try:
+                task_template_dict.reload()
+            except Exception:
+                pass
+        return created
 
     def delete_applied_control(self, control_id):
         """Delete an applied control by UUID."""

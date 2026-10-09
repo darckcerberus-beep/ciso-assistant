@@ -84,6 +84,12 @@ class TestYamlIntegrity(unittest.TestCase):
                 self.assertEqual(len(lib.get_vulnerabilities()), len(fw["vulns"]))
                 self.assertEqual(len(lib.get_threats()), len(fw["threats"]))
 
+                version = lib.get_version()
+                self.assertIsInstance(
+                    version, int, f"Framework {fw['ref_id']} version must be an incremental integer"
+                )
+                self.assertGreaterEqual(version, 1, f"Framework {fw['ref_id']} version must be >= 1")
+
                 impact_mapping = lib.get_impact_mapping()
                 crit_map = fw["yaml_data"].get("criticality_mapping", {})
                 if crit_map:
@@ -184,6 +190,13 @@ class TestYamlIntegrity(unittest.TestCase):
                         self.assertGreater(
                             len(choices), 0, f"Question {q_urn} in node {rn_urn} has no choices in {fw['ref_id']}"
                         )
+                        if "depends_on" in q_def:
+                            dep = q_def["depends_on"]
+                            dep_q = dep.get("question", "")
+                            self.assertTrue(
+                                dep_q.startswith(rn_urn),
+                                f"Cross-node dependency forbidden (breaks CISO Assistant questionnaire forms): Question {q_urn} in node {rn_urn} depends on {dep_q} in {fw['ref_id']}",
+                            )
                         for choice in choices:
                             c_urn = choice.get("urn")
                             add_score = choice.get("add_score")
@@ -496,13 +509,20 @@ class TestYamlIntegrity(unittest.TestCase):
         if not appsec_fw:
             return
 
-        # 1. Check hosting question choices are In-house and SaaS
+        # 1. Check hosting question choices distinguish Custom software, Bought software, and SaaS
         hosting_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:hosting")
         self.assertIsNotNone(hosting_node)
         q1 = hosting_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:hosting:q1")
         self.assertIsNotNone(q1)
         choice_values = [c.get("value") for c in q1.get("choices", [])]
-        self.assertEqual(choice_values, ["In-house", "SaaS"])
+        self.assertEqual(
+            choice_values,
+            [
+                "Custom software created and deployed by my teams (In-house development)",
+                "Bought software deployed by my teams (COTS / Vendor package)",
+                "SaaS (Third-party software hosted and operated by a vendor)",
+            ],
+        )
 
         # 2. Check questions do not contain redundant "Yes - Defined with a contract" choices
         yes_contract_choices = []
@@ -643,6 +663,344 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertEqual(next(c for c in q2_saas_iga["choices"] if c["value"] == "Yes")["add_score"], 25)
         self.assertEqual(next(c for c in q3_saas_recert["choices"] if c["value"] == "Yes")["add_score"], 25)
 
+    def test_appsec_network_exposure_and_conditional_branching(self):
+        """Ensure AppSec exposure profiling cleanly separates in-house operational controls from SaaS contractual controls."""
+        appsec_fw = next((fw for fw in self.frameworks if fw["ref_id"] == "appsec"), None)
+        if not appsec_fw:
+            return
+
+        # 1. Validate network_exposure (Chapter 1 info node for all apps, including SaaS)
+        net_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:network_exposure")
+        self.assertIsNotNone(net_node, "network_exposure node missing in AppSec")
+        net_questions = net_node.get("questions", {})
+        self.assertEqual(len(net_questions), 1, "network_exposure should define 1 profiling question (q1: exposure discriminator)")
+
+        q1 = net_questions.get("urn:intuitem:risk:req_node:appsec:network_exposure:q1")
+        self.assertIsNotNone(q1)
+        q1_choices = {c["urn"]: c for c in q1.get("choices", [])}
+        internal_choice_urn = "urn:intuitem:risk:req_node:appsec:network_exposure:q1:c1"
+        external_choice_urn = "urn:intuitem:risk:req_node:appsec:network_exposure:q1:c2"
+        self.assertIn(internal_choice_urn, q1_choices)
+        self.assertIn(external_choice_urn, q1_choices)
+
+        # Both Internal and Internet-facing choices receive full 100 points
+        self.assertEqual(q1_choices[internal_choice_urn]["add_score"], 100)
+        self.assertTrue(q1_choices[internal_choice_urn]["compute_result"])
+        self.assertEqual(q1_choices[external_choice_urn]["add_score"], 100)
+        self.assertTrue(q1_choices[external_choice_urn]["compute_result"])
+        self.assertIn("internet_facing", q1_choices[external_choice_urn].get("select_implementation_groups", []))
+
+        # 2. Validate the 4 transferred requirements in Chapter 10 (contractualization part):
+        # A. Cloudflare / WAF & anti-DDoS (saas_network_security)
+        saas_net_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:saas_network_security")
+        self.assertIsNotNone(saas_net_node)
+        q1_saas_net = saas_net_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:saas_network_security:q1")
+        self.assertIsNotNone(q1_saas_net)
+        self.assertEqual(next(c for c in q1_saas_net["choices"] if c["value"] == "Yes")["add_score"], 100)
+        self.assertIn("cloudflare", q1_saas_net.get("text", "").lower())
+        for comp in ["aws", "cloud armor", "azure", "akamai"]:
+            self.assertIn(comp, q1_saas_net.get("text", "").lower())
+
+        # B. Testing security (saas_web_app_security & saas_audit_and_compliance)
+        saas_web_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:saas_web_app_security")
+        self.assertIsNotNone(saas_web_node)
+        q2_saas_web = saas_web_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:saas_web_app_security:q2")
+        self.assertIsNotNone(q2_saas_web)
+        self.assertEqual(next(c for c in q2_saas_web["choices"] if c["value"] == "Yes")["add_score"], 50)
+        self.assertIn("penetration test", q2_saas_web.get("text", "").lower())
+
+        saas_audit_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:saas_audit_and_compliance")
+        self.assertIsNotNone(saas_audit_node)
+        q1_saas_audit = saas_audit_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:saas_audit_and_compliance:q1")
+        self.assertIsNotNone(q1_saas_audit)
+        self.assertEqual(next(c for c in q1_saas_audit["choices"] if c["value"] == "Yes")["add_score"], 100)
+        self.assertIn("audit", q1_saas_audit.get("text", "").lower())
+
+        # C. Admin accounts vs Client IGA (saas_entitlements_and_privileges)
+        saas_priv_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:saas_entitlements_and_privileges")
+        self.assertIsNotNone(saas_priv_node)
+        q1_priv = saas_priv_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:saas_entitlements_and_privileges:q1")
+        q2_iga = saas_priv_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:saas_entitlements_and_privileges:q2")
+        self.assertIsNotNone(q1_priv)
+        self.assertIsNotNone(q2_iga)
+        self.assertIn("admin", q1_priv.get("text", "").lower())
+        self.assertIn("sailpoint", q2_iga.get("text", "").lower())
+
+        # D. Plugging SIEM / Security Monitoring (saas_logging_and_incidents & telemetry export)
+        saas_log_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:saas_logging_and_incidents")
+        self.assertIsNotNone(saas_log_node)
+        q1_log = saas_log_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:saas_logging_and_incidents:q1")
+        q2_log = saas_log_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:saas_logging_and_incidents:q2")
+        self.assertIsNotNone(q1_log)
+        self.assertIsNotNone(q2_log)
+        self.assertIn("monitoring", q1_log.get("text", "").lower())
+        self.assertIn("48 hours", q2_log.get("text", "").lower())
+        self.assertIn("urn:intuitem:risk:control:appsec:saas_telemetry_and_audit_export", saas_log_node.get("reference_controls", []))
+
+        # 3. Verify no questions in AppSec use data classification or criticality to skip security questions
+        # Criticality is reflected in the risk rating (Impact x Likelihood), not in questions
+        for rn_urn, rn in appsec_fw["req_nodes"].items():
+            if rn.get("ref_id") in ("data_classification", "info"):
+                continue
+            for q_urn, q_def in rn.get("questions", {}).items():
+                self.assertNotIn(
+                    "critical data",
+                    q_def.get("text", "").lower(),
+                    f"Question {q_urn} in {rn_urn} should not condition security controls on data criticality",
+                )
+
+    def test_appsec_iam_sso_and_credential_order(self):
+        """Ensure IAM authentication is unified with SSO and credential branch conditionality (mirroring saas_iam)."""
+        appsec_fw = next((fw for fw in self.frameworks if fw["ref_id"] == "appsec"), None)
+        if not appsec_fw:
+            return
+
+        # 1. In Chapter 2 (iam_chapter), authentication_and_mfa is the unified IAM requirement
+        auth_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:authentication_and_mfa")
+        self.assertIsNotNone(auth_node)
+        auth_questions = list(auth_node.get("questions", {}).values())
+        self.assertEqual(len(auth_questions), 3)
+
+        # q1: auth mode (SSO vs direct)
+        q1 = auth_questions[0]
+        self.assertIn("sso", q1.get("choices", [])[0].get("value", "").lower())
+        sso_choice = q1.get("choices", [])[0]
+        self.assertEqual(sso_choice.get("add_score"), 100)
+        direct_choice_urn = q1.get("choices", [])[1].get("urn")
+
+        # q2: Direct branch (password policy)
+        q2 = auth_questions[1]
+        self.assertIn("password", q2.get("text", "").lower())
+        self.assertEqual(
+            q2.get("depends_on", {}).get("answers"),
+            [direct_choice_urn],
+        )
+
+        # q3: Direct branch (MFA)
+        q3 = auth_questions[2]
+        self.assertIn("mfa", q3.get("text", "").lower())
+        self.assertEqual(
+            q3.get("depends_on", {}).get("answers"),
+            [direct_choice_urn],
+        )
+
+        # 2. In Chapter 10 (saas_iam), verify SSO questions precede direct password & MFA questions
+        saas_iam_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:saas_iam")
+        self.assertIsNotNone(saas_iam_node)
+        saas_questions = list(saas_iam_node.get("questions", {}).values())
+        self.assertEqual(len(saas_questions), 4)
+        # q1: auth mode (SSO vs direct)
+        self.assertIn("sso", saas_questions[0].get("choices", [])[0].get("value", "").lower())
+        # q2: SSO / SCIM
+        self.assertIn("sso", saas_questions[1].get("text", "").lower())
+        # q3: passwords
+        self.assertIn("password", saas_questions[2].get("text", "").lower())
+        # q4: MFA
+        self.assertIn("mfa", saas_questions[3].get("text", "").lower())
+
+    def test_appsec_on_premise_iam_sso_conditional_authentication(self):
+        """Ensure that in on-premise applications, both SSO and direct branches are non-empty and score up to 100."""
+        appsec_fw = next((fw for fw in self.frameworks if fw["ref_id"] == "appsec"), None)
+        if not appsec_fw:
+            return
+
+        auth_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:authentication_and_mfa")
+        self.assertIsNotNone(auth_node)
+        q_dict = auth_node.get("questions", {})
+        q1 = q_dict.get("urn:intuitem:risk:req_node:appsec:authentication_and_mfa:q1")
+        q2 = q_dict.get("urn:intuitem:risk:req_node:appsec:authentication_and_mfa:q2")
+        q3 = q_dict.get("urn:intuitem:risk:req_node:appsec:authentication_and_mfa:q3")
+        self.assertIsNotNone(q1)
+        self.assertIsNotNone(q2)
+        self.assertIsNotNone(q3)
+
+        # SSO branch max score: q1 (100) = 100 (direct full compliance since corporate IT manages IdP/MFA)
+        sso_choice = q1["choices"][0]
+        self.assertEqual(sso_choice["add_score"], 100)
+
+        # Direct branch max score: q1 (0) + q2 (50) + q3 (50) = 100
+        direct_choice = q1["choices"][1]
+        q2_yes_choice = q2["choices"][0]
+        q3_yes_choice = q3["choices"][0]
+        self.assertEqual(direct_choice["add_score"] + q2_yes_choice["add_score"] + q3_yes_choice["add_score"], 100)
+
+    def test_appsec_software_delivery_models_and_sdlc_scoping(self):
+        """Verify clear distinction between SaaS, bought software, and custom software in AppSec framework using Implementation Groups."""
+        appsec_fw = next((fw for fw in self.frameworks if fw["ref_id"] == "appsec"), None)
+        if not appsec_fw:
+            return
+
+        # Incremental framework versioning: must be integer >= 5
+        appsec_version = appsec_fw["yaml_data"].get("version")
+        self.assertIsInstance(appsec_version, int)
+        self.assertGreaterEqual(appsec_version, 5, "AppSec framework version must be incremented (>= 5)")
+
+        # Verify API Gateway, WAF, Bot Protection & Rate Limiting requirement node
+        api_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting")
+        self.assertIsNotNone(api_node, "api_security_and_rate_limiting node missing in appsec")
+        api_q1 = api_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting:q1")
+        self.assertIsNotNone(api_q1, "q1 missing in api_security_and_rate_limiting")
+        api_q1_text = api_q1.get("text", "")
+        self.assertIn("WAF", api_q1_text)
+        self.assertIn("Cloudflare", api_q1_text)
+        self.assertIn("bot protection", api_q1_text.lower())
+        self.assertIn("rate limiting", api_q1_text.lower())
+
+        # 1. Delivery & Hosting model discriminator in Chapter 1 (hosting:q1) selects implementation groups
+        hosting_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:hosting")
+        self.assertIsNotNone(hosting_node)
+        q1 = hosting_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:hosting:q1")
+        self.assertIsNotNone(q1)
+        choices = q1.get("choices", [])
+        self.assertEqual(len(choices), 3)
+
+        custom_choice = next((c for c in choices if "custom software" in c.get("value", "").lower()), None)
+        bought_choice = next((c for c in choices if "bought software" in c.get("value", "").lower()), None)
+        saas_choice = next((c for c in choices if "saas" in c.get("value", "").lower()), None)
+
+        self.assertIsNotNone(custom_choice, "Custom software choice missing in hosting:q1")
+        self.assertIsNotNone(bought_choice, "Bought software (COTS) choice missing in hosting:q1")
+        self.assertIsNotNone(saas_choice, "SaaS choice missing in hosting:q1")
+
+        self.assertIn("custom_app", custom_choice.get("select_implementation_groups", []))
+        self.assertIn("baseline", custom_choice.get("select_implementation_groups", []))
+        self.assertIn("cots_app", bought_choice.get("select_implementation_groups", []))
+        self.assertIn("baseline", bought_choice.get("select_implementation_groups", []))
+        self.assertIn("saas_app", saas_choice.get("select_implementation_groups", []))
+
+        # 2. In Chapter 5 (sdlc_chapter), DevSecOps automation is strictly scoped to custom_app via implementation groups
+        sdlc_chapter = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:sdlc_chapter")
+        self.assertIsNotNone(sdlc_chapter)
+        self.assertEqual(sdlc_chapter.get("implementation_groups"), ["custom_app"])
+
+        sdlc_reqs = ["automated_security_testing", "supply_chain_and_dependencies", "code_review_and_ci_cd_integrity"]
+        for ref_id in sdlc_reqs:
+            node = appsec_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec:{ref_id}")
+            self.assertIsNotNone(node, f"Node {ref_id} missing in sdlc_chapter")
+            self.assertEqual(
+                node.get("implementation_groups"),
+                ["custom_app"],
+                f"SDLC node {ref_id} must be scoped strictly to custom_app implementation group",
+            )
+
+            # Ensure questions exist, have choices, and do not use cross-node depends_on (preventing empty renders in audits)
+            questions = node.get("questions", {})
+            self.assertGreater(len(questions), 0, f"Node {ref_id} has no questions (empty)")
+            for q_urn, q_def in questions.items():
+                choices = q_def.get("choices", [])
+                self.assertGreater(len(choices), 0, f"Question {q_urn} in {ref_id} has no choices")
+                self.assertIsNone(
+                    q_def.get("depends_on"),
+                    f"Question {q_urn} in {ref_id} must not have cross-node depends_on",
+                )
+
+        # 3. In Chapter 10 (saas_chapter), verify SaaS secure development and web app security requirements exist and use saas_app
+        saas_dev_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:saas_secure_development")
+        self.assertIsNotNone(saas_dev_node)
+        self.assertIn("saas_app", saas_dev_node.get("implementation_groups", []))
+        saas_web_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:saas_web_app_security")
+        self.assertIsNotNone(saas_web_node)
+        self.assertIn("saas_app", saas_web_node.get("implementation_groups", []))
+
+    def test_appsec_code_hygiene_and_hosting_defenses_scoping(self):
+        """Verify session_management and Chapter 3 defenses use custom_app implementation groups and baseline nodes include cots_app."""
+        appsec_fw = next((fw for fw in self.frameworks if fw["ref_id"] == "appsec"), None)
+        if not appsec_fw:
+            return
+
+        defenses_reqs = [
+            "session_management",
+            "input_validation_and_injection_defense",
+            "output_encoding_and_web_defenses",
+            "error_handling_and_info_leakage",
+        ]
+
+        for ref_id in defenses_reqs:
+            node = appsec_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec:{ref_id}")
+            self.assertIsNotNone(node, f"Node {ref_id} missing in appsec")
+            self.assertEqual(
+                node.get("implementation_groups"),
+                ["custom_app"],
+                f"Node {ref_id} must be scoped strictly to custom_app implementation group",
+            )
+
+            # Verify every requirement node has questions and choices (never renders empty in audits)
+            questions = node.get("questions", {})
+            self.assertGreater(len(questions), 0, f"Node {ref_id} has no questions (empty)")
+            for q_urn, q_def in questions.items():
+                choices = q_def.get("choices", [])
+                self.assertGreater(len(choices), 0, f"Question {q_urn} in {ref_id} has no choices")
+                self.assertIsNone(
+                    q_def.get("depends_on"),
+                    f"Question {q_urn} in {ref_id} must not have cross-node depends_on",
+                )
+
+        # Verify shared hosting / baseline requirements include both custom_app and cots_app
+        shared_hosting_reqs = [
+            "authentication_and_mfa",
+            "access_control_and_rbac",
+            "secrets_management",
+            "security_event_logging",
+            "centralized_monitoring_and_alerting",
+            "backup_and_disaster_recovery",
+        ]
+        for ref_id in shared_hosting_reqs:
+            node = appsec_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec:{ref_id}")
+            self.assertIsNotNone(node, f"Shared hosting node {ref_id} missing in appsec")
+            groups = node.get("implementation_groups", [])
+            self.assertIn("custom_app", groups, f"{ref_id} missing custom_app group")
+            self.assertIn("cots_app", groups, f"{ref_id} missing cots_app group")
+            self.assertIn("baseline", groups, f"{ref_id} missing baseline group")
+            self.assertNotIn("saas_app", groups, f"{ref_id} must not include saas_app group")
+
+    def test_appsec_penetration_testing_saas_contractual_management(self):
+        """Verify that penetration_testing_and_vulnerability_management is managed contractually for SaaS apps."""
+        appsec_fw = next((fw for fw in self.frameworks if fw["ref_id"] == "appsec"), None)
+        if not appsec_fw:
+            return
+
+        # 1. Implementation groups include saas_app
+        pentest_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management")
+        self.assertIsNotNone(pentest_node)
+        groups = pentest_node.get("implementation_groups", [])
+        self.assertIn("saas_app", groups, "penetration_testing_and_vulnerability_management must include saas_app")
+
+        resilience_chapter = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:resilience_chapter")
+        self.assertIsNotNone(resilience_chapter)
+        self.assertIn("saas_app", resilience_chapter.get("implementation_groups", []))
+
+        # 2. q1 includes the 3 contractual governance choices:
+        # - allowed to pentest
+        # - SaaS vendor does the pentest
+        # - they refuse
+        q1 = pentest_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management:q1")
+        self.assertIsNotNone(q1)
+        choices = q1.get("choices", [])
+        self.assertEqual(len(choices), 3, "Expected 3 choices in pentest governance question")
+
+        allowed_choice = next((c for c in choices if "allowed to pentest" in c.get("value", "").lower()), None)
+        vendor_choice = next((c for c in choices if "vendor does the pentest" in c.get("value", "").lower()), None)
+        refuse_choice = next((c for c in choices if "refuse" in c.get("value", "").lower()), None)
+
+        self.assertIsNotNone(allowed_choice, "Choice 'allowed to pentest' missing")
+        self.assertIsNotNone(vendor_choice, "Choice 'SaaS vendor does the pentest' missing")
+        self.assertIsNotNone(refuse_choice, "Choice 'they refuse' missing")
+
+        self.assertEqual(allowed_choice.get("add_score"), 50)
+        self.assertTrue(allowed_choice.get("compute_result"))
+        self.assertEqual(vendor_choice.get("add_score"), 50)
+        self.assertTrue(vendor_choice.get("compute_result"))
+        self.assertEqual(refuse_choice.get("add_score"), 0)
+        self.assertFalse(refuse_choice.get("compute_result"))
+
+        # 3. q2 is SLA remediation (50 points)
+        q2 = pentest_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management:q2")
+        self.assertIsNotNone(q2)
+        q2_yes = next(c for c in q2.get("choices", []) if c.get("value") == "Yes")
+        self.assertEqual(q2_yes.get("add_score"), 50)
+
 
 if __name__ == "__main__":
     unittest.main()
+
+

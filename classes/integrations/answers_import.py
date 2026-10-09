@@ -97,7 +97,47 @@ def _resolve_question_urn(questions, identifier):
             return question_urn
         if str(question.get("text", "")).strip().lower() == identifier_normalized:
             return question_urn
+
+    # Prefix/substring fallback for questions with detailed guidance, clarifications, or conditional prefixes
+    identifier_clean = identifier_normalized.rstrip("?:.,; ").strip()
+    for question_urn, question in questions.items():
+        q_text = str(question.get("text", "")).strip().lower()
+        q_clean = q_text.rstrip("?:.,; ").strip()
+        if (
+            q_text.startswith(identifier_normalized)
+            or identifier_normalized.startswith(q_text)
+            or identifier_normalized in q_text
+            or q_text in identifier_normalized
+            or q_clean.startswith(identifier_clean)
+            or identifier_clean.startswith(q_clean)
+            or identifier_clean in q_clean
+            or q_clean in identifier_clean
+        ):
+            return question_urn
+
+    # Keyword overlap fallback when question wording is merged or rephrased
+    identifier_words = set(identifier_clean.replace("(", " ").replace(")", " ").replace("/", " ").split())
+    best_urn = None
+    best_overlap = 0
+    for question_urn, question in questions.items():
+        q_text = str(question.get("text", "")).strip().lower()
+        q_words = set(q_text.rstrip("?:.,; ").replace("(", " ").replace(")", " ").replace("/", " ").split())
+        overlap = len(identifier_words & q_words)
+        if overlap > best_overlap:
+            best_overlap = overlap
+            best_urn = question_urn
+    if best_overlap >= 4:
+        return best_urn
+
+    if len(questions) == 1:
+        return next(iter(questions.keys()))
+
     return None
+
+
+def resolve_question_urn(identifier, questions):
+    """Public helper to resolve a question URN from identifier and questions dict."""
+    return _resolve_question_urn(questions, identifier)
 
 
 def _resolve_choice_value(question, raw_answer):
@@ -127,6 +167,14 @@ def _resolve_choice_value(question, raw_answer):
             ]
             if len(candidates) == 1:
                 match = candidates[0]
+            elif not candidates and raw_value_normalized in ("yes", "compliant", "true"):
+                compliant = [c.get("urn") for c in choices if c.get("compute_result") or (c.get("add_score", 0) > 0)]
+                if compliant:
+                    match = compliant[0]
+            elif not candidates and raw_value_normalized in ("no", "non-compliant", "false"):
+                non_compliant = [c.get("urn") for c in choices if not c.get("compute_result") or (c.get("add_score", 0) == 0)]
+                if non_compliant:
+                    match = non_compliant[-1]
         if match:
             resolved_urns.append(match)
         else:

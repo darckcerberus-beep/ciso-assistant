@@ -18,7 +18,7 @@ import yaml
 from classes.audits.requirement_assessment import RequirementAssessment
 from classes.controls.applied import AppliedControlDict
 from classes.examples_manager import FRAMEWORK_CATALOG
-from classes.integrations.answers_import import read_answers_file
+from classes.integrations.answers_import import read_answers_file, resolve_question_urn
 
 
 class ApplicationRiskSimulator:
@@ -89,24 +89,36 @@ class ApplicationRiskSimulator:
 
             for a in ans_list:
                 ans_text = str(a.get("answer", "")).strip().lower()
-                q_text = str(a.get("question", "")).strip().lower()
+                q_text = str(a.get("question", "")).strip()
 
-                matched = False
-                for q_urn, q_def in q_dict.items():
-                    if q_def.get("text", "").strip().lower() == q_text or len(q_dict) == 1:
-                        for choice in q_def.get("choices", []):
-                            c_val = str(choice.get("value", "")).strip().lower()
-                            c_urn = str(choice.get("urn", "")).strip().lower()
-                            if c_val == ans_text or c_urn == ans_text or (ans_text and (ans_text in c_val or c_val in ans_text)):
-                                answers_dict[q_urn] = choice.get("urn")
-                                add_score = choice.get("add_score")
-                                if add_score is not None:
-                                    total_score += int(add_score)
-                                    has_score = True
-                                matched = True
-                                break
-                        if matched:
+                matched_urn = resolve_question_urn(q_text, q_dict)
+                if matched_urn:
+                    q_def = q_dict[matched_urn]
+                    for choice in q_def.get("choices", []):
+                        c_val = str(choice.get("value", "")).strip().lower()
+                        c_urn = str(choice.get("urn", "")).strip().lower()
+                        if c_val == ans_text or c_urn == ans_text or (ans_text and (ans_text in c_val or c_val in ans_text)):
+                            answers_dict[matched_urn] = choice.get("urn")
+                            add_score = choice.get("add_score")
+                            if add_score is not None:
+                                total_score += int(add_score)
+                                has_score = True
                             break
+                    if matched_urn not in answers_dict:
+                        if ans_text in ("yes", "compliant", "true"):
+                            for choice in q_def.get("choices", []):
+                                if choice.get("compute_result") or (choice.get("add_score", 0) > 0):
+                                    answers_dict[matched_urn] = choice.get("urn")
+                                    total_score += int(choice.get("add_score", 0))
+                                    has_score = True
+                                    break
+                        elif ans_text in ("no", "non-compliant", "false"):
+                            for choice in reversed(q_def.get("choices", [])):
+                                if not choice.get("compute_result") or (choice.get("add_score", 0) == 0):
+                                    answers_dict[matched_urn] = choice.get("urn")
+                                    total_score += int(choice.get("add_score", 0))
+                                    has_score = True
+                                    break
 
             ras.append(RequirementAssessment({
                 "id": f"ra-{idx}",
@@ -347,25 +359,25 @@ class ApplicationRiskSimulator:
             questions_dict = rn.get("questions", {})
             total_score = 0
             for ans_item in answers:
-                q_text = ans_item["question"].strip().lower()
+                q_text = ans_item["question"].strip()
                 ans_text = ans_item["answer"].strip().lower()
 
-                for q_urn, q_def in questions_dict.items():
-                    if q_def.get("text", "").strip().lower() == q_text or len(questions_dict) == 1 or q_urn.strip().lower() == q_text:
-                        for choice in q_def.get("choices", []):
-                            c_val = choice.get("value", "").strip().lower()
-                            c_urn = choice.get("urn", "").strip().lower()
-                            if c_val == ans_text or c_urn == ans_text or (ans_text and (ans_text in c_val or c_val in ans_text)):
-                                add_score = choice.get("add_score")
-                                if add_score is not None:
-                                    total_score += int(add_score)
+                matched_urn = resolve_question_urn(q_text, questions_dict)
+                if matched_urn:
+                    q_def = questions_dict[matched_urn]
+                    for choice in q_def.get("choices", []):
+                        c_val = choice.get("value", "").strip().lower()
+                        c_urn = choice.get("urn", "").strip().lower()
+                        if c_val == ans_text or c_urn == ans_text or (ans_text and (ans_text in c_val or c_val in ans_text)):
+                            add_score = choice.get("add_score")
+                            if add_score is not None:
+                                total_score += int(add_score)
 
-                                if choice.get("urn") in confidentiality_map:
-                                    data_class_choice_urn = choice.get("urn")
-                                elif choice.get("urn") in availability_map:
-                                    data_avail_choice_urn = choice.get("urn")
-                                break
-                        break
+                            if choice.get("urn") in confidentiality_map:
+                                data_class_choice_urn = choice.get("urn")
+                            elif choice.get("urn") in availability_map:
+                                data_avail_choice_urn = choice.get("urn")
+                            break
 
             node_ref = rn.get("ref_id")
             node_urn = rn.get("urn")

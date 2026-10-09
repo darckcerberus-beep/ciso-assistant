@@ -228,6 +228,10 @@ class LibraryFile:
     def get_id(self):
         return self.json_object.get("id", "")
 
+    def get_version(self):
+        """Return the framework/library integer version number."""
+        return self.json_object.get("version", 1)
+
     def print_name(self):
         utils.log(f"Name: {self.get_name()}")
 

@@ -1784,7 +1784,7 @@ class ExamplesManager:
         # Step 11: Create recurring tasks for recurrent applied controls
         task_templates_created = []
         task_template_dict = data.get("task_template_dict")
-        if applied_control_dict and reference_control_dict:
+        if applied_control_dict and reference_control_dict and hasattr(applied_control_dict, "create_tasks_for_applied_controls"):
             try:
                 task_templates_created = applied_control_dict.create_tasks_for_applied_controls(
                     reference_control_dict,
@@ -2355,7 +2355,7 @@ class ExamplesManager:
         # Generate recurring tasks for recurrent applied controls
         task_templates_created = []
         task_template_dict = data.get("task_template_dict")
-        if applied_control_dict and reference_control_dict:
+        if applied_control_dict and reference_control_dict and hasattr(applied_control_dict, "create_tasks_for_applied_controls"):
             try:
                 task_templates_created = applied_control_dict.create_tasks_for_applied_controls(
                     reference_control_dict,

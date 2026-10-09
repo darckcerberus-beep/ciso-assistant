@@ -297,13 +297,13 @@ answers:
   # ============================================================================
 
   - requirement: "penetration_testing_and_vulnerability_management"
-    question: "Is an independent penetration test performed on the application at least annually or following major architectural changes?"
-    answer: "Yes"
+    question: "How is independent penetration testing governed and performed on the application? (For SaaS apps, are we allowed to pentest, does the SaaS vendor do the pentest, or do they refuse?)"
+    answer: "The SaaS vendor does the pentest (contract mandates that the vendor undergoes annual independent penetration tests and provides audit reports/attestations)"
     result: "compliant"
     observation: "Annual external penetration test completed by CREST-accredited vendor in May 2026."
 
   - requirement: "penetration_testing_and_vulnerability_management"
-    question: "Are identified vulnerabilities remediated within defined SLAs (e.g. Critical within 7 days, High within 30 days)?"
+    question: "Are identified vulnerabilities remediated within defined SLAs (e.g. Critical within 7 days, High within 30 days, contractually committed for SaaS)?"
     answer: "Yes"
     result: "compliant"
     observation: "Strict remediation SLA enforced: Critical within 48 hours, High within 14 days; 100% SLA compliance achieved in 2026."
@@ -319,34 +319,10 @@ answers:
   # ============================================================================
 
   - requirement: "saas_contract_compliance"
-    question: "Is there a signed SaaS contract?"
+    question: "Is there a signed SaaS contract and binding Security Schedule?"
     answer: "Yes"
     result: "compliant"
-    observation: "Signed enterprise SaaS master service agreement with cloud provider."
-
-  - requirement: "saas_contract_compliance"
-    question: "Does the contract include an Audit clause?"
-    answer: "Yes"
-    result: "compliant"
-    observation: "Contract includes annual third-party SOC 2 Type II and ISO 27001 audit rights."
-
-  - requirement: "saas_contract_compliance"
-    question: "Does the contract include an Incident Notification process?"
-    answer: "Yes"
-    result: "compliant"
-    observation: "Contractually binding 24-hour security incident notification SLA."
-
-  - requirement: "saas_contract_compliance"
-    question: "Does the contract include Strong IAM requirements?"
-    answer: "Yes"
-    result: "compliant"
-    observation: "SaaS vendor enforces mandatory MFA, SAML federation, and role segregation for operations personnel."
-
-  - requirement: "saas_contract_compliance"
-    question: "Does the contract include a Confidentiality agreement (NDA)?"
-    answer: "Yes"
-    result: "compliant"
-    observation: "Mutual non-disclosure and strict customer data confidentiality clauses included in the signed agreement."
+    observation: "Signed enterprise SaaS master service agreement with cloud provider and binding Security Schedule."
 
 # ==============================================================================
 # Expected Risk Scenarios & Evaluation (AppSec Framework)
