@@ -548,7 +548,7 @@ class TestYamlIntegrity(unittest.TestCase):
             rn for rn in appsec_fw["req_nodes"].values()
             if rn.get("parent_urn") == "urn:intuitem:risk:req_node:appsec:saas_chapter"
         ]
-        self.assertEqual(len(saas_chapter_children), 22, "Expected 22 assessable requirement nodes in Chapter 10")
+        self.assertEqual(len(saas_chapter_children), 24, "Expected 24 assessable requirement nodes in Chapter 10")
         expected_saas_nodes = {
             "saas_contract_compliance",
             "saas_governance_and_policy",
@@ -562,7 +562,9 @@ class TestYamlIntegrity(unittest.TestCase):
             "saas_network_security",
             "saas_environment_isolation",
             "saas_secure_development",
+            "saas_non_prod_data",
             "saas_web_app_security",
+            "saas_penetration_testing_and_vulnerability_management",
             "saas_data_exchange_security",
             "saas_data_hosting_and_residency",
             "saas_physical_security",
@@ -940,9 +942,15 @@ class TestYamlIntegrity(unittest.TestCase):
             "authentication_and_mfa",
             "access_control_and_rbac",
             "secrets_management",
+            "data_in_transit",
+            "data_at_rest",
+            "data_exchange",
+            "non_prod_data",
+            "data_destruction",
             "security_event_logging",
             "centralized_monitoring_and_alerting",
             "backup_and_disaster_recovery",
+            "penetration_testing_and_vulnerability_management",
         ]
         for ref_id in shared_hosting_reqs:
             node = appsec_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec:{ref_id}")
@@ -953,30 +961,113 @@ class TestYamlIntegrity(unittest.TestCase):
             self.assertIn("baseline", groups, f"{ref_id} missing baseline group")
             self.assertNotIn("saas_app", groups, f"{ref_id} must not include saas_app group")
 
-    def test_appsec_penetration_testing_saas_contractual_management(self):
-        """Verify that penetration_testing_and_vulnerability_management is managed contractually for SaaS apps."""
+        # Verify parent chapters 4 and 7 exclude saas_app
+        for chapter_ref in ["crypto_chapter", "data_lifecycle_chapter"]:
+            chapter_node = appsec_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec:{chapter_ref}")
+            self.assertIsNotNone(chapter_node, f"Chapter {chapter_ref} missing in appsec")
+            c_groups = chapter_node.get("implementation_groups", [])
+            self.assertIn("custom_app", c_groups)
+            self.assertIn("cots_app", c_groups)
+            self.assertIn("baseline", c_groups)
+            self.assertNotIn("saas_app", c_groups, f"Chapter {chapter_ref} must not include saas_app group")
+
+    def test_appsec_data_protection_and_lifecycle_scoping(self):
+        """Verify data protection scoping: self-hosted in Ch 4 & 7, SaaS sandbox in Ch 10, and risk scenarios."""
         appsec_fw = next((fw for fw in self.frameworks if fw["ref_id"] == "appsec"), None)
         if not appsec_fw:
             return
 
-        # 1. Implementation groups include saas_app
-        pentest_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management")
-        self.assertIsNotNone(pentest_node)
-        groups = pentest_node.get("implementation_groups", [])
-        self.assertIn("saas_app", groups, "penetration_testing_and_vulnerability_management must include saas_app")
+        # 1. SaaS Sandbox node saas_non_prod_data exists in Chapter 10
+        saas_np = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:saas_non_prod_data")
+        self.assertIsNotNone(saas_np, "saas_non_prod_data missing in AppSec")
+        self.assertEqual(saas_np.get("parent_urn"), "urn:intuitem:risk:req_node:appsec:saas_chapter")
+        self.assertTrue(saas_np.get("assessable"))
+        self.assertEqual(saas_np.get("implementation_groups"), ["saas_app"])
 
+        # Check questions in saas_non_prod_data
+        np_questions = saas_np.get("questions", {})
+        self.assertEqual(len(np_questions), 4, "saas_non_prod_data should have 4 questions (q0-q3)")
+        q0 = np_questions.get("urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q0")
+        q1 = np_questions.get("urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q1")
+        q2 = np_questions.get("urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q2")
+        q3 = np_questions.get("urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q3")
+        self.assertIsNotNone(q0)
+        self.assertIsNotNone(q1)
+        self.assertIsNotNone(q2)
+        self.assertIsNotNone(q3)
+
+        # q0 choices
+        q0_no = next(c for c in q0["choices"] if c["value"] == "No")
+        q0_yes = next(c for c in q0["choices"] if c["value"] == "Yes")
+        self.assertEqual(q0_no["add_score"], 100)
+        self.assertEqual(q0_yes["add_score"], 0)
+
+        # q1 depends on q0 == Yes
+        self.assertEqual(q1.get("depends_on", {}).get("answers"), [q0_yes["urn"]])
+        q1_no = next(c for c in q1["choices"] if c["value"] == "No")
+        q1_yes = next(c for c in q1["choices"] if c["value"] == "Yes")
+        self.assertEqual(q1_no["add_score"], 100)
+        self.assertEqual(q1_yes["add_score"], 0)
+
+        # q2 and q3 depend on q1 == Yes
+        self.assertEqual(q2.get("depends_on", {}).get("answers"), [q1_yes["urn"]])
+        self.assertEqual(q3.get("depends_on", {}).get("answers"), [q1_yes["urn"]])
+
+        # 2. Risk Scenario 18: saas_nonprod_data_disclosure
+        scenarios = {sc["ref_id"]: sc for sc in appsec_fw["yaml_data"].get("objects", {}).get("risk_scenarios", [])}
+        self.assertIn("saas_nonprod_data_disclosure", scenarios)
+        sc18 = scenarios["saas_nonprod_data_disclosure"]
+        self.assertEqual(sc18.get("likelihood"), "urn:intuitem:risk:req_node:appsec:saas_non_prod_data")
+        self.assertEqual(sc18.get("impact"), "urn:intuitem:risk:req_node:appsec:data_classification")
+        self.assertIn("urn:intuitem:risk:vulnerability:appsec:unprotected_non_prod", sc18.get("vulnerabilities", []))
+        self.assertIn("urn:intuitem:risk:control:appsec:protect_prod_data_in_non_prod", sc18.get("reference_controls", []))
+
+    def test_appsec_penetration_testing_saas_contractual_management(self):
+        """Verify that penetration testing is split between self-hosted and SaaS with contractual management."""
+        appsec_fw = next((fw for fw in self.frameworks if fw["ref_id"] == "appsec"), None)
+        if not appsec_fw:
+            return
+
+        # 1. Hosted node penetration_testing_and_vulnerability_management is scoped to hosted apps and excludes saas_app
+        hosted_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management")
+        self.assertIsNotNone(hosted_node)
+        hosted_groups = hosted_node.get("implementation_groups", [])
+        self.assertNotIn("saas_app", hosted_groups, "penetration_testing_and_vulnerability_management must not include saas_app")
+        self.assertIn("custom_app", hosted_groups)
+        self.assertIn("cots_app", hosted_groups)
+        self.assertIn("baseline", hosted_groups)
+
+        # Hosted q1 and q2 are simple Yes/No (50 points each)
+        h_q1 = hosted_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management:q1")
+        self.assertIsNotNone(h_q1)
+        h_q1_yes = next(c for c in h_q1.get("choices", []) if c.get("value") == "Yes")
+        self.assertEqual(h_q1_yes.get("add_score"), 50)
+
+        h_q2 = hosted_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management:q2")
+        self.assertIsNotNone(h_q2)
+        h_q2_yes = next(c for c in h_q2.get("choices", []) if c.get("value") == "Yes")
+        self.assertEqual(h_q2_yes.get("add_score"), 50)
+
+        # 2. Resilience chapter excludes saas_app
         resilience_chapter = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:resilience_chapter")
         self.assertIsNotNone(resilience_chapter)
-        self.assertIn("saas_app", resilience_chapter.get("implementation_groups", []))
+        self.assertNotIn("saas_app", resilience_chapter.get("implementation_groups", []))
 
-        # 2. q1 includes the 3 contractual governance choices:
+        # 3. SaaS node saas_penetration_testing_and_vulnerability_management is scoped to saas_app
+        saas_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:saas_penetration_testing_and_vulnerability_management")
+        self.assertIsNotNone(saas_node, "saas_penetration_testing_and_vulnerability_management missing in AppSec")
+        saas_groups = saas_node.get("implementation_groups", [])
+        self.assertIn("saas_app", saas_groups)
+        self.assertNotIn("custom_app", saas_groups)
+
+        # 4. SaaS q1 includes the 3 contractual governance choices:
         # - allowed to pentest
         # - SaaS vendor does the pentest
         # - they refuse
-        q1 = pentest_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management:q1")
+        q1 = saas_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:saas_penetration_testing_and_vulnerability_management:q1")
         self.assertIsNotNone(q1)
         choices = q1.get("choices", [])
-        self.assertEqual(len(choices), 3, "Expected 3 choices in pentest governance question")
+        self.assertEqual(len(choices), 3, "Expected 3 choices in SaaS pentest governance question")
 
         allowed_choice = next((c for c in choices if "allowed to pentest" in c.get("value", "").lower()), None)
         vendor_choice = next((c for c in choices if "vendor does the pentest" in c.get("value", "").lower()), None)
@@ -993,8 +1084,8 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertEqual(refuse_choice.get("add_score"), 0)
         self.assertFalse(refuse_choice.get("compute_result"))
 
-        # 3. q2 is SLA remediation (50 points)
-        q2 = pentest_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management:q2")
+        # 5. SaaS q2 is SLA remediation (50 points)
+        q2 = saas_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:saas_penetration_testing_and_vulnerability_management:q2")
         self.assertIsNotNone(q2)
         q2_yes = next(c for c in q2.get("choices", []) if c.get("value") == "Yes")
         self.assertEqual(q2_yes.get("add_score"), 50)

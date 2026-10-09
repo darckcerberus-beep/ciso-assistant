@@ -247,26 +247,26 @@ answers:
     result: "compliant"
     observation: "Standard customer terms and DPAs govern all data transfer integrations."
 
-  - requirement: "non_prod_data"
-    question: "Do you have a dedicated non-production environment?"
+  - requirement: "saas_non_prod_data"
+    question: "Does the SaaS deployment utilize dedicated non-production environments?"
     answer: "Yes"
     result: "compliant"
     observation: "Isolated staging environment in dedicated GCP project."
 
-  - requirement: "non_prod_data"
-    question: "Do you use prod data in a non-prod environment?"
+  - requirement: "saas_non_prod_data"
+    question: "Is production customer data copied into or used within the SaaS non-production or sandbox environments?"
     answer: "Yes"
     result: "not_compliant"
     observation: "Periodic staging runs copy sanitized slices of production data."
 
-  - requirement: "non_prod_data"
-    question: "How do you protect them?"
+  - requirement: "saas_non_prod_data"
+    question: "How is production data protected when copied into the SaaS sandbox?"
     answer: "Pseudonymisation"
     result: "compliant"
     observation: "Pseudonymization pipeline masks customer identifiers and names before loading into staging."
 
-  - requirement: "non_prod_data"
-    question: "Do you clean the prod data after use in non-prod?"
+  - requirement: "saas_non_prod_data"
+    question: "Is production data securely cleansed or purged from the SaaS sandbox environment after testing concludes?"
     answer: "No"
     result: "not_compliant"
     observation: "Masked data retained in staging indefinitely without automated post-test wiping."
@@ -309,14 +309,14 @@ answers:
   # CHAPTER 9: TESTING, PATCHING & RESILIENCE
   # ============================================================================
 
-  - requirement: "penetration_testing_and_vulnerability_management"
-    question: "How is independent penetration testing governed and performed on the application? (For SaaS apps, are we allowed to pentest, does the SaaS vendor do the pentest, or do they refuse?)"
+  - requirement: "saas_penetration_testing_and_vulnerability_management"
+    question: "How is independent penetration testing governed and performed on the SaaS platform?"
     answer: "The SaaS vendor does the pentest (contract mandates that the vendor undergoes annual independent penetration tests and provides audit reports/attestations)"
     result: "compliant"
     observation: "Third-party penetration test conducted in April 2026."
 
-  - requirement: "penetration_testing_and_vulnerability_management"
-    question: "Are identified vulnerabilities remediated within defined SLAs (e.g. Critical within 7 days, High within 30 days, contractually committed for SaaS)?"
+  - requirement: "saas_penetration_testing_and_vulnerability_management"
+    question: "Does the SaaS contract commit the provider to formal vulnerability remediation SLAs (e.g. Critical within 7 days, High within 30 days)?"
     answer: "No"
     result: "not_compliant"
     observation: "Medium and low vulnerabilities frequently exceed 90-day remediation targets."
@@ -373,8 +373,8 @@ expected_risk_scenarios:
     risk_level: 4
     control_priority: 1
 
-  - scenario: "Disclosure of production data in non-production environments"
-    likelihood_requirement: "non_prod_data"
+  - scenario: "Disclosure of production data in SaaS non-production sandboxes"
+    likelihood_requirement: "saas_non_prod_data"
     likelihood_score: 90
     scaled_likelihood: 1
     scaled_impact: 3
@@ -490,8 +490,8 @@ expected_risk_scenarios:
     risk_level: 2
     control_priority: 3
 
-  - scenario: "Exploitation of unpatched vulnerability"
-    likelihood_requirement: "penetration_testing_and_vulnerability_management"
+  - scenario: "Exploitation of unpatched SaaS vulnerability"
+    likelihood_requirement: "saas_penetration_testing_and_vulnerability_management"
     likelihood_score: 50
     scaled_likelihood: 3
     scaled_impact: 3

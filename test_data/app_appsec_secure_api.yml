@@ -246,14 +246,14 @@ answers:
     result: "compliant"
     observation: "Bilateral Data Processing Agreements (DPA) executed with all external financial institutions."
 
-  - requirement: "non_prod_data"
-    question: "Do you have a dedicated non-production environment?"
+  - requirement: "saas_non_prod_data"
+    question: "Does the SaaS deployment utilize dedicated non-production environments?"
     answer: "Yes"
     result: "compliant"
     observation: "Dedicated dev, staging, and sandbox environments isolated in separate AWS accounts."
 
-  - requirement: "non_prod_data"
-    question: "Do you use prod data in a non-prod environment?"
+  - requirement: "saas_non_prod_data"
+    question: "Is production customer data copied into or used within the SaaS non-production or sandbox environments?"
     answer: "No"
     result: "compliant"
     observation: "Non-production environments use 100% synthetically generated mock data; production data is strictly prohibited."
@@ -296,14 +296,14 @@ answers:
   # CHAPTER 9: TESTING, PATCHING & RESILIENCE
   # ============================================================================
 
-  - requirement: "penetration_testing_and_vulnerability_management"
-    question: "How is independent penetration testing governed and performed on the application? (For SaaS apps, are we allowed to pentest, does the SaaS vendor do the pentest, or do they refuse?)"
+  - requirement: "saas_penetration_testing_and_vulnerability_management"
+    question: "How is independent penetration testing governed and performed on the SaaS platform?"
     answer: "The SaaS vendor does the pentest (contract mandates that the vendor undergoes annual independent penetration tests and provides audit reports/attestations)"
     result: "compliant"
     observation: "Annual external penetration test completed by CREST-accredited vendor in May 2026."
 
-  - requirement: "penetration_testing_and_vulnerability_management"
-    question: "Are identified vulnerabilities remediated within defined SLAs (e.g. Critical within 7 days, High within 30 days, contractually committed for SaaS)?"
+  - requirement: "saas_penetration_testing_and_vulnerability_management"
+    question: "Does the SaaS contract commit the provider to formal vulnerability remediation SLAs (e.g. Critical within 7 days, High within 30 days)?"
     answer: "Yes"
     result: "compliant"
     observation: "Strict remediation SLA enforced: Critical within 48 hours, High within 14 days; 100% SLA compliance achieved in 2026."
@@ -357,8 +357,8 @@ expected_risk_scenarios:
     risk_level: 2
     control_priority: 3
 
-  - scenario: "Disclosure of production data in non-production environments"
-    likelihood_requirement: "non_prod_data"
+  - scenario: "Disclosure of production data in SaaS non-production sandboxes"
+    likelihood_requirement: "saas_non_prod_data"
     likelihood_score: 100
     scaled_likelihood: 1
     scaled_impact: 4
@@ -474,8 +474,8 @@ expected_risk_scenarios:
     risk_level: 2
     control_priority: 3
 
-  - scenario: "Exploitation of unpatched vulnerability"
-    likelihood_requirement: "penetration_testing_and_vulnerability_management"
+  - scenario: "Exploitation of unpatched SaaS vulnerability"
+    likelihood_requirement: "saas_penetration_testing_and_vulnerability_management"
     likelihood_score: 100
     scaled_likelihood: 1
     scaled_impact: 4

@@ -309,13 +309,13 @@ answers:
   # ============================================================================
 
   - requirement: "penetration_testing_and_vulnerability_management"
-    question: "How is independent penetration testing governed and performed on the application? (For SaaS apps, are we allowed to pentest, does the SaaS vendor do the pentest, or do they refuse?)"
-    answer: "They refuse (the SaaS vendor refuses penetration testing and provides no reports, or no penetration test is performed)"
+    question: "Is independent penetration testing conducted on the application and underlying infrastructure at least annually by qualified internal or external penetration testers?"
+    answer: "No"
     result: "not_compliant"
     observation: "No penetration test ever conducted on the application."
 
   - requirement: "penetration_testing_and_vulnerability_management"
-    question: "Are identified vulnerabilities remediated within defined SLAs (e.g. Critical within 7 days, High within 30 days, contractually committed for SaaS)?"
+    question: "Are identified vulnerabilities remediated within defined SLAs (e.g. Critical within 7 days, High within 30 days)?"
     answer: "No"
     result: "not_compliant"
     observation: "Known legacy OS and web server vulnerabilities unpatched for over 5 years."

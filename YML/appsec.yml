@@ -29,7 +29,7 @@ description: >
   Supports both internally managed applications and SaaS solutions whose security controls
   are defined with a contract and certified via third-party audit reports (SOC 2, ISO 27001).
 copyright: DCME Corp
-version: 7
+version: 10
 publication_date: 2026-10-09
 provider: DCME Corp
 packager: DCME Corp
@@ -294,12 +294,12 @@ objects:
       reference_controls:
         - urn:intuitem:risk:control:appsec:backup_and_disaster_recovery
 
-    # 16. Exploitation of unpatched vulnerability (AppSec addition)
+    # 16. Exploitation of unpatched vulnerability (Hosted applications)
     - urn: urn:intuitem:risk:scenario:appsec:unpatched_vulnerability_exploitation
       ref_id: unpatched_vulnerability_exploitation
       name: "Exploitation of unpatched vulnerability"
       description: >
-        Known security vulnerabilities remain unaddressed in production due to the absence
+        Known security vulnerabilities remain unaddressed in self-hosted production environments due to the absence
         of regular independent penetration testing and formal remediation SLAs.
       likelihood: urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management
       impact: urn:intuitem:risk:req_node:appsec:data_classification
@@ -310,6 +310,40 @@ objects:
         - urn:intuitem:risk:vulnerability:appsec:untested_application_security
       reference_controls:
         - urn:intuitem:risk:control:appsec:regular_penetration_testing
+
+    # 17. Exploitation of unpatched SaaS vulnerability (SaaS applications)
+    - urn: urn:intuitem:risk:scenario:appsec:saas_unpatched_vulnerability_exploitation
+      ref_id: saas_unpatched_vulnerability_exploitation
+      name: "Exploitation of unpatched SaaS vulnerability"
+      description: >
+        Known security vulnerabilities in the third-party SaaS platform remain unaddressed due to the absence
+        of independent penetration test attestations, vendor testing refusals, or uncommitted remediation SLAs.
+      likelihood: urn:intuitem:risk:req_node:appsec:saas_penetration_testing_and_vulnerability_management
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+        - urn:intuitem:risk:threat:appsec:injection_attacks
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:untested_application_security
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:regular_penetration_testing
+
+    # 18. Disclosure of production data in SaaS non-production sandboxes (SaaS applications)
+    - urn: urn:intuitem:risk:scenario:appsec:saas_nonprod_data_disclosure
+      ref_id: saas_nonprod_data_disclosure
+      name: "Disclosure of production data in SaaS non-production sandboxes"
+      description: >
+        Production customer data copied into vendor sandbox or non-production tenant environments
+        is exposed due to weaker access controls, lack of masking, or failure to purge test data.
+      likelihood: urn:intuitem:risk:req_node:appsec:saas_non_prod_data
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:unprotected_non_prod
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:protect_prod_data_in_non_prod
 
   # ========================================================================
   # RISK MATRIX - 4x4 probability/impact matrix with risk levels
@@ -1313,7 +1347,7 @@ objects:
           How to complete this assessment:
           1. Answer accurately: Select the choices that best reflect the current architecture and operational state of your application.
           2. Dynamic tracks: Questions in Chapter 1 (Data Classification, Hosting Model, and Network Exposure) dynamically trigger advanced tracks:
-             - Confidential / Secret Data Protection (Encryption in Transit & Rest, Non-Prod Data Masking, Compliant Destruction)
+             - Confidential / Secret Data Protection (Encryption in Transit & Rest, Data Exchange / DPAs, Non-Prod Data Masking, Compliant Destruction)
              - Internet-Facing Controls (API Rate Limiting, CSP, External Pentesting)
              - SaaS Contractual Governance (Security Exhibits, Audit Rights, Incident Reporting SLAs)
           3. SaaS Applications: For third-party SaaS solutions where the codebase and infrastructure are managed by an external vendor, security governance is evaluated through Chapter 10 (SaaS Requirements, covering Master Services Agreements, Security Exhibits, SOC 2 / ISO 27001 assurance, SLAs, and DPAs).
@@ -1864,7 +1898,7 @@ objects:
         description: "Enforce cryptographic protection for data in transit and at rest, and maintain centralized secrets management."
         annotation: >
           Comprehensive cryptographic controls incorporating newDPP data protection and centralized secrets vaults.
-        implementation_groups: ["baseline", "custom_app", "cots_app", "confidential_app", "secret_app"]
+        implementation_groups: ["baseline", "custom_app", "cots_app"]
 
       # Requirement: Secrets management
       - urn: urn:intuitem:risk:req_node:appsec:secrets_management
@@ -1916,7 +1950,7 @@ objects:
           - API gateway / Load balancer TLS cipher suite and protocol enforcement configuration
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:lack_of_encryption
-        implementation_groups: ["confidential_app", "secret_app"]
+        implementation_groups: ["baseline", "custom_app", "cots_app"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:encrypt_data_in_transit
         questions:
@@ -1951,7 +1985,7 @@ objects:
           - Cloud storage bucket / disk volume encryption configuration (e.g., AWS KMS / Azure Key Vault / GCP KMS)
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:lack_of_encryption
-        implementation_groups: ["confidential_app", "secret_app"]
+        implementation_groups: ["baseline", "custom_app", "cots_app"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:encrypt_data_at_rest
         questions:
@@ -2118,16 +2152,16 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # === CHAPTER 6: API SECURITY & DATA EXCHANGES ===
+      # === CHAPTER 6: API SECURITY & EDGE PROTECTIONS ===
       - urn: urn:intuitem:risk:req_node:appsec:api_chapter
         assessable: false
         depth: 1
         ref_id: api_chapter
-        name: "API Security & Data Exchange Governance"
-        description: "Protect application interfaces and APIs against abuse, and govern cross-organizational data flows."
+        name: "API Security & Edge Protections"
+        description: "Protect application interfaces and APIs against abuse, volumetric attacks, and automated bots."
         annotation: >
-          Protections for web services and external data transmissions aligned with OWASP API Security Top 10.
-        implementation_groups: ["baseline", "custom_app", "cots_app", "confidential_app", "secret_app"]
+          Edge and gateway protections for web services and APIs aligned with OWASP API Security Top 10.
+        implementation_groups: ["baseline", "custom_app", "cots_app", "internet_facing"]
 
       # Requirement: API Security & Rate limiting
       - urn: urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting
@@ -2178,11 +2212,23 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
+      # === CHAPTER 7: DATA PROTECTION & LIFECYCLE GOVERNANCE ===
+      - urn: urn:intuitem:risk:req_node:appsec:data_lifecycle_chapter
+        assessable: false
+        depth: 1
+        ref_id: data_lifecycle_chapter
+        name: "Data Protection & Lifecycle Governance"
+        description: "Govern cross-organizational data transfers (DPAs), enforce non-production data protection, and mandate compliant data retention and destruction."
+        annotation: >
+          Comprehensive data protection and privacy lifecycle controls.
+          Ensures sensitive data assets are protected throughout their lifecycle: formal data transfer agreements (DPAs/DTAs) for external exchanges, sanitization and masking of test data in non-production environments, and compliant end-of-life purging and certified destruction.
+        implementation_groups: ["baseline", "custom_app", "cots_app"]
+
       # Requirement: Control data exchange beyond organization (from newDPP)
       - urn: urn:intuitem:risk:req_node:appsec:data_exchange
         assessable: true
         depth: 2
-        parent_urn: urn:intuitem:risk:req_node:appsec:api_chapter
+        parent_urn: urn:intuitem:risk:req_node:appsec:data_lifecycle_chapter
         ref_id: data_exchange
         name: Control of Data Exchange
         description: "Data exchange beyond the group is controlled"
@@ -2196,7 +2242,7 @@ objects:
           - urn:intuitem:risk:vulnerability:appsec:contractual_gap
         reference_controls:
           - urn:intuitem:risk:control:appsec:information_exchange_contract
-        implementation_groups: ["confidential_app", "secret_app"]
+        implementation_groups: ["baseline", "custom_app", "cots_app"]
         questions:
           urn:intuitem:risk:req_node:appsec:data_exchange:question:1:
             type: unique_choice
@@ -2231,17 +2277,6 @@ objects:
                 compute_result: true
                 color: "#33a745"
 
-      # === CHAPTER 7: DATA LIFECYCLE & SANITIZATION ===
-      - urn: urn:intuitem:risk:req_node:appsec:data_lifecycle_chapter
-        assessable: false
-        depth: 1
-        ref_id: data_lifecycle_chapter
-        name: "Data Lifecycle & Sanitization"
-        description: "Enforce strict non-production data protection and formal data retention and destruction processes."
-        annotation: >
-          Protects sensitive production data from unauthorized exposure during development, testing, and end-of-lifecycle purging.
-        implementation_groups: ["confidential_app", "secret_app"]
-
       # Requirement: Protect production data in non-production environments (from newDPP)
       - urn: urn:intuitem:risk:req_node:appsec:non_prod_data
         assessable: true
@@ -2258,7 +2293,7 @@ objects:
           - Non-production environment database audit logs verifying absence of raw PII/sensitive production records
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:unprotected_non_prod
-        implementation_groups: ["secret_app", "confidential_app"]
+        implementation_groups: ["baseline", "custom_app", "cots_app"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:protect_prod_data_in_non_prod
         questions:
@@ -2359,7 +2394,7 @@ objects:
           - urn:intuitem:risk:vulnerability:appsec:uncontrolled_data_retention
         reference_controls:
           - urn:intuitem:risk:control:appsec:data_destruction_process
-        implementation_groups: ["confidential_app", "secret_app"]
+        implementation_groups: ["baseline", "custom_app", "cots_app"]
         questions:
           urn:intuitem:risk:req_node:appsec:data_destruction:question:1:
             type: unique_choice
@@ -2497,53 +2532,48 @@ objects:
         name: "Penetration Testing & Resilience"
         description: "Perform independent penetration testing, enforce patch remediation SLAs, and maintain disaster recovery readiness."
         annotation: >
-          Validates operational defense-in-depth and business continuity across internal applications and third-party SaaS platforms.
-        implementation_groups: ["baseline", "custom_app", "cots_app", "internet_facing", "saas_app"]
+          Validates operational defense-in-depth and business continuity across internally hosted applications (Custom and COTS).
+        implementation_groups: ["baseline", "custom_app", "cots_app", "internet_facing"]
 
-      # Requirement: Penetration testing & vulnerability remediation
+      # Requirement: Penetration testing & vulnerability remediation (Hosted)
       - urn: urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:resilience_chapter
         ref_id: penetration_testing_and_vulnerability_management
         name: Penetration Testing & Vulnerability Remediation
-        description: "Conduct independent penetration tests at least annually (or verify contractual pentest commitments for SaaS) and remediate identified vulnerabilities within defined SLAs."
+        description: "Conduct independent penetration tests at least annually on self-hosted applications and infrastructure, and remediate identified vulnerabilities within defined SLAs."
         annotation: >
-          Cadre d'évaluation des tests d'intrusion et de la remédiation des vulnérabilités :
-          - Pour les applications internes (sur mesure ou COTS) : réalisation d'un test d'intrusion annuel indépendant et respect des délais de remédiation (Critique <= 7j, Élevée <= 30j).
-          - Pour les applications SaaS tierces : gestion contractuelle obligatoire dans l'annexe sécurité. Le questionnaire vérifie si le contrat autorise les tests d'intrusion par le client, si le fournisseur SaaS réalise lui-même un test d'intrusion annuel indépendant et communique ses attestations/rapports, ou si le fournisseur refuse toute démarche d'audit intrusif.
+          Penetration testing and vulnerability remediation assessment framework for internally hosted applications (Custom or COTS):
+          - Annual independent penetration testing conducted by certified internal or third-party penetration testers.
+          - Strict remediation SLAs based on vulnerability severity (Critical <= 7 days, High <= 30 days).
         typical_evidence: >
-          - Penetration test executive summary and certificate
-          - SaaS contractual security schedule authorizing client pentest or annual third-party pentest attestation report
-          - Vulnerability remediation tracker or contractual SLA demonstrating compliance with defined remediation timeframes
+          - Penetration test executive summary report and attestation certificate
+          - Vulnerability remediation tracker or defect management tickets demonstrating SLA compliance
+          - Patch verification and retest records
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:untested_application_security
-        implementation_groups: ["baseline", "custom_app", "cots_app", "internet_facing", "saas_app"]
+        implementation_groups: ["baseline", "custom_app", "cots_app", "internet_facing"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:regular_penetration_testing
         questions:
           urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management:q1:
             type: unique_choice
-            text: "How is independent penetration testing governed and performed on the application? (For SaaS apps, are we allowed to pentest, does the SaaS vendor do the pentest, or do they refuse?)"
+            text: "Is independent penetration testing conducted on the application and underlying infrastructure at least annually by qualified internal or external penetration testers?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management:q1:c1
-                value: "We are allowed to pentest (in-house team conducts annual pentests, or SaaS contract authorizes client penetration testing)"
+                value: "Yes"
                 add_score: 50
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management:q1:c2
-                value: "The SaaS vendor does the pentest (contract mandates that the vendor undergoes annual independent penetration tests and provides audit reports/attestations)"
-                add_score: 50
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management:q1:c3
-                value: "They refuse (the SaaS vendor refuses penetration testing and provides no reports, or no penetration test is performed)"
+                value: "No"
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
           urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management:q2:
             type: unique_choice
-            text: "Are identified vulnerabilities remediated within defined SLAs (e.g. Critical within 7 days, High within 30 days, contractually committed for SaaS)?"
+            text: "Are identified vulnerabilities remediated within defined SLAs (e.g. Critical within 7 days, High within 30 days)?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management:q2:c1
                 value: "Yes"
@@ -2599,17 +2629,17 @@ objects:
         depth: 1
         ref_id: saas_chapter
         name: "SaaS Requirements & Vendor Security Exhibit"
-        description: "Socle minimal de sécurité applicable à tout fournisseur SaaS traitant des données pour le compte d'un client (Annexe Sécurité)."
+        description: "Baseline contractual security requirements applicable to all SaaS providers processing customer data (Security Schedule / Exhibit)."
         annotation: >
-          Ce chapitre formalise les exigences minimales de sécurité contractuelle opposables aux fournisseurs SaaS (Software-as-a-Service),
-          alignées sur l'Annexe Sécurité (V1.5).
-          Principe architectural de contractualisation :
-          Les fournisseurs SaaS n'autorisent pas les clients à tester directement leur sécurité (pentest direct interdit sur les environnements mutualisés),
-          à déployer leur propre Cloudflare devant la solution, à administrer les comptes administrateurs internes du fournisseur (mais acceptent que
-          le client gère ses propres comptes et habilitations locataires dans son IGA d'entreprise), ni à brancher directement un agent SIEM sur leur infrastructure.
-          Ces exigences opérationnelles sont par conséquent transférées dans cette partie contractuelle : le fournisseur s'engage contractuellement
-          à assurer lui-même ces protections (WAF/anti-DDoS, pentests annuels indépendants et rapports tiers, gouvernance interne des privilèges,
-          surveillance continue, notification des incidents sous 48h et flux d'export de télémétrie d'audit vers le SIEM client).
+          This chapter formalizes the baseline contractual security requirements enforceable on SaaS (Software-as-a-Service) providers,
+          aligned with enterprise security exhibits (Security Schedule V1.5).
+          Architectural contractualization principle:
+          SaaS providers typically disallow clients from directly pentesting shared multi-tenant infrastructure, placing client-managed
+          reverse proxies or Cloudflare in front of shared multi-tenant endpoints, managing internal provider administrator accounts (while
+          permitting clients to manage their own tenant users and roles via enterprise IGA), or deploying SIEM agents directly onto provider servers.
+          These operational requirements are consequently transferred into binding contractual commitments: the provider commits to maintaining
+          these protections (edge WAF/anti-DDoS, annual independent pentests and third-party audit reports, internal privilege governance,
+          continuous monitoring, 48-hour breach notification SLAs, and SIEM audit log export APIs).
         implementation_groups: ["saas_app"]
 
       # Requirement 0: Master SaaS Agreement Execution
@@ -2619,13 +2649,13 @@ objects:
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_contract_compliance
         name: "SaaS Master Contract & Security Schedule Execution"
-        description: "Ensure a signed Master Services Agreement (MSA) and binding Security Exhibit (Annexe Sécurité) govern the SaaS service."
+        description: "Ensure a signed Master Services Agreement (MSA) and binding Security Exhibit govern the SaaS service."
         annotation: >
-          Validation de l'accord-cadre contractuel : exécution d'un contrat SaaS (MSA) et d'une annexe sécurité (Security Schedule)
-          liant juridiquement le fournisseur. Les exigences techniques détaillées (audit, notification d'incidents, IAM, confidentialité,
-          chiffrement, etc.) sont évaluées dans les sections thématiques correspondantes.
+          Master contractual agreement validation: Execution of a SaaS Master Services Agreement (MSA) and legally binding Security Schedule
+          governing the provider. Detailed technical requirements (audit, incident notification, IAM, confidentiality, encryption, etc.)
+          are evaluated within their respective thematic sections.
         typical_evidence: >
-          - Executed Master Services Agreement (MSA) with attached Security Schedule (Annexe Sécurité)
+          - Executed Master Services Agreement (MSA) with attached Security Schedule / Exhibit
           - Executed Data Processing Agreement (DPA)
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:contractual_gap
@@ -2648,20 +2678,20 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 1: Gouvernance et politique de sécurité
+      # Section 1: Security Governance & Policy
       - urn: urn:intuitem:risk:req_node:appsec:saas_governance_and_policy
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_governance_and_policy
-        name: "Security Governance & Policy (Gouvernance et politique de sécurité)"
+        name: "Security Governance & Policy"
         description: "Maintain an ISO 27001-based security policy, an active ISMS, and conduct annual risk analyses and policy updates."
         annotation: >
-          Exigences contractuelles :
-          - Disposer d'une politique de sécurité basée sur un référentiel reconnu tel qu'ISO 27001.
-          - Maintenir un système de management de la sécurité de l'information (SMSI).
-          - Réaliser une analyse de risques au minimum annuelle.
-          - Mettre à jour la politique de sécurité au minimum une fois par an.
+          Contractual requirements:
+          - Maintain an Information Security Policy based on a recognized framework such as ISO 27001.
+          - Maintain an active Information Security Management System (ISMS).
+          - Perform a formal risk analysis at least annually.
+          - Review and update security policies at least annually.
         typical_evidence: >
           - Valid ISO/IEC 27001 certification or documented ISMS framework
           - Information Security Policy document approved within the last 12 months
@@ -2701,23 +2731,23 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 2: Confidentialité et protection des données
+      # Section 2: Confidentiality & Data Protection
       - urn: urn:intuitem:risk:req_node:appsec:saas_confidentiality_and_data_protection
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_confidentiality_and_data_protection
-        name: "Confidentiality & Data Protection (Confidentialité et protection des données)"
-        description: "Enforce employee IT charter, contractual personnel confidentiality, and state-of-the-art key/certificate management and cryptography."
+        name: "Confidentiality & Data Protection"
+        description: "Enforce vendor personnel access governance (Customer Lockbox), contractual employee NDAs, and state-of-the-art key/certificate management."
         annotation: >
-          Exigences contractuelles :
-          - Disposer d'une charte informatique applicable aux salariés et sous-traitants.
-          - Assurer la confidentialité contractuelle des personnes ayant accès aux données.
-          - Définir des procédures de gestion des clés et certificats.
-          - Utiliser des protocoles et algorithmes cryptographiques conformes à l'état de l'art.
+          Contractual requirements:
+          - Enforce an IT Charter and contractual confidentiality (NDAs) for all vendor personnel and subcontractors accessing customer data.
+          - Enforce Customer Lockbox / explicit client approval workflows before vendor support or engineering personnel can access tenant data.
+          - Define procedures for cryptographic key and certificate lifecycle management.
+          - Utilize state-of-the-art cryptographic algorithms and protocols for data protection.
         typical_evidence: >
-          - IT Acceptable Use Charter signed by employees and contractors
-          - Employee confidentiality undertaking / NDA agreement templates
+          - IT Acceptable Use Charter and employee confidentiality undertaking / NDA agreement templates
+          - Customer Lockbox / privileged vendor access approval workflow documentation
           - Cryptographic Key and Certificate Management SOP
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:contractual_gap
@@ -2727,7 +2757,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec:saas_confidentiality_and_data_protection:q1:
             type: unique_choice
-            text: "Does the contract include binding confidentiality commitments (NDA) protecting customer data, and does the provider enforce contractual NDAs and an IT charter for all employees and subcontractors accessing data?"
+            text: "Does the contract enforce strict vendor personnel access governance (e.g. Customer Lockbox / explicit client approval workflows before vendor support or engineering can access customer tenant data), supported by binding confidentiality agreements (NDAs) and employee security charters?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:saas_confidentiality_and_data_protection:q1:c1
                 value: "Yes"
@@ -2754,19 +2784,19 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 3: Sensibilisation à la sécurité
+      # Section 3: Security Awareness & Training
       - urn: urn:intuitem:risk:req_node:appsec:saas_security_awareness
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_security_awareness
-        name: "Security Awareness & Training (Sensibilisation à la sécurité)"
+        name: "Security Awareness & Training"
         description: "Conduct annual cybersecurity training for all personnel, covering risks, data breaches, and incident escalation procedures."
         annotation: >
-          Exigences contractuelles :
-          - Former et sensibiliser les utilisateurs au moins une fois par an.
-          - Informer sur les risques de sécurité, les violations de données et les conséquences des manquements.
-          - Diffuser les procédures de signalement des incidents de sécurité.
+          Contractual requirements:
+          - Conduct mandatory cybersecurity training and awareness for personnel at least annually.
+          - Inform personnel regarding security risks, data breaches, and non-compliance consequences.
+          - Publish and maintain accessible security incident reporting procedures.
         typical_evidence: >
           - Annual security awareness training curriculum and completion logs
           - Internal security incident reporting procedure documentation
@@ -2805,23 +2835,22 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 4: Gestion des identités et des accès
+      # Section 4: Identity & Access Management
       - urn: urn:intuitem:risk:req_node:appsec:saas_iam
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_iam
-        name: "Identity & Access Management (Gestion des identités et des accès)"
+        name: "Identity & Access Management"
         description: "Enforce unique user IDs, no shared accounts, immediate deactivation, robust passwords (>= 12 chars), anti-brute-force defense, mandatory MFA, and SSO/SCIM (passwords and MFA are managed at enterprise IdP level when client SSO is active)."
         annotation: >
-          Exigences contractuelles :
-          - Attribuer un identifiant unique à chaque utilisateur.
-          - Interdire les comptes partagés.
-          - Désactiver immédiatement les comptes inutilisés.
-          - Imposer des mots de passe robustes (minimum 12 caractères) [délégué à l'IdP client si SSO entreprise actif].
-          - Mettre en œuvre un mécanisme de protection contre les tentatives d'accès frauduleuses [délégué à l'IdP client si SSO entreprise actif].
-          - Imposer l'authentification multifacteur (MFA) pour tous les utilisateurs [délégué à l'IdP client si SSO entreprise actif].
-          - Supporter les mécanismes SSO et SCIM lorsque requis.
+          Contractual requirements:
+          - Assign a unique identifier to each user; prohibit shared accounts.
+          - Promptly deactivate unused or terminated accounts.
+          - Enforce strong passwords (>= 12 characters) [delegated to client enterprise IdP when SSO is active].
+          - Enforce anti-brute-force lockout and rate limiting [delegated to client enterprise IdP when SSO is active].
+          - Mandate Multi-Factor Authentication (MFA) for all users [delegated to client enterprise IdP when SSO is active].
+          - Support enterprise SSO federation (SAML 2.0 / OIDC) and automated user lifecycle provisioning via SCIM.
         typical_evidence: >
           - Enterprise SSO (SAML 2.0 / OIDC) and SCIM automated provisioning configuration documentation
           - If SSO is active: Client enterprise IdP federation configuration and authentication policy
@@ -2902,22 +2931,21 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 5: Gestion des habilitations
+      # Section 5: Privilege Governance, IGA & Access Recertifications
       - urn: urn:intuitem:risk:req_node:appsec:saas_entitlements_and_privileges
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_entitlements_and_privileges
-        name: "Privilege Governance, IGA & Access Recertifications (Gestion des habilitations)"
+        name: "Privilege Governance, IGA & Access Recertifications"
         description: "Apply least privilege, restrict administrator rights, maintain privileged accounts inventory, support enterprise IGA (SailPoint) integration, and conduct periodic access recertifications."
         annotation: >
-          Exigences contractuelles :
-          - Les fournisseurs SaaS n'autorisent pas les clients à administrer directement les comptes administrateurs internes du fournisseur.
-          - Le contrat impose au fournisseur d'appliquer le principe du moindre privilège pour son personnel et de maintenir un inventaire de ses comptes à privilèges.
-          - En contrepartie, le fournisseur accepte et permet l'intégration avec les solutions de gouvernance des identités (IGA / SailPoint) pour que le client gère ses propres comptes et habilitations locataires.
-          - Réaliser une revue annuelle des droits standards.
-          - Réaliser une revue semestrielle des droits à privilèges élevés.
-          - Réviser les accès lors des changements de poste.
+          Contractual requirements:
+          - SaaS providers restrict client access to internal provider administrative systems.
+          - Contract mandates least privilege for provider personnel and maintenance of an active privileged account inventory.
+          - Provider supports integration with enterprise Identity Governance and Administration (IGA / SailPoint) for client tenant access lifecycle.
+          - Conduct annual access reviews for standard accounts and semi-annual recertifications for high-privilege administrative accounts.
+          - Re-evaluate and revoke access promptly upon role changes or employee departure.
         typical_evidence: >
           - Inventory register of privileged and administrative accounts
           - Semi-annual privileged access review audit reports and sign-offs
@@ -2973,22 +3001,22 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 6: Journalisation et gestion des incidents
+      # Section 6: Logging & Incident Management
       - urn: urn:intuitem:risk:req_node:appsec:saas_logging_and_incidents
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_logging_and_incidents
-        name: "Logging & Incident Management (Journalisation et gestion des incidents)"
+        name: "Logging & Incident Management"
         description: "Log user and admin actions, ensure log tamper-resistance, continuously monitor security events, and notify incidents within 48 hours."
         annotation: >
-          Exigences contractuelles :
-          - Les clients ne peuvent pas installer d'agents SIEM directement sur l'infrastructure du fournisseur SaaS.
-          - Le fournisseur s'engage contractuellement à journaliser lui-même les accès, connexions, déconnexions et actions administratives.
-          - Protéger les journaux contre toute modification ou accès non autorisé (WORM / immuabilité).
-          - Surveiller en continu les événements de sécurité au niveau de sa plate-forme.
-          - Notifier tout incident ou anomalie de sécurité dans un délai maximal contractuel de 48 heures après sa découverte.
-          - Mettre à disposition une API / webhook d'export pour alimenter le SIEM de l'entreprise cliente.
+          Contractual requirements:
+          - Clients cannot install internal SIEM agents directly onto SaaS provider infrastructure.
+          - Provider commits contractually to log access, logins, logouts, and administrative actions.
+          - Protect logs against unauthorized modification or deletion (WORM / immutable storage).
+          - Continuously monitor platform security events.
+          - Contractually notify the client of any security incident or anomaly within a maximum of 48 hours of discovery.
+          - Provide an audit export API or webhook to stream telemetry into the client enterprise SIEM.
         typical_evidence: >
           - Audit logging configuration and log retention policy (>= 12 months)
           - Tamper-resistance architecture proof (WORM storage / cryptographic sealing)
@@ -3030,23 +3058,23 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 7: Sécurisation des postes de travail
+      # Section 7: Workstation & Endpoint Security
       - urn: urn:intuitem:risk:req_node:appsec:saas_workstation_security
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_workstation_security
-        name: "Workstation & Endpoint Security (Sécurisation des postes de travail)"
+        name: "Workstation & Endpoint Security"
         description: "Enforce auto-lock, local firewalls, EDR/antivirus, secure system configuration, vulnerability/patch management, full-disk encryption, and lost equipment procedures."
         annotation: >
-          Exigences contractuelles :
-          - Verrouillage automatique des sessions après inactivité.
-          - Pare-feu local activé.
-          - Antivirus, EDR ou solution équivalente déployée et mise à jour.
-          - Configuration sécurisée des systèmes et logiciels.
-          - Programme de gestion des vulnérabilités et des correctifs.
-          - Chiffrement des postes mobiles et supports amovibles.
-          - Procédure de gestion des équipements perdus, volés ou compromis.
+          Contractual requirements:
+          - Workstation auto-lock after inactivity.
+          - Active host-based firewalls.
+          - Updated antivirus/EDR deployed across all endpoints.
+          - Secure baseline system and software configurations.
+          - Vulnerability and security patch management program.
+          - Full-disk encryption on provider laptops and removable storage media.
+          - Formal procedure for lost, stolen, or compromised equipment.
         typical_evidence: >
           - Endpoint baseline hardening policy and GPO / Intune configuration profiles
           - EDR deployment coverage report and agent version compliance telemetry
@@ -3086,21 +3114,20 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 8: Sécurité des équipements mobiles
+      # Section 8: Mobile Device Security
       - urn: urn:intuitem:risk:req_node:appsec:saas_mobile_security
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_mobile_security
-        name: "Mobile Device Security (Sécurité des équipements mobiles)"
+        name: "Mobile Device Security"
         description: "Govern mobile devices via a formal policy, MDM solution, remote wipe capability, mobile data encryption, and controlled synchronization."
         annotation: >
-          Exigences contractuelles :
-          - Politique de gestion des terminaux mobiles.
-          - Utilisation d'une solution MDM.
-          - Possibilité d'effacement à distance.
-          - Chiffrement des données stockées sur les terminaux.
-          - Sauvegarde ou synchronisation maîtrisée des données.
+          Contractual requirements:
+          - Maintain a formal Mobile Device Management (MDM) policy for devices accessing customer data.
+          - Enforce MDM enrollment with remote wipe capabilities.
+          - Enforce hardware encryption across mobile devices.
+          - Controlled synchronization and backup of customer data.
         typical_evidence: >
           - Mobile Device Management (MDM) Policy
           - MDM administrative console enrollment and compliance dashboard
@@ -3126,22 +3153,20 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 9: Sécurité réseau
+      # Section 9: Network Security & Traffic Control
       - urn: urn:intuitem:risk:req_node:appsec:saas_network_security
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_network_security
-        name: "Network Security & Traffic Control (Sécurité réseau)"
+        name: "Network Security & Traffic Control"
         description: "Enforce formalized network security policy, control inbound/outbound traffic, secure Wi-Fi, and protect remote access connections."
         annotation: >
-          Exigences contractuelles :
-          - Les clients ne peuvent pas installer leur propre Cloudflare ou reverse-proxy devant les services mutualisés du fournisseur SaaS.
-          - Le contrat impose au fournisseur d'assurer lui-même la protection anti-DDoS et WAF (ex. Cloudflare, AWS WAF & Shield, Google Cloud Armor, Azure WAF, Akamai, Fastly, Imperva) sur son infrastructure.
-          - Politique de sécurité réseau formalisée.
-          - Contrôle des flux entrants et sortants.
-          - Sécurisation des réseaux Wi-Fi.
-          - Protection des accès distants.
+          Contractual requirements:
+          - Clients cannot deploy their own reverse proxies or Cloudflare directly in front of shared SaaS services.
+          - Contract mandates that the provider maintains edge anti-DDoS and WAF protections (e.g. Cloudflare, AWS WAF & Shield, Google Cloud Armor, Azure WAF, Akamai, Fastly, Imperva).
+          - Maintain a documented network security policy with strict ingress/egress filtering.
+          - Secure corporate Wi-Fi and hardened remote access (VPN / ZTNA).
         typical_evidence: >
           - Formal Network Security Policy and architecture topology diagrams
           - Firewall / Security Group ingress and egress filtering rulesets
@@ -3168,23 +3193,23 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 10: Sécurisation des environnements
+      # Section 10: Environment Security & Tenant Isolation
       - urn: urn:intuitem:risk:req_node:appsec:saas_environment_isolation
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_environment_isolation
-        name: "Environment Security & Tenant Isolation (Sécurisation des environnements)"
-        description: "Ensure logical or physical client environment isolation, traffic filtering, antimalware, encryption at rest, and administrative traceability."
+        name: "Environment Security & Tenant Isolation"
+        description: "Ensure multi-tenant environment isolation, network traffic filtering, and customer-managed cryptographic sovereignty (BYOK/HYOK)."
         annotation: >
-          Exigences contractuelles :
-          - Isolation logique ou physique des environnements clients.
-          - Filtrage des flux et protection antimalware.
-          - Chiffrement des données au repos.
-          - Traçabilité complète des actions administratives et utilisateurs.
+          Contractual requirements:
+          - Robust logical or physical tenant isolation preventing cross-tenant leakage.
+          - Network traffic filtering and antimalware defenses.
+          - Dedicated tenant cryptographic sovereignty and key management (BYOK / HYOK / KMS envelope isolation).
+          - Complete traceability and audit logging of administrative and user actions.
         typical_evidence: >
           - Architecture whitepaper detailing logical/physical tenant isolation (DB schemas, VPCs, IAM roles)
-          - Encryption at rest certificate (AES-256 / KMS) and antimalware deployment logs
+          - KMS tenant key management policy and BYOK / HYOK configuration whitepaper
           - CloudTrail / audit trails recording administrative activities
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:weak_tenant_isolation
@@ -3208,7 +3233,7 @@ objects:
                 color: "#dc3545"
           urn:intuitem:risk:req_node:appsec:saas_environment_isolation:q2:
             type: unique_choice
-            text: "Does the contract mandate and is customer data encrypted at rest, with complete traceability of all administrative and user actions?"
+            text: "Does the SaaS architecture support tenant-specific cryptographic sovereignty, such as dedicated tenant encryption keys, Bring-Your-Own-Key (BYOK/HYOK), or KMS envelope isolation to prevent vendor-level access to at-rest customer data?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:saas_environment_isolation:q2:c1
                 value: "Yes"
@@ -3221,25 +3246,24 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 11: Sécurité des développements
+      # Section 11: Development Security & Secure SDLC
       - urn: urn:intuitem:risk:req_node:appsec:saas_secure_development
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_secure_development
-        name: "Development Security & Secure SDLC (Sécurité des développements)"
-        description: "Manage source code in secure repositories, mandate peer code reviews, separate dev/test/prod, train in OWASP, and forbid production data in test."
+        name: "Development Security & Secure SDLC"
+        description: "Manage source code in secure repositories, mandate peer code reviews, separate dev/test/prod, and enforce secure SDLC and supply chain gates."
         annotation: >
-          Exigences contractuelles :
-          - Gestion des sources dans un dépôt sécurisé.
-          - Revue de code par les pairs.
-          - Séparation des environnements de développement, test et production.
-          - Formation des développeurs aux bonnes pratiques OWASP.
-          - Interdiction d'utiliser les données de production en test sans autorisation explicite.
+          Contractual requirements:
+          - Source code maintained in secure repositories with mandatory peer code review.
+          - Strict environment segregation between development, testing, and production.
+          - Developer secure coding training covering OWASP Top 10 guidelines.
+          - Automated pipeline security quality gates (SAST/SCA) and software supply chain verification.
         typical_evidence: >
           - SCM repository branch protection rules and peer code review audit trails
           - Cloud environment separation architecture diagram (isolated cloud subscriptions)
-          - Developer OWASP training completion records
+          - Developer OWASP training completion records and CI/CD security scanning policies
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:untested_application_security
         implementation_groups: ["saas_app"]
@@ -3262,7 +3286,7 @@ objects:
                 color: "#dc3545"
           urn:intuitem:risk:req_node:appsec:saas_secure_development:q2:
             type: unique_choice
-            text: "Does the contract require and are developers trained in OWASP best practices, with the use of production data in test environments strictly prohibited without authorization?"
+            text: "Does the contract mandate that the provider adheres to formal secure SDLC standards (e.g., OWASP SAMM, ISO/IEC 27034), with mandatory developer secure coding training, automated pipeline security gates (SAST/SCA), and software supply chain integrity controls?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:saas_secure_development:q2:c1
                 value: "Yes"
@@ -3275,24 +3299,125 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 12: Sécurité des applications et services web
+      # Section 11b: SaaS Sandbox & Non-Production Data Protection
+      - urn: urn:intuitem:risk:req_node:appsec:saas_non_prod_data
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
+        ref_id: saas_non_prod_data
+        name: "SaaS Sandbox & Non-Production Data Protection"
+        description: "Govern the use of production customer data in SaaS non-production sandbox tenants and enforce data sanitization and post-test purging."
+        annotation: >
+          Contractual and operational governance of SaaS sandbox, preview, and staging tenants:
+          - Dedicated segregation between SaaS production tenants and sandbox/test environments.
+          - Prohibition or strict governance on copying live production customer data into non-production sandboxes.
+          - Required data masking, pseudonymisation, or anonymization before loading test records into sandboxes.
+          - Prompt sanitization and purging of production data copies from sandbox tenants upon test completion.
+        typical_evidence: >
+          - SaaS tenant provisioning agreement detailing separate non-production sandbox licensing
+          - Tenant test data management procedure and data masking / anonymization tool configurations
+          - Sandbox environment data refresh and post-test purging runbooks
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:unprotected_non_prod
+        implementation_groups: ["saas_app"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:protect_prod_data_in_non_prod
+        questions:
+          urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q0:
+            type: unique_choice
+            text: "Does the SaaS deployment utilize dedicated non-production environments? (e.g., logically segregated sandbox, developer, preview, or staging tenants provided by the vendor)"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q0:c1
+                value: "No"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q0:c2
+                value: "Yes"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q1:
+            type: unique_choice
+            text: "Is production customer data copied into or used within the SaaS non-production or sandbox environments? (e.g., full database replication or test tenant seeding from production backups)"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q0
+              answers: ["urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q0:c2"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q1:c1
+                value: "No"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q1:c2
+                value: "Yes"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q2:
+            type: unique_choice
+            text: "How is production data protected when copied into the SaaS sandbox? (e.g., cryptographic hashing, pseudonymisation/anonymization, or field-level encryption prior to ingestion)"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q1
+              answers: ["urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q1:c2"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q2:c1
+                value: "No, no protection"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q2:c2
+                value: "Hashing"
+                add_score: 90
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q2:c3
+                value: "Pseudonymisation"
+                add_score: 90
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q2:c4
+                value: "Encryption"
+                add_score: 90
+                compute_result: true
+                color: "#33a745"
+          urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q3:
+            type: unique_choice
+            text: "Is production data securely cleansed or purged from the SaaS sandbox environment after testing concludes?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q1
+              answers: ["urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q1:c2"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q3:c1
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q3:c2
+                value: "Yes"
+                add_score: 10
+                compute_result: true
+                color: "#33a745"
+
+      # Section 12: Web Application Security & Pentesting
       - urn: urn:intuitem:risk:req_node:appsec:saas_web_app_security
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_web_app_security
-        name: "Web Application Security & Pentesting (Sécurité des applications et services web)"
+        name: "Web Application Security & Pentesting"
         description: "Enforce TLS 1.2+, port restrictions, admin interface access control, annual external pentests, monthly vulnerability scans, and remediation SLAs."
         annotation: >
-          Exigences contractuelles :
-          - Les clients ne peuvent pas réaliser de tests d'intrusion directs sur l'infrastructure mutualisée du fournisseur SaaS.
-          - Le contrat impose au fournisseur la réalisation d'un test d'intrusion externe par un tiers auditeur qualifié avant mise en production puis au minimum annuellement, et la communication des attestations / synthèses d'audit.
-          - Utilisation de TLS 1.2 minimum.
-          - Restriction des ports réseau au strict nécessaire.
-          - Contrôle des accès aux interfaces d'administration.
-          - Analyse de vulnérabilités mensuelle.
-          - Processus formel de remédiation des vulnérabilités.
-          - Application des bonnes pratiques OWASP.
+          Contractual requirements:
+          - Clients typically cannot perform intrusive direct pentesting against shared SaaS infrastructure.
+          - Contract mandates annual independent third-party penetration testing by a qualified auditor with attestations provided to the client.
+          - Enforce TLS 1.2+ minimum encryption with network ports restricted to the strict minimum.
+          - Restrict and control administrative interface access.
+          - Monthly vulnerability scans and formal remediation SLAs.
+          - Continuous adherence to OWASP application security baselines.
         typical_evidence: >
           - Annual third-party penetration test executive summary letter
           - Monthly vulnerability scan reports and remediation SLA tracking metrics
@@ -3332,23 +3457,77 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 13: Sécurisation des échanges de données
+      # Section 12b: SaaS Penetration Testing & Vulnerability Remediation
+      - urn: urn:intuitem:risk:req_node:appsec:saas_penetration_testing_and_vulnerability_management
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
+        ref_id: saas_penetration_testing_and_vulnerability_management
+        name: "SaaS Penetration Testing & Vulnerability Remediation"
+        description: "Verify SaaS contractual authorization for penetration testing (or vendor annual third-party pentest audit reports) and contractual commitment to vulnerability remediation SLAs."
+        annotation: >
+          Section 12b (SaaS Penetration Testing & Vulnerability Remediation). Contractual governance within the security exhibit verifying whether the contract authorizes customer-led penetration testing, mandates that the provider undergoes annual independent penetration tests and provides audit reports/attestations, or if intrusive testing is refused, along with contractually binding vulnerability remediation SLAs.
+        typical_evidence: >
+          - SaaS contractual security exhibit / schedule authorizing customer penetration testing
+          - Annual third-party penetration test executive summary attestation letter from provider
+          - Provider vulnerability remediation SLA commitments and tracking reports
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:untested_application_security
+        implementation_groups: ["saas_app"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:regular_penetration_testing
+        questions:
+          urn:intuitem:risk:req_node:appsec:saas_penetration_testing_and_vulnerability_management:q1:
+            type: unique_choice
+            text: "How is independent penetration testing governed and performed on the SaaS platform?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_penetration_testing_and_vulnerability_management:q1:c1
+                value: "We are allowed to pentest (SaaS contract authorizes customer-led penetration testing)"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_penetration_testing_and_vulnerability_management:q1:c2
+                value: "The SaaS vendor does the pentest (contract mandates that the vendor undergoes annual independent penetration tests and provides audit reports/attestations)"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_penetration_testing_and_vulnerability_management:q1:c3
+                value: "They refuse (the SaaS vendor refuses penetration testing and provides no reports)"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:saas_penetration_testing_and_vulnerability_management:q2:
+            type: unique_choice
+            text: "Does the SaaS contract commit the provider to formal vulnerability remediation SLAs (e.g. Critical within 7 days, High within 30 days)?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_penetration_testing_and_vulnerability_management:q2:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_penetration_testing_and_vulnerability_management:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # Section 13: Data Exchange Security
       - urn: urn:intuitem:risk:req_node:appsec:saas_data_exchange_security
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_data_exchange_security
-        name: "Data Exchange Security (Sécurisation des échanges de données)"
-        description: "Enforce AES-256 for physical media, secure transfer protocols (HTTPS, SFTP, TLS 1.2+), and transmission of keys/passwords via distinct channels."
+        name: "Data Exchange Security"
+        description: "Govern automated SaaS data integrations, webhooks, and bulk exports with mutual TLS (mTLS), IP allow-listing, and cryptographic signature verification."
         annotation: >
-          Exigences contractuelles :
-          - Chiffrement AES-256 minimum pour les supports physiques contenant des données sensibles.
-          - Utilisation de protocoles sécurisés (HTTPS, SFTP, TLS 1.2 minimum).
-          - Transmission des clés et mots de passe via un canal distinct.
+          Contractual requirements:
+          - Dedicated API integration and webhook security (mutual TLS / mTLS, IP allow-listing, signed webhook payloads).
+          - Secure bulk data egress channels and encrypted media handling.
+          - Out-of-band transmission of API secrets, tokens, and cryptographic credentials.
         typical_evidence: >
-          - Secure transmission protocol specification (HTTPS / SFTP / TLS 1.2+)
-          - Out-of-band credential / key exchange procedure documentation
-          - Removable media encryption policy (AES-256 minimum)
+          - SaaS API integration and webhook security specification (mTLS / HMAC signatures)
+          - Out-of-band credential and API key exchange procedure documentation
+          - Bulk data egress and partner connection security architecture diagram
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:lack_of_encryption
         implementation_groups: ["saas_app"]
@@ -3358,7 +3537,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec:saas_data_exchange_security:q1:
             type: unique_choice
-            text: "Does the contract require and are data exchanges protected by secure protocols (HTTPS, SFTP, TLS 1.2+), AES-256 encryption for physical media, and out-of-band transmission of keys and credentials?"
+            text: "Does the SaaS provider secure automated data integrations, API webhooks, and bulk egress transfers via mutual TLS (mTLS), dedicated IP allow-listing, cryptographic webhook signature verification, and out-of-band credential transmission?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:saas_data_exchange_security:q1:c1
                 value: "Yes"
@@ -3371,17 +3550,18 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 14: Hébergement des données
+      # Section 14: Data Hosting & European Residency
       - urn: urn:intuitem:risk:req_node:appsec:saas_data_hosting_and_residency
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_data_hosting_and_residency
-        name: "Data Hosting & European Residency (Hébergement des données)"
+        name: "Data Hosting & European Residency"
         description: "Host data primarily within the European Union (EU) or European Economic Area (EEA) when required by regulation."
         annotation: >
-          Exigences contractuelles :
-          - Hébergement prioritairement au sein de l'Union européenne ou de l'Espace économique européen lorsque la réglementation l'exige.
+          Contractual requirements:
+          - Customer primary data, databases, and backup archives hosted primarily within the European Union (EU) or European Economic Area (EEA).
+          - Full compliance with cross-border transfer requirements (GDPR Chapter V / EU Standard Contractual Clauses).
         typical_evidence: >
           - Contractual Data Processing Addendum (DPA) specifying primary and backup datacenter regions within EU/EEA
           - Cloud hosting tenant configuration report confirming EU datacenter regions
@@ -3406,21 +3586,20 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 15: Sécurité physique
+      # Section 15: Physical & Environmental Security
       - urn: urn:intuitem:risk:req_node:appsec:saas_physical_security
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_physical_security
-        name: "Physical & Environmental Security (Sécurité physique)"
+        name: "Physical & Environmental Security"
         description: "Control physical access to premises, protect sensitive zones, retain access traces, protect IT equipment, and regularly review authorizations."
         annotation: >
-          Exigences contractuelles :
-          - Contrôle d'accès aux locaux.
-          - Gestion des accès aux zones sensibles.
-          - Conservation des traces d'accès.
-          - Protection physique des équipements informatiques.
-          - Révision régulière des autorisations d'accès physiques.
+          Contractual requirements:
+          - Physical access control to provider facilities and datacenters (named badges, biometrics, regular access reviews).
+          - 24/7 CCTV surveillance, sensitive area zoning, and visitor logging.
+          - Secure environmental protections for IT hardware.
+          - Periodic review of physical access authorizations.
         typical_evidence: >
           - Datacenter SOC 2 Type II / ISO 27001 physical security audit report
           - Electronic badge access control logs and CCTV policy
@@ -3446,21 +3625,20 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 16: Sauvegarde et continuité d'activité
+      # Section 16: Backup & Business Continuity
       - urn: urn:intuitem:risk:req_node:appsec:saas_backup_and_business_continuity
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_backup_and_business_continuity
-        name: "Backup & Business Continuity (Sauvegarde et continuité d'activité)"
+        name: "Backup & Business Continuity"
         description: "Maintain regular backups with verified restore tests, immutable/encrypted storage, documented and annually tested BCP/DRP plans, and defined RTO/RPO."
         annotation: >
-          Exigences contractuelles :
-          - Sauvegardes régulières avec tests de restauration.
-          - Stockage sécurisé et immuable des sauvegardes.
-          - Chiffrement des sauvegardes et des flux de sauvegarde.
-          - Plans de reprise d'activité (PRA) et de continuité d'activité (PCA) documentés et testés annuellement.
-          - Définition et suivi des objectifs RTO et RPO.
+          Contractual requirements:
+          - Automated encrypted and immutable backups with documented restoration drills at least annually.
+          - Documented Business Continuity (BCP) and Disaster Recovery (DRP) plans tested annually with binding RTO and RPO targets.
+          - Secure offsite or cross-region backup replication.
+          - Definition and tracking of RTO and RPO metrics.
         typical_evidence: >
           - Business Continuity Plan (PCA) and Disaster Recovery Plan (PRA) documents
           - Annual disaster recovery drill report with certified RTO/RPO metrics
@@ -3501,22 +3679,23 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 17: Destruction sécurisée des données
+      # Section 17: Secure Data Destruction
       - urn: urn:intuitem:risk:req_node:appsec:saas_secure_data_destruction
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_secure_data_destruction
-        name: "Secure Data Destruction (Destruction sécurisée des données)"
-        description: "Maintain documented secure data disposal procedures, delete data upon client request or contract termination, and securely sanitize equipment."
+        name: "Secure Data Destruction"
+        description: "Enforce contractual exit management SLAs, customer data portability in standard formats, and certified post-termination data erasure."
         annotation: >
-          Exigences contractuelles :
-          - Procédure documentée de suppression sécurisée.
-          - Suppression des données à la demande du client.
-          - Effacement sécurisé des équipements avant recyclage, revente ou retour.
+          Contractual requirements:
+          - Contractual exit management SLA guaranteeing full export of customer tenant data within 30 days of contract termination.
+          - Certified cryptographic erasure and asset de-allocation across primary and backup storage within 60 days.
+          - Formal Certificate of Destruction issued to client upon completion.
         typical_evidence: >
-          - Data Destruction Policy and SOP (NIST SP 800-88 R1 compliant)
-          - Formal Certificate of Destruction template and SLA commitment (<= 30-60 days)
+          - Master Services Agreement exit management and data portability clause (<= 30-day export SLA)
+          - Formal Certificate of Destruction template and post-termination erasure commitment (<= 60 days)
+          - Tenant de-provisioning and backup archival purge verification procedure
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:uncontrolled_data_retention
         implementation_groups: ["saas_app"]
@@ -3525,7 +3704,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec:saas_secure_data_destruction:q1:
             type: unique_choice
-            text: "Does the contract require and is there a documented data destruction process ensuring complete deletion upon client request or contract termination, with certified equipment sanitization before recycling, resale, or return?"
+            text: "Does the SaaS agreement define a formal exit management SLA ensuring full export of customer tenant data in standard open formats within 30 days, followed by certified post-termination data erasure and asset de-allocation within 60 days?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:saas_secure_data_destruction:q1:c1
                 value: "Yes"
@@ -3538,19 +3717,19 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 18: Gestion des sous-traitants
+      # Section 18: Subcontractor & Sub-Processor Management
       - urn: urn:intuitem:risk:req_node:appsec:saas_subcontractor_management
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_subcontractor_management
-        name: "Subcontractor & Sub-Processor Management (Gestion des sous-traitants)"
+        name: "Subcontractor & Sub-Processor Management"
         description: "Select subcontractors with sufficient security guarantees, verify their compliance, and preserve full vendor liability."
         annotation: >
-          Exigences contractuelles :
-          - Sélection de sous-traitants présentant des garanties de sécurité suffisantes.
-          - Vérification documentée de leur conformité.
-          - Maintien de la responsabilité globale du fournisseur vis-à-vis de ses sous-traitants.
+          Contractual requirements:
+          - Formal vetting and due diligence for third-party sub-processors.
+          - Documented compliance verification and security flow-down clauses.
+          - Full vendor liability maintained for downstream subcontractor actions.
         typical_evidence: >
           - Sub-processor register and third-party risk assessment reports
           - Back-to-back Data Processing Agreements (DPAs) with subcontractors
@@ -3575,20 +3754,19 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 19: Audit et conformité
+      # Section 19: Audit Rights & Compliance Verification
       - urn: urn:intuitem:risk:req_node:appsec:saas_audit_and_compliance
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_audit_and_compliance
-        name: "Audit Rights & Compliance Verification (Audit et conformité)"
+        name: "Audit Rights & Compliance Verification"
         description: "Perform annual compliance checks, provide compliance evidence, maintain gap remediation plans, and grant client/third-party audit rights."
         annotation: >
-          Exigences contractuelles :
-          - Contrôle annuel de conformité.
-          - Mise à disposition des preuves de conformité.
-          - Plan de remédiation en cas d'écart.
-          - Droit d'audit du client ou d'un tiers mandaté.
+          Contractual requirements:
+          - Annual third-party compliance assurance (SOC 2 Type II reports, ISO 27001 certifications).
+          - Audit evidence provided to the client with formal corrective action plans for any findings.
+          - Contractual client right to audit.
         typical_evidence: >
           - Executed SaaS agreement containing explicit Right to Audit clause
           - Annual compliance evidence pack (SOC 2 Type II, ISO 27001 certificate, pentest executive letter)
@@ -3613,20 +3791,19 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 20: PCI DSS (si applicable)
+      # Section 20: PCI DSS Payment Security (if applicable)
       - urn: urn:intuitem:risk:req_node:appsec:saas_pci_dss
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_pci_dss
-        name: "PCI DSS Payment Security (PCI DSS - si applicable)"
+        name: "PCI DSS Payment Security"
         description: "Maintain PCI DSS certification for payment data environments, provide annual AOCs, implement dedicated cardholder incident procedures, and immediately notify payment incidents."
         annotation: >
-          Exigences contractuelles :
-          - Maintien de la certification PCI DSS pour les environnements traitant des données de paiement.
-          - Fourniture annuelle de l'attestation de conformité (AOC).
-          - Procédure de réponse aux incidents spécifique aux données de cartes bancaires.
-          - Notification immédiate des incidents affectant les données de paiement.
+          Contractual requirements:
+          - Valid PCI DSS certification for environments processing, storing, or transmitting cardholder data.
+          - Annual provision of Attestation of Compliance (AOC).
+          - Dedicated payment card incident response procedure with immediate client notification.
         typical_evidence: >
           - Valid PCI DSS Attestation of Compliance (AOC) signed by Qualified Security Assessor (QSA)
           - Payment Incident Response SOP and immediate notification procedure
@@ -3669,20 +3846,19 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 21: Gestion des non-conformités
+      # Section 21: Non-Conformity Management & Contractual Remedies
       - urn: urn:intuitem:risk:req_node:appsec:saas_non_conformity_remediation
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_non_conformity_remediation
-        name: "Non-Conformity Management & Contractual Remedies (Gestion des non-conformités)"
+        name: "Non-Conformity Management & Contractual Remedies"
         description: "Implement corrective actions for breaches, deliver documented remediation plans, establish compensatory controls, and grant rights of access suspension or contract termination for severe breaches."
         annotation: >
-          Exigences contractuelles :
-          - Mise en œuvre de mesures correctives en cas de manquement.
-          - Production d'un plan de remédiation documenté.
-          - Mise en place de mesures compensatoires lorsque nécessaire.
-          - Possibilité de suspension des accès ou de résiliation contractuelle en cas de manquement grave ou répété.
+          Contractual requirements:
+          - Formal remediation plan and timeline for identified security non-conformities.
+          - Implementation of compensatory controls where immediate remediation is not feasible.
+          - Contractual right to suspend access or terminate agreement for repeated or critical security breaches.
         typical_evidence: >
           - Master Services Agreement clause detailing breach remediation cure periods (e.g. 30 days)
           - Corrective Action Plan (CAP) escalation workflow and contract termination rights
@@ -3769,11 +3945,11 @@ criticality_mapping:
 # Defines baseline expectations for automated relational and logic integrity tests.
 # Framework-independent test runners validate framework consistency against these specs.
 test_metadata:
-  expected_risk_scenarios_count: 16
+  expected_risk_scenarios_count: 18
   expected_threats_count: 9
   expected_vulnerabilities_count: 18
   expected_reference_controls_count: 26
-  expected_requirement_nodes_count: 58
+  expected_requirement_nodes_count: 60
   matrix_dimensions:
     likelihood_levels: 4
     impact_levels: 4
