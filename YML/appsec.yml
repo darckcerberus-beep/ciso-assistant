@@ -1582,6 +1582,42 @@ objects:
                 value: "Tier 1 - Critical / Mission-Critical (MTD < 1 hour; real-time transactional, payment, or life-safety)"
                 color: "#dc3545"
 
+      # Requirement: Application Data & System Integrity Criticality
+      - urn: urn:intuitem:risk:req_node:appsec:integrity_classification
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:info
+        ref_id: integrity_classification
+        name: "Application Data & System Integrity Criticality"
+        description: "Application data accuracy, tamper resistance, and business operational integrity tiers."
+        annotation: >
+          Data integrity and system trustworthiness profiling:
+          - Level 1 - Low / Tolerable: Minor unvalidated modifications; data errors are non-critical, easily detected, and self-correcting (informational logs, public blogs, scratchpads).
+          - Level 2 - Moderate / Operational: Errors cause noticeable operational friction or localized rework; data modifications can be reconciled via standard transaction logs or manual rollbacks.
+          - Level 3 - High / Critical Business: Unaltered accuracy is essential; unauthorized data tampering causes significant business disruption, contractual non-compliance, or privacy violations (ERP, CRM records, legal contracts, employee PII).
+          - Level 4 - Vital / Financial & Safety: Zero tolerance for corruption; unauthorized modifications lead to direct financial loss, regulatory fines, fraudulent transactions, or life-safety harm (payment gateways, financial ledgers, healthcare/clinical systems).
+        typical_evidence: >
+          - Business Impact Analysis (BIA) integrity classification extract
+          - System Data Flow Architecture identifying audit trail, reconciliation, & checksum requirements
+        implementation_groups: ["info"]
+        questions:
+          urn:intuitem:risk:req_node:appsec:integrity_classification:q1:
+            type: unique_choice
+            text: "What is the integrity classification / accuracy criticality level required for this application's data and operations?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:integrity_classification:q1:c1
+                value: "Level 1 - Low / Tolerable (Errors are self-correcting or minor; scratchpads, informational logs, public content)"
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:integrity_classification:q1:c2
+                value: "Level 2 - Moderate / Operational (Modifications cause operational friction; reversible via standard logs or audit rollbacks)"
+                color: "#17a2b8"
+              - urn: urn:intuitem:risk:req_node:appsec:integrity_classification:q1:c3
+                value: "Level 3 - High / Critical Business (Unauthorized tampering causes major business disruption, legal non-compliance, or contract breach)"
+                color: "#fd7e14"
+              - urn: urn:intuitem:risk:req_node:appsec:integrity_classification:q1:c4
+                value: "Level 4 - Vital / Financial & Safety (Zero tolerance for data tampering; financial transactions, regulatory reporting, clinical/safety)"
+                color: "#dc3545"
+
       # Requirement: Determine hosting model
       - urn: urn:intuitem:risk:req_node:appsec:hosting
         assessable: true
@@ -1848,12 +1884,14 @@ objects:
         depth: 1
         ref_id: app_defenses_chapter
         name: "Application Vulnerability Defense & Code Hygiene"
-        description: "Protect custom applications against OWASP Top 10 injection flaws, cross-site scripting, and information disclosure through secure programming and input/output handling."
+        description: "Protect custom applications against OWASP Top 10 injection flaws, cross-site scripting, SSRF, insecure file uploads, and information disclosure through secure programming and input/output handling."
         annotation: >
           Application vulnerability defenses for custom in-house software:
           - Server-side input schema validation and parameterized queries eliminating injection flaws.
           - Context-aware output encoding and web defense headers preventing XSS.
           - Custom error handlers suppressing debug modes and internal stack traces.
+          - SSRF protection via outbound destination allow-listing and cloud instance metadata hardening (IMDSv2).
+          - Secure file upload validation (magic bytes, UUID paths) and malware scanning in private object storage.
         implementation_groups: ["custom_app"]
 
       # Requirement: Input validation & Parameterized Queries
@@ -1987,6 +2025,108 @@ objects:
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec:error_handling_and_info_leakage:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # Requirement: Server-Side Request Forgery (SSRF) & Cloud Metadata Defense
+      - urn: urn:intuitem:risk:req_node:appsec:ssrf_and_cloud_metadata_defense
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:app_defenses_chapter
+        ref_id: ssrf_and_cloud_metadata_defense
+        name: SSRF & Cloud Metadata Defense
+        description: "Prevent Server-Side Request Forgery (SSRF) by validating outbound HTTP requests and enforcing cloud instance metadata protections (IMDSv2)."
+        annotation: >
+          SSRF and cloud workload isolation defenses for custom software:
+          - Outbound request destination validation: strict protocol allow-listing (http/https only) and blocking connections to private RFC 1918 subnets, loopback (127.0.0.1), and link-local (169.254.0.0/16) addresses.
+          - Cloud metadata service protection: mandatory IMDSv2 (session-token-backed, hop limit=1) on AWS EC2/ECS/EKS instances and equivalent metadata protection on Azure/GCP, preventing credential extraction.
+        typical_evidence: >
+          - Outbound HTTP client wrapper / egress firewall allow-list configuration
+          - Cloud infrastructure audit verifying IMDSv2 enforcement (`HttpTokens=required`, `HttpPutResponseHopLimit=1`)
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:flawed_input_validation
+        implementation_groups: ["custom_app"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:secure_input_validation_and_encoding
+        questions:
+          urn:intuitem:risk:req_node:appsec:ssrf_and_cloud_metadata_defense:q1:
+            type: unique_choice
+            text: "Are outbound HTTP requests initiated by the application strictly validated using destination allow-lists with connections to RFC 1918 private subnets and localhost blocked?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:ssrf_and_cloud_metadata_defense:q1:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:ssrf_and_cloud_metadata_defense:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:ssrf_and_cloud_metadata_defense:q2:
+            type: unique_choice
+            text: "Are cloud instance metadata protections enforced (e.g. IMDSv2 token-backed metadata with hop-limit=1 on AWS, or Azure/GCP metadata header requirements) to prevent credential theft via SSRF?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:ssrf_and_cloud_metadata_defense:q2:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:ssrf_and_cloud_metadata_defense:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # Requirement: Secure File Upload Pipeline & Malware Hygiene
+      - urn: urn:intuitem:risk:req_node:appsec:file_upload_security
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:app_defenses_chapter
+        ref_id: file_upload_security
+        name: File Upload Security & Malware Hygiene
+        description: "Enforce strict file upload validation (magic bytes, path isolation, randomized filenames) and segregated storage with automated malware scanning."
+        annotation: >
+          File upload pipeline protections for custom software:
+          - Server-side magic-byte inspection (verifying true MIME type irrespective of user-supplied Content-Type headers or file extensions).
+          - Path isolation and randomized UUID storage filenames preventing directory traversal (Zip Slip) and webshell execution.
+          - Automated anti-malware / antivirus scanning before ingestion and storage in dedicated non-executable object stores (e.g. private S3 buckets served via presigned URLs).
+        typical_evidence: >
+          - Server-side file upload handler implementation with magic-byte validation
+          - Object storage bucket policy configuration proving non-executable permissions and presigned URL access
+          - Automated malware scanning pipeline logs (e.g. ClamAV, AWS GuardDuty S3 Malware Protection)
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:flawed_input_validation
+        implementation_groups: ["custom_app"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:secure_input_validation_and_encoding
+        questions:
+          urn:intuitem:risk:req_node:appsec:file_upload_security:q1:
+            type: unique_choice
+            text: "Are uploaded files validated via server-side magic byte inspection, assigned randomized filenames (UUIDs), and stripped of path traversal characters?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:file_upload_security:q1:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:file_upload_security:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:file_upload_security:q2:
+            type: unique_choice
+            text: "Are uploaded files scanned for malware and stored exclusively in dedicated, non-executable private object storage (e.g. private S3 with presigned URLs)?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:file_upload_security:q2:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:file_upload_security:q2:c2
                 value: "No"
                 add_score: 0
                 compute_result: false
@@ -4035,7 +4175,11 @@ criticality_mapping:
     urn:intuitem:risk:req_node:appsec:data_classification:q1:c2: 1  # Internal
     urn:intuitem:risk:req_node:appsec:data_classification:q1:c3: 2  # Confidential
     urn:intuitem:risk:req_node:appsec:data_classification:q1:c4: 3  # Secret
-  integrity: {}
+  integrity:
+    urn:intuitem:risk:req_node:appsec:integrity_classification:q1:c1: 0  # Level 1 - Low / Tolerable
+    urn:intuitem:risk:req_node:appsec:integrity_classification:q1:c2: 1  # Level 2 - Moderate / Operational
+    urn:intuitem:risk:req_node:appsec:integrity_classification:q1:c3: 2  # Level 3 - High / Critical Business
+    urn:intuitem:risk:req_node:appsec:integrity_classification:q1:c4: 3  # Level 4 - Vital / Financial & Safety
   availability:
     urn:intuitem:risk:req_node:appsec:availability_classification:q1:c1: 0  # Tier 4 - Non-Critical
     urn:intuitem:risk:req_node:appsec:availability_classification:q1:c2: 1  # Tier 3 - Medium / Tolerable
@@ -4052,9 +4196,10 @@ test_metadata:
   expected_threats_count: 9
   expected_vulnerabilities_count: 18
   expected_reference_controls_count: 26
-  expected_requirement_nodes_count: 62
+  expected_requirement_nodes_count: 65
   matrix_dimensions:
     likelihood_levels: 4
     impact_levels: 4
   classification_node_ref: "data_classification"
   availability_node_ref: "availability_classification"
+  integrity_node_ref: "integrity_classification"

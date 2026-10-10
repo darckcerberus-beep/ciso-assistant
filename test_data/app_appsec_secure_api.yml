@@ -72,6 +72,12 @@ answers:
     result: "compliant"
     observation: "High-availability payment API with MTD < 1 hour and real-time active-active failover."
 
+  - requirement: "integrity_classification"
+    question: "What is the integrity classification / accuracy criticality level required for this application's data and operations?"
+    answer: "Level 4 - Vital / Financial & Safety"
+    result: "compliant"
+    observation: "Payment processing operations require Level 4 Vital integrity with zero tolerance for tampering; cryptographic hashing and ledger verification in place."
+
   - requirement: "hosting"
     question: "What is the hosting model?"
     answer: "SaaS"
@@ -163,6 +169,30 @@ answers:
     answer: "Yes"
     result: "compliant"
     observation: "Debug mode disabled in production builds. Standardized generic RFC 7807 problem details returned with opaque correlation IDs."
+
+  - requirement: "ssrf_and_cloud_metadata_defense"
+    question: "Are outbound HTTP requests initiated by the application strictly validated using destination allow-lists with connections to RFC 1918 private subnets and localhost blocked?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Outbound API calls restricted via strict egress gateway allow-list; RFC 1918 and loopback blocked."
+
+  - requirement: "ssrf_and_cloud_metadata_defense"
+    question: "Are cloud instance metadata protections enforced"
+    answer: "Yes"
+    result: "compliant"
+    observation: "AWS IMDSv2 enforced with hop-limit=1 across all ECS tasks and EKS pods."
+
+  - requirement: "file_upload_security"
+    question: "Are uploaded files validated via server-side magic byte inspection"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Magic-byte inspection enforced; uploaded receipt attachments given UUID filenames."
+
+  - requirement: "file_upload_security"
+    question: "Are uploaded files scanned for malware"
+    answer: "Yes"
+    result: "compliant"
+    observation: "GuardDuty S3 Malware Protection and ClamAV scanning in place; private S3 buckets accessed only via presigned URLs."
 
   - requirement: "secrets_management"
     question: "Are application credentials, API keys, and cryptographic secrets stored exclusively in a dedicated secrets manager rather than in code or configuration files?"
@@ -341,6 +371,7 @@ expected_evaluation:
   impact_level: 4
   confidentiality_impact: 4
   availability_impact: 4
+  integrity_impact: 4
   scenario_count: 16
   excluded_scenarios: []
 

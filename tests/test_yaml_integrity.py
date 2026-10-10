@@ -913,6 +913,8 @@ class TestYamlIntegrity(unittest.TestCase):
             "input_validation_and_injection_defense",
             "output_encoding_and_web_defenses",
             "error_handling_and_info_leakage",
+            "ssrf_and_cloud_metadata_defense",
+            "file_upload_security",
         ]
 
         for ref_id in defenses_reqs:
@@ -1172,6 +1174,44 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertEqual(len(questions), 3)
         total_max_score = sum(max(c.get("add_score", 0) for c in q.get("choices", [])) for q in questions.values())
         self.assertEqual(total_max_score, 100)
+
+    def test_appsec_integrity_criticality_mapping(self):
+        """Verify integrity profiling and criticality mapping tiers completing the CIA triad."""
+        appsec_fw = next((fw for fw in self.frameworks if fw["ref_id"] == "appsec"), None)
+        if not appsec_fw:
+            return
+
+        integ_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:integrity_classification")
+        self.assertIsNotNone(integ_node, "integrity_classification node missing in AppSec")
+        self.assertTrue(integ_node.get("assessable"))
+        self.assertEqual(integ_node.get("implementation_groups"), ["info"])
+
+        crit_map = appsec_fw["yaml_data"].get("criticality_mapping", {})
+        integ_map = crit_map.get("integrity", {})
+        self.assertEqual(len(integ_map), 4, "Expected 4 tiers in integrity criticality mapping")
+        self.assertEqual(set(integ_map.values()), {0, 1, 2, 3})
+
+    def test_appsec_ssrf_and_file_upload_controls(self):
+        """Verify SSRF and file upload security controls under custom_app implementation group."""
+        appsec_fw = next((fw for fw in self.frameworks if fw["ref_id"] == "appsec"), None)
+        if not appsec_fw:
+            return
+
+        for ref_id in ["ssrf_and_cloud_metadata_defense", "file_upload_security"]:
+            node = appsec_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec:{ref_id}")
+            self.assertIsNotNone(node, f"{ref_id} node missing in AppSec")
+            self.assertTrue(node.get("assessable"))
+            self.assertEqual(node.get("implementation_groups"), ["custom_app"])
+
+            questions = node.get("questions", {})
+            self.assertEqual(len(questions), 2, f"Expected 2 questions in {ref_id}")
+            total_max_score = sum(max(c.get("add_score", 0) for c in q.get("choices", [])) for q in questions.values())
+            self.assertEqual(total_max_score, 100, f"Expected max score 100 in {ref_id}")
+            for q_urn, q_def in questions.items():
+                self.assertTrue(":q1" in q_urn or ":q2" in q_urn, f"Question URN {q_urn} does not follow standard taxonomy")
+                for choice in q_def.get("choices", []):
+                    c_urn = choice.get("urn", "")
+                    self.assertTrue(":c1" in c_urn or ":c2" in c_urn, f"Choice URN {c_urn} does not follow standard taxonomy")
 
 
 if __name__ == "__main__":

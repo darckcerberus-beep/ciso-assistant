@@ -76,8 +76,9 @@ Within active requirement nodes, questions are dynamically conditioned using int
 ### Chapter 1: Application Information, Governance & Scoping
 - **`instructions_splash`**: Guidance splash screen detailing assessment expectations.
 - **`stakeholder_identification`**: Mandatory documentation of Business Owner, Technical Owner, and Information Security Officer (CISO/SecOps delegate).
-- **`data_classification`**: Formally categorizes data assets into Public, Internal, Confidential, or Secret.
-- **`availability_classification`**: Formally categorizes business recovery priority and Maximum Tolerable Downtime (MTD Tiers 1–4).
+- **`data_classification`**: Formally categorizes data assets into Public, Internal, Confidential, or Secret (Confidentiality impact).
+- **`availability_classification`**: Formally categorizes business recovery priority and Maximum Tolerable Downtime (MTD Tiers 1–4; Availability impact).
+- **`integrity_classification`**: Formally categorizes data accuracy, tamper resistance, and business operational criticality (Levels 1–4; Integrity impact completing the CIA triad).
 - **`hosting`**: Discriminates between Custom (In-house), Bought (COTS), and SaaS.
 - **`network_exposure`**: Identifies whether the application is restricted to internal corporate networks or exposed to the public Internet.
 
@@ -102,6 +103,12 @@ Within active requirement nodes, questions are dynamically conditioned using int
   - `q2`: Standard HTTP security response headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options) in application middleware.
 - **`error_handling_and_info_leakage`** (`custom_app` only):
   - `q1`: Production debug modes (`DEBUG=False`) and detailed stack traces disabled with generic error handlers.
+- **`ssrf_and_cloud_metadata_defense`** (`custom_app` only):
+  - `q1`: Egress request destination allow-listing and RFC 1918 / loopback / link-local blocking.
+  - `q2`: Cloud Instance Metadata Service (IMDSv2) token-backed protection and hop-limit restriction.
+- **`file_upload_security`** (`custom_app` only):
+  - `q1`: Server-side magic-byte MIME type inspection, file extension verification, and randomized UUID storage filenames.
+  - `q2`: Automated malware scanning and segregated, non-executable private cloud object storage (e.g. S3 with presigned URLs).
 
 ### Chapter 4: Cryptography & Secrets Management
 - **`secrets_management`** (`baseline`, `custom_app`, `cots_app`):

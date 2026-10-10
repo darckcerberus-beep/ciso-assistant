@@ -143,12 +143,15 @@ class ApplicationRiskSimulator:
         answers_present_by_ref = set()
         data_class_choice_urn = None
         data_avail_choice_urn = None
+        data_integ_choice_urn = None
 
         confidentiality_map = self.criticality_mapping.get("confidentiality", {})
         availability_map = self.criticality_mapping.get("availability", {})
+        integrity_map = self.criticality_mapping.get("integrity", {})
 
         conf_node_ref = self.test_metadata.get("classification_node_ref")
         avail_node_ref = self.test_metadata.get("availability_node_ref")
+        integ_node_ref = self.test_metadata.get("integrity_node_ref")
 
         for ra in req_assessments:
             urn = ra.get_urn() if hasattr(ra, "get_urn") else (ra.get("urn") if isinstance(ra, dict) else None)
@@ -200,6 +203,17 @@ class ApplicationRiskSimulator:
                 for a_val in answers_dict.values():
                     if a_val:
                         data_avail_choice_urn = a_val
+                        break
+
+            # Check for data integrity
+            is_integ_node = (
+                rn_ref in (integ_node_ref, "integrity_classification")
+                or (urn and "integrity_classification" in urn.lower())
+            )
+            if is_integ_node and answers_dict:
+                for a_val in answers_dict.values():
+                    if a_val:
+                        data_integ_choice_urn = a_val
                         break
 
             # Score calculation
@@ -258,6 +272,16 @@ class ApplicationRiskSimulator:
                 for k, v in availability_map.items():
                     if k in str(data_avail_choice_urn) or str(data_avail_choice_urn).lower() in k.lower():
                         avail_impact = v + 1
+                        break
+
+        integ_impact = conf_impact
+        if data_integ_choice_urn and integrity_map:
+            if data_integ_choice_urn in integrity_map:
+                integ_impact = integrity_map[data_integ_choice_urn] + 1
+            else:
+                for k, v in integrity_map.items():
+                    if k in str(data_integ_choice_urn) or str(data_integ_choice_urn).lower() in k.lower():
+                        integ_impact = v + 1
                         break
 
         # Evaluate each Risk Scenario
@@ -327,6 +351,7 @@ class ApplicationRiskSimulator:
             "impact_level": conf_impact,
             "confidentiality_impact": conf_impact,
             "availability_impact": avail_impact,
+            "integrity_impact": integ_impact,
             "requirement_scores": scores,
             "scenarios": scenario_results,
         }
@@ -338,8 +363,10 @@ class ApplicationRiskSimulator:
         scores = {}
         confidentiality_map = self.criticality_mapping.get("confidentiality", {})
         availability_map = self.criticality_mapping.get("availability", {})
+        integrity_map = self.criticality_mapping.get("integrity", {})
         data_class_choice_urn = None
         data_avail_choice_urn = None
+        data_integ_choice_urn = None
 
         for req_id, answers in answers_by_req.items():
             req_id_clean = req_id.strip()
@@ -378,6 +405,8 @@ class ApplicationRiskSimulator:
                                 data_class_choice_urn = choice.get("urn")
                             elif choice.get("urn") in availability_map:
                                 data_avail_choice_urn = choice.get("urn")
+                            elif choice.get("urn") in integrity_map:
+                                data_integ_choice_urn = choice.get("urn")
                             break
 
             node_ref = rn.get("ref_id")
@@ -416,6 +445,21 @@ class ApplicationRiskSimulator:
                     for c_urn, c_idx in availability_map.items():
                         if chosen_text in c_urn.lower():
                             avail_impact = c_idx + 1
+                            break
+                    break
+
+        integ_node_ref = self.test_metadata.get("integrity_node_ref")
+        integ_impact = conf_impact
+        if data_integ_choice_urn and integrity_map:
+            integ_impact = integrity_map.get(data_integ_choice_urn, 0) + 1
+        elif integrity_map:
+            for k in ([integ_node_ref] if integ_node_ref else []) + ["integrity_classification"]:
+                ans_list = answers_by_req.get(k)
+                if ans_list:
+                    chosen_text = ans_list[0]["answer"].strip().lower()
+                    for c_urn, c_idx in integrity_map.items():
+                        if chosen_text in c_urn.lower():
+                            integ_impact = c_idx + 1
                             break
                     break
 
@@ -489,6 +533,7 @@ class ApplicationRiskSimulator:
             "impact_level": conf_impact,
             "confidentiality_impact": conf_impact,
             "availability_impact": avail_impact,
+            "integrity_impact": integ_impact,
             "requirement_scores": scores,
             "scenarios": scenario_results,
         }
@@ -654,6 +699,11 @@ class TestApplicationProfileScenarioConsistency(unittest.TestCase):
             test_case.assertEqual(
                 eval_results["availability_impact"], expected_eval["availability_impact"],
                 f"Availability impact mismatch in {yaml_file.name}",
+            )
+        if "integrity_impact" in expected_eval:
+            test_case.assertEqual(
+                eval_results["integrity_impact"], expected_eval["integrity_impact"],
+                f"Integrity impact mismatch in {yaml_file.name}",
             )
 
         # 2. Assert scenario count
