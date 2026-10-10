@@ -868,14 +868,14 @@ objects:
     - urn: urn:intuitem:risk:control:appsec:saas_contract
       ref_id: saas_contract
       name: "Sign a contract with the SaaS provider with all the adequate clauses"
-      description: "Execute formal SaaS contractual agreements incorporating audit rights, incident reporting, IAM standards, and confidentiality terms."
+      description: "Execute formal SaaS contractual agreements incorporating audit rights, incident reporting, IAM standards, vendor endpoint EDR/antimalware requirements, and confidentiality terms."
       annotation: >
-        Mandates legal, security, and compliance review of third-party SaaS contracts to ensure data protection, breach notification SLAs, and right to audit.
+        Mandates legal, security, and compliance review of third-party SaaS contracts to ensure data protection, vendor endpoint EDR/antivirus obligations, breach notification SLAs, and right to audit.
       typical_evidence: >
-        - Executed SaaS Master Services Agreement (MSA) with Security Exhibit
+        - Executed SaaS Master Services Agreement (MSA) with Security Exhibit mandating vendor EDR, antimalware, and security baselines
         - Signed Data Processing Agreement (DPA) and Non-Disclosure Agreement (NDA)
-        - Third-party audit assurance reports (SOC 2 Type II / ISO 27001 certificate)
-        - For SaaS applications where controls are defined with a contract: Contractual security exhibits and SLAs defining supplier obligations and third-party audit rights
+        - Third-party audit assurance reports (SOC 2 Type II with CC6.8 / ISO 27001 certificate with A.8.7)
+        - For SaaS applications where controls are defined with a contract: Contractual security exhibits and SLAs defining supplier obligations, vendor workstation EDR enforcement, and third-party audit rights
       threats:
         - urn:intuitem:risk:threat:appsec:data_exfiltration
       is_recurrent: true
@@ -1411,8 +1411,9 @@ objects:
              - Internet-Facing Controls (API Rate Limiting, CSP, External Pentesting)
              - SaaS Contractual Governance (Security Exhibits, Audit Rights, Incident Reporting SLAs)
           3. SaaS Applications: For third-party SaaS solutions where the codebase and infrastructure are managed by an external vendor, security governance is evaluated through Chapter 10 (SaaS Requirements, covering Master Services Agreements, Security Exhibits, SOC 2 / ISO 27001 assurance, SLAs, and DPAs).
-          4. Evidence: For assessable requirements, ensure supporting documentation (architecture diagrams, CI/CD pipelines, KMS configs, pentest reports, or executed SaaS contracts and SOC 2 reports) can be provided upon audit review.
-          5. Progress & Submission: You can complete this questionnaire progressively. Once submitted, CISO Assistant will automatically calculate likelihood and impact across all risk scenarios.
+          4. Scoping & Responsibility: This framework evaluates application-level posture, architecture, data governance, and DevSecOps. Central enterprise IT infrastructure controls (such as corporate EDR coverage on internal company laptops and servers) are governed centrally by Corporate IT / SecOps and are intentionally not queried here to avoid asking application owners questions outside their domain. For third-party SaaS applications, provider endpoint security and EDR commitments are evaluated contractually in Chapter 10.
+          5. Evidence: For assessable requirements, ensure supporting documentation (architecture diagrams, CI/CD pipelines, KMS configs, pentest reports, or executed SaaS contracts and SOC 2 reports) can be provided upon audit review.
+          6. Progress & Submission: You can complete this questionnaire progressively. Once submitted, CISO Assistant will automatically calculate likelihood and impact across all risk scenarios.
         annotation: >
           Introductory splash screen explaining questionnaire navigation, answering guidelines, dynamic section triggering based on data classification and hosting model, and audit evidence expectations.
         implementation_groups: ["info"]
@@ -3185,16 +3186,17 @@ objects:
         description: "Enforce auto-lock, local firewalls, EDR/antivirus, secure system configuration, vulnerability/patch management, full-disk encryption, and lost equipment procedures."
         annotation: >
           Contractual requirements:
-          - Workstation auto-lock after inactivity.
-          - Active host-based firewalls.
-          - Updated antivirus/EDR deployed across all endpoints.
-          - Secure baseline system and software configurations.
-          - Vulnerability and security patch management program.
+          - Mandatory EDR (Endpoint Detection & Response) and next-gen antivirus deployed across 100% of provider workstations, administrative bastions, and support endpoints with access to customer tenant environments.
+          - Workstation auto-lock after inactivity (<= 15 minutes).
+          - Active host-based firewalls and secure baseline OS configurations.
+          - Vulnerability and security patch management program (Critical patches applied <= 14 days).
           - Full-disk encryption on provider laptops and removable storage media.
-          - Formal procedure for lost, stolen, or compromised equipment.
+          - Formal procedure for lost, stolen, or compromised equipment with 48h customer breach notification SLA.
         typical_evidence: >
-          - Endpoint baseline hardening policy and GPO / Intune configuration profiles
-          - EDR deployment coverage report and agent version compliance telemetry
+          - Executed SaaS Agreement / Security Exhibit mandating vendor EDR deployment and antimalware controls
+          - Vendor SOC 2 Type II assurance report (specifically Trust Services Criteria CC6.8 / CC7.1) verifying endpoint malware detection and EDR controls
+          - ISO/IEC 27001:2022 Statement of Applicability confirming control A.8.7 (Protection against malware)
+          - Endpoint baseline hardening policy and EDR deployment coverage attestation across provider staff and administrative bastions
           - Disk encryption enforcement report (BitLocker / FileVault) and lost equipment SOP
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:unverified_saas_security

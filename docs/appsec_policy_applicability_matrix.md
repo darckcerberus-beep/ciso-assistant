@@ -38,6 +38,10 @@ The operational boundary between software development and infrastructure hosting
 - **Bought Software (COTS)**: The organization controls **only hosting**, not development. Requirements regarding internal source-code programming, session token generation algorithms, and CI/CD development pipelines are strictly **out of scope**. Security focuses on IAM federation/MFA, secrets manager injection, TLS in transit, database encryption at rest, centralized SIEM logging, backup/DR resilience, and external penetration testing.
 - **SaaS Platforms**: The organization controls **neither development nor hosting**. Technical questions across Chapters 2 through 9 are superseded by **Chapter 10 (SaaS Vendor Security Exhibit)**, verifying vendor commitments via contracts (MSA/DPA), SOC 2 Type II reports, ISO 27001 certifications, and independent penetration testing summaries.
 
+### Scoping & Responsibility Boundary (Enterprise IT vs. Application Owners)
+- **Internal Assets (Custom & COTS Apps)**: Application owners are responsible for application-level architecture, code hygiene, authentication, data handling, and DevSecOps. Central enterprise infrastructure controls—such as host/server EDR, employee laptop EDR, corporate MDM, fleet OS patching, and network firewalls—are managed centrally by Corporate IT / SecOps. Application owners are **never asked to report on internal IT asset EDR coverage**, ensuring the questionnaire remains strictly within the application owner's domain and operational control.
+- **Third-Party SaaS Applications**: Because third-party vendors operate the entire stack outside internal IT oversight, the SaaS contract (MSA, Security Exhibit, SOC 2 Type II CC6.8 assurance) **must** contractually require that the provider enforces Endpoint Detection & Response (EDR), antimalware, and full-disk encryption across all endpoints and administrative jump hosts accessing customer tenant data (`saas_workstation_security`, `saas_contract`).
+
 ---
 
 ## 3. Dynamic Selection Mechanisms in CISO Assistant
