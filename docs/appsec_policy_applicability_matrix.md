@@ -227,7 +227,7 @@ The table below defines the exact applicability criteria for every requirement a
 | **8. Logging** | `security_event_logging` (q1-q2) | Security Event Logging & Data Masking | `baseline`, `custom_app`, `cots_app` | Custom, COTS | All | All | None |
 | **8. Logging** | `centralized_monitoring_and_alerting` (q1)| Real-Time SIEM/SOC Forwarding | `baseline`, `custom_app`, `cots_app` | Custom, COTS | All | All | None |
 | **9. Resilience**| `penetration_testing_and_vulnerability_management` (q1-q2)| Annual Pentesting Governance & Remediation SLAs | `internet_facing` | Custom, COTS | All | **Internet-Facing** | Active if Self-Hosted & Network Exposure == Internet |
-| **9. Resilience**| `cots_deployment_hardening` (q1-q2)| COTS Benchmark Hardening & Patch SLAs | `cots_app` | **COTS Only** | All | All | **Active exclusively if cots_app is selected** |
+| **9. Resilience**| `cots_deployment_hardening` (q1-q3)| COTS Hardening, Vendor Patch Support & SLAs | `cots_app` | **COTS Only** | All | All | **Active exclusively if cots_app is selected** |
 | **9. Resilience**| `backup_and_disaster_recovery` (q1) | Immutable Backups & DR Testing | `baseline`, `custom_app`, `cots_app` | Custom, COTS | All | All | None |
 | **10. SaaS** | `saas_contract_compliance` (q1)| SaaS Agreement & Schedules | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_governance_and_policy` | Security Policy & Management Review | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |

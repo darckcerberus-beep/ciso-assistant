@@ -2711,15 +2711,17 @@ objects:
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:resilience_chapter
         ref_id: cots_deployment_hardening
-        name: "COTS Deployment Hardening & Patch SLAs"
-        description: "Enforce vendor hardening benchmarks, default credential removal, and strict patch SLAs on bought software packages."
+        name: "COTS Deployment Hardening, Vendor Support & Patch SLAs"
+        description: "Enforce vendor hardening benchmarks, verify that COTS software actively receives vendor security patches (not End-of-Life / EOL), and deploy updates within strict patch SLAs."
         annotation: >
           Commercial off-the-shelf (COTS) software package deployment controls:
           - Default vendor credentials (usernames, passwords, encryption keys) removed or reset before production deployment.
           - Host and application deployment hardened against vendor security guides or CIS benchmarks (disabling sample code, unneeded modules, admin web consoles).
+          - Active Vendor Support Lifecycle: The software must be under an active vendor maintenance/subscription agreement and supported release version (not End-of-Life / EOL or End-of-Support / EOS) to continuously receive security patches and CVE fixes.
           - Strict SLA enforcement for deploying critical vendor patches within 14 days of release.
         typical_evidence: >
           - Hardening baseline checklist and configuration audit extract
+          - Active vendor software maintenance / support contract confirmation and vendor EOL lifecycle matrix
           - Vendor patch management SLA tracking records and vulnerability remediation tickets
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:untested_application_security
@@ -2733,7 +2735,7 @@ objects:
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:cots_deployment_hardening:q1:c1
                 value: "Yes"
-                add_score: 50
+                add_score: 40
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec:cots_deployment_hardening:q1:c2
@@ -2743,14 +2745,28 @@ objects:
                 color: "#dc3545"
           urn:intuitem:risk:req_node:appsec:cots_deployment_hardening:q2:
             type: unique_choice
-            text: "Are vendor security patches, hotfixes, and critical vulnerability updates deployed within formal SLAs (Critical <= 14 days)?"
+            text: "Does the COTS software actively receive security patches and vulnerability updates from the vendor (under an active maintenance/support contract, not End-of-Life / EOL or End-of-Support / EOS)?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:cots_deployment_hardening:q2:c1
                 value: "Yes"
-                add_score: 50
+                add_score: 30
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec:cots_deployment_hardening:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:cots_deployment_hardening:q3:
+            type: unique_choice
+            text: "Are published vendor security patches, hotfixes, and critical vulnerability updates deployed within formal SLAs (Critical <= 14 days)?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:cots_deployment_hardening:q3:c1
+                value: "Yes"
+                add_score: 30
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:cots_deployment_hardening:q3:c2
                 value: "No"
                 add_score: 0
                 compute_result: false

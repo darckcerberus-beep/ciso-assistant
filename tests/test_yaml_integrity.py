@@ -1169,7 +1169,7 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertTrue(cots_node.get("assessable"))
         self.assertEqual(cots_node.get("implementation_groups"), ["cots_app"])
         questions = cots_node.get("questions", {})
-        self.assertEqual(len(questions), 2)
+        self.assertEqual(len(questions), 3)
         total_max_score = sum(max(c.get("add_score", 0) for c in q.get("choices", [])) for q in questions.values())
         self.assertEqual(total_max_score, 100)
 
