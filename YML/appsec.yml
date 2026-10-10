@@ -1448,58 +1448,58 @@ objects:
         reference_controls:
           - urn:intuitem:risk:control:appsec:stakeholder_designation
         questions:
-          urn:intuitem:risk:req_node:appsec:stakeholder_identification:question:1:
+          urn:intuitem:risk:req_node:appsec:stakeholder_identification:q1:
             type: unique_choice
             text: "Is there a designated business contact? (Designated business owner or product sponsor accountable for business processes, functionality, and risk acceptance)"
             choices:
-              - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification:question:1:choice:1
+              - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification:q1:c1
                 value: "Yes"
                 add_score: 25
                 compute_result: true
                 color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification:question:1:choice:2
+              - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification:q1:c2
                 value: "No"
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
-          urn:intuitem:risk:req_node:appsec:stakeholder_identification:question:2:
+          urn:intuitem:risk:req_node:appsec:stakeholder_identification:q2:
             type: unique_choice
             text: "Is there a designated IT contact? (Technical lead or engineer responsible for maintenance, infrastructure, deployment, and operational support)"
             choices:
-              - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification:question:2:choice:1
+              - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification:q2:c1
                 value: "Yes"
                 add_score: 25
                 compute_result: true
                 color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification:question:2:choice:2
+              - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification:q2:c2
                 value: "No"
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
-          urn:intuitem:risk:req_node:appsec:stakeholder_identification:question:3:
+          urn:intuitem:risk:req_node:appsec:stakeholder_identification:q3:
             type: unique_choice
             text: "Is there a designated data owner? (Data steward or governance officer responsible for information classification, access authorization, and regulatory compliance)"
             choices:
-              - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification:question:3:choice:1
+              - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification:q3:c1
                 value: "Yes"
                 add_score: 25
                 compute_result: true
                 color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification:question:3:choice:2
+              - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification:q3:c2
                 value: "No"
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
-          urn:intuitem:risk:req_node:appsec:stakeholder_identification:question:4:          
+          urn:intuitem:risk:req_node:appsec:stakeholder_identification:q4:
             type: unique_choice
             text: "Is the information about stakeholders updated in LeanIX / CMDB? (Stakeholder assignments registered and kept current in the enterprise inventory or service catalog)"
             choices:
-              - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification:question:4:choice:1
+              - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification:q4:c1
                 value: "Yes"
                 add_score: 25
                 compute_result: true
                 color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification:question:4:choice:2
+              - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification:q4:c2
                 value: "No"
                 add_score: 0
                 compute_result: false
@@ -2347,34 +2347,34 @@ objects:
           - urn:intuitem:risk:control:appsec:information_exchange_contract
         implementation_groups: ["confidential_app", "secret_app"]
         questions:
-          urn:intuitem:risk:req_node:appsec:data_exchange:question:1:
+          urn:intuitem:risk:req_node:appsec:data_exchange:q1:
             type: unique_choice
             text: "Are there data exchanges beyond the group? (e.g., transfers or automated API integrations with external partners, third-party vendors, or public services)"
             choices:
-              - urn: urn:intuitem:risk:req_node:appsec:data_exchange:question:1:choice:1
+              - urn: urn:intuitem:risk:req_node:appsec:data_exchange:q1:c1
                 value: "No"
                 add_score: 100
                 compute_result: true
                 color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:data_exchange:question:1:choice:2
+              - urn: urn:intuitem:risk:req_node:appsec:data_exchange:q1:c2
                 value: "Yes"
                 add_score: 0
                 compute_result: false
                 color: "#fd7e14"
-          urn:intuitem:risk:req_node:appsec:data_exchange:question:2:
+          urn:intuitem:risk:req_node:appsec:data_exchange:q2:
             type: unique_choice
             text: "Is there a data exchange contract with the appropriate confidentiality clauses? (e.g., formal Data Processing Agreement / DPA, Data Transfer Agreement / DTA, or NDA)"
             depends_on:
-              question: urn:intuitem:risk:req_node:appsec:data_exchange:question:1
-              answers: ["urn:intuitem:risk:req_node:appsec:data_exchange:question:1:choice:2"]
+              question: urn:intuitem:risk:req_node:appsec:data_exchange:q1
+              answers: ["urn:intuitem:risk:req_node:appsec:data_exchange:q1:c2"]
               condition: any
             choices:
-              - urn: urn:intuitem:risk:req_node:appsec:data_exchange:question:2:choice:1
+              - urn: urn:intuitem:risk:req_node:appsec:data_exchange:q2:c1
                 value: "No contract"
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
-              - urn: urn:intuitem:risk:req_node:appsec:data_exchange:question:2:choice:2
+              - urn: urn:intuitem:risk:req_node:appsec:data_exchange:q2:c2
                 value: "Contract! (Formal Data Transfer Agreement / DPA in place)"
                 add_score: 100
                 compute_result: true
@@ -2400,62 +2400,62 @@ objects:
         reference_controls:
           - urn:intuitem:risk:control:appsec:protect_prod_data_in_non_prod
         questions:
-          urn:intuitem:risk:req_node:appsec:non_prod_data:question:1:
+          urn:intuitem:risk:req_node:appsec:non_prod_data:q1:
             type: unique_choice
             text: "Are real production data records, live customer databases, or personal data utilized in non-production environments?"
             choices:
-              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:question:1:choice:1
+              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:q1:c1
                 value: "No - Synthetic, generated, or mock test data is used exclusively"
                 add_score: 100
                 compute_result: true
                 color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:question:1:choice:2
+              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:q1:c2
                 value: "Yes - Production data is copied or utilized for testing/staging"
                 add_score: 0
                 compute_result: false
                 color: "#fd7e14"
-          urn:intuitem:risk:req_node:appsec:non_prod_data:question:2:
+          urn:intuitem:risk:req_node:appsec:non_prod_data:q2:
             type: unique_choice
             text: "How do you protect them? (Which sanitization or protection method is applied: cryptographic hashing, pseudonymisation/anonymization, or field-level encryption)"
             depends_on:
-              question: urn:intuitem:risk:req_node:appsec:non_prod_data:question:1
-              answers: ["urn:intuitem:risk:req_node:appsec:non_prod_data:question:1:choice:2"]
+              question: urn:intuitem:risk:req_node:appsec:non_prod_data:q1
+              answers: ["urn:intuitem:risk:req_node:appsec:non_prod_data:q1:c2"]
               condition: any
             choices:
-              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:question:2:choice:1
+              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:q2:c1
                 value: "No, no protection"
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
-              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:question:2:choice:2
+              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:q2:c2
                 value: "Hashing"
                 add_score: 90
                 compute_result: true
                 color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:question:2:choice:3
+              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:q2:c3
                 value: "Pseudonymisation"
                 add_score: 90
                 compute_result: true
                 color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:question:2:choice:4
+              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:q2:c4
                 value: "Encryption"
                 add_score: 90
                 compute_result: true
                 color: "#33a745"
-          urn:intuitem:risk:req_node:appsec:non_prod_data:question:3:
+          urn:intuitem:risk:req_node:appsec:non_prod_data:q3:
             type: unique_choice
             text: "Do you clean the prod data after use in non-prod? (e.g., securely purging, sanitizing, or deleting production data once testing or troubleshooting activities conclude)"
             depends_on:
-              question: urn:intuitem:risk:req_node:appsec:non_prod_data:question:1
-              answers: ["urn:intuitem:risk:req_node:appsec:non_prod_data:question:1:choice:2"]
+              question: urn:intuitem:risk:req_node:appsec:non_prod_data:q1
+              answers: ["urn:intuitem:risk:req_node:appsec:non_prod_data:q1:c2"]
               condition: any
             choices:
-              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:question:3:choice:1
+              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:q3:c1
                 value: "No"
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
-              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:question:3:choice:2
+              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:q3:c2
                 value: "Yes"
                 add_score: 10
                 compute_result: true
@@ -2481,34 +2481,34 @@ objects:
           - urn:intuitem:risk:control:appsec:data_destruction_process
         implementation_groups: ["confidential_app", "secret_app"]
         questions:
-          urn:intuitem:risk:req_node:appsec:data_destruction:question:1:
+          urn:intuitem:risk:req_node:appsec:data_destruction:q1:
             type: unique_choice
             text: "Is there a data destruction process for this application? (e.g., documented data retention schedule and end-of-life purging procedures)"
             choices:
-              - urn: urn:intuitem:risk:req_node:appsec:data_destruction:question:1:choice:1
+              - urn: urn:intuitem:risk:req_node:appsec:data_destruction:q1:c1
                 value: "No"
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
-              - urn: urn:intuitem:risk:req_node:appsec:data_destruction:question:1:choice:2
+              - urn: urn:intuitem:risk:req_node:appsec:data_destruction:q1:c2
                 value: "Yes"
                 add_score: 50
                 compute_result: true
                 color: "#33a745"
-          urn:intuitem:risk:req_node:appsec:data_destruction:question:2:
+          urn:intuitem:risk:req_node:appsec:data_destruction:q2:
             type: unique_choice
             text: "Is the process compliant with the policy (responsibilities, methods, reporting)? (e.g., defined stakeholder roles, approved cryptographic erasure or disposal methods, and verification certificates)"
             depends_on:
-              question: urn:intuitem:risk:req_node:appsec:data_destruction:question:1
-              answers: ["urn:intuitem:risk:req_node:appsec:data_destruction:question:1:choice:2"]
+              question: urn:intuitem:risk:req_node:appsec:data_destruction:q1
+              answers: ["urn:intuitem:risk:req_node:appsec:data_destruction:q1:c2"]
               condition: any
             choices:
-              - urn: urn:intuitem:risk:req_node:appsec:data_destruction:question:2:choice:1
+              - urn: urn:intuitem:risk:req_node:appsec:data_destruction:q2:c1
                 value: "No, not compliant"
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
-              - urn: urn:intuitem:risk:req_node:appsec:data_destruction:question:2:choice:2
+              - urn: urn:intuitem:risk:req_node:appsec:data_destruction:q2:c2
                 value: "Yes, compliant! (Compliant data destruction schedule and procedures operational)"
                 add_score: 50
                 compute_result: true
@@ -2815,16 +2815,16 @@ objects:
         reference_controls:
           - urn:intuitem:risk:control:appsec:saas_contract
         questions:
-          urn:intuitem:risk:req_node:appsec:saas_contract:question:1:
+          urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q1:
             type: unique_choice
             text: "Is there a signed SaaS contract and binding Security Schedule? (e.g., legally executed Master Services Agreement / MSA and Security Exhibit with the provider)"
             choices:
-              - urn: urn:intuitem:risk:req_node:appsec:saas_contract:question:1:choice:2
+              - urn: urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q1:c1
                 value: "Yes"
                 add_score: 100
                 compute_result: true
                 color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:saas_contract:question:1:choice:1
+              - urn: urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q1:c2
                 value: "No"
                 add_score: 0
                 compute_result: false
