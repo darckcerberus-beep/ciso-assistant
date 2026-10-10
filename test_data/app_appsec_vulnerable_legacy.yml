@@ -66,6 +66,12 @@ answers:
     result: "compliant"
     observation: "Handles employee directory and operational inventory records classified as Internal."
 
+  - requirement: "availability_classification"
+    question: "What is the maximum tolerable downtime (MTD) / business recovery objective for this application?"
+    answer: "Tier 3 - Medium / Tolerable (MTD <= 24 hours; internal business operations)"
+    result: "compliant"
+    observation: "Internal operational tool with MTD <= 24 hours."
+
   - requirement: "hosting"
     question: "What is the hosting model?"
     answer: "In-house"

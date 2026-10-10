@@ -67,6 +67,12 @@ answers:
     result: "compliant"
     observation: "Processes confidential customer business intelligence and revenue analytics data. Impact Level 3."
 
+  - requirement: "availability_classification"
+    question: "What is the maximum tolerable downtime (MTD) / business recovery objective for this application?"
+    answer: "Tier 2 - High / Sensitive (MTD <= 4 hours; customer-facing services or core operational systems)"
+    result: "compliant"
+    observation: "Customer portal with MTD <= 4 hours and regional failover."
+
   - requirement: "hosting"
     question: "What is the hosting model?"
     answer: "SaaS"

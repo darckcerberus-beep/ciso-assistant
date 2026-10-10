@@ -29,8 +29,8 @@ description: >
   Supports both internally managed applications and SaaS solutions whose security controls
   are defined with a contract and certified via third-party audit reports (SOC 2, ISO 27001).
 copyright: DCME Corp
-version: 10
-publication_date: 2026-10-09
+version: 12
+publication_date: 2026-10-10
 provider: DCME Corp
 packager: DCME Corp
 
@@ -122,6 +122,7 @@ objects:
         - urn:intuitem:risk:vulnerability:appsec:contractual_gap
       reference_controls:
         - urn:intuitem:risk:control:appsec:saas_contract
+        - urn:intuitem:risk:control:appsec:saas_resilience_and_data_portability
 
     # 6. Missing application stakeholders (from newDPP)
     - urn: urn:intuitem:risk:scenario:appsec:missing_stakeholders
@@ -137,8 +138,10 @@ objects:
         - urn:intuitem:risk:threat:appsec:unauthorized_access
       vulnerabilities:
         - urn:intuitem:risk:vulnerability:appsec:unclear_accountability
+        - urn:intuitem:risk:vulnerability:appsec:lack_of_data_classification
       reference_controls:
         - urn:intuitem:risk:control:appsec:stakeholder_designation
+        - urn:intuitem:risk:control:appsec:identify_data_classification
 
     # 7. Improper data retention (from newDPP)
     - urn: urn:intuitem:risk:scenario:appsec:improper_data_retention
@@ -173,6 +176,7 @@ objects:
         - urn:intuitem:risk:vulnerability:appsec:weak_authentication_controls
       reference_controls:
         - urn:intuitem:risk:control:appsec:enforce_mfa_and_strong_auth
+        - urn:intuitem:risk:control:appsec:centralized_identity_sso
 
     # 9. Unauthorized data access via broken authorization (AppSec addition)
     - urn: urn:intuitem:risk:scenario:appsec:privilege_escalation_broken_access_control
@@ -242,6 +246,7 @@ objects:
         - urn:intuitem:risk:vulnerability:appsec:vulnerable_dependencies
       reference_controls:
         - urn:intuitem:risk:control:appsec:supply_chain_dependency_management
+        - urn:intuitem:risk:control:appsec:automated_devsecops_testing
 
     # 13. API abuse and denial of service (AppSec addition)
     - urn: urn:intuitem:risk:scenario:appsec:api_abuse_and_denial_of_service
@@ -251,7 +256,7 @@ objects:
         Exposed API endpoints are overwhelmed by abusive requests, scraping, or brute-force
         attacks due to the absence of rate limiting and traffic throttling controls.
       likelihood: urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting
-      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      impact: urn:intuitem:risk:req_node:appsec:availability_classification
       threats:
         - urn:intuitem:risk:threat:appsec:service_disruption
         - urn:intuitem:risk:threat:appsec:data_exfiltration
@@ -285,7 +290,7 @@ objects:
         Infrastructure failure, ransomware, or corruption causes irreversible data loss
         or extended downtime because backups and disaster recovery plans are not regularly tested.
       likelihood: urn:intuitem:risk:req_node:appsec:backup_and_disaster_recovery
-      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      impact: urn:intuitem:risk:req_node:appsec:availability_classification
       threats:
         - urn:intuitem:risk:threat:appsec:data_loss
         - urn:intuitem:risk:threat:appsec:service_disruption
@@ -344,6 +349,61 @@ objects:
         - urn:intuitem:risk:vulnerability:appsec:unprotected_non_prod
       reference_controls:
         - urn:intuitem:risk:control:appsec:protect_prod_data_in_non_prod
+
+    # 19. SaaS tenant isolation breach & cross-tenant data leakage (SaaS applications)
+    - urn: urn:intuitem:risk:scenario:appsec:saas_tenant_isolation_breach
+      ref_id: saas_tenant_isolation_breach
+      name: "SaaS tenant isolation breach and cross-border leakage"
+      description: >
+        Flaws in the multi-tenant architecture allow unauthorized tenants to access,
+        modify, or exfiltrate customer data across virtual boundaries or violate residency laws.
+      likelihood: urn:intuitem:risk:req_node:appsec:saas_environment_isolation
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:weak_tenant_isolation
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:saas_tenant_isolation_and_residency
+        - urn:intuitem:risk:control:appsec:saas_cryptographic_sovereignty
+
+    # 20. SaaS vendor privilege abuse and sub-processor leakage (SaaS applications)
+    - urn: urn:intuitem:risk:scenario:appsec:saas_vendor_privilege_abuse_and_subprocessor_leakage
+      ref_id: saas_vendor_privilege_abuse_and_subprocessor_leakage
+      name: "SaaS vendor privilege abuse and sub-processor leakage"
+      description: >
+        Unauthorized vendor personnel access customer data without Lockbox approval,
+        or fourth-party sub-processors suffer an uncontained breach compromising customer data.
+      likelihood: urn:intuitem:risk:req_node:appsec:saas_entitlements_and_privileges
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:uncontrolled_vendor_access
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:saas_vendor_access_governance
+        - urn:intuitem:risk:control:appsec:saas_subprocessor_and_supply_chain
+        - urn:intuitem:risk:control:appsec:saas_telemetry_and_audit_export
+
+    # 21. Reliance on unverified SaaS security posture (SaaS applications)
+    - urn: urn:intuitem:risk:scenario:appsec:saas_unverified_security_posture
+      ref_id: saas_unverified_security_posture
+      name: "Reliance on unverified SaaS security posture"
+      description: >
+        The organization relies on an external SaaS solution without independent third-party
+        audit assurance reports (SOC 2 Type II, ISO 27001), leaving systemic flaws undetected.
+      likelihood: urn:intuitem:risk:req_node:appsec:saas_audit_and_compliance
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:undetected_intrusion
+        - urn:intuitem:risk:threat:appsec:data_loss
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:unverified_saas_security
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:saas_third_party_assurance
+        - urn:intuitem:risk:control:appsec:saas_contract
 
   # ========================================================================
   # RISK MATRIX - 4x4 probability/impact matrix with risk levels
@@ -1485,6 +1545,42 @@ objects:
                 select_implementation_groups: ["secret_app", "confidential_app"]
                 color: "#dc3545"
 
+      # Requirement: Application Availability & Business Criticality
+      - urn: urn:intuitem:risk:req_node:appsec:availability_classification
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:info
+        ref_id: availability_classification
+        name: "Application Availability & Business Criticality"
+        description: "Application availability tiers and Maximum Tolerable Downtime (MTD) recovery priorities."
+        annotation: >
+          Business continuity and operational resilience profiling:
+          - Tier 4 - Non-Critical: MTD > 72 hours; batch processing, non-time-sensitive internal tools.
+          - Tier 3 - Medium / Tolerable: MTD <= 24 hours; internal business operations.
+          - Tier 2 - High / Sensitive: MTD <= 4 hours; customer-facing services or core operational systems.
+          - Tier 1 - Mission-Critical: MTD < 1 hour; real-time transactional, payment, or life-safety applications.
+        typical_evidence: >
+          - Business Impact Analysis (BIA) extract or Service Tier classification charter
+          - Enterprise CMDB / Service Catalog entry defining service RTO/RPO/MTD targets
+        implementation_groups: ["info"]
+        questions:
+          urn:intuitem:risk:req_node:appsec:availability_classification:q1:
+            type: unique_choice
+            text: "What is the maximum tolerable downtime (MTD) / business recovery objective for this application?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:availability_classification:q1:c1
+                value: "Tier 4 - Non-Critical (MTD > 72 hours; batch processing, internal non-time-sensitive tools)"
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:availability_classification:q1:c2
+                value: "Tier 3 - Medium / Tolerable (MTD <= 24 hours; internal business operations)"
+                color: "#17a2b8"
+              - urn: urn:intuitem:risk:req_node:appsec:availability_classification:q1:c3
+                value: "Tier 2 - High / Sensitive (MTD <= 4 hours; customer-facing services or core operational systems)"
+                color: "#fd7e14"
+              - urn: urn:intuitem:risk:req_node:appsec:availability_classification:q1:c4
+                value: "Tier 1 - Critical / Mission-Critical (MTD < 1 hour; real-time transactional, payment, or life-safety)"
+                color: "#dc3545"
+
       # Requirement: Determine hosting model
       - urn: urn:intuitem:risk:req_node:appsec:hosting
         assessable: true
@@ -1547,11 +1643,17 @@ objects:
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec:network_exposure:q1:c2
-                value: "Internet-facing (Public Web / Mobile API)"
+                value: "Internet-facing (Public Web / Mobile API - Self-Hosted Custom or COTS)"
                 add_score: 100
                 compute_result: true
                 select_implementation_groups: ["internet_facing"]
                 color: "#fd7e14"
+              - urn: urn:intuitem:risk:req_node:appsec:network_exposure:q1:c3
+                value: "Internet-facing SaaS (Third-party Cloud - Governed via Chapter 10 Vendor Exhibit)"
+                add_score: 100
+                compute_result: true
+                select_implementation_groups: []
+                color: "#17a2b8"
 
       # === CHAPTER 2: IDENTITY, AUTHENTICATION & ACCESS CONTROL ===
       - urn: urn:intuitem:risk:req_node:appsec:iam_chapter
@@ -1985,7 +2087,7 @@ objects:
           - Cloud storage bucket / disk volume encryption configuration (e.g., AWS KMS / Azure Key Vault / GCP KMS)
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:lack_of_encryption
-        implementation_groups: ["baseline", "custom_app", "cots_app"]
+        implementation_groups: ["confidential_app", "secret_app"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:encrypt_data_at_rest
         questions:
@@ -2161,7 +2263,7 @@ objects:
         description: "Protect application interfaces and APIs against abuse, volumetric attacks, and automated bots."
         annotation: >
           Edge and gateway protections for web services and APIs aligned with OWASP API Security Top 10.
-        implementation_groups: ["baseline", "custom_app", "cots_app", "internet_facing"]
+        implementation_groups: ["internet_facing"]
 
       # Requirement: API Security & Rate limiting
       - urn: urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting
@@ -2179,7 +2281,7 @@ objects:
           - OpenAPI / Swagger schema validation configuration
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:unmitigated_api_abuse
-        implementation_groups: ["baseline", "custom_app", "cots_app", "internet_facing"]
+        implementation_groups: ["internet_facing"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:api_security_and_rate_limiting
         questions:
@@ -2242,7 +2344,7 @@ objects:
           - urn:intuitem:risk:vulnerability:appsec:contractual_gap
         reference_controls:
           - urn:intuitem:risk:control:appsec:information_exchange_contract
-        implementation_groups: ["baseline", "custom_app", "cots_app"]
+        implementation_groups: ["confidential_app", "secret_app"]
         questions:
           urn:intuitem:risk:req_node:appsec:data_exchange:question:1:
             type: unique_choice
@@ -2272,7 +2374,7 @@ objects:
                 compute_result: false
                 color: "#dc3545"
               - urn: urn:intuitem:risk:req_node:appsec:data_exchange:question:2:choice:2
-                value: "Contract!"
+                value: "Contract! (Formal Data Transfer Agreement / DPA in place)"
                 add_score: 100
                 compute_result: true
                 color: "#33a745"
@@ -2293,42 +2395,24 @@ objects:
           - Non-production environment database audit logs verifying absence of raw PII/sensitive production records
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:unprotected_non_prod
-        implementation_groups: ["baseline", "custom_app", "cots_app"]
+        implementation_groups: ["confidential_app", "secret_app"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:protect_prod_data_in_non_prod
         questions:
-          urn:intuitem:risk:req_node:appsec:non_prod_data:question:0:
-            type: unique_choice
-            text: "Do you have a dedicated non-production environment? (e.g., logically and physically segregated development, testing, QA, or staging environments)"
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:question:0:choice:1
-                value: "No"
-                add_score: 100
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:question:0:choice:2
-                value: "Yes"
-                add_score: 0
-                compute_result: false
-                color: "#dc3545"
           urn:intuitem:risk:req_node:appsec:non_prod_data:question:1:
             type: unique_choice
-            text: "Do you use prod data in a non-prod environment? (e.g., copying or using real customer records, business transactions, or live production databases)"
-            depends_on:
-              question: urn:intuitem:risk:req_node:appsec:non_prod_data:question:0
-              answers: ["urn:intuitem:risk:req_node:appsec:non_prod_data:question:0:choice:2"]
-              condition: any
+            text: "Are real production data records, live customer databases, or personal data utilized in non-production environments?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:question:1:choice:1
-                value: "No"
+                value: "No - Synthetic, generated, or mock test data is used exclusively"
                 add_score: 100
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:question:1:choice:2
-                value: "Yes"
+                value: "Yes - Production data is copied or utilized for testing/staging"
                 add_score: 0
                 compute_result: false
-                color: "#dc3545"
+                color: "#fd7e14"
           urn:intuitem:risk:req_node:appsec:non_prod_data:question:2:
             type: unique_choice
             text: "How do you protect them? (Which sanitization or protection method is applied: cryptographic hashing, pseudonymisation/anonymization, or field-level encryption)"
@@ -2394,7 +2478,7 @@ objects:
           - urn:intuitem:risk:vulnerability:appsec:uncontrolled_data_retention
         reference_controls:
           - urn:intuitem:risk:control:appsec:data_destruction_process
-        implementation_groups: ["baseline", "custom_app", "cots_app"]
+        implementation_groups: ["confidential_app", "secret_app"]
         questions:
           urn:intuitem:risk:req_node:appsec:data_destruction:question:1:
             type: unique_choice
@@ -2424,7 +2508,7 @@ objects:
                 compute_result: false
                 color: "#dc3545"
               - urn: urn:intuitem:risk:req_node:appsec:data_destruction:question:2:choice:2
-                value: "Yes, compliant!"
+                value: "Yes, compliant! (Compliant data destruction schedule and procedures operational)"
                 add_score: 50
                 compute_result: true
                 color: "#33a745"
@@ -2533,7 +2617,7 @@ objects:
         description: "Perform independent penetration testing, enforce patch remediation SLAs, and maintain disaster recovery readiness."
         annotation: >
           Validates operational defense-in-depth and business continuity across internally hosted applications (Custom and COTS).
-        implementation_groups: ["baseline", "custom_app", "cots_app", "internet_facing"]
+        implementation_groups: ["baseline", "custom_app", "cots_app"]
 
       # Requirement: Penetration testing & vulnerability remediation (Hosted)
       - urn: urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management
@@ -2553,7 +2637,7 @@ objects:
           - Patch verification and retest records
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:untested_application_security
-        implementation_groups: ["baseline", "custom_app", "cots_app", "internet_facing"]
+        implementation_groups: ["internet_facing"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:regular_penetration_testing
         questions:
@@ -2620,9 +2704,60 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-# ========================================================================
-      # CHAPTER 10: SAAS REQUIREMENTS (ANNEXE SÉCURITÉ - V1.5)
-      # Socle minimal de sécurité applicable aux fournisseurs SaaS et tiers
+      # Requirement: COTS Software Hardening & Patch SLAs
+      - urn: urn:intuitem:risk:req_node:appsec:cots_deployment_hardening
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:resilience_chapter
+        ref_id: cots_deployment_hardening
+        name: "COTS Deployment Hardening & Patch SLAs"
+        description: "Enforce vendor hardening benchmarks, default credential removal, and strict patch SLAs on bought software packages."
+        annotation: >
+          Commercial off-the-shelf (COTS) software package deployment controls:
+          - Default vendor credentials (usernames, passwords, encryption keys) removed or reset before production deployment.
+          - Host and application deployment hardened against vendor security guides or CIS benchmarks (disabling sample code, unneeded modules, admin web consoles).
+          - Strict SLA enforcement for deploying critical vendor patches within 14 days of release.
+        typical_evidence: >
+          - Hardening baseline checklist and configuration audit extract
+          - Vendor patch management SLA tracking records and vulnerability remediation tickets
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:untested_application_security
+        implementation_groups: ["cots_app"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:regular_penetration_testing
+        questions:
+          urn:intuitem:risk:req_node:appsec:cots_deployment_hardening:q1:
+            type: unique_choice
+            text: "Are default vendor credentials changed, sample modules removed, and configuration hardened against vendor or CIS benchmarks?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:cots_deployment_hardening:q1:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:cots_deployment_hardening:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:cots_deployment_hardening:q2:
+            type: unique_choice
+            text: "Are vendor security patches, hotfixes, and critical vulnerability updates deployed within formal SLAs (Critical <= 14 days)?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:cots_deployment_hardening:q2:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:cots_deployment_hardening:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # ========================================================================
+      # CHAPTER 10: SAAS REQUIREMENTS & VENDOR SECURITY EXHIBIT
+      # Baseline contractual security requirements applicable to third-party SaaS vendors
       # ========================================================================
       - urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         assessable: false
@@ -2868,7 +3003,7 @@ objects:
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:saas_iam:q1:c1
                 value: "Enterprise SSO (SAML 2.0 / OIDC federated IdP)"
-                add_score: 50
+                add_score: 100
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec:saas_iam:q1:c2
@@ -2878,10 +3013,10 @@ objects:
                 color: "#fd7e14"
           urn:intuitem:risk:req_node:appsec:saas_iam:q2:
             type: unique_choice
-            text: "With Enterprise SSO contractually required and active, does the SaaS solution enforce unique user identifiers (no shared accounts) and support automated provisioning and prompt deprovisioning (via SCIM or directory sync)?"
+            text: "If direct authentication is used, does the contract require and does the SaaS platform enforce unique user IDs (no shared accounts), immediate deactivation of unused accounts, robust passwords (>= 12 characters), and anti-brute-force protection?"
             depends_on:
               question: urn:intuitem:risk:req_node:appsec:saas_iam:q1
-              answers: ["urn:intuitem:risk:req_node:appsec:saas_iam:q1:c1"]
+              answers: ["urn:intuitem:risk:req_node:appsec:saas_iam:q1:c2"]
               condition: any
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:saas_iam:q2:c1
@@ -2896,7 +3031,7 @@ objects:
                 color: "#dc3545"
           urn:intuitem:risk:req_node:appsec:saas_iam:q3:
             type: unique_choice
-            text: "If direct authentication is used, does the contract require and does the SaaS platform enforce unique user IDs (no shared accounts), immediate deactivation of unused accounts, robust passwords (>= 12 characters), and anti-brute-force protection?"
+            text: "If direct authentication is used, does the contract require and is Multi-Factor Authentication (MFA) strictly enforced for all users accessing the SaaS platform?"
             depends_on:
               question: urn:intuitem:risk:req_node:appsec:saas_iam:q1
               answers: ["urn:intuitem:risk:req_node:appsec:saas_iam:q1:c2"]
@@ -2908,24 +3043,6 @@ objects:
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec:saas_iam:q3:c2
-                value: "No"
-                add_score: 0
-                compute_result: false
-                color: "#dc3545"
-          urn:intuitem:risk:req_node:appsec:saas_iam:q4:
-            type: unique_choice
-            text: "If direct authentication is used, does the contract require and is Multi-Factor Authentication (MFA) strictly enforced for all users accessing the SaaS platform?"
-            depends_on:
-              question: urn:intuitem:risk:req_node:appsec:saas_iam:q1
-              answers: ["urn:intuitem:risk:req_node:appsec:saas_iam:q1:c2"]
-              condition: any
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec:saas_iam:q4:c1
-                value: "Yes"
-                add_score: 50
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:saas_iam:q4:c2
                 value: "No"
                 add_score: 0
                 compute_result: false
@@ -3323,27 +3440,9 @@ objects:
         reference_controls:
           - urn:intuitem:risk:control:appsec:protect_prod_data_in_non_prod
         questions:
-          urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q0:
-            type: unique_choice
-            text: "Does the SaaS deployment utilize dedicated non-production environments? (e.g., logically segregated sandbox, developer, preview, or staging tenants provided by the vendor)"
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q0:c1
-                value: "No"
-                add_score: 100
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q0:c2
-                value: "Yes"
-                add_score: 0
-                compute_result: false
-                color: "#dc3545"
           urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q1:
             type: unique_choice
-            text: "Is production customer data copied into or used within the SaaS non-production or sandbox environments? (e.g., full database replication or test tenant seeding from production backups)"
-            depends_on:
-              question: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q0
-              answers: ["urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q0:c2"]
-              condition: any
+            text: "Is live production customer data copied into or used within SaaS non-production sandbox tenants? (e.g., full database replication or test tenant seeding from production backups)"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q1:c1
                 value: "No"
@@ -3354,7 +3453,7 @@ objects:
                 value: "Yes"
                 add_score: 0
                 compute_result: false
-                color: "#dc3545"
+                color: "#fd7e14"
           urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q2:
             type: unique_choice
             text: "How is production data protected when copied into the SaaS sandbox? (e.g., cryptographic hashing, pseudonymisation/anonymization, or field-level encryption prior to ingestion)"
@@ -3408,25 +3507,21 @@ objects:
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_web_app_security
-        name: "Web Application Security & Pentesting"
-        description: "Enforce TLS 1.2+, port restrictions, admin interface access control, annual external pentests, monthly vulnerability scans, and remediation SLAs."
+        name: "Web Application & Transport Security"
+        description: "Enforce TLS 1.2+, network port restrictions, and administrative interface access controls."
         annotation: >
           Contractual requirements:
-          - Clients typically cannot perform intrusive direct pentesting against shared SaaS infrastructure.
-          - Contract mandates annual independent third-party penetration testing by a qualified auditor with attestations provided to the client.
           - Enforce TLS 1.2+ minimum encryption with network ports restricted to the strict minimum.
           - Restrict and control administrative interface access.
-          - Monthly vulnerability scans and formal remediation SLAs.
           - Continuous adherence to OWASP application security baselines.
         typical_evidence: >
-          - Annual third-party penetration test executive summary letter
-          - Monthly vulnerability scan reports and remediation SLA tracking metrics
           - TLS 1.2+ configuration report and port exposure audit extract
+          - Administrative interface access control policies and IP allowlist configuration
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:untested_application_security
         implementation_groups: ["saas_app"]
         reference_controls:
-          - urn:intuitem:risk:control:appsec:regular_penetration_testing
+          - urn:intuitem:risk:control:appsec:encrypt_data_in_transit
         questions:
           urn:intuitem:risk:req_node:appsec:saas_web_app_security:q1:
             type: unique_choice
@@ -3434,24 +3529,10 @@ objects:
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:saas_web_app_security:q1:c1
                 value: "Yes"
-                add_score: 50
+                add_score: 100
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec:saas_web_app_security:q1:c2
-                value: "No"
-                add_score: 0
-                compute_result: false
-                color: "#dc3545"
-          urn:intuitem:risk:req_node:appsec:saas_web_app_security:q2:
-            type: unique_choice
-            text: "Does the contract mandate and does the provider undergo an independent external penetration test pre-production and at least annually thereafter, with monthly vulnerability scans, formal remediation SLAs, and communication of audit attestations?"
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec:saas_web_app_security:q2:c1
-                value: "Yes"
-                add_score: 50
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:saas_web_app_security:q2:c2
                 value: "No"
                 add_score: 0
                 compute_result: false
@@ -3937,7 +4018,11 @@ criticality_mapping:
     urn:intuitem:risk:req_node:appsec:data_classification:q1:c3: 2  # Confidential
     urn:intuitem:risk:req_node:appsec:data_classification:q1:c4: 3  # Secret
   integrity: {}
-  availability: {}
+  availability:
+    urn:intuitem:risk:req_node:appsec:availability_classification:q1:c1: 0  # Tier 4 - Non-Critical
+    urn:intuitem:risk:req_node:appsec:availability_classification:q1:c2: 1  # Tier 3 - Medium / Tolerable
+    urn:intuitem:risk:req_node:appsec:availability_classification:q1:c3: 2  # Tier 2 - High / Sensitive
+    urn:intuitem:risk:req_node:appsec:availability_classification:q1:c4: 3  # Tier 1 - Mission-Critical
 
 # ============================================================================
 # TEST METADATA & INTEGRITY SPECIFICATION
@@ -3945,13 +4030,13 @@ criticality_mapping:
 # Defines baseline expectations for automated relational and logic integrity tests.
 # Framework-independent test runners validate framework consistency against these specs.
 test_metadata:
-  expected_risk_scenarios_count: 18
+  expected_risk_scenarios_count: 21
   expected_threats_count: 9
   expected_vulnerabilities_count: 18
   expected_reference_controls_count: 26
-  expected_requirement_nodes_count: 60
+  expected_requirement_nodes_count: 62
   matrix_dimensions:
     likelihood_levels: 4
     impact_levels: 4
   classification_node_ref: "data_classification"
-  availability_node_ref: null
+  availability_node_ref: "availability_classification"

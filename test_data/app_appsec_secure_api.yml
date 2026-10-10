@@ -66,6 +66,12 @@ answers:
     result: "compliant"
     observation: "Processes Secret-level payment authorization tokens, customer PII, and financial transaction records. Impact Level 4."
 
+  - requirement: "availability_classification"
+    question: "What is the maximum tolerable downtime (MTD) / business recovery objective for this application?"
+    answer: "Tier 1 - Critical / Mission-Critical (MTD < 1 hour; real-time transactional, payment, or life-safety)"
+    result: "compliant"
+    observation: "High-availability payment API with MTD < 1 hour and real-time active-active failover."
+
   - requirement: "hosting"
     question: "What is the hosting model?"
     answer: "SaaS"

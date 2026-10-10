@@ -287,7 +287,8 @@ class ApplicationRiskSimulator:
             impact_present = False
             if is_avail_impact:
                 impact_present = (
-                    "vendor_availability" in answers_present_by_ref
+                    (avail_node_ref and (avail_node_ref in answers_present_by_ref or avail_node_ref.lower() in answers_present_by_ref))
+                    or "vendor_availability" in answers_present_by_ref
                     or "prof.02" in answers_present_by_ref
                     or (impact_urn and (impact_urn in answers_present_by_urn or impact_urn.lower() in answers_present_by_urn))
                 )
@@ -403,11 +404,12 @@ class ApplicationRiskSimulator:
                             break
                     break
 
+        avail_node_ref = self.test_metadata.get("availability_node_ref")
         avail_impact = conf_impact
         if data_avail_choice_urn and availability_map:
             avail_impact = availability_map.get(data_avail_choice_urn, 0) + 1
         elif availability_map:
-            for k in ["vendor_availability", "PROF.02", "prof.02"]:
+            for k in ([avail_node_ref] if avail_node_ref else []) + ["vendor_availability", "PROF.02", "prof.02"]:
                 ans_list = answers_by_req.get(k)
                 if ans_list:
                     chosen_text = ans_list[0]["answer"].strip().lower()
@@ -445,7 +447,8 @@ class ApplicationRiskSimulator:
             impact_answered = False
             if is_avail_impact:
                 impact_answered = (
-                    "vendor_availability" in answers_by_req
+                    (avail_node_ref and (avail_node_ref in answers_by_req or avail_node_ref.lower() in answers_by_req))
+                    or "vendor_availability" in answers_by_req
                     or "prof.02" in answers_by_req
                     or "PROF.02" in answers_by_req
                     or (impact_urn and impact_urn in answers_by_req)
