@@ -283,29 +283,23 @@ answers:
     result: "compliant"
     observation: "Standard customer terms and DPAs govern all data transfer integrations."
 
-  - requirement: "saas_non_prod_data"
-    question: "Does the SaaS deployment utilize dedicated non-production environments?"
-    answer: "Yes"
-    result: "compliant"
-    observation: "Isolated staging environment in dedicated GCP project."
-
-  - requirement: "saas_non_prod_data"
-    question: "Is production customer data copied into or used within the SaaS non-production or sandbox environments?"
-    answer: "Yes"
+  - requirement: "non_prod_data"
+    question: "Are real production data records, live customer databases, or personal data utilized in non-production environments?"
+    answer: "Yes - Production data is copied or utilized for testing/staging"
     result: "not_compliant"
-    observation: "Periodic staging runs copy sanitized slices of production data."
+    observation: "Periodic staging runs copy sanitized slices of production data into staging and sandbox environments."
 
-  - requirement: "saas_non_prod_data"
-    question: "How is production data protected when copied into the SaaS sandbox?"
+  - requirement: "non_prod_data"
+    question: "How do you protect them?"
     answer: "Pseudonymisation"
     result: "compliant"
-    observation: "Pseudonymization pipeline masks customer identifiers and names before loading into staging."
+    observation: "Pseudonymization pipeline masks customer identifiers and names before loading into staging or sandbox tenants."
 
-  - requirement: "saas_non_prod_data"
-    question: "Is production data securely cleansed or purged from the SaaS sandbox environment after testing concludes?"
+  - requirement: "non_prod_data"
+    question: "Do you clean the prod data after use in non-prod?"
     answer: "No"
     result: "not_compliant"
-    observation: "Masked data retained in staging indefinitely without automated post-test wiping."
+    observation: "Masked data retained in staging and sandbox environments indefinitely without automated post-test wiping."
 
   - requirement: "data_destruction"
     question: "Is there a data destruction process for this application?"
@@ -410,8 +404,8 @@ expected_risk_scenarios:
     risk_level: 4
     control_priority: 1
 
-  - scenario: "Disclosure of production data in SaaS non-production sandboxes"
-    likelihood_requirement: "saas_non_prod_data"
+  - scenario: "Disclosure of production data in non-production environments"
+    likelihood_requirement: "non_prod_data"
     likelihood_score: 90
     scaled_likelihood: 1
     scaled_impact: 3

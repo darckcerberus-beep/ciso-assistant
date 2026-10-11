@@ -74,13 +74,13 @@ objects:
       reference_controls:
         - urn:intuitem:risk:control:appsec:encrypt_data_at_rest
 
-    # 3. Non-production data disclosure (from newDPP)
+    # 3. Non-production & sandbox data disclosure
     - urn: urn:intuitem:risk:scenario:appsec:nonprod_data_disclosure
       ref_id: nonprod_data_disclosure
       name: "Disclosure of production data in non-production environments"
       description: >
-        Production data used in development, staging, or test environments is exposed
-        because sanitization, pseudonymisation, or masking measures are not implemented.
+        Production data used in development, staging, test environments, or SaaS sandbox tenants is exposed
+        because sanitization, pseudonymisation, or masking measures are not implemented, or test data is not purged.
       likelihood: urn:intuitem:risk:req_node:appsec:non_prod_data
       impact: urn:intuitem:risk:req_node:appsec:data_classification
       threats:
@@ -90,6 +90,7 @@ objects:
         - urn:intuitem:risk:vulnerability:appsec:unprotected_non_prod
       reference_controls:
         - urn:intuitem:risk:control:appsec:protect_prod_data_in_non_prod
+
 
     # 4. Third-party data leakage (from newDPP)
     - urn: urn:intuitem:risk:scenario:appsec:third_party_data_leakage
@@ -333,24 +334,7 @@ objects:
       reference_controls:
         - urn:intuitem:risk:control:appsec:regular_penetration_testing
 
-    # 18. Disclosure of production data in SaaS non-production sandboxes (SaaS applications)
-    - urn: urn:intuitem:risk:scenario:appsec:saas_nonprod_data_disclosure
-      ref_id: saas_nonprod_data_disclosure
-      name: "Disclosure of production data in SaaS non-production sandboxes"
-      description: >
-        Production customer data copied into vendor sandbox or non-production tenant environments
-        is exposed due to weaker access controls, lack of masking, or failure to purge test data.
-      likelihood: urn:intuitem:risk:req_node:appsec:saas_non_prod_data
-      impact: urn:intuitem:risk:req_node:appsec:data_classification
-      threats:
-        - urn:intuitem:risk:threat:appsec:unauthorized_access
-        - urn:intuitem:risk:threat:appsec:data_exfiltration
-      vulnerabilities:
-        - urn:intuitem:risk:vulnerability:appsec:unprotected_non_prod
-      reference_controls:
-        - urn:intuitem:risk:control:appsec:protect_prod_data_in_non_prod
-
-    # 19. SaaS tenant isolation breach & cross-tenant data leakage (SaaS applications)
+    # 18. SaaS tenant isolation breach & cross-tenant data leakage (SaaS applications)
     - urn: urn:intuitem:risk:scenario:appsec:saas_tenant_isolation_breach
       ref_id: saas_tenant_isolation_breach
       name: "SaaS tenant isolation breach and cross-border leakage"
@@ -368,7 +352,7 @@ objects:
         - urn:intuitem:risk:control:appsec:saas_tenant_isolation_and_residency
         - urn:intuitem:risk:control:appsec:saas_cryptographic_sovereignty
 
-    # 20. SaaS vendor privilege abuse and sub-processor leakage (SaaS applications)
+    # 19. SaaS vendor privilege abuse and sub-processor leakage (SaaS applications)
     - urn: urn:intuitem:risk:scenario:appsec:saas_vendor_privilege_abuse_and_subprocessor_leakage
       ref_id: saas_vendor_privilege_abuse_and_subprocessor_leakage
       name: "SaaS vendor privilege abuse and sub-processor leakage"
@@ -387,7 +371,7 @@ objects:
         - urn:intuitem:risk:control:appsec:saas_subprocessor_and_supply_chain
         - urn:intuitem:risk:control:appsec:saas_telemetry_and_audit_export
 
-    # 21. Reliance on unverified SaaS security posture (SaaS applications)
+    # 20. Reliance on unverified SaaS security posture (SaaS applications)
     - urn: urn:intuitem:risk:scenario:appsec:saas_unverified_security_posture
       ref_id: saas_unverified_security_posture
       name: "Reliance on unverified SaaS security posture"
@@ -2465,7 +2449,7 @@ objects:
         annotation: >
           Comprehensive data protection and privacy lifecycle controls.
           Ensures sensitive data assets are protected throughout their lifecycle: formal data transfer agreements (DPAs/DTAs) for external exchanges, sanitization and masking of test data in non-production environments, and compliant end-of-life purging and certified destruction.
-        implementation_groups: ["baseline", "custom_app", "cots_app"]
+        implementation_groups: ["baseline", "custom_app", "cots_app", "saas_app"]
 
       # Requirement: Control data exchange beyond organization (from newDPP)
       - urn: urn:intuitem:risk:req_node:appsec:data_exchange
@@ -2520,20 +2504,21 @@ objects:
                 compute_result: true
                 color: "#33a745"
 
-      # Requirement: Protect production data in non-production environments (from newDPP)
+      # Requirement: Protect production data in non-production environments and SaaS sandboxes
       - urn: urn:intuitem:risk:req_node:appsec:non_prod_data
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:data_lifecycle_chapter
         ref_id: non_prod_data
-        name: Non-Production Data Protection
-        description: "Non prod data is adequately protected"
+        name: Non-Production & Sandbox Data Protection
+        description: "Enforce strict governance over the use of production customer data in non-production environments (development, staging, QA, and SaaS sandbox/preview tenants) and mandate data sanitization and post-test purging."
         annotation: >
-          Data sanitization and privacy preservation in non-production environments (development, testing, staging, QA).
-          Direct use of raw production data in non-production environments is strictly prohibited unless sanitized via pseudonymisation, tokenization, masking, or cryptographic hashing.
+          Data sanitization and privacy preservation across non-production environments and SaaS sandbox tenants.
+          Direct use of raw production data in development, staging, QA, or vendor sandbox tenants is strictly prohibited unless sanitized via pseudonymisation, tokenization, masking, or cryptographic hashing. Production data extracts and seeded tenant records must be securely purged post-testing.
         typical_evidence: >
           - Data masking / anonymization / synthetic test data generation pipeline procedure
-          - Non-production environment database audit logs verifying absence of raw PII/sensitive production records
+          - Non-production environment and SaaS sandbox tenant database audit logs verifying absence of raw PII/sensitive records
+          - Test data refresh and post-test purging runbooks for staging and sandbox environments
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:unprotected_non_prod
         implementation_groups: ["confidential_app", "secret_app"]
@@ -2542,7 +2527,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec:non_prod_data:q1:
             type: unique_choice
-            text: "Are real production data records, live customer databases, or personal data utilized in non-production environments?"
+            text: "Are real production data records, live customer databases, or personal data utilized in non-production environments? (e.g., development/staging environments, QA databases, or SaaS sandbox/preview tenants)"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:non_prod_data:q1:c1
                 value: "No - Synthetic, generated, or mock test data is used exclusively"
@@ -2556,7 +2541,7 @@ objects:
                 color: "#fd7e14"
           urn:intuitem:risk:req_node:appsec:non_prod_data:q2:
             type: unique_choice
-            text: "How do you protect them? (Which sanitization or protection method is applied: cryptographic hashing, pseudonymisation/anonymization, or field-level encryption)"
+            text: "How do you protect them? (Which sanitization or protection method is applied: cryptographic hashing, pseudonymisation/anonymization, or field-level encryption prior to ingestion)"
             depends_on:
               question: urn:intuitem:risk:req_node:appsec:non_prod_data:q1
               answers: ["urn:intuitem:risk:req_node:appsec:non_prod_data:q1:c2"]
@@ -2584,7 +2569,7 @@ objects:
                 color: "#33a745"
           urn:intuitem:risk:req_node:appsec:non_prod_data:q3:
             type: unique_choice
-            text: "Do you clean the prod data after use in non-prod? (e.g., securely purging, sanitizing, or deleting production data once testing or troubleshooting activities conclude)"
+            text: "Do you clean the prod data after use in non-prod? (e.g., securely purging, sanitizing, or deleting production data once testing or troubleshooting activities conclude in non-production or sandbox environments)"
             depends_on:
               question: urn:intuitem:risk:req_node:appsec:non_prod_data:q1
               answers: ["urn:intuitem:risk:req_node:appsec:non_prod_data:q1:c2"]
@@ -3574,90 +3559,6 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 11b: SaaS Sandbox & Non-Production Data Protection
-      - urn: urn:intuitem:risk:req_node:appsec:saas_non_prod_data
-        assessable: true
-        depth: 2
-        parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
-        ref_id: saas_non_prod_data
-        name: "SaaS Sandbox & Non-Production Data Protection"
-        description: "Govern the use of production customer data in SaaS non-production sandbox tenants and enforce data sanitization and post-test purging."
-        annotation: >
-          Contractual and operational governance of SaaS sandbox, preview, and staging tenants:
-          - Dedicated segregation between SaaS production tenants and sandbox/test environments.
-          - Prohibition or strict governance on copying live production customer data into non-production sandboxes.
-          - Required data masking, pseudonymisation, or anonymization before loading test records into sandboxes.
-          - Prompt sanitization and purging of production data copies from sandbox tenants upon test completion.
-        typical_evidence: >
-          - SaaS tenant provisioning agreement detailing separate non-production sandbox licensing
-          - Tenant test data management procedure and data masking / anonymization tool configurations
-          - Sandbox environment data refresh and post-test purging runbooks
-        vulnerabilities:
-          - urn:intuitem:risk:vulnerability:appsec:unprotected_non_prod
-        implementation_groups: ["saas_app"]
-        reference_controls:
-          - urn:intuitem:risk:control:appsec:protect_prod_data_in_non_prod
-        questions:
-          urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q1:
-            type: unique_choice
-            text: "Is live production customer data copied into or used within SaaS non-production sandbox tenants? (e.g., full database replication or test tenant seeding from production backups)"
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q1:c1
-                value: "No"
-                add_score: 100
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q1:c2
-                value: "Yes"
-                add_score: 0
-                compute_result: false
-                color: "#fd7e14"
-          urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q2:
-            type: unique_choice
-            text: "How is production data protected when copied into the SaaS sandbox? (e.g., cryptographic hashing, pseudonymisation/anonymization, or field-level encryption prior to ingestion)"
-            depends_on:
-              question: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q1
-              answers: ["urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q1:c2"]
-              condition: any
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q2:c1
-                value: "No, no protection"
-                add_score: 0
-                compute_result: false
-                color: "#dc3545"
-              - urn: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q2:c2
-                value: "Hashing"
-                add_score: 90
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q2:c3
-                value: "Pseudonymisation"
-                add_score: 90
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q2:c4
-                value: "Encryption"
-                add_score: 90
-                compute_result: true
-                color: "#33a745"
-          urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q3:
-            type: unique_choice
-            text: "Is production data securely cleansed or purged from the SaaS sandbox environment after testing concludes?"
-            depends_on:
-              question: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q1
-              answers: ["urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q1:c2"]
-              condition: any
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q3:c1
-                value: "No"
-                add_score: 0
-                compute_result: false
-                color: "#dc3545"
-              - urn: urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q3:c2
-                value: "Yes"
-                add_score: 10
-                compute_result: true
-                color: "#33a745"
 
       # Section 12: Web Application Security & Pentesting
       - urn: urn:intuitem:risk:req_node:appsec:saas_web_app_security
@@ -4192,11 +4093,11 @@ criticality_mapping:
 # Defines baseline expectations for automated relational and logic integrity tests.
 # Framework-independent test runners validate framework consistency against these specs.
 test_metadata:
-  expected_risk_scenarios_count: 21
+  expected_risk_scenarios_count: 20
   expected_threats_count: 9
   expected_vulnerabilities_count: 18
   expected_reference_controls_count: 26
-  expected_requirement_nodes_count: 65
+  expected_requirement_nodes_count: 64
   matrix_dimensions:
     likelihood_levels: 4
     impact_levels: 4

@@ -282,15 +282,9 @@ answers:
     result: "compliant"
     observation: "Bilateral Data Processing Agreements (DPA) executed with all external financial institutions."
 
-  - requirement: "saas_non_prod_data"
-    question: "Does the SaaS deployment utilize dedicated non-production environments?"
-    answer: "Yes"
-    result: "compliant"
-    observation: "Dedicated dev, staging, and sandbox environments isolated in separate AWS accounts."
-
-  - requirement: "saas_non_prod_data"
-    question: "Is production customer data copied into or used within the SaaS non-production or sandbox environments?"
-    answer: "No"
+  - requirement: "non_prod_data"
+    question: "Are real production data records, live customer databases, or personal data utilized in non-production environments?"
+    answer: "No - Synthetic, generated, or mock test data is used exclusively"
     result: "compliant"
     observation: "Non-production environments use 100% synthetically generated mock data; production data is strictly prohibited."
 
@@ -394,8 +388,8 @@ expected_risk_scenarios:
     risk_level: 2
     control_priority: 3
 
-  - scenario: "Disclosure of production data in SaaS non-production sandboxes"
-    likelihood_requirement: "saas_non_prod_data"
+  - scenario: "Disclosure of production data in non-production environments"
+    likelihood_requirement: "non_prod_data"
     likelihood_score: 100
     scaled_likelihood: 1
     scaled_impact: 4

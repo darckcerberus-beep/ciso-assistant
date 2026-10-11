@@ -137,10 +137,9 @@ Within active requirement nodes, questions are dynamically conditioned using int
 - **`data_exchange`** (`baseline`, `custom_app`, `cots_app`):
   - `q1`: Formally controls external data exchanges and API integrations beyond the enterprise perimeter.
   - `q2`: Enforces formal data transfer agreements (DPA/DTA/NDA) when external exchange is active.
-- **`non_prod_data`** (`baseline`, `custom_app`, `cots_app`):
-  - `q0`: Identifies if a dedicated non-production environment exists for self-hosted applications.
-  - `q1`: Verifies whether real production data is copied or utilized in non-production environments.
-  - `q2`: Enforces cryptographic masking, pseudonymisation, or field-level encryption on non-prod data.
+- **`non_prod_data`** (`confidential_app`, `secret_app` across Custom, COTS, and SaaS):
+  - `q1`: Verifies whether real production data is copied or utilized in non-production environments or SaaS sandbox tenants.
+  - `q2`: Enforces cryptographic masking, pseudonymisation, or field-level encryption on non-prod and sandbox data.
   - `q3`: Enforces prompt post-testing data cleansing/purging.
 - **`data_destruction`** (`baseline`, `custom_app`, `cots_app`):
   - `q1`: Formally verifies application data retention schedules and end-of-life purging procedures for self-hosted systems.
@@ -176,7 +175,6 @@ Within active requirement nodes, questions are dynamically conditioned using int
 - **`saas_network_security`**: Edge Anti-DDoS and WAF protection.
 - **`saas_environment_isolation`**: Multi-tenant data isolation and cryptographic sovereignty (BYOK/HYOK).
 - **`saas_secure_development`**: Vendor DevSecOps and secure software development lifecycle guarantees.
-- **`saas_non_prod_data`**: SaaS sandbox tenant governance, restricting copies of live production data into vendor sandboxes, requiring masking/pseudonymisation, and enforcing post-test data purging.
 - **`saas_web_app_security`**: Perimeter transport encryption (TLS 1.2+), port filtering, and admin interface access control.
 - **`saas_penetration_testing_and_vulnerability_management`**: SaaS penetration testing governance (authorized client pentest, annual vendor pentest with audit reports/attestations, or refusal) and contractual vulnerability remediation SLAs (Critical <= 7d, High <= 30d).
 - **`saas_data_exchange_security`**: TLS 1.2+ encryption on vendor external APIs and data transfers.
@@ -227,8 +225,8 @@ The table below defines the exact applicability criteria for every requirement a
 | **6. API** | `api_security_and_rate_limiting` (q2) | OpenAPI / Schema Validation | `internet_facing` | Custom, COTS | All | **Internet-Facing** | Active if Self-Hosted & Network Exposure == Internet |
 | **7. Lifecycle**| `data_exchange` (q1) | External Data Exchange Tracking | `confidential_app`, `secret_app` | Custom, COTS | **Confidential, Secret** | All | Active if Classification >= Confidential |
 | **7. Lifecycle**| `data_exchange` (q2) | Data Exchange Contract (DPA/DTA) | `confidential_app`, `secret_app` | Custom, COTS | **Confidential, Secret** | All | `data_exchange:q1 == Yes` |
-| **7. Lifecycle**| `non_prod_data` (q1) | Live Production Data in Non-Prod | `confidential_app`, `secret_app` | Custom, COTS | **Confidential, Secret** | All | Active if Classification >= Confidential |
-| **7. Lifecycle**| `non_prod_data` (q2-q3) | Non-Prod Masking & Data Purging | `confidential_app`, `secret_app` | Custom, COTS | **Confidential, Secret** | All | `non_prod_data:q1 == Yes` |
+| **7. Lifecycle**| `non_prod_data` (q1) | Live Production Data in Non-Prod / Sandboxes | `confidential_app`, `secret_app` | **Custom, COTS, SaaS** | **Confidential, Secret** | All | Active if Classification >= Confidential |
+| **7. Lifecycle**| `non_prod_data` (q2-q3) | Non-Prod & Sandbox Masking / Data Purging | `confidential_app`, `secret_app` | **Custom, COTS, SaaS** | **Confidential, Secret** | All | `non_prod_data:q1 == Yes` |
 | **7. Lifecycle**| `data_destruction` (q1) | Certified Data Destruction Policy | `confidential_app`, `secret_app` | Custom, COTS | **Confidential, Secret** | All | Active if Classification >= Confidential |
 | **7. Lifecycle**| `data_destruction` (q2) | Destruction Process & Certificate | `confidential_app`, `secret_app` | Custom, COTS | **Confidential, Secret** | All | `data_destruction:q1 == Yes` |
 | **8. Logging** | `security_event_logging` (q1-q2) | Security Event Logging & Data Masking | `baseline`, `custom_app`, `cots_app` | Custom, COTS | All | All | None |
@@ -248,7 +246,6 @@ The table below defines the exact applicability criteria for every requirement a
 | **10. SaaS** | `saas_network_security` | Edge Anti-DDoS & WAF Protection | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_environment_isolation` | Multi-Tenant Data Isolation | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_secure_development` | Vendor DevSecOps & SDLC Guarantees | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
-| **10. SaaS** | `saas_non_prod_data` (q1-q3) | SaaS Sandbox Data Protection | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_web_app_security` | Web App & Transport Security (TLS/Ports) | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_penetration_testing_and_vulnerability_management` (q1-q2) | SaaS Pentest Governance & Remediation SLAs | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_data_exchange_security` | Vendor TLS 1.2+ Transport Security | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |

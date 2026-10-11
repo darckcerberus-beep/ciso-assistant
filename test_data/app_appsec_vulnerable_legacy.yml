@@ -283,14 +283,8 @@ answers:
     observation: "No confidentiality agreements or Data Processing Agreements in place."
 
   - requirement: "non_prod_data"
-    question: "Do you have a dedicated non-production environment?"
-    answer: "Yes"
-    result: "compliant"
-    observation: "Shared staging VM used for testing."
-
-  - requirement: "non_prod_data"
-    question: "Do you use prod data in a non-prod environment?"
-    answer: "Yes"
+    question: "Are real production data records, live customer databases, or personal data utilized in non-production environments?"
+    answer: "Yes - Production data is copied or utilized for testing/staging"
     result: "not_compliant"
     observation: "Direct production database clones restored to test server without sanitization."
 

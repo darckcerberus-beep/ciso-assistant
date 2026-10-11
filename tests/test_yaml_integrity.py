@@ -548,7 +548,7 @@ class TestYamlIntegrity(unittest.TestCase):
             rn for rn in appsec_fw["req_nodes"].values()
             if rn.get("parent_urn") == "urn:intuitem:risk:req_node:appsec:saas_chapter"
         ]
-        self.assertEqual(len(saas_chapter_children), 24, "Expected 24 assessable requirement nodes in Chapter 10")
+        self.assertEqual(len(saas_chapter_children), 23, "Expected 23 assessable requirement nodes in Chapter 10")
         expected_saas_nodes = {
             "saas_contract_compliance",
             "saas_governance_and_policy",
@@ -562,7 +562,6 @@ class TestYamlIntegrity(unittest.TestCase):
             "saas_network_security",
             "saas_environment_isolation",
             "saas_secure_development",
-            "saas_non_prod_data",
             "saas_web_app_security",
             "saas_penetration_testing_and_vulnerability_management",
             "saas_data_exchange_security",
@@ -986,41 +985,56 @@ class TestYamlIntegrity(unittest.TestCase):
             self.assertNotIn("baseline", groups, f"{ref_id} must not include baseline group")
             self.assertNotIn("saas_app", groups, f"{ref_id} must not include saas_app group")
 
-        # Verify parent chapters 4 and 7 exclude saas_app
-        for chapter_ref in ["crypto_chapter", "data_lifecycle_chapter"]:
-            chapter_node = appsec_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec:{chapter_ref}")
-            self.assertIsNotNone(chapter_node, f"Chapter {chapter_ref} missing in appsec")
-            c_groups = chapter_node.get("implementation_groups", [])
-            self.assertIn("custom_app", c_groups)
-            self.assertIn("cots_app", c_groups)
-            self.assertIn("baseline", c_groups)
-            self.assertNotIn("saas_app", c_groups, f"Chapter {chapter_ref} must not include saas_app group")
+        # Verify parent crypto_chapter excludes saas_app
+        crypto_chapter = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:crypto_chapter")
+        self.assertIsNotNone(crypto_chapter, "Chapter crypto_chapter missing in appsec")
+        c_groups = crypto_chapter.get("implementation_groups", [])
+        self.assertIn("custom_app", c_groups)
+        self.assertIn("cots_app", c_groups)
+        self.assertIn("baseline", c_groups)
+        self.assertNotIn("saas_app", c_groups, "Chapter crypto_chapter must not include saas_app group")
+
+        # Verify parent data_lifecycle_chapter includes saas_app for unified data governance
+        dl_chapter = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:data_lifecycle_chapter")
+        self.assertIsNotNone(dl_chapter, "Chapter data_lifecycle_chapter missing in appsec")
+        dl_groups = dl_chapter.get("implementation_groups", [])
+        self.assertIn("custom_app", dl_groups)
+        self.assertIn("cots_app", dl_groups)
+        self.assertIn("baseline", dl_groups)
+        self.assertIn("saas_app", dl_groups, "Chapter data_lifecycle_chapter must include saas_app group")
 
     def test_appsec_data_protection_and_lifecycle_scoping(self):
-        """Verify data protection scoping: self-hosted in Ch 4 & 7, SaaS sandbox in Ch 10, and risk scenarios."""
+        """Verify data protection scoping: unified non_prod_data in Ch 7, removal of duplicate saas_non_prod_data, and risk scenarios."""
         appsec_fw = next((fw for fw in self.frameworks if fw["ref_id"] == "appsec"), None)
         if not appsec_fw:
             return
 
-        # 1. SaaS Sandbox node saas_non_prod_data exists in Chapter 10
-        saas_np = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:saas_non_prod_data")
-        self.assertIsNotNone(saas_np, "saas_non_prod_data missing in AppSec")
-        self.assertEqual(saas_np.get("parent_urn"), "urn:intuitem:risk:req_node:appsec:saas_chapter")
-        self.assertTrue(saas_np.get("assessable"))
-        self.assertEqual(saas_np.get("implementation_groups"), ["saas_app"])
+        # 1. Unified non_prod_data node exists in Chapter 7 (Data Protection & Lifecycle)
+        np_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:non_prod_data")
+        self.assertIsNotNone(np_node, "non_prod_data missing in AppSec")
+        self.assertEqual(np_node.get("parent_urn"), "urn:intuitem:risk:req_node:appsec:data_lifecycle_chapter")
+        self.assertTrue(np_node.get("assessable"))
+        self.assertEqual(np_node.get("implementation_groups"), ["confidential_app", "secret_app"])
 
-        # Check questions in saas_non_prod_data
-        np_questions = saas_np.get("questions", {})
-        self.assertEqual(len(np_questions), 3, "saas_non_prod_data should have 3 questions (q1-q3)")
-        q1 = np_questions.get("urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q1")
-        q2 = np_questions.get("urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q2")
-        q3 = np_questions.get("urn:intuitem:risk:req_node:appsec:saas_non_prod_data:q3")
+        # Redundant SaaS sandbox node must NOT exist in Chapter 10
+        self.assertNotIn(
+            "urn:intuitem:risk:req_node:appsec:saas_non_prod_data",
+            appsec_fw["req_nodes"],
+            "saas_non_prod_data must be removed to avoid duplicate non-prod questions",
+        )
+
+        # Check questions in non_prod_data
+        np_questions = np_node.get("questions", {})
+        self.assertEqual(len(np_questions), 3, "non_prod_data should have 3 questions (q1-q3)")
+        q1 = np_questions.get("urn:intuitem:risk:req_node:appsec:non_prod_data:q1")
+        q2 = np_questions.get("urn:intuitem:risk:req_node:appsec:non_prod_data:q2")
+        q3 = np_questions.get("urn:intuitem:risk:req_node:appsec:non_prod_data:q3")
         self.assertIsNotNone(q1)
         self.assertIsNotNone(q2)
         self.assertIsNotNone(q3)
 
-        q1_no = next(c for c in q1["choices"] if c["value"] == "No")
-        q1_yes = next(c for c in q1["choices"] if c["value"] == "Yes")
+        q1_no = next(c for c in q1["choices"] if "No" in c["value"])
+        q1_yes = next(c for c in q1["choices"] if "Yes" in c["value"])
         self.assertEqual(q1_no["add_score"], 100)
         self.assertEqual(q1_yes["add_score"], 0)
 
@@ -1028,14 +1042,17 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertEqual(q2.get("depends_on", {}).get("answers"), [q1_yes["urn"]])
         self.assertEqual(q3.get("depends_on", {}).get("answers"), [q1_yes["urn"]])
 
-        # 2. Risk Scenario 18: saas_nonprod_data_disclosure
+        # 2. Risk Scenario: nonprod_data_disclosure universally covers non-prod data leakage
         scenarios = {sc["ref_id"]: sc for sc in appsec_fw["yaml_data"].get("objects", {}).get("risk_scenarios", [])}
-        self.assertIn("saas_nonprod_data_disclosure", scenarios)
-        sc18 = scenarios["saas_nonprod_data_disclosure"]
-        self.assertEqual(sc18.get("likelihood"), "urn:intuitem:risk:req_node:appsec:saas_non_prod_data")
-        self.assertEqual(sc18.get("impact"), "urn:intuitem:risk:req_node:appsec:data_classification")
-        self.assertIn("urn:intuitem:risk:vulnerability:appsec:unprotected_non_prod", sc18.get("vulnerabilities", []))
-        self.assertIn("urn:intuitem:risk:control:appsec:protect_prod_data_in_non_prod", sc18.get("reference_controls", []))
+        self.assertIn("nonprod_data_disclosure", scenarios)
+        sc = scenarios["nonprod_data_disclosure"]
+        self.assertEqual(sc.get("likelihood"), "urn:intuitem:risk:req_node:appsec:non_prod_data")
+        self.assertEqual(sc.get("impact"), "urn:intuitem:risk:req_node:appsec:data_classification")
+        self.assertIn("urn:intuitem:risk:vulnerability:appsec:unprotected_non_prod", sc.get("vulnerabilities", []))
+        self.assertIn("urn:intuitem:risk:control:appsec:protect_prod_data_in_non_prod", sc.get("reference_controls", []))
+
+        # Redundant SaaS scenario must NOT exist
+        self.assertNotIn("saas_nonprod_data_disclosure", scenarios)
 
     def test_appsec_penetration_testing_saas_contractual_management(self):
         """Verify that penetration testing is split between self-hosted and SaaS with contractual management."""
