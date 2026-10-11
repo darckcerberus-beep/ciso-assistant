@@ -85,12 +85,6 @@ answers:
     result: "compliant"
     observation: "Hosted on multi-tenant Google Cloud Platform (GCP) SaaS infrastructure."
 
-  - requirement: "network_exposure"
-    question: "What is the network exposure of the application?"
-    answer: "Internet-facing (Public Web / Mobile API)"
-    result: "compliant"
-    observation: "Customer portal and REST API endpoints publicly accessible over HTTPS."
-
   # ============================================================================
   # CHAPTER 2: IDENTITY, AUTHENTICATION & ACCESS CONTROL
   # ============================================================================

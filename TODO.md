@@ -22,12 +22,13 @@
 
 ### A. [`YML/appsec.yml`](file:///home/python/ciso-assistant/YML/appsec.yml)
 
-1. **Requirement Node `urn:intuitem:risk:req_node:appsec:network_exposure` (Chapter 1 `info`)**:
-   - Evaluated for all applications (in-house and SaaS alike) strictly as the network exposure profiling discriminator.
-   - **`q1` (Network Exposure Discriminator)**:
+1. **Requirement Node `urn:intuitem:risk:req_node:appsec:hosting` & `network_exposure` (Chapter 1 `info`)**:
+   - **SaaS External Exposure Assumption**: Third-party SaaS applications are unconditionally assumed to be externally exposed to the public Internet. Selecting SaaS in `hosting:q1` (`c3`) automatically activates both `saas_app` and `internet_facing` implementation groups.
+   - **`network_exposure` Scoping**: Scoped strictly to self-hosted delivery models (`implementation_groups: ["baseline", "custom_app", "cots_app"]`), eliminating redundant network exposure questions for SaaS applications.
+   - **`network_exposure:q1` (Self-Hosted Exposure Discriminator)**:
      - Choice `c1` (*"Internal / Restricted Network only"*): `add_score: 100`, `compute_result: true`.
      - Choice `c2` (*"Internet-facing (Public Web / Mobile API)"*): `add_score: 100`, `compute_result: true`, selects `internet_facing` implementation group.
-   - Client-side operational controls (WAF deployment, pentesting) removed from Chapter 1 to avoid forcing clients to answer direct operational questions for SaaS providers.
+   - Redundant SaaS-specific Choice 3 (`c3`) completely eliminated.
 
 2. **Chapter 10 (`saas_chapter` / Annexe Sécurité Contractualization)**:
    - For SaaS applications, vendors do not allow clients to test vendor infrastructure, put client Cloudflare in front of the platform, manage vendor admin accounts, or connect internal SIEM agents. These controls are enforced as contractual obligations:
@@ -47,11 +48,11 @@
 
 1. [`test_data/app_appsec_secure_api.yml`](file:///home/python/ciso-assistant/test_data/app_appsec_secure_api.yml):
    - Internet-facing SaaS app handling Secret data.
-   - Answers `network_exposure:q1` with Internet-facing exposure.
+   - Answers `hosting:q1` with SaaS (inherently assumes external exposure; no redundant `network_exposure` answer needed).
    - Answers `authentication_and_mfa` with Enterprise SSO and admin MFA active (100% compliant).
 2. [`test_data/app_appsec_hybrid_saas.yml`](file:///home/python/ciso-assistant/test_data/app_appsec_hybrid_saas.yml):
    - Internet-facing SaaS app handling Confidential data.
-   - Answers `network_exposure:q1` with Internet-facing exposure.
+   - Answers `hosting:q1` with SaaS (inherently assumes external exposure; no redundant `network_exposure` answer needed).
    - Answers `authentication_and_mfa` with Enterprise SSO, but without mandatory administrative MFA (50% compliant).
 3. [`test_data/app_appsec_vulnerable_legacy.yml`](file:///home/python/ciso-assistant/test_data/app_appsec_vulnerable_legacy.yml):
    - Internal on-premises application.

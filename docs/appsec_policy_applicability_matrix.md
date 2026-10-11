@@ -79,8 +79,8 @@ Within active requirement nodes, questions are dynamically conditioned using int
 - **`data_classification`**: Formally categorizes data assets into Public, Internal, Confidential, or Secret (Confidentiality impact).
 - **`availability_classification`**: Formally categorizes business recovery priority and Maximum Tolerable Downtime (MTD Tiers 1–4; Availability impact).
 - **`integrity_classification`**: Formally categorizes data accuracy, tamper resistance, and business operational criticality (Levels 1–4; Integrity impact completing the CIA triad).
-- **`hosting`**: Discriminates between Custom (In-house), Bought (COTS), and SaaS.
-- **`network_exposure`**: Identifies whether the application is restricted to internal corporate networks or exposed to the public Internet.
+- **`hosting`**: Discriminates between Custom (In-house), Bought (COTS), and SaaS. Selecting SaaS automatically triggers both `saas_app` and `internet_facing` (since SaaS applications are unconditionally assumed to be externally exposed).
+- **`network_exposure`** (`baseline`, `custom_app`, `cots_app`): Identifies whether self-hosted applications are restricted to internal corporate networks or exposed to the public Internet (bypassed for SaaS).
 
 ### Chapter 2: Identity, Authentication & Access Control (IAM)
 - **`authentication_and_mfa`** (`baseline`, `custom_app`, `cots_app`):
@@ -197,8 +197,8 @@ The table below defines the exact applicability criteria for every requirement a
 | **1. Profile** | `stakeholder_identification` | Stakeholder Identification | `info` | All | All | All | None |
 | **1. Profile** | `data_classification` | Application Data Classification | `info` | All | All | All | None |
 | **1. Profile** | `availability_classification` | Application Availability & MTD Tiers | `info` | All | All | All | None |
-| **1. Profile** | `hosting` | Delivery & Hosting Model | `info` | All | All | All | None |
-| **1. Profile** | `network_exposure` | Application Network Exposure | `info` | All | All | All | None |
+| **1. Profile** | `hosting` | Delivery & Hosting Model | `info` | All | All | All | None (SaaS activates `saas_app` & `internet_facing`) |
+| **1. Profile** | `network_exposure` | Application Network Exposure | `baseline`, `custom_app`, `cots_app` | Custom, COTS | All | All | Active for self-hosted apps; SaaS is assumed externally exposed |
 | **2. IAM** | `authentication_and_mfa` (q1) | Authentication Mode (SSO vs Direct) | `baseline`, `custom_app`, `cots_app` | Custom, COTS | All | All | None |
 | **2. IAM** | `authentication_and_mfa` (q2) | Password Policy & Lockout | `baseline`, `custom_app`, `cots_app` | Custom, COTS | All | All | `q1 == Direct Authentication` |
 | **2. IAM** | `authentication_and_mfa` (q3) | Admin MFA Enforcement | `baseline`, `custom_app`, `cots_app` | Custom, COTS | All | All | `q1 == Direct Authentication` |

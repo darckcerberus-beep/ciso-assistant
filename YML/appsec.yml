@@ -1390,11 +1390,11 @@ objects:
 
           How to complete this assessment:
           1. Answer accurately: Select the choices that best reflect the current architecture and operational state of your application.
-          2. Dynamic tracks: Questions in Chapter 1 (Data Classification, Hosting Model, and Network Exposure) dynamically trigger advanced tracks:
+          2. Dynamic tracks: Questions in Chapter 1 (Data Classification, Hosting Model, and Network Exposure for self-hosted apps) dynamically trigger advanced tracks:
              - Confidential / Secret Data Protection (Encryption in Transit & Rest, Data Exchange / DPAs, Non-Prod Data Masking, Compliant Destruction)
              - Internet-Facing Controls (API Rate Limiting, CSP, External Pentesting)
              - SaaS Contractual Governance (Security Exhibits, Audit Rights, Incident Reporting SLAs)
-          3. SaaS Applications: For third-party SaaS solutions where the codebase and infrastructure are managed by an external vendor, security governance is evaluated through Chapter 10 (SaaS Requirements, covering Master Services Agreements, Security Exhibits, SOC 2 / ISO 27001 assurance, SLAs, and DPAs).
+          3. SaaS Applications: Third-party SaaS solutions hosted on external vendor cloud infrastructure are inherently and unconditionally assumed to be externally exposed, automatically activating both the Internet-Facing track (internet_facing) and the SaaS Assessment Track (saas_app). Operational vendor governance is evaluated through Chapter 10 (SaaS Requirements, covering Master Services Agreements, Security Exhibits, SOC 2 / ISO 27001 assurance, SLAs, and DPAs).
           4. Scoping & Responsibility: This framework evaluates application-level posture, architecture, data governance, and DevSecOps. Central enterprise IT infrastructure controls (such as corporate EDR coverage on internal company laptops and servers) are governed centrally by Corporate IT / SecOps and are intentionally not queried here to avoid asking application owners questions outside their domain. For third-party SaaS applications, provider endpoint security and EDR commitments are evaluated contractually in Chapter 10.
           5. Evidence: For assessable requirements, ensure supporting documentation (architecture diagrams, CI/CD pipelines, KMS configs, pentest reports, or executed SaaS contracts and SOC 2 reports) can be provided upon audit review.
           6. Progress & Submission: You can complete this questionnaire progressively. Once submitted, CISO Assistant will automatically calculate likelihood and impact across all risk scenarios.
@@ -1612,9 +1612,9 @@ objects:
         description: "Determine the application delivery and hosting model: Custom software created and deployed by internal teams, Bought software deployed by internal teams, or third-party SaaS."
         annotation: >
           Application delivery and hosting model classification:
-          - Custom software created and deployed by my teams: In-house developed software where source code is written and maintained internally. Subject to internal DevSecOps (SAST, DAST, SCA/SBOM, peer code review).
-          - Bought software deployed by my teams: Commercial Off-The-Shelf (COTS) or vendor software package deployed on internal infrastructure. Subject to vendor security patch management, CVE tracking, and deployment configuration hardening.
-          - SaaS: Third-party software hosted and operated by a vendor. Triggers the SaaS Assessment Track (saas_app) in Chapter 10 for vendor contractual, compliance, and operational governance (MSA, SOC 2, pentest letter, SLAs).
+          - Custom software created and deployed by my teams: In-house developed software where source code is written and maintained internally. Subject to internal DevSecOps (SAST, DAST, SCA/SBOM, peer code review) and self-hosted network exposure discrimination.
+          - Bought software deployed by my teams: Commercial Off-The-Shelf (COTS) or vendor software package deployed on internal infrastructure. Subject to vendor security patch management, CVE tracking, deployment configuration hardening, and self-hosted network exposure discrimination.
+          - SaaS: Third-party software hosted and operated by a vendor. SaaS applications are inherently hosted on external cloud infrastructure and unconditionally assumed to be externally exposed to the public Internet, automatically activating both the SaaS Track (saas_app) in Chapter 10 and the Internet-Facing Track (internet_facing).
         typical_evidence: >
           - Architecture design document (ADD) / System topology diagram
           - Software procurement contract, vendor license, or Git repository metadata
@@ -1634,7 +1634,7 @@ objects:
                 color: "#17a2b8"
               - urn: urn:intuitem:risk:req_node:appsec:hosting:q1:c3
                 value: "SaaS (Third-party software hosted and operated by a vendor)"
-                select_implementation_groups: ["saas_app"]
+                select_implementation_groups: ["saas_app", "internet_facing"]
                 color: "#17a2b8"
 
       # Requirement: Determine network exposure
@@ -1644,15 +1644,16 @@ objects:
         parent_urn: urn:intuitem:risk:req_node:appsec:info
         ref_id: network_exposure
         name: Application Network Exposure
-        description: "Determine whether the application is accessible from the public Internet or restricted to private networks."
+        description: "Determine whether self-hosted applications (Custom or COTS) are accessible from the public Internet or restricted to private internal networks. (Third-party SaaS applications are unconditionally assumed to be externally exposed and bypass this requirement)."
         annotation: >
-          Network accessibility tier:
+          Network accessibility tier for self-hosted applications (Custom or COTS):
           - Internal / Restricted: Accessible exclusively from internal corporate networks, private VPC endpoints, or via VPN with zero public Internet reachability.
-          - Internet-facing: Accessible directly over the public Internet (customer portals, public web apps, mobile backends). Triggers the Internet-Facing track (internet_facing) for perimeter controls. Note: For third-party SaaS applications, operational controls (vendor WAF, anti-DDoS, and independent penetration testing) cannot be performed directly by the client and are governed contractually in Chapter 10.
+          - Internet-facing: Accessible directly over the public Internet (customer portals, public web apps, mobile backends). Triggers the Internet-Facing track (internet_facing) for perimeter controls.
+          Note: Third-party SaaS applications are inherently and unconditionally assumed to be externally exposed, automatically activating the internet_facing track upon selecting SaaS delivery in hosting profiling.
         typical_evidence: >
           - Network zoning diagram showing DMZ, perimeter firewalls, and reverse proxies
           - DNS configuration and IP address allocation records
-        implementation_groups: ["info"]
+        implementation_groups: ["baseline", "custom_app", "cots_app"]
         questions:
           urn:intuitem:risk:req_node:appsec:network_exposure:q1:
             type: unique_choice
@@ -1664,17 +1665,11 @@ objects:
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec:network_exposure:q1:c2
-                value: "Internet-facing (Public Web / Mobile API - Self-Hosted Custom or COTS)"
+                value: "Internet-facing (Public Web / Mobile API)"
                 add_score: 100
                 compute_result: true
                 select_implementation_groups: ["internet_facing"]
                 color: "#fd7e14"
-              - urn: urn:intuitem:risk:req_node:appsec:network_exposure:q1:c3
-                value: "Internet-facing SaaS (Third-party Cloud - Governed via Chapter 10 Vendor Exhibit)"
-                add_score: 100
-                compute_result: true
-                select_implementation_groups: []
-                color: "#17a2b8"
 
       # === CHAPTER 2: IDENTITY, AUTHENTICATION & ACCESS CONTROL ===
       - urn: urn:intuitem:risk:req_node:appsec:iam_chapter

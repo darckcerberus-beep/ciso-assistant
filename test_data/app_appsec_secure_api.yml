@@ -84,12 +84,6 @@ answers:
     result: "compliant"
     observation: "Cloud-native microservices on Amazon Web Services (AWS) managed multi-tenant SaaS infrastructure with strict tenant segregation."
 
-  - requirement: "network_exposure"
-    question: "What is the network exposure of the application?"
-    answer: "Internet-facing (Public Web / Mobile API)"
-    result: "compliant"
-    observation: "Public REST API endpoints (api.example-paymentapi.com) fronted by CloudFlare DDoS protection and AWS WAF."
-
   # ============================================================================
   # CHAPTER 2: IDENTITY, AUTHENTICATION & ACCESS CONTROL
   # ============================================================================

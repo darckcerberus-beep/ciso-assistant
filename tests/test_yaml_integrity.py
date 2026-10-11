@@ -656,20 +656,35 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertEqual(next(c for c in q3_saas_recert["choices"] if c["value"] == "Yes")["add_score"], 25)
 
     def test_appsec_network_exposure_and_conditional_branching(self):
-        """Ensure AppSec exposure profiling cleanly separates in-house operational controls from SaaS contractual controls."""
+        """Ensure AppSec exposure profiling assumes SaaS is always externally exposed, while self-hosted apps use network_exposure."""
         appsec_fw = next((fw for fw in self.frameworks if fw["ref_id"] == "appsec"), None)
         if not appsec_fw:
             return
 
-        # 1. Validate network_exposure (Chapter 1 info node for all apps, including SaaS)
+        # 1. Validate hosting choice c3 (SaaS) unconditionally activates saas_app AND internet_facing
+        hosting_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:hosting")
+        self.assertIsNotNone(hosting_node, "hosting node missing in AppSec")
+        q1_hosting = hosting_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:hosting:q1")
+        self.assertIsNotNone(q1_hosting)
+        saas_choice = next(c for c in q1_hosting["choices"] if c["urn"] == "urn:intuitem:risk:req_node:appsec:hosting:q1:c3")
+        self.assertIn("saas_app", saas_choice.get("select_implementation_groups", []))
+        self.assertIn("internet_facing", saas_choice.get("select_implementation_groups", []))
+
+        # 2. Validate network_exposure is scoped to self-hosted delivery models (baseline, custom_app, cots_app)
         net_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:network_exposure")
         self.assertIsNotNone(net_node, "network_exposure node missing in AppSec")
+        self.assertEqual(
+            set(net_node.get("implementation_groups", [])),
+            {"baseline", "custom_app", "cots_app"},
+            "network_exposure should be scoped to self-hosted apps since SaaS is assumed externally exposed",
+        )
         net_questions = net_node.get("questions", {})
         self.assertEqual(len(net_questions), 1, "network_exposure should define 1 profiling question (q1: exposure discriminator)")
 
         q1 = net_questions.get("urn:intuitem:risk:req_node:appsec:network_exposure:q1")
         self.assertIsNotNone(q1)
         q1_choices = {c["urn"]: c for c in q1.get("choices", [])}
+        self.assertEqual(len(q1_choices), 2, "network_exposure should only have Internal and Internet-facing choices for self-hosted apps")
         internal_choice_urn = "urn:intuitem:risk:req_node:appsec:network_exposure:q1:c1"
         external_choice_urn = "urn:intuitem:risk:req_node:appsec:network_exposure:q1:c2"
         self.assertIn(internal_choice_urn, q1_choices)
