@@ -971,7 +971,6 @@ class TestYamlIntegrity(unittest.TestCase):
         # Verify sensitive data requirements are scoped to confidential and secret applications
         sensitive_data_reqs = [
             "data_at_rest",
-            "data_exchange",
             "non_prod_data",
             "data_destruction",
         ]
@@ -984,6 +983,15 @@ class TestYamlIntegrity(unittest.TestCase):
             self.assertNotIn("baseline", groups, f"{ref_id} must not include baseline group")
             self.assertNotIn("public_app", groups, f"{ref_id} must not include public_app group")
             self.assertNotIn("saas_app", groups, f"{ref_id} must not include saas_app group")
+
+        # Verify data_exchange is scoped to self-hosted delivery models (baseline, custom_app, cots_app) and excludes saas_app
+        de_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:data_exchange")
+        self.assertIsNotNone(de_node, "data_exchange node missing in appsec")
+        de_groups = de_node.get("implementation_groups", [])
+        self.assertIn("baseline", de_groups)
+        self.assertIn("custom_app", de_groups)
+        self.assertIn("cots_app", de_groups)
+        self.assertNotIn("saas_app", de_groups, "data_exchange must not include saas_app")
 
         # Verify internet-facing perimeter requirements are scoped to internet_facing
         perimeter_reqs = [
@@ -1076,6 +1084,18 @@ class TestYamlIntegrity(unittest.TestCase):
 
         # Redundant SaaS scenario must NOT exist
         self.assertNotIn("saas_nonprod_data_disclosure", scenarios)
+
+        # 3. Data Exchange scoping: data_exchange is scoped to self-hosted apps; SaaS inherently exchanges data with provider
+        de_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:data_exchange")
+        self.assertIsNotNone(de_node, "data_exchange missing in AppSec")
+        self.assertEqual(de_node.get("parent_urn"), "urn:intuitem:risk:req_node:appsec:data_lifecycle_chapter")
+        self.assertEqual(de_node.get("implementation_groups"), ["baseline", "custom_app", "cots_app"])
+
+        # Self-hosted evaluates third_party_data_leakage, SaaS evaluates saas_provider_data_leakage
+        self.assertIn("third_party_data_leakage", scenarios)
+        self.assertEqual(scenarios["third_party_data_leakage"].get("likelihood"), "urn:intuitem:risk:req_node:appsec:data_exchange")
+        self.assertIn("saas_provider_data_leakage", scenarios)
+        self.assertEqual(scenarios["saas_provider_data_leakage"].get("likelihood"), "urn:intuitem:risk:req_node:appsec:saas_contract")
 
     def test_appsec_penetration_testing_saas_contractual_management(self):
         """Verify that penetration testing is split between self-hosted and SaaS with contractual management."""

@@ -30,14 +30,20 @@
      - Choice `c2` (*"Internet-facing (Public Web / Mobile API)"*): `add_score: 100`, `compute_result: true`, selects `internet_facing` implementation group.
    - Redundant SaaS-specific Choice 3 (`c3`) completely eliminated.
 
-2. **Chapter 10 (`saas_chapter` / Annexe Sécurité Contractualization)**:
+2. **Requirement Node `urn:intuitem:risk:req_node:appsec:data_exchange` (Chapter 7 `data_lifecycle_chapter`)**:
+   - **SaaS External Data Exchange Assumption**: Third-party SaaS applications inherently and unconditionally exchange data with the external SaaS provider outside the corporate perimeter. Answering "No" on data exchange for SaaS is a false assertion, while answering "Yes" opened redundant DPA questions.
+   - **`data_exchange` Scoping**: Scoped strictly to self-hosted delivery models (`implementation_groups: ["baseline", "custom_app", "cots_app"]`), eliminating redundant data exchange questions for SaaS applications.
+   - **SaaS Contractual Governance in Chapter 10**: SaaS data transfers, DPAs, and confidentiality obligations remain governed directly under Chapter 10 (`saas_contract_compliance`).
+   - **Risk Scenario Symmetry**: Self-hosted applications evaluate `Third-party data leakage` (likelihood: `data_exchange`), while SaaS applications evaluate `SaaS provider data leakage` (likelihood: `saas_contract_compliance`), giving both delivery models exactly 15 in-scope risk scenarios.
+
+3. **Chapter 10 (`saas_chapter` / Annexe Sécurité Contractualization)**:
    - For SaaS applications, vendors do not allow clients to test vendor infrastructure, put client Cloudflare in front of the platform, manage vendor admin accounts, or connect internal SIEM agents. These controls are enforced as contractual obligations:
      - **Cloudflare / Anti-DDoS & WAF (`saas_network_security:q1`)**: Vendor contractually commits to edge anti-DDoS and WAF protection (Cloudflare, AWS WAF & Shield, Google Cloud Armor, Azure WAF, Akamai, Fastly, Imperva).
      - **Vendor Security Testing (`saas_web_app_security:q2` & `saas_audit_and_compliance:q1`)**: Vendor contractually commits to annual independent third-party pentests, monthly vulnerability scanning, and provides audit attestations / letters of attestation.
      - **Admin Accounts vs. Enterprise IGA (`saas_entitlements_and_privileges:q1`, `q2`)**: Vendor manages internal administrative access under least privilege (`q1`), while enabling the client to manage tenant user identities and entitlements via enterprise IGA / SailPoint / SCIM (`q2`).
      - **SIEM & Incident Notification (`saas_logging_and_incidents:q1`, `q2` & `saas_telemetry_and_audit_export`)**: Vendor performs internal 24/7 security monitoring with tamper-resistant audit logs (`q1`), commits to a 48-hour security incident notification SLA (`q2`), and provides API/webhook telemetry export for ingestion into client SIEM.
 
-3. **Unified IAM Architecture (Eliminating Empty Requirement Sections on SSO)**:
+4. **Unified IAM Architecture (Eliminating Empty Requirement Sections on SSO)**:
    - In Chapter 2 (`iam_chapter`), `federation_and_sso` and `authentication_and_mfa` are merged into a single comprehensive requirement node `authentication_and_mfa` (*"Centralized Identity, Authentication & MFA"*).
    - Root Question (`q1`): Asks how users authenticate (*"Enterprise SSO"* vs. *"Direct / Local application authentication"*).
    - Branch A (Enterprise SSO): Awards 100% compliance directly (`add_score: 100`, `compute_result: true`) without asking redundant central IT/IAM MFA questions to application owners.

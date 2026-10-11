@@ -134,9 +134,11 @@ Within active requirement nodes, questions are dynamically conditioned using int
   - `q2`: API payload strict validation against documented API specifications (OpenAPI / JSON schema).
 
 ### Chapter 7: Data Lifecycle & Sanitization
-- **`data_exchange`** (`confidential_app`, `secret_app` across Custom, COTS, and SaaS):
+- **`data_exchange`** (`baseline`, `custom_app`, `cots_app`):
+  - Applicable to self-hosted delivery models (Custom and COTS).
   - `q1`: Formally controls external data exchanges, API integrations, and webhooks beyond the enterprise perimeter.
   - `q2`: Enforces formal data transfer agreements (DPA/DTA/NDA) and integration security when external exchange is active.
+  - *SaaS Policy*: Third-party SaaS applications inherently and unconditionally exchange data with the external SaaS provider. Chapter 7 data exchange profiling questions are bypassed; SaaS vendor data transfer terms, confidentiality obligations, and DPAs are governed directly in Chapter 10 (`saas_contract_compliance`).
 - **`non_prod_data`** (`confidential_app`, `secret_app` across Custom, COTS, and SaaS):
   - `q1`: Verifies whether real production data is copied or utilized in non-production environments or SaaS sandbox tenants.
   - `q2`: Enforces cryptographic masking, pseudonymisation, or field-level encryption on non-prod and sandbox data.
@@ -221,8 +223,8 @@ The table below defines the exact applicability criteria for every requirement a
 | **5. SDLC** | `code_review_and_ci_cd_integrity` (q1) | Peer Code Review & Branch Protection | `custom_app` | **Custom Only** | All | All | **Active exclusively if custom_app is selected** |
 | **6. API** | `api_security_and_rate_limiting` (q1) | Edge WAF, Bot Protection & Rate Limiting | `internet_facing` | Custom, COTS | All | **Internet-Facing** | Active if Self-Hosted & Network Exposure == Internet |
 | **6. API** | `api_security_and_rate_limiting` (q2) | OpenAPI / Schema Validation | `internet_facing` | Custom, COTS | All | **Internet-Facing** | Active if Self-Hosted & Network Exposure == Internet |
-| **7. Lifecycle**| `data_exchange` (q1) | External Data Exchange Tracking | `confidential_app`, `secret_app` | **Custom, COTS, SaaS** | **Confidential, Secret** | All | Active if Classification >= Confidential |
-| **7. Lifecycle**| `data_exchange` (q2) | Data Exchange Contract (DPA/DTA) | `confidential_app`, `secret_app` | **Custom, COTS, SaaS** | **Confidential, Secret** | All | `data_exchange:q1 == Yes` |
+| **7. Lifecycle**| `data_exchange` (q1) | External Data Exchange Tracking | `baseline`, `custom_app`, `cots_app` | **Custom, COTS** | All | All | Active for Self-Hosted Applications |
+| **7. Lifecycle**| `data_exchange` (q2) | Data Exchange Contract (DPA/DTA) | `baseline`, `custom_app`, `cots_app` | **Custom, COTS** | All | All | `data_exchange:q1 == Yes` |
 | **7. Lifecycle**| `non_prod_data` (q1) | Live Production Data in Non-Prod / Sandboxes | `confidential_app`, `secret_app` | **Custom, COTS, SaaS** | **Confidential, Secret** | All | Active if Classification >= Confidential |
 | **7. Lifecycle**| `non_prod_data` (q2-q3) | Non-Prod & Sandbox Masking / Data Purging | `confidential_app`, `secret_app` | **Custom, COTS, SaaS** | **Confidential, Secret** | All | `non_prod_data:q1 == Yes` |
 | **7. Lifecycle**| `data_destruction` (q1) | Certified Data Destruction Policy | `confidential_app`, `secret_app` | **Custom, COTS, SaaS** | **Confidential, Secret** | All | Active if Classification >= Confidential |
