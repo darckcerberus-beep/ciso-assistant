@@ -231,3 +231,26 @@ In Chapter 9 (`resilience_chapter`), unified penetration testing governance acro
 - **Synchronized Test Fixtures**: Updated [`test_data/app_appsec_secure_api.yml`](file:///home/python/ciso-assistant/test_data/app_appsec_secure_api.yml), [`test_data/app_appsec_hybrid_saas.yml`](file:///home/python/ciso-assistant/test_data/app_appsec_hybrid_saas.yml), and [`test_data/app_appsec_vulnerable_legacy.yml`](file:///home/python/ciso-assistant/test_data/app_appsec_vulnerable_legacy.yml) to reflect the contractual pentest governance choices while preserving exact risk ratings.
 - **Framework Version**: Incremented to `version: 7`.
 - **Test Suite**: All 211 automated unit tests pass.
+
+---
+
+## 13. Universal Non-Production Data Governance (Version 12)
+
+Consolidated non-production and sandbox test data governance into Chapter 7 (`data_lifecycle_chapter`):
+- **Universal Requirement**: Merged `saas_non_prod_data` into `non_prod_data` (`urn:intuitem:risk:req_node:appsec:non_prod_data`), expanding phrasing to cover in-house staging/dev environments as well as SaaS sandbox tenants.
+- **Removed Duplicate SaaS Node**: Eliminated `saas_non_prod_data` and duplicate scenario `saas_nonprod_data_disclosure`.
+- **Framework Version**: Incremented to `version: 12`.
+- **Test Suite**: All 217 automated unit tests pass.
+
+---
+
+## 14. Universal Data Security Consolidation & Duplication Elimination (Version 13)
+
+Completely eliminated duplicated data security questions (`non_prod_data`, `data_destruction`, `data_exchange`) between general application chapters and Chapter 10:
+- **Universal Data Destruction**: Enhanced `data_destruction` in Chapter 7 (`data_lifecycle_chapter`) to universally cover self-hosted retention/purging schedules as well as contractual SaaS exit management SLAs (<= 30-day export) and certified erasure (<= 60 days). Removed redundant `saas_secure_data_destruction` from Chapter 10.
+- **Universal Data Exchange**: Enhanced `data_exchange` in Chapter 7 to universally govern cross-organizational transfers, APIs, webhooks, and SaaS integration security (TLS 1.2+, mTLS, DPA/DTA contracts). Removed redundant `saas_data_exchange_security` from Chapter 10.
+- **Single Source of Truth**: Chapter 7 (`Data Protection & Lifecycle Governance`) serves as the sole, authoritative track for sensitive data lifecycle across all delivery models (`custom_app`, `cots_app`, `saas_app`), eliminating all duplicate data security questions for SaaS audits.
+- **Integrity & Zero Orphans**: Maintained 0 orphaned controls, 0 orphaned vulnerabilities, and 100 max points per assessable requirement node across 62 total nodes (21 in Chapter 10).
+- **Framework Version**: Incremented to `version: 13`.
+- **Test Suite**: All 217 automated unit tests pass.
+

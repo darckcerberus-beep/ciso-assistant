@@ -548,7 +548,7 @@ class TestYamlIntegrity(unittest.TestCase):
             rn for rn in appsec_fw["req_nodes"].values()
             if rn.get("parent_urn") == "urn:intuitem:risk:req_node:appsec:saas_chapter"
         ]
-        self.assertEqual(len(saas_chapter_children), 23, "Expected 23 assessable requirement nodes in Chapter 10")
+        self.assertEqual(len(saas_chapter_children), 21, "Expected 21 assessable requirement nodes in Chapter 10")
         expected_saas_nodes = {
             "saas_contract_compliance",
             "saas_governance_and_policy",
@@ -564,11 +564,9 @@ class TestYamlIntegrity(unittest.TestCase):
             "saas_secure_development",
             "saas_web_app_security",
             "saas_penetration_testing_and_vulnerability_management",
-            "saas_data_exchange_security",
             "saas_data_hosting_and_residency",
             "saas_physical_security",
             "saas_backup_and_business_continuity",
-            "saas_secure_data_destruction",
             "saas_subcontractor_management",
             "saas_audit_and_compliance",
             "saas_pci_dss",
@@ -1016,11 +1014,21 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertTrue(np_node.get("assessable"))
         self.assertEqual(np_node.get("implementation_groups"), ["confidential_app", "secret_app"])
 
-        # Redundant SaaS sandbox node must NOT exist in Chapter 10
+        # Redundant SaaS data security nodes must NOT exist in Chapter 10
         self.assertNotIn(
             "urn:intuitem:risk:req_node:appsec:saas_non_prod_data",
             appsec_fw["req_nodes"],
             "saas_non_prod_data must be removed to avoid duplicate non-prod questions",
+        )
+        self.assertNotIn(
+            "urn:intuitem:risk:req_node:appsec:saas_data_exchange_security",
+            appsec_fw["req_nodes"],
+            "saas_data_exchange_security must be removed to avoid duplicate data exchange questions",
+        )
+        self.assertNotIn(
+            "urn:intuitem:risk:req_node:appsec:saas_secure_data_destruction",
+            appsec_fw["req_nodes"],
+            "saas_secure_data_destruction must be removed to avoid duplicate data destruction questions",
         )
 
         # Check questions in non_prod_data

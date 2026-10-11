@@ -134,16 +134,16 @@ Within active requirement nodes, questions are dynamically conditioned using int
   - `q2`: API payload strict validation against documented API specifications (OpenAPI / JSON schema).
 
 ### Chapter 7: Data Lifecycle & Sanitization
-- **`data_exchange`** (`baseline`, `custom_app`, `cots_app`):
-  - `q1`: Formally controls external data exchanges and API integrations beyond the enterprise perimeter.
-  - `q2`: Enforces formal data transfer agreements (DPA/DTA/NDA) when external exchange is active.
+- **`data_exchange`** (`confidential_app`, `secret_app` across Custom, COTS, and SaaS):
+  - `q1`: Formally controls external data exchanges, API integrations, and webhooks beyond the enterprise perimeter.
+  - `q2`: Enforces formal data transfer agreements (DPA/DTA/NDA) and integration security when external exchange is active.
 - **`non_prod_data`** (`confidential_app`, `secret_app` across Custom, COTS, and SaaS):
   - `q1`: Verifies whether real production data is copied or utilized in non-production environments or SaaS sandbox tenants.
   - `q2`: Enforces cryptographic masking, pseudonymisation, or field-level encryption on non-prod and sandbox data.
   - `q3`: Enforces prompt post-testing data cleansing/purging.
-- **`data_destruction`** (`baseline`, `custom_app`, `cots_app`):
-  - `q1`: Formally verifies application data retention schedules and end-of-life purging procedures for self-hosted systems.
-  - `q2`: Enforces compliance with certified cryptographic erasure methods, media sanitization, and disposal certificates.
+- **`data_destruction`** (`confidential_app`, `secret_app` across Custom, COTS, and SaaS):
+  - `q1`: Formally verifies application data retention schedules and end-of-life purging procedures for self-hosted systems, or contractual exit management SLA (<= 30-day export) for SaaS.
+  - `q2`: Enforces compliance with certified cryptographic erasure methods, media sanitization, and disposal certificates, or certified post-termination SaaS vendor erasure (<= 60 days).
 
 ### Chapter 8: Security Logging & Monitoring
 - **`security_event_logging`** (`baseline`, `custom_app`, `cots_app`):
@@ -177,11 +177,9 @@ Within active requirement nodes, questions are dynamically conditioned using int
 - **`saas_secure_development`**: Vendor DevSecOps and secure software development lifecycle guarantees.
 - **`saas_web_app_security`**: Perimeter transport encryption (TLS 1.2+), port filtering, and admin interface access control.
 - **`saas_penetration_testing_and_vulnerability_management`**: SaaS penetration testing governance (authorized client pentest, annual vendor pentest with audit reports/attestations, or refusal) and contractual vulnerability remediation SLAs (Critical <= 7d, High <= 30d).
-- **`saas_data_exchange_security`**: TLS 1.2+ encryption on vendor external APIs and data transfers.
 - **`saas_data_hosting_and_residency`**: Documented cloud hosting regions and European data residency compliance.
 - **`saas_physical_security`**: Tier III+ datacenter physical security and environmental protections.
 - **`saas_backup_and_business_continuity`**: Daily immutable vendor backups and tested Disaster Recovery plans.
-- **`saas_secure_data_destruction`**: Certified post-contract data purge and destruction certificates.
 - **`saas_subcontractor_management`**: Sub-Processor auditing, security flow-down clauses, and prior notification of changes.
 - **`saas_audit_and_compliance`**: Annual SOC 2 Type II / ISO 27001 third-party audit reports provided to customer.
 - **`saas_pci_dss`**: Valid PCI DSS Attestation of Compliance (AOC) if payment card data is processed.
@@ -223,12 +221,12 @@ The table below defines the exact applicability criteria for every requirement a
 | **5. SDLC** | `code_review_and_ci_cd_integrity` (q1) | Peer Code Review & Branch Protection | `custom_app` | **Custom Only** | All | All | **Active exclusively if custom_app is selected** |
 | **6. API** | `api_security_and_rate_limiting` (q1) | Edge WAF, Bot Protection & Rate Limiting | `internet_facing` | Custom, COTS | All | **Internet-Facing** | Active if Self-Hosted & Network Exposure == Internet |
 | **6. API** | `api_security_and_rate_limiting` (q2) | OpenAPI / Schema Validation | `internet_facing` | Custom, COTS | All | **Internet-Facing** | Active if Self-Hosted & Network Exposure == Internet |
-| **7. Lifecycle**| `data_exchange` (q1) | External Data Exchange Tracking | `confidential_app`, `secret_app` | Custom, COTS | **Confidential, Secret** | All | Active if Classification >= Confidential |
-| **7. Lifecycle**| `data_exchange` (q2) | Data Exchange Contract (DPA/DTA) | `confidential_app`, `secret_app` | Custom, COTS | **Confidential, Secret** | All | `data_exchange:q1 == Yes` |
+| **7. Lifecycle**| `data_exchange` (q1) | External Data Exchange Tracking | `confidential_app`, `secret_app` | **Custom, COTS, SaaS** | **Confidential, Secret** | All | Active if Classification >= Confidential |
+| **7. Lifecycle**| `data_exchange` (q2) | Data Exchange Contract (DPA/DTA) | `confidential_app`, `secret_app` | **Custom, COTS, SaaS** | **Confidential, Secret** | All | `data_exchange:q1 == Yes` |
 | **7. Lifecycle**| `non_prod_data` (q1) | Live Production Data in Non-Prod / Sandboxes | `confidential_app`, `secret_app` | **Custom, COTS, SaaS** | **Confidential, Secret** | All | Active if Classification >= Confidential |
 | **7. Lifecycle**| `non_prod_data` (q2-q3) | Non-Prod & Sandbox Masking / Data Purging | `confidential_app`, `secret_app` | **Custom, COTS, SaaS** | **Confidential, Secret** | All | `non_prod_data:q1 == Yes` |
-| **7. Lifecycle**| `data_destruction` (q1) | Certified Data Destruction Policy | `confidential_app`, `secret_app` | Custom, COTS | **Confidential, Secret** | All | Active if Classification >= Confidential |
-| **7. Lifecycle**| `data_destruction` (q2) | Destruction Process & Certificate | `confidential_app`, `secret_app` | Custom, COTS | **Confidential, Secret** | All | `data_destruction:q1 == Yes` |
+| **7. Lifecycle**| `data_destruction` (q1) | Certified Data Destruction Policy | `confidential_app`, `secret_app` | **Custom, COTS, SaaS** | **Confidential, Secret** | All | Active if Classification >= Confidential |
+| **7. Lifecycle**| `data_destruction` (q2) | Destruction Process & Certificate | `confidential_app`, `secret_app` | **Custom, COTS, SaaS** | **Confidential, Secret** | All | `data_destruction:q1 == Yes` |
 | **8. Logging** | `security_event_logging` (q1-q2) | Security Event Logging & Data Masking | `baseline`, `custom_app`, `cots_app` | Custom, COTS | All | All | None |
 | **8. Logging** | `centralized_monitoring_and_alerting` (q1)| Real-Time SIEM/SOC Forwarding | `baseline`, `custom_app`, `cots_app` | Custom, COTS | All | All | None |
 | **9. Resilience**| `penetration_testing_and_vulnerability_management` (q1-q2)| Annual Pentesting Governance & Remediation SLAs | `internet_facing` | Custom, COTS | All | **Internet-Facing** | Active if Self-Hosted & Network Exposure == Internet |
@@ -248,11 +246,9 @@ The table below defines the exact applicability criteria for every requirement a
 | **10. SaaS** | `saas_secure_development` | Vendor DevSecOps & SDLC Guarantees | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_web_app_security` | Web App & Transport Security (TLS/Ports) | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_penetration_testing_and_vulnerability_management` (q1-q2) | SaaS Pentest Governance & Remediation SLAs | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
-| **10. SaaS** | `saas_data_exchange_security` | Vendor TLS 1.2+ Transport Security | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_data_hosting_and_residency` | EU Residency & Cloud Boundaries | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_physical_security` | Datacenter Physical Security | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_backup_and_business_continuity` | Daily Backups & Tested DR | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
-| **10. SaaS** | `saas_secure_data_destruction` | Certified Post-Contract Purge | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_subcontractor_management` | Sub-Processor Auditing & Notice | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_audit_and_compliance` | SOC 2 Type II / ISO 27001 Audit Reports| `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_pci_dss` (q1-q2) | PCI DSS AOC (if payment cards) | `saas_app` | **SaaS Only** | All | All | `saas_pci_dss:q1 == Card data processed` |
