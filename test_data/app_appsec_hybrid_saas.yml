@@ -67,18 +67,6 @@ answers:
     result: "compliant"
     observation: "Processes confidential customer business intelligence and revenue analytics data. Impact Level 3."
 
-  - requirement: "availability_classification"
-    question: "What is the maximum tolerable downtime (MTD) / business recovery objective for this application?"
-    answer: "Tier 2 - High / Sensitive (MTD <= 4 hours; customer-facing services or core operational systems)"
-    result: "compliant"
-    observation: "Customer portal with MTD <= 4 hours and regional failover."
-
-  - requirement: "integrity_classification"
-    question: "What is the integrity classification / accuracy criticality level required for this application's data and operations?"
-    answer: "Level 3 - High / Critical Business"
-    result: "compliant"
-    observation: "Customer business intelligence records require Level 3 High integrity to maintain contractual audit trust."
-
   - requirement: "hosting"
     question: "What is the hosting model?"
     answer: "SaaS"
@@ -205,11 +193,6 @@ answers:
     result: "compliant"
     observation: "TLS 1.2+ enforced on all external endpoints and internal service mesh communication."
 
-  - requirement: "data_at_rest"
-    question: "Is data encrypted at rest?"
-    answer: "No"
-    result: "not_compliant"
-    observation: "Temporary analytics cache volumes and staging data buckets stored unencrypted without customer key management."
 
   # ============================================================================
   # CHAPTER 5: SECURE SDLC & DEVSECOPS
@@ -245,55 +228,6 @@ answers:
     result: "compliant"
     observation: "Branch protection rules require at least one peer approval before merging to main."
 
-  # ============================================================================
-  # CHAPTER 6: API SECURITY & RATE LIMITING
-  # ============================================================================
-
-  - requirement: "api_security_and_rate_limiting"
-    question: "Are exposed API endpoints protected against abusive traffic via rate limiting and automated throttling controls?"
-    answer: "Yes"
-    result: "compliant"
-    observation: "NGINX rate-limiting rules apply 60 requests per minute per IP address."
-
-  - requirement: "api_security_and_rate_limiting"
-    question: "Are API payloads strictly validated against documented API specifications (e.g. OpenAPI / JSON schema)?"
-    answer: "No"
-    result: "not_compliant"
-    observation: "API schema enforcement is not strictly applied at the API gateway layer."
-
-  # ============================================================================
-  # CHAPTER 7: NON-PRODUCTION DATA PROTECTION & LIFECYCLE
-  # ============================================================================
-
-  - requirement: "non_prod_data"
-    question: "Are real production data records, live customer databases, or personal data utilized in non-production environments?"
-    answer: "Yes - Production data is copied or utilized for testing/staging"
-    result: "not_compliant"
-    observation: "Periodic staging runs copy sanitized slices of production data into staging and sandbox environments."
-
-  - requirement: "non_prod_data"
-    question: "How do you protect them?"
-    answer: "Pseudonymisation"
-    result: "compliant"
-    observation: "Pseudonymization pipeline masks customer identifiers and names before loading into staging or sandbox tenants."
-
-  - requirement: "non_prod_data"
-    question: "Do you clean the prod data after use in non-prod?"
-    answer: "No"
-    result: "not_compliant"
-    observation: "Masked data retained in staging and sandbox environments indefinitely without automated post-test wiping."
-
-  - requirement: "data_destruction"
-    question: "Is there a data destruction process for this application?"
-    answer: "Yes"
-    result: "compliant"
-    observation: "Customer account deletion endpoint triggers database row deletion."
-
-  - requirement: "data_destruction"
-    question: "Is the process compliant with the policy (responsibilities, methods, reporting)?"
-    answer: "No, not compliant"
-    result: "not_compliant"
-    observation: "Data destruction lacks formal compliance reporting and cryptographic verification audit trails."
 
   # ============================================================================
   # CHAPTER 8: SECURITY LOGGING, MONITORING & INCIDENT RESPONSE
@@ -364,32 +298,18 @@ expected_evaluation:
   confidentiality_impact: 3
   availability_impact: 3
   integrity_impact: 3
-  scenario_count: 15
+  scenario_count: 11
   excluded_scenarios:
     - "Third-party data leakage"
+    - "Exposure of unencrypted data at rest"
+    - "Disclosure of production data in non-production environments"
+    - "Excessive retention of sensitive data"
+    - "API abuse and denial of service"
 
 expected_risk_scenarios:
   - scenario: "Exposure of unencrypted data in transit"
     likelihood_requirement: "data_in_transit"
     likelihood_score: 100
-    scaled_likelihood: 1
-    scaled_impact: 3
-    matrix_risk_id: 1
-    risk_level: 2
-    control_priority: 3
-
-  - scenario: "Exposure of unencrypted data at rest"
-    likelihood_requirement: "data_at_rest"
-    likelihood_score: 0
-    scaled_likelihood: 4
-    scaled_impact: 3
-    matrix_risk_id: 3
-    risk_level: 4
-    control_priority: 1
-
-  - scenario: "Disclosure of production data in non-production environments"
-    likelihood_requirement: "non_prod_data"
-    likelihood_score: 90
     scaled_likelihood: 1
     scaled_impact: 3
     matrix_risk_id: 1
@@ -413,15 +333,6 @@ expected_risk_scenarios:
     matrix_risk_id: 1
     risk_level: 2
     control_priority: 3
-
-  - scenario: "Excessive retention of sensitive data"
-    likelihood_requirement: "data_destruction"
-    likelihood_score: 50
-    scaled_likelihood: 3
-    scaled_impact: 3
-    matrix_risk_id: 2
-    risk_level: 3
-    control_priority: 2
 
   - scenario: "Account takeover via weak authentication"
     likelihood_requirement: "authentication_and_mfa"
@@ -461,15 +372,6 @@ expected_risk_scenarios:
 
   - scenario: "Supply chain compromise via vulnerable dependency"
     likelihood_requirement: "supply_chain_and_dependencies"
-    likelihood_score: 50
-    scaled_likelihood: 3
-    scaled_impact: 3
-    matrix_risk_id: 2
-    risk_level: 3
-    control_priority: 2
-
-  - scenario: "API abuse and denial of service"
-    likelihood_requirement: "api_security_and_rate_limiting"
     likelihood_score: 50
     scaled_likelihood: 3
     scaled_impact: 3

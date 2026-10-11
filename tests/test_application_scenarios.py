@@ -791,7 +791,7 @@ class TestApplicationProfileScenarioConsistency(unittest.TestCase):
         results = simulator.evaluate_from_requirement_assessments(mock_ras)
 
         self.assertEqual(results["confidentiality_impact"], 4)
-        self.assertEqual(len(results["scenarios"]), 15)
+        self.assertEqual(len(results["scenarios"]), 11)
         for name, sc in results["scenarios"].items():
             self.assertEqual(sc["scaled_likelihood"], 1, f"Expected min likelihood for {name}")
             self.assertEqual(sc["matrix_risk_id"], 1, f"Expected low risk for {name}")

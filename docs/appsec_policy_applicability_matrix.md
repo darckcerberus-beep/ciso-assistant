@@ -55,9 +55,10 @@ Requirement nodes are assigned to native CISO Assistant Implementation Groups, e
 - `cots_app`: Bought software track (COTS / vendor package deployment).
 - `saas_app`: SaaS application track (Chapter 10 contractual governance).
 - `baseline`: Application security technical baseline applicable to self-hosted applications (Custom & COTS).
-- `confidential_app`: Triggered when Data Classification is **Confidential** or **Secret**.
-- `secret_app`: Triggered exclusively when Data Classification is **Secret**.
-- `internet_facing`: Triggered when Network Exposure is **Internet-Facing**.
+- `internet_facing`: Triggered when Network Exposure is **Internet-Facing** for self-hosted applications.
+
+> [!NOTE]
+> Data classification (`data_classification`) strictly determines the **confidentiality impact level** for risk scenario calculations (impact levels 1 to 4). It intentionally does not activate separate implementation groups, ensuring self-hosted requirements (`data_at_rest`, `non_prod_data`, `data_destruction`) are not asked redundantly for SaaS applications, which are governed by dedicated controls in Chapter 10.
 
 Profiling triggers in `hosting:q1` dynamically activate the tracks:
 - **Custom Software**: Activates `custom_app` and `baseline`.
@@ -76,20 +77,18 @@ Within active requirement nodes, questions are dynamically conditioned using int
 ### Chapter 1: Application Information, Governance & Scoping
 - **`instructions_splash`**: Guidance splash screen detailing assessment expectations.
 - **`stakeholder_identification`**: Mandatory documentation of Business Owner, Technical Owner, and Information Security Officer (CISO/SecOps delegate).
-- **`data_classification`**: Formally categorizes data assets into Public, Internal, Confidential, or Secret (Confidentiality impact).
-- **`availability_classification`**: Formally categorizes business recovery priority and Maximum Tolerable Downtime (MTD Tiers 1–4; Availability impact).
-- **`integrity_classification`**: Formally categorizes data accuracy, tamper resistance, and business operational criticality (Levels 1–4; Integrity impact completing the CIA triad).
-- **`hosting`**: Discriminates between Custom (In-house), Bought (COTS), and SaaS. Selecting SaaS automatically triggers both `saas_app` and `internet_facing` (since SaaS applications are unconditionally assumed to be externally exposed).
+- **`data_classification`**: Formally categorizes data assets into Public, Internal, Confidential, or Secret (Confidentiality impact governing all risk scenario ratings).
+- **`hosting`**: Discriminates between Custom (In-house), Bought (COTS), and SaaS. Selecting SaaS automatically triggers `saas_app` (cloud provider perimeter defenses, WAF, and penetration testing are governed under Chapter 10).
 - **`network_exposure`** (`baseline`, `custom_app`, `cots_app`): Identifies whether self-hosted applications are restricted to internal corporate networks or exposed to the public Internet (bypassed for SaaS).
 
 ### Chapter 2: Identity, Authentication & Access Control (IAM)
-- **`authentication_and_mfa`** (`baseline`, `custom_app`, `cots_app`):
-  - `q1`: Mandates Enterprise SSO federation (SAML 2.0 / OIDC) as primary authentication standard.
+- **`authentication_and_mfa`** (`baseline`, `custom_app`, `cots_app`, `saas_app` - All applications):
+  - `q1`: Mandates Enterprise SSO federation (SAML 2.0 / OIDC) as primary authentication standard across all applications.
   - `q2`: If Direct Authentication is used, enforces strong password complexity and brute-force lockout.
   - `q3`: If Direct Authentication is used, enforces Multi-Factor Authentication (MFA) for administrative and privileged users.
-- **`access_control_and_rbac`** (`baseline`, `custom_app`, `cots_app`):
+- **`access_control_and_rbac`** (`baseline`, `custom_app`, `cots_app`, `saas_app` - All applications):
   - `q1`: Enforces granular Role-Based / Attribute-Based Access Control (RBAC/ABAC) and least privilege across business functions and APIs.
-  - `q2`: Mandates integration with Enterprise Identity Governance & Administration (IGA / SailPoint).
+  - `q2`: Mandates integration with Enterprise Identity Governance & Administration (IGA / SailPoint) for employee access across all systems.
   - `q3`: Enforces periodic access recertifications (annual standard, semi-annual privileged).
 - **`session_management`** (`custom_app` only):
   - `q1`: Enforces cryptographically secure session tokens, `HttpOnly`, `Secure`, `SameSite` cookie flags, and idle session timeouts.
@@ -127,11 +126,15 @@ Within active requirement nodes, questions are dynamically conditioned using int
   - `q2`: Generation and auditing of Software Bill of Materials (SBOM) for releases.
 - **`code_review_and_ci_cd_integrity`** (`custom_app` only):
   - `q1`: Mandatory peer code review and protected branch policies before merging.
+- **`vendor_secure_development`** (`cots_app` only):
+  - `q1`: High-level verification that third-party COTS software vendors adhere to recognized secure coding baselines (OWASP Top 10, ISO 27034, NIST SSDF) without requiring proprietary source-code disclosures. (SaaS provider secure development is governed under Chapter 10 `saas_secure_development`).
 
 ### Chapter 6: API Security & Gateway Protections
-- **`api_security_and_rate_limiting`** (`baseline`, `custom_app`, `cots_app`, `internet_facing`):
+- **`api_security_and_rate_limiting`** (`internet_facing`):
+  - Applicable strictly to self-hosted applications exposed to the public Internet (Custom and COTS).
   - `q1`: Edge Web Application Firewall (WAF, e.g., Cloudflare, AWS WAF), bot protection, and automated rate limiting / throttling controls.
   - `q2`: API payload strict validation against documented API specifications (OpenAPI / JSON schema).
+  - *SaaS Policy*: SaaS platform edge WAF, anti-DDoS, and transport controls are governed under Chapter 10 (`saas_network_security` and `saas_web_app_security`).
 
 ### Chapter 7: Data Lifecycle & Sanitization
 - **`data_exchange`** (`baseline`, `custom_app`, `cots_app`):
@@ -139,13 +142,17 @@ Within active requirement nodes, questions are dynamically conditioned using int
   - `q1`: Formally controls external data exchanges, API integrations, and webhooks beyond the enterprise perimeter.
   - `q2`: Enforces formal data transfer agreements (DPA/DTA/NDA) and integration security when external exchange is active.
   - *SaaS Policy*: Third-party SaaS applications inherently and unconditionally exchange data with the external SaaS provider. Chapter 7 data exchange profiling questions are bypassed; SaaS vendor data transfer terms, confidentiality obligations, and DPAs are governed directly in Chapter 10 (`saas_contract_compliance`).
-- **`non_prod_data`** (`confidential_app`, `secret_app` across Custom, COTS, and SaaS):
-  - `q1`: Verifies whether real production data is copied or utilized in non-production environments or SaaS sandbox tenants.
-  - `q2`: Enforces cryptographic masking, pseudonymisation, or field-level encryption on non-prod and sandbox data.
+- **`non_prod_data`** (`baseline`, `custom_app`, `cots_app`):
+  - Applicable to self-hosted delivery models (Custom and COTS).
+  - `q1`: Verifies whether real production data is copied or utilized in non-production environments (development, staging, QA).
+  - `q2`: Enforces cryptographic masking, pseudonymisation, or field-level encryption on non-prod test data.
   - `q3`: Enforces prompt post-testing data cleansing/purging.
-- **`data_destruction`** (`confidential_app`, `secret_app` across Custom, COTS, and SaaS):
-  - `q1`: Formally verifies application data retention schedules and end-of-life purging procedures for self-hosted systems, or contractual exit management SLA (<= 30-day export) for SaaS.
-  - `q2`: Enforces compliance with certified cryptographic erasure methods, media sanitization, and disposal certificates, or certified post-termination SaaS vendor erasure (<= 60 days).
+  - *SaaS Policy*: Third-party SaaS sandbox isolation and preview tenant boundaries are governed directly in Chapter 10 (`saas_environment_isolation`).
+- **`data_destruction`** (`baseline`, `custom_app`, `cots_app`):
+  - Applicable to self-hosted delivery models (Custom and COTS).
+  - `q1`: Formally verifies application data retention schedules and end-of-life purging procedures for self-hosted databases and storage.
+  - `q2`: Enforces compliance with certified cryptographic erasure methods, media sanitization, and disposal certificates.
+  - *SaaS Policy*: Third-party SaaS data export windows (<= 30-day export) and certified post-termination vendor data erasure (<= 60 days) are governed directly in Chapter 10 (`saas_resilience_and_data_portability`).
 
 ### Chapter 8: Security Logging & Monitoring
 - **`security_event_logging`** (`baseline`, `custom_app`, `cots_app`):
@@ -169,8 +176,8 @@ Within active requirement nodes, questions are dynamically conditioned using int
 - **`saas_governance_and_policy`**: Documented Information Security Policy and formal annual management reviews.
 - **`saas_confidentiality_and_data_protection`**: Vendor employee NDAs and tenant-isolated encryption.
 - **`saas_security_awareness`**: Mandatory annual cybersecurity training for vendor personnel.
-- **`saas_iam`**: Mandatory Enterprise SSO federation or robust tenant identity policies.
-- **`saas_entitlements_and_privileges`**: Vendor least privilege, administrative account inventory, and support for enterprise IGA (SailPoint).
+- **`saas_iam`**: Multi-Factor Authentication (MFA) strictly enforced for root, administrative, and break-glass access to the SaaS tenant management console independently of standard user SSO.
+- **`saas_entitlements_and_privileges`**: Provider-side administrative privilege governance (least privilege RBAC, inventory of privileged accounts, and periodic recertifications across provider personnel accessing tenant data/infrastructure). Client employee access and IGA recertification are evaluated under Chapter 2.
 - **`saas_logging_and_incidents`**: Immutable vendor audit logs, 48h breach notification SLA, and SIEM streaming API.
 - **`saas_workstation_security`**: Hardened vendor laptops, EDR, full-disk encryption, and patch compliance.
 - **`saas_mobile_security`**: Mobile Device Management (MDM) on vendor devices accessing customer tenant data.
@@ -198,15 +205,14 @@ The table below defines the exact applicability criteria for every requirement a
 | **0. Splash** | `instructions_splash` | Instructions & Guidance | `info` | All | All | All | None (Always visible) |
 | **1. Profile** | `stakeholder_identification` | Stakeholder Identification | `info` | All | All | All | None |
 | **1. Profile** | `data_classification` | Application Data Classification | `info` | All | All | All | None |
-| **1. Profile** | `availability_classification` | Application Availability & MTD Tiers | `info` | All | All | All | None |
-| **1. Profile** | `hosting` | Delivery & Hosting Model | `info` | All | All | All | None (SaaS activates `saas_app` & `internet_facing`) |
-| **1. Profile** | `network_exposure` | Application Network Exposure | `baseline`, `custom_app`, `cots_app` | Custom, COTS | All | All | Active for self-hosted apps; SaaS is assumed externally exposed |
-| **2. IAM** | `authentication_and_mfa` (q1) | Authentication Mode (SSO vs Direct) | `baseline`, `custom_app`, `cots_app` | Custom, COTS | All | All | None |
-| **2. IAM** | `authentication_and_mfa` (q2) | Password Policy & Lockout | `baseline`, `custom_app`, `cots_app` | Custom, COTS | All | All | `q1 == Direct Authentication` |
-| **2. IAM** | `authentication_and_mfa` (q3) | Admin MFA Enforcement | `baseline`, `custom_app`, `cots_app` | Custom, COTS | All | All | `q1 == Direct Authentication` |
-| **2. IAM** | `access_control_and_rbac` (q1) | Granular RBAC & Least Privilege | `baseline`, `custom_app`, `cots_app` | Custom, COTS | All | All | None |
-| **2. IAM** | `access_control_and_rbac` (q2) | Enterprise IGA (SailPoint) Connector | `baseline`, `custom_app`, `cots_app` | Custom, COTS | All | All | None |
-| **2. IAM** | `access_control_and_rbac` (q3) | Periodic Access Recertifications | `baseline`, `custom_app`, `cots_app` | Custom, COTS | All | All | None |
+| **1. Profile** | `hosting` | Delivery & Hosting Model | `info` | All | All | All | None (SaaS activates `saas_app`) |
+| **1. Profile** | `network_exposure` | Application Network Exposure | `baseline`, `custom_app`, `cots_app` | Custom, COTS | All | All | Active for self-hosted apps; SaaS is governed by cloud controls in Chapter 10 |
+| **2. IAM** | `authentication_and_mfa` (q1) | Authentication Mode (SSO vs Direct) | `baseline`, `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | None |
+| **2. IAM** | `authentication_and_mfa` (q2) | Password Policy & Lockout | `baseline`, `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | `q1 == Direct Authentication` |
+| **2. IAM** | `authentication_and_mfa` (q3) | Admin MFA Enforcement | `baseline`, `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | `q1 == Direct Authentication` |
+| **2. IAM** | `access_control_and_rbac` (q1) | Granular RBAC & Least Privilege | `baseline`, `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | None |
+| **2. IAM** | `access_control_and_rbac` (q2) | Enterprise IGA (SailPoint) Connector | `baseline`, `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | None |
+| **2. IAM** | `access_control_and_rbac` (q3) | Periodic Access Recertifications | `baseline`, `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | None |
 | **2. IAM** | `session_management` (q1) | Cryptographic Session Tokens & Cookies | `custom_app` | **Custom Only** | All | All | **Active exclusively if custom_app is selected** |
 | **3. Defenses** | `input_validation_and_injection_defense` (q1) | Server-Side Input Schema Validation | `custom_app` | **Custom Only** | All | All | **Active exclusively if custom_app is selected** |
 | **3. Defenses** | `input_validation_and_injection_defense` (q2) | Parameterized Queries / ORMs | `custom_app` | **Custom Only** | All | All | **Active exclusively if custom_app is selected** |
@@ -215,20 +221,21 @@ The table below defines the exact applicability criteria for every requirement a
 | **3. Defenses** | `error_handling_and_info_leakage` (q1) | Debug Modes & Stack Traces Disabled | `custom_app` | **Custom Only** | All | All | **Active exclusively if custom_app is selected** |
 | **4. Crypto** | `secrets_management` (q1) | Centralized Secrets Vault | `baseline`, `custom_app`, `cots_app` | Custom, COTS | All | All | None |
 | **4. Crypto** | `data_in_transit` (q1) | Encryption in Transit (TLS 1.2+) | `baseline`, `custom_app`, `cots_app` | Custom, COTS | All | All | None |
-| **4. Crypto** | `data_at_rest` (q1) | Encryption at Rest (AES-256) | `confidential_app`, `secret_app` | Custom, COTS | **Confidential, Secret** | All | Active if Classification >= Confidential |
+| **4. Crypto** | `data_at_rest` (q1) | Encryption at Rest (AES-256) | `baseline`, `custom_app`, `cots_app` | Custom, COTS | All | All | Active for Self-Hosted Applications |
 | **5. SDLC** | `automated_security_testing` (q1) | Automated SAST in CI/CD | `custom_app` | **Custom Only** | All | All | **Active exclusively if custom_app is selected** |
 | **5. SDLC** | `automated_security_testing` (q2) | Automated DAST / API Scanning | `custom_app` | **Custom Only** | All | All | **Active exclusively if custom_app is selected** |
 | **5. SDLC** | `supply_chain_and_dependencies` (q1) | Automated SCA for Dependencies | `custom_app` | **Custom Only** | All | All | **Active exclusively if custom_app is selected** |
 | **5. SDLC** | `supply_chain_and_dependencies` (q2) | Audited Release Artifact SBOM | `custom_app` | **Custom Only** | All | All | **Active exclusively if custom_app is selected** |
 | **5. SDLC** | `code_review_and_ci_cd_integrity` (q1) | Peer Code Review & Branch Protection | `custom_app` | **Custom Only** | All | All | **Active exclusively if custom_app is selected** |
+| **5. SDLC** | `vendor_secure_development` (q1) | Vendor Secure Coding Guidelines | `cots_app` | **COTS Only** | All | All | Active exclusively for COTS software |
 | **6. API** | `api_security_and_rate_limiting` (q1) | Edge WAF, Bot Protection & Rate Limiting | `internet_facing` | Custom, COTS | All | **Internet-Facing** | Active if Self-Hosted & Network Exposure == Internet |
 | **6. API** | `api_security_and_rate_limiting` (q2) | OpenAPI / Schema Validation | `internet_facing` | Custom, COTS | All | **Internet-Facing** | Active if Self-Hosted & Network Exposure == Internet |
 | **7. Lifecycle**| `data_exchange` (q1) | External Data Exchange Tracking | `baseline`, `custom_app`, `cots_app` | **Custom, COTS** | All | All | Active for Self-Hosted Applications |
 | **7. Lifecycle**| `data_exchange` (q2) | Data Exchange Contract (DPA/DTA) | `baseline`, `custom_app`, `cots_app` | **Custom, COTS** | All | All | `data_exchange:q1 == Yes` |
-| **7. Lifecycle**| `non_prod_data` (q1) | Live Production Data in Non-Prod / Sandboxes | `confidential_app`, `secret_app` | **Custom, COTS, SaaS** | **Confidential, Secret** | All | Active if Classification >= Confidential |
-| **7. Lifecycle**| `non_prod_data` (q2-q3) | Non-Prod & Sandbox Masking / Data Purging | `confidential_app`, `secret_app` | **Custom, COTS, SaaS** | **Confidential, Secret** | All | `non_prod_data:q1 == Yes` |
-| **7. Lifecycle**| `data_destruction` (q1) | Certified Data Destruction Policy | `confidential_app`, `secret_app` | **Custom, COTS, SaaS** | **Confidential, Secret** | All | Active if Classification >= Confidential |
-| **7. Lifecycle**| `data_destruction` (q2) | Destruction Process & Certificate | `confidential_app`, `secret_app` | **Custom, COTS, SaaS** | **Confidential, Secret** | All | `data_destruction:q1 == Yes` |
+| **7. Lifecycle**| `non_prod_data` (q1) | Live Production Data in Non-Prod | `baseline`, `custom_app`, `cots_app` | **Custom, COTS** | All | All | Active for Self-Hosted Applications |
+| **7. Lifecycle**| `non_prod_data` (q2-q3) | Non-Prod Masking / Post-Test Purging | `baseline`, `custom_app`, `cots_app` | **Custom, COTS** | All | All | `non_prod_data:q1 == Yes` |
+| **7. Lifecycle**| `data_destruction` (q1) | Certified Data Destruction Policy | `baseline`, `custom_app`, `cots_app` | **Custom, COTS** | All | All | Active for Self-Hosted Applications |
+| **7. Lifecycle**| `data_destruction` (q2) | Destruction Process & Certificate | `baseline`, `custom_app`, `cots_app` | **Custom, COTS** | All | All | `data_destruction:q1 == Yes` |
 | **8. Logging** | `security_event_logging` (q1-q2) | Security Event Logging & Data Masking | `baseline`, `custom_app`, `cots_app` | Custom, COTS | All | All | None |
 | **8. Logging** | `centralized_monitoring_and_alerting` (q1)| Real-Time SIEM/SOC Forwarding | `baseline`, `custom_app`, `cots_app` | Custom, COTS | All | All | None |
 | **9. Resilience**| `penetration_testing_and_vulnerability_management` (q1-q2)| Annual Pentesting Governance & Remediation SLAs | `internet_facing` | Custom, COTS | All | **Internet-Facing** | Active if Self-Hosted & Network Exposure == Internet |
@@ -238,8 +245,8 @@ The table below defines the exact applicability criteria for every requirement a
 | **10. SaaS** | `saas_governance_and_policy` | Security Policy & Management Review | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_confidentiality_and_data_protection` | Staff NDAs & Tenant Encryption | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_security_awareness` | Annual Security Awareness Training | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
-| **10. SaaS** | `saas_iam` (q1-q3) | SSO (100 pts) / Direct Password & MFA | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
-| **10. SaaS** | `saas_entitlements_and_privileges` | Privilege Governance & IGA | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
+| **10. SaaS** | `saas_iam` (q1) | Admin Console MFA Enforcement | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
+| **10. SaaS** | `saas_entitlements_and_privileges` (q1-q2) | Provider Staff RBAC & Periodic Recertifications | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_logging_and_incidents` | 48h Breach SLA & Audit Telemetry | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_workstation_security` | Vendor Endpoint EDR & Encryption | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_mobile_security` | Vendor MDM & Containerization | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
