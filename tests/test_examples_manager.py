@@ -534,6 +534,86 @@ class TestExamplesManager(unittest.TestCase):
             )
 
     @patch("classes.utils.get_return")
+    def test_create_application_for_audit_with_implementation_groups(self, mock_get_return):
+        """Verify create_application_for_audit accepts and applies explicit implementation_groups."""
+        mock_data = {
+            "perimeter_dict": MagicMock(),
+            "asset_dict": MagicMock(),
+            "compliance_assessment_dict": MagicMock(),
+            "entity_dict": MagicMock(),
+            "entity_representative_dict": MagicMock(),
+            "entity_assessment_dict": MagicMock(),
+            "user_dict": MagicMock(),
+            "domain_dict": MagicMock(),
+        }
+
+        mock_data["user_dict"].get_id_from_email.return_value = "auditor-uuid"
+        mock_data["entity_dict"].create_entity.return_value = {"id": "entity-uuid-ig"}
+        mock_data["entity_dict"].get_id_from_name.return_value = "entity-uuid-ig"
+        mock_data["perimeter_dict"].create_perimeter.return_value = {"id": "perm-uuid-ig"}
+        mock_data["perimeter_dict"].get_id_from_name.return_value = "perm-uuid-ig"
+        mock_data["asset_dict"].create_asset.return_value = {"id": "asset-uuid-ig"}
+        mock_data["asset_dict"].get_asset_id_from_perimeter_name.return_value = "asset-uuid-ig"
+        mock_data["asset_dict"].get_assets.return_value = []
+
+        mock_fw = MagicMock()
+        mock_fw.get_id.return_value = "fw-uuid-mls"
+        mock_fw.get_name.return_value = "Multi-level DPP"
+        ig_defs = [
+            {"name": "Application information", "ref_id": "baseline", "default_selected": True},
+            {"name": "Custom applications", "ref_id": "custom_app", "default_selected": False},
+        ]
+        mock_fw.get_implementation_groups_definition.return_value = ig_defs
+        mock_fw.json_object = {"ref_id": "mls", "implementation_groups_definition": ig_defs}
+
+        mock_ca = MagicMock()
+        mock_ca.get_id.return_value = "ca-uuid-ig"
+        mock_ca.get_name.return_value = "Assessment of Multi-level DPP in App-Audit-IG"
+        mock_ca.get_status.return_value = "in_progress"
+        mock_ca.get_selected_implementation_groups.return_value = ["Application information", "Custom applications"]
+        mock_data["compliance_assessment_dict"].get_compliance_assessments.return_value = {}
+        mock_data["compliance_assessment_dict"].requirement_assessments.get_requirement_assessment_id_list_from_compliance_assessment_id.return_value = ["ra-1"]
+        mock_data["compliance_assessment_dict"].requirement_assignments.get_requirement_assignment_id_list_from_compliance_assessment_id.return_value = ["assign-1"]
+        mock_data["entity_assessment_dict"].create_entity_assessment.return_value = {"id": "ea-uuid-ig"}
+
+        mock_get_return.return_value = {
+            "id": "ca-uuid-ig",
+            "name": "Assessment of Multi-level DPP in App-Audit-IG",
+            "selected_implementation_groups": ["Application information", "Custom applications"],
+        }
+
+        with patch.object(self.manager, "_init_data", return_value=mock_data), \
+             patch.object(self.manager, "get_or_create_folder", return_value="folder-uuid-1"), \
+             patch.object(self.manager, "get_default_assignee_id", return_value="assignee-uuid-1"), \
+             patch.object(self.manager, "find_target_framework", return_value=mock_fw), \
+             patch("time.sleep"):
+
+            # In the mock, simulate that after reload() the new CA is available
+            mock_data["compliance_assessment_dict"].get_compliance_assessments.side_effect = [
+                {},
+                {"ca-uuid-ig": mock_ca},
+                {"ca-uuid-ig": mock_ca},
+            ]
+
+            res = self.manager.create_application_for_audit(
+                app_name="App-Audit-IG",
+                user_email="auditor@example.com",
+                implementation_groups=["baseline", "custom_app"],
+            )
+
+            self.assertEqual(res["app_name"], "App-Audit-IG")
+            self.assertEqual(res["selected_implementation_groups"], ["Application information", "Custom applications"])
+            self.assertEqual(len(res["available_implementation_groups"]), 2)
+            # Verify POST payload sent to CISO Assistant included selected_implementation_groups
+            mock_get_return.assert_called_once()
+            ca_post_call = mock_get_return.call_args
+            self.assertEqual(ca_post_call[0][0], "/api/compliance-assessments/")
+            self.assertEqual(
+                ca_post_call[1]["payload"]["selected_implementation_groups"],
+                ["Application information", "Custom applications"],
+            )
+
+    @patch("classes.utils.get_return")
     def test_create_application_for_audit_existing_user(self, mock_get_return):
         """Verify create_application_for_audit reuses user when already existing."""
         mock_data = {

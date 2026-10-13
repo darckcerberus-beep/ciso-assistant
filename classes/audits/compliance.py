@@ -5,7 +5,12 @@ import time
 from pathlib import Path
 
 from .. import utils
-from .implementation_groups import add_default_implementation_groups
+from .implementation_groups import (
+    add_default_implementation_groups,
+    get_framework_implementation_groups,
+    resolve_implementation_groups,
+    set_implementation_groups,
+)
 from .requirement_assessment import RequirementAssessmentDict, create_requirement_assignment
 from .requirement_assignment import RequirementAssignmentDict
 
@@ -104,6 +109,39 @@ class ComplianceAssessment:
                 return score
         return None
 
+    def get_selected_implementation_groups(self) -> list[str]:
+        """Return the list of currently selected implementation group names."""
+        raw = self.compliance_assessment_json.get('selected_implementation_groups')
+        if isinstance(raw, list):
+            return [str(g) for g in raw if g]
+        if isinstance(raw, str) and raw:
+            return [raw]
+        return []
+
+    def set_selected_implementation_groups(self, groups: list[str]) -> dict:
+        """Update selected implementation groups for this assessment via API PATCH."""
+        fw_id = self.get_framework_id()
+        resolved = resolve_implementation_groups(groups, fw_id) if fw_id else list(groups or [])
+        payload = {'selected_implementation_groups': resolved}
+        res = utils.get_return(
+            f"/api/compliance-assessments/{self.get_id()}/",
+            method="PATCH",
+            payload=payload,
+        )
+        if isinstance(res, dict) and not res.get("error"):
+            self.compliance_assessment_json = res
+        elif isinstance(res, dict) and res.get("id"):
+            self.compliance_assessment_json = res
+        else:
+            self.compliance_assessment_json['selected_implementation_groups'] = resolved
+        return self.compliance_assessment_json
+
+    def add_selected_implementation_groups(self, groups: list[str]) -> dict:
+        """Add further implementation groups to this assessment (merging with existing ones)."""
+        current = self.get_selected_implementation_groups()
+        combined = list(dict.fromkeys(list(current) + list(groups or [])))
+        return self.set_selected_implementation_groups(combined)
+
 
 class ComplianceAssessmentDict:
     """Manage a collection of compliance assessments and related API operations."""
@@ -132,7 +170,7 @@ class ComplianceAssessmentDict:
         """Return the compliance assessment dictionary."""
         return self.compliance_assessments
 
-    def create_compliance_assessment(self, name, framework_id, perimeter_id):
+    def create_compliance_assessment(self, name, framework_id, perimeter_id, implementation_groups=None):
         """Create a new compliance assessment via POST request."""
         utils.log(f"Creating compliance assessment: {name} with parameters framework_id={framework_id}, perimeter_id={perimeter_id} and score_method={AUDITOR_SCORE_METHOD}", level=logging.DEBUG)
         payload = {
@@ -142,11 +180,35 @@ class ComplianceAssessmentDict:
             'score_calculation_method': AUDITOR_SCORE_METHOD,
             'field_visibility': AUDITOR_SCORE_VISIBILITY,
         }
-        add_default_implementation_groups(payload, framework_id)
+        if implementation_groups is not None:
+            resolved = resolve_implementation_groups(implementation_groups, framework_id)
+            payload['selected_implementation_groups'] = resolved
+        else:
+            add_default_implementation_groups(payload, framework_id)
         response = utils.get_return("/api/compliance-assessments/", method="POST", payload=payload)
         self.reload()
         utils.log(f"Compliance assessment created successfully: {name}", level=logging.INFO)
         return ComplianceAssessment(response)
+
+    def update_implementation_groups(self, compliance_assessment_id: str, groups: list[str]):
+        """Update selected implementation groups for a compliance assessment."""
+        ca = self.compliance_assessments.get(compliance_assessment_id)
+        if not ca:
+            ca = ComplianceAssessment(compliance_assessment_id)
+            self.compliance_assessments[compliance_assessment_id] = ca
+        res = ca.set_selected_implementation_groups(groups)
+        self.reload()
+        return res
+
+    def add_implementation_groups(self, compliance_assessment_id: str, groups: list[str]):
+        """Add further implementation groups for a compliance assessment."""
+        ca = self.compliance_assessments.get(compliance_assessment_id)
+        if not ca:
+            ca = ComplianceAssessment(compliance_assessment_id)
+            self.compliance_assessments[compliance_assessment_id] = ca
+        res = ca.add_selected_implementation_groups(groups)
+        self.reload()
+        return res
 
     def create_missing_compliance_assessments(self, framework_dict, perimeter_dict, asset_dict):
         """Ensure every framework/perimeter combination has a compliance assessment."""

@@ -29,7 +29,7 @@ description: >
   Supports both internally managed applications and SaaS solutions whose security controls
   are defined with a contract and certified via third-party audit reports (SOC 2, ISO 27001).
 copyright: DCME Corp
-version: 16
+version: 17
 publication_date: 2026-10-11
 provider: DCME Corp
 packager: DCME Corp
@@ -1357,7 +1357,8 @@ objects:
       - urn: urn:intuitem:risk:ig:appsec:baseline
         name: "Application Security Baseline"
         ref_id: "baseline"
-        description: "Core technical application security baseline applicable to self-hosted applications (Custom & COTS)"
+        description: "Core application security baseline requirements applicable to all applications (Governance, Profiling, Authentication & Access Control)"
+        default_selected: true
       - urn: urn:intuitem:risk:ig:appsec:internet_facing
         name: "Internet-Facing Application Track"
         ref_id: "internet_facing"
@@ -1392,7 +1393,7 @@ objects:
           6. Progress & Submission: You can complete this questionnaire progressively. Once submitted, CISO Assistant will automatically calculate likelihood and impact across all risk scenarios.
         annotation: >
           Introductory splash screen explaining questionnaire navigation, answering guidelines, dynamic section triggering based on data classification and hosting model, and audit evidence expectations.
-        implementation_groups: ["info"]
+        implementation_groups: ["info", "baseline"]
 
       # === CHAPTER 1: APPLICATION INFORMATION & GOVERNANCE ===
       - urn: urn:intuitem:risk:req_node:appsec:info
@@ -1403,7 +1404,7 @@ objects:
         description: "Basic application profiling, ownership, hosting, exposure, and architecture context."
         annotation: >
           High-level application profiling and organizational governance context. Captures essential metadata to determine ownership, data sensitivity, and applicable compliance baseline tracks.
-        implementation_groups: ["info"]
+        implementation_groups: ["info", "baseline"]
 
       # Requirement: Identify stakeholders for the application
       - urn: urn:intuitem:risk:req_node:appsec:stakeholder_identification
@@ -1420,7 +1421,7 @@ objects:
           - CMDB / Service Catalog configuration item entry with assigned technical & business owners
           - Data Governance RACI matrix or formal appointment documentation
         vulnerabilities: ["urn:intuitem:risk:vulnerability:appsec:unclear_accountability"]
-        implementation_groups: ["info"]
+        implementation_groups: ["info", "baseline"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:stakeholder_designation
         questions:
@@ -1501,7 +1502,7 @@ objects:
           - Data flow diagram identifying sensitivity tags on data stores and APIs
         reference_controls: ["urn:intuitem:risk:control:appsec:identify_data_classification"]
         vulnerabilities: ["urn:intuitem:risk:vulnerability:appsec:lack_of_data_classification"]
-        implementation_groups: ["info"]
+        implementation_groups: ["info", "baseline"]
         questions:
           urn:intuitem:risk:req_node:appsec:data_classification:q1:
             type: unique_choice
@@ -1537,7 +1538,7 @@ objects:
         typical_evidence: >
           - Architecture design document (ADD) / System topology diagram
           - Software procurement contract, vendor license, or Git repository metadata
-        implementation_groups: ["info"]
+        implementation_groups: ["info", "baseline"]
         questions:
           urn:intuitem:risk:req_node:appsec:hosting:q1:
             type: unique_choice
@@ -1553,7 +1554,7 @@ objects:
                 color: "#17a2b8"
               - urn: urn:intuitem:risk:req_node:appsec:hosting:q1:c3
                 value: "SaaS (Third-party software hosted and operated by a vendor)"
-                select_implementation_groups: ["saas_app"]
+                select_implementation_groups: ["saas_app", "baseline"]
                 color: "#17a2b8"
 
       # Requirement: Determine network exposure
@@ -1572,7 +1573,7 @@ objects:
         typical_evidence: >
           - Network zoning diagram showing DMZ, perimeter firewalls, and reverse proxies
           - DNS configuration and IP address allocation records
-        implementation_groups: ["baseline", "custom_app", "cots_app"]
+        implementation_groups: ["custom_app", "cots_app"]
         questions:
           urn:intuitem:risk:req_node:appsec:network_exposure:q1:
             type: unique_choice
@@ -1599,7 +1600,7 @@ objects:
         description: "Enforce strong authentication, Multi-Factor Authentication (MFA), federated SSO, and granular authorization controls."
         annotation: >
           Comprehensive IAM controls aligned with OWASP ASVS V2 (Authentication) and V4 (Access Control).
-        implementation_groups: ["baseline", "custom_app", "cots_app"]
+        implementation_groups: ["baseline", "custom_app", "cots_app", "saas_app"]
 
       # Requirement: Centralized Identity, Authentication & MFA
       - urn: urn:intuitem:risk:req_node:appsec:authentication_and_mfa
@@ -2039,7 +2040,7 @@ objects:
         description: "Enforce cryptographic protection for data in transit and at rest, and maintain centralized secrets management."
         annotation: >
           Comprehensive cryptographic controls incorporating newDPP data protection and centralized secrets vaults.
-        implementation_groups: ["baseline", "custom_app", "cots_app"]
+        implementation_groups: ["custom_app", "cots_app"]
 
       # Requirement: Secrets management
       - urn: urn:intuitem:risk:req_node:appsec:secrets_management
@@ -2056,7 +2057,7 @@ objects:
           - Pre-commit secret scanning pipeline report (e.g. Gitleaks / TruffleHog)
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:hardcoded_secrets
-        implementation_groups: ["baseline", "custom_app", "cots_app"]
+        implementation_groups: ["custom_app", "cots_app"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:centralized_secrets_management
         questions:
@@ -2091,7 +2092,7 @@ objects:
           - API gateway / Load balancer TLS cipher suite and protocol enforcement configuration
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:lack_of_encryption
-        implementation_groups: ["baseline", "custom_app", "cots_app"]
+        implementation_groups: ["custom_app", "cots_app"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:encrypt_data_in_transit
         questions:
@@ -2126,7 +2127,7 @@ objects:
           - Cloud storage bucket / disk volume encryption configuration (e.g., AWS KMS / Azure Key Vault / GCP KMS)
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:lack_of_encryption
-        implementation_groups: ["baseline", "custom_app", "cots_app"]
+        implementation_groups: ["custom_app", "cots_app"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:encrypt_data_at_rest
         questions:
@@ -2399,7 +2400,7 @@ objects:
         annotation: >
           Comprehensive data protection and privacy lifecycle controls.
           Ensures sensitive data assets are protected throughout their lifecycle: formal data transfer agreements (DPAs/DTAs) for external exchanges, sanitization and masking of test data in non-production environments, and compliant end-of-life purging and certified destruction.
-        implementation_groups: ["baseline", "custom_app", "cots_app"]
+        implementation_groups: ["custom_app", "cots_app"]
 
       # Requirement: Control data exchange beyond organization (self-hosted applications)
       - urn: urn:intuitem:risk:req_node:appsec:data_exchange
@@ -2423,7 +2424,7 @@ objects:
         reference_controls:
           - urn:intuitem:risk:control:appsec:information_exchange_contract
           - urn:intuitem:risk:control:appsec:encrypt_data_in_transit
-        implementation_groups: ["baseline", "custom_app", "cots_app"]
+        implementation_groups: ["custom_app", "cots_app"]
         questions:
           urn:intuitem:risk:req_node:appsec:data_exchange:q1:
             type: unique_choice
@@ -2476,7 +2477,7 @@ objects:
           - Test data refresh and post-test purging runbooks for staging and test environments
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:unprotected_non_prod
-        implementation_groups: ["baseline", "custom_app", "cots_app"]
+        implementation_groups: ["custom_app", "cots_app"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:protect_prod_data_in_non_prod
         questions:
@@ -2561,7 +2562,7 @@ objects:
           - urn:intuitem:risk:vulnerability:appsec:uncontrolled_data_retention
         reference_controls:
           - urn:intuitem:risk:control:appsec:data_destruction_process
-        implementation_groups: ["baseline", "custom_app", "cots_app"]
+        implementation_groups: ["custom_app", "cots_app"]
         questions:
           urn:intuitem:risk:req_node:appsec:data_destruction:q1:
             type: unique_choice
@@ -2605,7 +2606,7 @@ objects:
         description: "Log security-relevant events, mask sensitive fields, and forward telemetry to a central SIEM."
         annotation: >
           Aligned with OWASP ASVS V7 (Error Handling and Logging) and ISO/IEC 27001 A.8.15 / A.8.16.
-        implementation_groups: ["baseline", "custom_app", "cots_app"]
+        implementation_groups: ["custom_app", "cots_app"]
 
       # Requirement: Security event logging & masking
       - urn: urn:intuitem:risk:req_node:appsec:security_event_logging
@@ -2622,7 +2623,7 @@ objects:
           - Log masking / sanitization filter rule definitions
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:insufficient_security_logging
-        implementation_groups: ["baseline", "custom_app", "cots_app"]
+        implementation_groups: ["custom_app", "cots_app"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:centralized_security_logging
         questions:
@@ -2672,7 +2673,7 @@ objects:
           - Active SOC alerting rule documentation for anomalous application behavior
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:insufficient_security_logging
-        implementation_groups: ["baseline", "custom_app", "cots_app"]
+        implementation_groups: ["custom_app", "cots_app"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:centralized_security_logging
         questions:
@@ -2700,7 +2701,7 @@ objects:
         description: "Perform independent penetration testing, enforce patch remediation SLAs, and maintain disaster recovery readiness."
         annotation: >
           Validates operational defense-in-depth and business continuity across internally hosted applications (Custom and COTS).
-        implementation_groups: ["baseline", "custom_app", "cots_app"]
+        implementation_groups: ["custom_app", "cots_app"]
 
       # Requirement: Penetration testing & vulnerability remediation (Hosted)
       - urn: urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management
@@ -2768,7 +2769,7 @@ objects:
           - Annual disaster recovery drill report showing measured restoration times
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:inadequate_resilience_backup
-        implementation_groups: ["baseline", "custom_app", "cots_app"]
+        implementation_groups: ["custom_app", "cots_app"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:backup_and_disaster_recovery
         questions:
@@ -3865,7 +3866,7 @@ objects:
           If your application architecture, hosting model, or exposure profile changes in the future, please re-evaluate this assessment.
         annotation: >
           Concluding splash screen expressing gratitude to the respondent and detailing subsequent compliance verification, risk assessment, and remediation workflows.
-        implementation_groups: ["info"]
+        implementation_groups: ["info", "baseline"]
 
 # ============================================================================
 # AUDIT CONFIGURATION

@@ -429,12 +429,28 @@
               <label class="block text-xs font-medium text-slate-300">Compliance Framework</label>
               <span id="audit-framework-status-badge" class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">Checking...</span>
             </div>
-            <select id="audit-framework-select" class="w-full px-3.5 py-2 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white focus:outline-none focus:border-brand-500 transition">
+            <select id="audit-framework-select" onchange="renderAuditImplementationGroups(this.value)" class="w-full px-3.5 py-2 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white focus:outline-none focus:border-brand-500 transition">
               <option value="" disabled selected>Loading installed frameworks...</option>
             </select>
             <div id="audit-framework-warning" class="hidden mt-2 p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center space-x-2">
               <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0"></i>
               <span id="audit-framework-warning-text">No compliance frameworks are currently installed in CISO Assistant. Please load or import a framework first.</span>
+            </div>
+          </div>
+
+          <!-- Implementation Groups Selection -->
+          <div id="audit-ig-container" class="hidden space-y-2 p-3.5 bg-surface-800/40 border border-slate-700/60 rounded-lg">
+            <div class="flex items-center justify-between">
+              <label class="block text-xs font-medium text-slate-300">Implementation Groups (Assessment Tracks)</label>
+              <div class="space-x-2 text-[11px] text-slate-400">
+                <button type="button" onclick="toggleAllAuditIgs(true)" class="hover:text-brand-400 underline">Select All</button>
+                <span>•</span>
+                <button type="button" onclick="resetAuditIgsToDefaults()" class="hover:text-brand-400 underline">Reset Defaults</button>
+              </div>
+            </div>
+            <p class="text-[11px] text-slate-400">Choose which framework implementation tracks and profiles apply to this audit.</p>
+            <div id="audit-ig-checkboxes" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+              <!-- Populated dynamically when framework is selected -->
             </div>
           </div>
 
@@ -1007,6 +1023,78 @@
     </div>
   </div>
 
+  <!-- Manage Implementation Groups Modal -->
+  <div id="manage-groups-modal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-surface-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+            <i data-lucide="layers" class="w-5 h-5 text-indigo-400"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">Manage Implementation Groups</h3>
+            <p class="text-[11px] text-slate-400">Select further groups or modify active tracks for this audit</p>
+          </div>
+        </div>
+        <button onclick="closeModal('manage-groups-modal')" class="text-slate-400 hover:text-white transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3.5">
+        <div class="p-3 bg-surface-800/60 border border-slate-700/60 rounded-xl space-y-1 text-xs">
+          <div class="flex justify-between">
+            <span class="text-slate-400">Application:</span>
+            <span id="mg-app-name" class="text-white font-semibold">-</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Framework:</span>
+            <span id="mg-fw-name" class="text-white font-semibold">-</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Assessment ID:</span>
+            <span id="mg-ca-id" class="text-slate-300 font-mono text-[11px]">-</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5">Currently Active Implementation Groups:</label>
+          <div id="mg-current-badges" class="flex flex-wrap gap-1.5 min-h-[28px] p-2 rounded-lg bg-surface-800/40 border border-slate-700/40">
+            <span class="text-slate-500 text-xs italic">Loading...</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-xs font-semibold text-slate-300">Select Groups to Add or Update:</label>
+            <div class="space-x-2 text-[11px] text-slate-400">
+              <button type="button" onclick="toggleAllMgCheckboxes(true)" class="hover:text-indigo-400 underline">Select All</button>
+              <span>•</span>
+              <button type="button" onclick="toggleAllMgCheckboxes(false)" class="hover:text-indigo-400 underline">Clear All</button>
+            </div>
+          </div>
+          <div id="mg-checkboxes-container" class="space-y-2 max-h-56 overflow-y-auto pr-1">
+            <!-- Populated dynamically via JS -->
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-4 border-t border-slate-800 flex items-center justify-between">
+        <button onclick="closeModal('manage-groups-modal')" class="px-3.5 py-2 rounded-lg bg-surface-800 hover:bg-slate-700 text-slate-300 text-xs font-medium">Cancel</button>
+        <div class="flex items-center space-x-2">
+          <button onclick="submitManageGroups('add')" id="mg-add-btn" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center space-x-1.5 transition shadow-md shadow-indigo-600/20" title="Merge selected groups with currently active groups">
+            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+            <span>Add Further Groups</span>
+          </button>
+          <button onclick="submitManageGroups('replace')" id="mg-replace-btn" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold flex items-center space-x-1.5 transition shadow-md shadow-brand-600/20" title="Set exact selection of implementation groups">
+            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+            <span>Save Selection</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Generic Confirmation Modal -->
   <div id="confirm-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
     <div class="bg-surface-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
@@ -1242,11 +1330,15 @@
             ${(() => {
               const fwName = app.framework_name || app.framework_ref || 'Unassigned';
               const isInstalled = Boolean(app.framework_installed || (APP_STATE.installedFrameworks || []).some(f => (f.ref_id && f.ref_id.toLowerCase() === (app.framework_ref || '').toLowerCase()) || (f.name && f.name.toLowerCase() === (app.framework_name || '').toLowerCase())));
-              if (isInstalled) {
-                return `<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-surface-800 text-slate-300 border border-slate-700 font-mono">${fwName}</span>`;
-              } else {
-                return `<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/30 font-mono inline-flex items-center space-x-1" title="Framework not installed in CISO Assistant"><span>${fwName}</span><span class="text-[9px] font-bold text-rose-400"> (Not Installed)</span></span>`;
+              const fwBadge = isInstalled 
+                ? `<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-surface-800 text-slate-300 border border-slate-700 font-mono">${fwName}</span>`
+                : `<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/30 font-mono inline-flex items-center space-x-1" title="Framework not installed in CISO Assistant"><span>${fwName}</span><span class="text-[9px] font-bold text-rose-400"> (Not Installed)</span></span>`;
+              const igList = app.selected_implementation_groups || [];
+              let igBadge = '';
+              if (igList.length > 0) {
+                igBadge = `<div class="mt-1 flex flex-wrap gap-1">${igList.map(g => `<span class="px-1.5 py-0.2 rounded text-[9px] font-medium bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 truncate max-w-[140px]" title="${g}">${g}</span>`).join('')}</div>`;
               }
+              return `<div class="space-y-0.5">${fwBadge}${igBadge}</div>`;
             })()}
           </td>
           <td class="py-3 px-4">${statusBadge}</td>
@@ -1267,6 +1359,11 @@
                   Create
                 </button>
               ` : `
+                ${app.compliance_assessment_id ? `
+                <button onclick="openManageGroupsModal('${app.name}')" class="p-1.5 rounded hover:bg-surface-800 text-indigo-400" title="Manage Implementation Groups">
+                  <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                </button>
+                ` : ''}
                 <button onclick="openGenerateRisksModal('${app.name}')" class="p-1.5 rounded hover:bg-surface-800 text-amber-400" title="Generate Risks & Controls">
                   <i data-lucide="zap" class="w-3.5 h-3.5"></i>
                 </button>
@@ -1566,6 +1663,7 @@
           } else {
             auditFwSelect.value = installedFws[0].ref_id || installedFws[0].id;
           }
+          renderAuditImplementationGroups(auditFwSelect.value);
         }
 
         // Add uninstalled frameworks as disabled options
@@ -1718,6 +1816,9 @@
         selectedDomain = domainSelect.options[domainSelect.selectedIndex].text;
       }
 
+      const igCheckboxes = document.querySelectorAll("#audit-ig-checkboxes input[type='checkbox']:checked");
+      const selectedIgs = Array.from(igCheckboxes).map(cb => cb.value);
+
       const payload = {
         app_name: document.getElementById("audit-app-name").value.trim(),
         user_email: document.getElementById("audit-user-email").value.trim(),
@@ -1726,6 +1827,7 @@
         is_third_party: document.getElementById("audit-user-tprm").checked,
         framework: selectedFw,
         domain: selectedDomain || null,
+        implementation_groups: selectedIgs.length > 0 ? selectedIgs : null,
       };
 
       startTaskPost("/api/audit-demo", payload, (res) => {
@@ -1743,6 +1845,179 @@
 
     function setAuditDemoPreset(name) {
       document.getElementById("audit-app-name").value = name;
+    }
+
+    function renderAuditImplementationGroups(fwVal) {
+      const container = document.getElementById("audit-ig-container");
+      const listDiv = document.getElementById("audit-ig-checkboxes");
+      if (!container || !listDiv) return;
+
+      if (!fwVal) {
+        container.classList.add("hidden");
+        return;
+      }
+
+      const allFws = [...(APP_STATE.installedFrameworks || []), ...(APP_STATE.availableFrameworks || [])];
+      const normVal = fwVal.toLowerCase();
+      const fw = allFws.find(f => 
+        (f.id && f.id.toLowerCase() === normVal) ||
+        (f.ref_id && f.ref_id.toLowerCase() === normVal) ||
+        (f.name && f.name.toLowerCase() === normVal)
+      );
+
+      const igs = fw?.implementation_groups || [];
+      if (!igs || igs.length === 0) {
+        container.classList.add("hidden");
+        listDiv.innerHTML = "";
+        return;
+      }
+
+      container.classList.remove("hidden");
+      listDiv.innerHTML = "";
+
+      igs.forEach((ig, idx) => {
+        const isDef = Boolean(ig.default_selected);
+        const name = ig.name || ig.ref_id;
+        const refId = ig.ref_id || "";
+        const desc = ig.description || "";
+        const inputId = `audit-ig-cb-${idx}`;
+
+        const item = document.createElement("div");
+        item.className = "flex items-start space-x-2.5 p-2 rounded-lg bg-surface-800/80 border border-slate-700/60 hover:border-slate-600 transition";
+        item.innerHTML = `
+          <input type="checkbox" id="${inputId}" value="${name}" data-default="${isDef}" ${isDef ? 'checked' : ''} class="mt-0.5 w-4 h-4 rounded text-brand-500 bg-surface-900 border-slate-700 focus:ring-0">
+          <label for="${inputId}" class="text-xs text-slate-200 cursor-pointer select-none space-y-0.5">
+            <div class="flex items-center space-x-1.5 flex-wrap">
+              <span class="font-semibold text-white">${name}</span>
+              ${refId ? `<span class="px-1.5 py-0.2 rounded text-[10px] font-mono bg-surface-900 text-slate-400 border border-slate-700">${refId}</span>` : ''}
+              ${isDef ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">default</span>` : ''}
+            </div>
+            ${desc ? `<p class="text-[11px] text-slate-400 leading-tight">${desc}</p>` : ''}
+          </label>
+        `;
+        listDiv.appendChild(item);
+      });
+      lucide.createIcons();
+    }
+
+    function toggleAllAuditIgs(checked) {
+      const cbs = document.querySelectorAll("#audit-ig-checkboxes input[type='checkbox']");
+      cbs.forEach(cb => { cb.checked = checked; });
+    }
+
+    function resetAuditIgsToDefaults() {
+      const cbs = document.querySelectorAll("#audit-ig-checkboxes input[type='checkbox']");
+      cbs.forEach(cb => { cb.checked = (cb.dataset.default === "true"); });
+    }
+
+    let CURRENT_MANAGE_GROUPS_APP = null;
+
+    async function openManageGroupsModal(appName) {
+      CURRENT_MANAGE_GROUPS_APP = appName;
+      document.getElementById("mg-app-name").innerText = appName;
+      document.getElementById("mg-fw-name").innerText = "Loading...";
+      document.getElementById("mg-ca-id").innerText = "Loading...";
+      const badgesContainer = document.getElementById("mg-current-badges");
+      const cbsContainer = document.getElementById("mg-checkboxes-container");
+      badgesContainer.innerHTML = `<span class="text-slate-500 text-xs italic">Loading implementation groups...</span>`;
+      cbsContainer.innerHTML = `<div class="p-3 text-center text-xs text-slate-400">Loading available groups...</div>`;
+      openModal("manage-groups-modal");
+
+      try {
+        const res = await fetch(`/api/audits/${encodeURIComponent(appName)}/implementation-groups`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to load audit implementation groups");
+
+        document.getElementById("mg-app-name").innerText = data.app_name || appName;
+        document.getElementById("mg-fw-name").innerText = `${data.framework_name || ''} (${data.framework_ref || ''})`;
+        document.getElementById("mg-ca-id").innerText = data.compliance_assessment_id || "-";
+
+        const selected = data.selected_implementation_groups || [];
+        const available = data.available_implementation_groups || [];
+
+        // Render current badges
+        badgesContainer.innerHTML = "";
+        if (selected.length === 0) {
+          badgesContainer.innerHTML = `<span class="text-amber-400/80 text-xs italic">No implementation groups currently selected</span>`;
+        } else {
+          selected.forEach(g => {
+            const badge = document.createElement("span");
+            badge.className = "px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 flex items-center space-x-1";
+            badge.innerHTML = `<i data-lucide="check" class="w-3 h-3 text-indigo-400"></i><span>${g}</span>`;
+            badgesContainer.appendChild(badge);
+          });
+        }
+
+        // Render available checkboxes
+        cbsContainer.innerHTML = "";
+        if (available.length === 0) {
+          cbsContainer.innerHTML = `<div class="p-3 text-slate-500 text-xs italic text-center">Framework has no implementation group definitions.</div>`;
+        } else {
+          available.forEach((ig, idx) => {
+            const name = ig.name || ig.ref_id;
+            const refId = ig.ref_id || "";
+            const desc = ig.description || "";
+            const isCurrentlySelected = selected.some(s => s === name || (refId && s.toLowerCase() === refId.toLowerCase()));
+            const cbId = `mg-cb-${idx}`;
+
+            const item = document.createElement("div");
+            item.className = `flex items-start space-x-2.5 p-2.5 rounded-lg border transition ${isCurrentlySelected ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-surface-800/80 border-slate-700/60 hover:border-slate-600'}`;
+            item.innerHTML = `
+              <input type="checkbox" id="${cbId}" value="${name}" ${isCurrentlySelected ? 'checked' : ''} class="mt-0.5 w-4 h-4 rounded text-indigo-600 bg-surface-900 border-slate-700 focus:ring-0">
+              <label for="${cbId}" class="text-xs text-slate-200 cursor-pointer select-none space-y-0.5 flex-1">
+                <div class="flex items-center space-x-1.5 flex-wrap">
+                  <span class="font-semibold text-white">${name}</span>
+                  ${refId ? `<span class="px-1.5 py-0.2 rounded text-[10px] font-mono bg-surface-900 text-slate-400 border border-slate-700">${refId}</span>` : ''}
+                  ${isCurrentlySelected ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">active</span>` : ''}
+                  ${ig.default_selected ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-medium bg-slate-800 text-slate-400 border border-slate-700">default</span>` : ''}
+                </div>
+                ${desc ? `<p class="text-[11px] text-slate-400 leading-tight">${desc}</p>` : ''}
+              </label>
+            `;
+            cbsContainer.appendChild(item);
+          });
+        }
+        lucide.createIcons();
+      } catch (err) {
+        showToast(err.message, "error");
+        badgesContainer.innerHTML = `<span class="text-rose-400 text-xs">${err.message}</span>`;
+      }
+    }
+
+    function toggleAllMgCheckboxes(checked) {
+      const cbs = document.querySelectorAll("#mg-checkboxes-container input[type='checkbox']");
+      cbs.forEach(cb => { cb.checked = checked; });
+    }
+
+    async function submitManageGroups(mode) {
+      if (!CURRENT_MANAGE_GROUPS_APP) return;
+      const cbs = document.querySelectorAll("#mg-checkboxes-container input[type='checkbox']:checked");
+      const groups = Array.from(cbs).map(cb => cb.value);
+
+      const addBtn = document.getElementById("mg-add-btn");
+      const repBtn = document.getElementById("mg-replace-btn");
+      if (addBtn) addBtn.disabled = true;
+      if (repBtn) repBtn.disabled = true;
+
+      try {
+        const res = await fetch(`/api/audits/${encodeURIComponent(CURRENT_MANAGE_GROUPS_APP)}/implementation-groups`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ groups, mode }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to update implementation groups");
+
+        closeModal("manage-groups-modal");
+        const count = data.data?.selected_implementation_groups?.length || groups.length;
+        showToast(`Implementation groups successfully updated (${count} active)!`, "success");
+        await refreshStatus();
+      } catch (err) {
+        showToast(err.message, "error");
+      } finally {
+        if (addBtn) addBtn.disabled = false;
+        if (repBtn) repBtn.disabled = false;
+      }
     }
 
     function toggleAnswersSource() {

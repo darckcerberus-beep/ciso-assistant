@@ -135,7 +135,7 @@ Define or customize your operational situations/cases here for reference:
 
 #### Node: Stakeholder identification (`stakeholder_identification`)
 Action - None
-- **Implementation Groups**: `info`
+- **Implementation Groups**: `info`, `baseline`
 - **Description**: Stakeholders have been identified for the application
 
 ##### Q1. `stakeholder_identification:q1`
@@ -180,7 +180,7 @@ Action - None
 
 #### Node: Data classification (`data_classification`)
 Action - None
-- **Implementation Groups**: `info`
+- **Implementation Groups**: `info`, `baseline`
 - **Description**: Classify data handled by the application according to organizational policy.
 
 ##### Q5. `data_classification:q1`
@@ -197,7 +197,7 @@ Action - None
 
 #### Node: Application Delivery & Hosting Model (`hosting`)
 Action - None
-- **Implementation Groups**: `info`
+- **Implementation Groups**: `info`, `baseline`
 - **Description**: Determine the application delivery and hosting model: Custom software created and deployed by internal teams, Bought software deployed by internal teams, or third-party SaaS.
 
 ##### Q6. `hosting:q1`
@@ -212,7 +212,7 @@ Action - None
   - [x] All applications (Info profiling - Hosting model)
 
 #### Node: Application Network Exposure (`network_exposure`)
-- **Implementation Groups**: `baseline`, `custom_app`, `cots_app`
+- **Implementation Groups**: `custom_app`, `cots_app`
 - **Description**: Determine whether self-hosted applications (Custom or COTS) are accessible from the public Internet or restricted to private internal networks. (Third-party SaaS applications are unconditionally assumed to be externally exposed and bypass this requirement).
 
 ##### Q7. `network_exposure:q1`
@@ -440,7 +440,7 @@ Action - All apps must use RBAC and IGA for my employees, ask for all apps (Put 
 *Enforce cryptographic protection for data in transit and at rest, and maintain centralized secrets management.*
 
 #### Node: Centralized Secrets Management (`secrets_management`)
-- **Implementation Groups**: `baseline`, `custom_app`, `cots_app`
+- **Implementation Groups**: `custom_app`, `cots_app`
 - **Description**: Eliminate hardcoded credentials and store all API keys, database tokens, and certificates in dedicated secrets vaults.
 
 ##### Q24. `secrets_management:q1`
@@ -454,7 +454,7 @@ Action - All apps must use RBAC and IGA for my employees, ask for all apps (Put 
   - [ ] 
 
 #### Node: Encryption in Transit (`data_in_transit`)
-- **Implementation Groups**: `baseline`, `custom_app`, `cots_app`
+- **Implementation Groups**: `custom_app`, `cots_app`
 - **Description**: Encrypt data in transit across internal and external network boundaries.
 
 ##### Q25. `data_in_transit:q1`
@@ -468,7 +468,7 @@ Action - All apps must use RBAC and IGA for my employees, ask for all apps (Put 
   - [ ] 
 
 #### Node: Encryption at Rest (`data_at_rest`)
-- **Implementation Groups**: `baseline`, `custom_app`, `cots_app`
+- **Implementation Groups**: `custom_app`, `cots_app`
 - **Description**: Encrypt data at rest in databases, file systems, and backups.
 
 ##### Q26. `data_at_rest:q1`
@@ -601,7 +601,7 @@ Action - For COTS, ask if vendor follows secure coding guidelines without going 
 *Govern cross-organizational data transfers (DPAs), enforce non-production data protection, and mandate compliant data retention and destruction.*
 
 #### Node: Control of Data Exchange (`data_exchange`)
-- **Implementation Groups**: `baseline`, `custom_app`, `cots_app`
+- **Implementation Groups**: `custom_app`, `cots_app`
 - **Description**: Govern external data exchanges, API integrations, webhooks, and third-party data flows via formal agreements (DPA/DTA) and secure transmission for self-hosted applications.
 
 ##### Q35. `data_exchange:q1`
@@ -627,7 +627,7 @@ Action - For COTS, ask if vendor follows secure coding guidelines without going 
 
 #### Node: Non-Production Data Protection (`non_prod_data`)
 Action - Ask if non prod environments (if used) are secure identically as prod. If yes, subsequent questions do not really matter 
-- **Implementation Groups**: `baseline`, `custom_app`, `cots_app`
+- **Implementation Groups**: `custom_app`, `cots_app`
 - **Description**: Enforce strict governance over the use of production customer data in non-production environments (development, staging, QA) and mandate data sanitization and post-test purging for self-hosted applications.
 
 ##### Q37. `non_prod_data:q1`
@@ -665,7 +665,7 @@ Action - Ask if non prod environments (if used) are secure identically as prod. 
   - [ ] 
 
 #### Node: Compliant Data Destruction (`data_destruction`)
-- **Implementation Groups**: `baseline`, `custom_app`, `cots_app`
+- **Implementation Groups**: `custom_app`, `cots_app`
 - **Description**: Enforce compliant data retention schedules, end-of-life purging, and certified cryptographic erasure for self-hosted applications.
 
 ##### Q40. `data_destruction:q1`
@@ -696,7 +696,7 @@ Action - Ask if non prod environments (if used) are secure identically as prod. 
 *Log security-relevant events, mask sensitive fields, and forward telemetry to a central SIEM.*
 
 #### Node: Security Event Logging & Data Masking (`security_event_logging`)
-- **Implementation Groups**: `baseline`, `custom_app`, `cots_app`
+- **Implementation Groups**: `custom_app`, `cots_app`
 - **Description**: Log authentication, authorization, and administrative events while systematically masking sensitive fields.
 
 ##### Q42. `security_event_logging:q1`
@@ -720,7 +720,7 @@ Action - Ask if non prod environments (if used) are secure identically as prod. 
   - [ ] 
 
 #### Node: Centralized SIEM Forwarding & Security Alerting (`centralized_monitoring_and_alerting`)
-- **Implementation Groups**: `baseline`, `custom_app`, `cots_app`
+- **Implementation Groups**: `custom_app`, `cots_app`
 - **Description**: Stream application logs in real-time to a centralized SIEM/SOC with anomaly detection and automated alerting.
 
 ##### Q44. `centralized_monitoring_and_alerting:q1`
@@ -764,7 +764,7 @@ Action - Ask if non prod environments (if used) are secure identically as prod. 
   - [x] **Self-Hosted Internet-Facing only** (Remediation SLAs) 
 
 #### Node: Backup Strategy & Disaster Recovery (`backup_and_disaster_recovery`)
-- **Implementation Groups**: `baseline`, `custom_app`, `cots_app`
+- **Implementation Groups**: `custom_app`, `cots_app`
 - **Description**: Maintain automated encrypted backups and test restoration drills against documented RTO and RPO targets.
 
 ##### Q47. `backup_and_disaster_recovery:q1`

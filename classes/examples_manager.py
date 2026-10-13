@@ -22,8 +22,11 @@ from classes.controls.reference import ReferenceControlDict
 from classes.audits.compliance import ComplianceAssessmentDict, AUDITOR_SCORE_METHOD, AUDITOR_SCORE_VISIBILITY
 from classes.audits.entity_assessment import EntityAssessmentDict
 from classes.audits.finding import FindingDict, FindingsAssessmentDict
-from classes.audits.implementation_groups import add_default_implementation_groups
-from classes.audits.requirement_assessment import create_requirement_assignment
+from classes.audits.implementation_groups import (
+    add_default_implementation_groups,
+    get_framework_implementation_groups,
+    resolve_implementation_groups,
+)
 from classes.organization.asset import AssetDict
 from classes.organization.domain import DomainDict, criticality_mapping
 from classes.organization.entity import EntityDict, EntityRepresentativeDict
@@ -396,6 +399,9 @@ class ExamplesManager:
                     urn = fw_json.get("urn", "")
                     description = fw_json.get("description", "")
                     yaml_path = str(self.resolve_framework_yaml_path(ref_id or fw_name))
+                    ig_defs = fw_json.get("implementation_groups_definition", [])
+                    if not ig_defs:
+                        ig_defs = get_framework_implementation_groups(fw)
                     entry = {
                         "id": fw_id,
                         "name": fw_name,
@@ -405,6 +411,7 @@ class ExamplesManager:
                         "yaml_path": yaml_path,
                         "installed": True,
                         "in_ciso_assistant": True,
+                        "implementation_groups": ig_defs,
                     }
                     for cat in FRAMEWORK_CATALOG:
                         if cat["ref_id"].lower() == ref_id.lower() or cat["name"].lower() == fw_name.lower():
@@ -448,6 +455,10 @@ class ExamplesManager:
             cat_ref = cat["ref_id"].lower()
             cat_name = cat["name"].lower()
             if cat_ref not in seen_identifiers and cat_name not in seen_identifiers:
+                cat_ig = (
+                    get_framework_implementation_groups(cat.get("yaml_path"))
+                    or get_framework_implementation_groups(cat.get("ref_id"))
+                )
                 frameworks_list.append({
                     "id": None,
                     "name": cat["name"],
@@ -457,6 +468,7 @@ class ExamplesManager:
                     "yaml_path": cat["yaml_path"],
                     "installed": False,
                     "in_ciso_assistant": False,
+                    "implementation_groups": cat_ig,
                 })
                 seen_identifiers.add(cat_ref)
                 seen_identifiers.add(cat_name)
@@ -750,6 +762,7 @@ class ExamplesManager:
         ca_reqs: list[Any],
         yaml_path: str = "",
         framework_ref: str | None = None,
+        selected_groups: list[str] | None = None,
     ) -> tuple[int, int]:
         """Determine (answered_count, triggered_count) for compliance assessment requirements.
 
@@ -789,6 +802,23 @@ class ExamplesManager:
                     active_groups.add(str(g.get("name")).strip())
                 if g.get("urn"):
                     active_groups.add(str(g.get("urn")).strip())
+
+        if selected_groups:
+            for sg in selected_groups:
+                sg_str = str(sg).strip()
+                active_groups.add(sg_str)
+                for g in ig_defs:
+                    if isinstance(g, dict) and (
+                        sg_str == g.get("name")
+                        or (g.get("ref_id") and sg_str.lower() == str(g.get("ref_id")).lower())
+                        or (g.get("urn") and sg_str.lower() == str(g.get("urn")).lower())
+                    ):
+                        if g.get("ref_id"):
+                            active_groups.add(str(g.get("ref_id")).strip())
+                        if g.get("name"):
+                            active_groups.add(str(g.get("name")).strip())
+                        if g.get("urn"):
+                            active_groups.add(str(g.get("urn")).strip())
 
         fw_nodes = fw_meta.get("requirement_nodes", []) or []
         nodes_by_ref: dict[str, dict[str, Any]] = {}
@@ -981,14 +1011,21 @@ class ExamplesManager:
         total_reqs = 0
         answered_reqs = 0
         all_reqs_count = 0
+        ca_sel_groups: list[str] = []
         if ca_obj:
             ca_id = ca_obj.get_id() if hasattr(ca_obj, "get_id") else str(ca_obj)
             ca_reqs = (req_by_ca or {}).get(ca_id, [])
             all_reqs_count = len(ca_reqs)
+            ca_sel_groups = (
+                ca_obj.get_selected_implementation_groups()
+                if hasattr(ca_obj, "get_selected_implementation_groups")
+                else (getattr(ca_obj, "compliance_assessment_json", {}) or {}).get("selected_implementation_groups", [])
+            ) or []
             answered_reqs, total_reqs = ExamplesManager._resolve_triggered_requirements(
                 ca_reqs,
                 yaml_path=yaml_path,
                 framework_ref=framework_ref or framework_name or framework_id,
+                selected_groups=ca_sel_groups,
             )
 
         item_exists = bool(perimeter_id or ca_obj or ra_obj or entity_id or ea_obj)
@@ -1069,6 +1106,7 @@ class ExamplesManager:
             "user_id": user_id,
             "user_exists": bool(user_id),
             "tprm_conclusion": ea_obj.json_object.get("conclusion") if ea_obj and isinstance(getattr(ea_obj, "json_object", None), dict) else None,
+            "selected_implementation_groups": list(ca_sel_groups),
         }
 
     def get_status(self, wait_seconds: float = 0) -> list[dict[str, Any]]:
@@ -1837,6 +1875,7 @@ class ExamplesManager:
         is_third_party: bool = True,
         framework_ref_or_name: str | None = None,
         domain_name: str | None = None,
+        implementation_groups: list[str] | None = None,
     ) -> dict[str, Any]:
         """Create an application in CISO Assistant for an audit demonstration.
 
@@ -1844,7 +1883,7 @@ class ExamplesManager:
         1. Third-party or internal user account (created if missing).
         2. External Entity in TPRM and Entity Representative link.
         3. Perimeter and Asset (in target domain/folder; creates domain if missing).
-        4. Compliance Assessment bound to target framework.
+        4. Compliance Assessment bound to target framework (with selected implementation groups).
         5. TPRM Entity Assessment linking entity, compliance assessment, and representative user.
         6. Requirement assignment in progress for the user.
 
@@ -1861,6 +1900,8 @@ class ExamplesManager:
             is_third_party: Whether newly created user should be third-party (default True).
             framework_ref_or_name: Optional framework ref_id, name, or identifier to use.
             domain_name: Optional target domain/folder name or UUID (default: self.folder_name).
+            implementation_groups: Optional list of implementation group names or ref_ids to select
+                                  (defaults to framework's default_selected groups).
 
         Returns:
             Dict summary of created resources and assignment details.
@@ -1975,13 +2016,20 @@ class ExamplesManager:
                 "score_calculation_method": AUDITOR_SCORE_METHOD,
                 "field_visibility": AUDITOR_SCORE_VISIBILITY,
             }
-            add_default_implementation_groups(payload, framework_id)
+            if implementation_groups is not None:
+                payload["selected_implementation_groups"] = resolve_implementation_groups(
+                    implementation_groups, framework or framework_id
+                )
+            else:
+                add_default_implementation_groups(payload, framework or framework_id)
             ca_response = utils.get_return("/api/compliance-assessments/", method="POST", payload=payload)
             if not ca_response or (isinstance(ca_response, dict) and ca_response.get("error")):
                 raise RuntimeError(f"Failed to create compliance assessment '{ca_name}': {ca_response}")
             compliance_dict.reload()
             ca_id = ca_response.get("id") if isinstance(ca_response, dict) else ""
             ca_obj = compliance_dict.get_compliance_assessments().get(ca_id)
+        elif implementation_groups is not None and hasattr(ca_obj, "set_selected_implementation_groups"):
+            ca_obj.set_selected_implementation_groups(implementation_groups)
 
         ca_id = ca_obj.get_id()
 
@@ -2062,7 +2110,138 @@ class ExamplesManager:
             "framework_id": framework_id,
             "framework_name": framework_name,
             "framework_ref": framework_ref,
+            "selected_implementation_groups": list(
+                (
+                    ca_obj.get_selected_implementation_groups()
+                    if hasattr(ca_obj, "get_selected_implementation_groups")
+                    else (getattr(ca_obj, "compliance_assessment_json", {}) or {}).get("selected_implementation_groups", [])
+                ) or []
+            ),
+            "available_implementation_groups": list(get_framework_implementation_groups(framework or framework_id)),
         }
+
+    def get_framework_implementation_groups(self, framework_ref_or_name: str | None = None) -> list[dict[str, Any]]:
+        """Return the list of implementation group definitions for a framework."""
+        fw = self.find_target_framework(framework_ref_or_name)
+        if fw:
+            return get_framework_implementation_groups(fw)
+        if framework_ref_or_name:
+            return get_framework_implementation_groups(framework_ref_or_name)
+        return []
+
+    def get_audit_implementation_groups(self, app_name_or_ca_id: str) -> dict[str, Any]:
+        """Retrieve current selected and available implementation groups for an audit."""
+        target = str(app_name_or_ca_id).strip()
+        data = self._init_data()
+        compliance_dict: ComplianceAssessmentDict = data["compliance_assessment_dict"]
+        perimeter_dict: PerimeterDict = data["perimeter_dict"]
+
+        ca_obj = None
+        # Try direct CA ID match
+        if target in compliance_dict.get_compliance_assessments():
+            ca_obj = compliance_dict.get_compliance_assessments()[target]
+
+        # Try match by perimeter or app name
+        if not ca_obj:
+            perm_id = perimeter_dict.get_id_from_name(target)
+            for ca in compliance_dict.get_compliance_assessments().values():
+                if ca.get_id() == target or ca.get_name() == target or (perm_id and ca.get_perimeter_id() == perm_id):
+                    ca_obj = ca
+                    break
+
+        if not ca_obj:
+            # Fallback scan by partial name match
+            target_lower = target.lower()
+            for ca in compliance_dict.get_compliance_assessments().values():
+                if target_lower in ca.get_name().lower():
+                    ca_obj = ca
+                    break
+
+        if not ca_obj:
+            raise ValueError(f"No compliance assessment found matching '{app_name_or_ca_id}'.")
+
+        fw_id = ca_obj.get_framework_id()
+        framework = self.find_target_framework(fw_id)
+        fw_name = framework.get_name() if framework else ""
+        fw_ref = (
+            getattr(framework, "json_object", {}).get("ref_id", "")
+            if framework else ""
+        )
+
+        selected = (
+            ca_obj.get_selected_implementation_groups()
+            if hasattr(ca_obj, "get_selected_implementation_groups")
+            else (getattr(ca_obj, "compliance_assessment_json", {}) or {}).get("selected_implementation_groups", [])
+        ) or []
+
+        available = get_framework_implementation_groups(framework or fw_id)
+
+        # Resolve app name from perimeter
+        app_name = target
+        if ca_obj.get_perimeter_id():
+            p_name = perimeter_dict.get_name_from_id(ca_obj.get_perimeter_id())
+            if p_name:
+                app_name = p_name
+
+        return {
+            "app_name": app_name,
+            "compliance_assessment_id": ca_obj.get_id(),
+            "compliance_assessment_name": ca_obj.get_name(),
+            "framework_id": fw_id,
+            "framework_name": fw_name,
+            "framework_ref": fw_ref,
+            "selected_implementation_groups": list(selected),
+            "available_implementation_groups": list(available),
+        }
+
+    def select_audit_implementation_groups(
+        self,
+        app_name_or_ca_id: str,
+        groups: list[str],
+        mode: str = "replace",
+    ) -> dict[str, Any]:
+        """Update or select further implementation groups for an existing audit/application.
+
+        Args:
+            app_name_or_ca_id: Application name or compliance assessment UUID.
+            groups: List of implementation group names, ref_ids, or URNs.
+            mode: 'replace' to set the exact list, or 'add' to merge with existing groups.
+
+        Returns:
+            Dict summary of updated audit implementation groups and requirement counts.
+        """
+        current_info = self.get_audit_implementation_groups(app_name_or_ca_id)
+        ca_id = current_info["compliance_assessment_id"]
+
+        data = self._init_data()
+        compliance_dict: ComplianceAssessmentDict = data["compliance_assessment_dict"]
+        ca_obj = compliance_dict.get_compliance_assessments().get(ca_id)
+        if not ca_obj:
+            ca_obj = ComplianceAssessment(ca_id)
+
+        if str(mode).lower() == "add":
+            ca_obj.add_selected_implementation_groups(groups)
+        else:
+            ca_obj.set_selected_implementation_groups(groups)
+
+        compliance_dict.reload()
+
+        # Reload status and return fresh group info
+        updated_info = self.get_audit_implementation_groups(ca_id)
+        utils.log(
+            f"Successfully updated implementation groups for '{updated_info['app_name']}': "
+            f"{updated_info['selected_implementation_groups']} (mode: {mode})",
+            level=logging.INFO,
+        )
+        return updated_info
+
+    def add_audit_implementation_groups(
+        self,
+        app_name_or_ca_id: str,
+        groups: list[str],
+    ) -> dict[str, Any]:
+        """Select further implementation groups for an existing audit (merging with existing)."""
+        return self.select_audit_implementation_groups(app_name_or_ca_id, groups, mode="add")
 
     def generate_controls_and_risks_for_application(
         self,

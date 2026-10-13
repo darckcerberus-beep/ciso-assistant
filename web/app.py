@@ -599,6 +599,10 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
             else:
                 target_fw_ref = installed_fws[0].get("ref_id") or installed_fws[0].get("name")
 
+        implementation_groups = payload.get("implementation_groups")
+        if implementation_groups is not None and not isinstance(implementation_groups, list):
+            implementation_groups = [str(implementation_groups)]
+
         def _job():
             print(f"---> Provisioning application '{app_name}' and assigning audit to '{user_email}' (Framework: {target_fw_ref})...")
             res = manager.create_application_for_audit(
@@ -609,6 +613,7 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
                 is_third_party=is_third_party,
                 framework_ref_or_name=target_fw_ref,
                 domain_name=target_domain,
+                implementation_groups=implementation_groups,
             )
             print(f"     [OK] Application: {res.get('app_name')}")
             print(f"     [OK] Domain: {res.get('domain_name')}")
@@ -616,11 +621,48 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
             print(f"     [OK] Perimeter: {res.get('perimeter_id')}")
             print(f"     [OK] Assessment: {res.get('compliance_assessment_name')}")
             print(f"     [OK] Assignment: {res.get('assignment_id')}")
+            if res.get("selected_implementation_groups"):
+                print(f"     [OK] Implementation Groups: {res.get('selected_implementation_groups')}")
             print("Questionnaire is in initial UNANSWERED (0%) state ready for respondent input.")
             return res
 
         task_id = TASK_MANAGER.create_task(f"Create Audit Demo '{app_name}'", _job)
         return jsonify({"task_id": task_id, "message": "Audit demo creation started."})
+
+    @app.route("/api/frameworks/<path:framework_ref>/implementation-groups")
+    def api_framework_implementation_groups(framework_ref: str):
+        """Retrieve available implementation groups for a framework."""
+        groups = manager.get_framework_implementation_groups(framework_ref)
+        return jsonify({"framework": framework_ref, "implementation_groups": groups})
+
+    @app.route("/api/audits/<path:app_name>/implementation-groups", methods=["GET", "POST", "PATCH"])
+    def api_audit_implementation_groups(app_name: str):
+        """Inspect or update implementation groups for an audit."""
+        if request.method == "GET":
+            try:
+                info = manager.get_audit_implementation_groups(app_name)
+                return jsonify(info)
+            except ValueError as e:
+                return jsonify({"error": str(e)}), 404
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+
+        payload = request.get_json() or {}
+        groups = payload.get("groups", [])
+        mode = payload.get("mode", "add")
+        if not isinstance(groups, list):
+            return jsonify({"error": "'groups' must be a list of implementation group names or IDs."}), 400
+
+        try:
+            info = manager.select_audit_implementation_groups(app_name, groups=groups, mode=mode)
+            return jsonify({
+                "message": f"Successfully updated implementation groups for '{app_name}'.",
+                "data": info,
+            })
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 404
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
     # -----------------------------------------------------------------------
     # Dynamic Risk & Controls Generator Endpoint (Feature 5)

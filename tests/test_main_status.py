@@ -7,7 +7,14 @@ from unittest.mock import MagicMock, patch
 
 from classes.examples_manager import ExamplesManager
 from classes.organization.domain import Domain, DomainDict
-from main import create_domain_ui, interactive_menu, list_domains_ui, print_status_table, remove_examples_ui
+from main import (
+    create_domain_ui,
+    interactive_menu,
+    list_domains_ui,
+    print_status_table,
+    remove_examples_ui,
+    select_audit_implementation_groups_ui,
+)
 
 
 class TestMainStatus(unittest.TestCase):
@@ -1321,6 +1328,143 @@ class TestMainStatus(unittest.TestCase):
         self.assertEqual(kwargs.get("domain_name"), "Healthcare Division")
         output = buf.getvalue()
         self.assertIn("Target Domain:            Healthcare Division", output)
+
+    def test_select_audit_implementation_groups_ui_direct(self):
+        """Verify select_audit_implementation_groups_ui executes updates with direct arguments."""
+        mock_manager = MagicMock(spec=ExamplesManager)
+        mock_manager.test_connection.return_value = (True, "OK")
+        mock_manager.get_audit_implementation_groups.return_value = {
+            "app_name": "App-Test",
+            "compliance_assessment_id": "ca-1",
+            "framework_name": "Multi-level DPP",
+            "framework_ref": "mls",
+            "selected_implementation_groups": ["Application information"],
+            "available_implementation_groups": [
+                {"name": "Application information", "ref_id": "baseline"},
+                {"name": "Custom applications", "ref_id": "custom_app"},
+            ],
+        }
+        mock_manager.select_audit_implementation_groups.return_value = {
+            "app_name": "App-Test",
+            "compliance_assessment_id": "ca-1",
+            "selected_implementation_groups": ["Application information", "Custom applications"],
+        }
+
+        buf = io.StringIO()
+        with patch("sys.stdout", buf), patch("time.sleep"), patch("main.show_status"):
+            select_audit_implementation_groups_ui(
+                mock_manager,
+                app_name="App-Test",
+                groups=["custom_app"],
+                mode="add",
+            )
+
+        output = buf.getvalue()
+        self.assertIn("IMPLEMENTATION GROUPS UPDATED SUCCESSFULLY", output)
+        self.assertIn("App-Test", output)
+        mock_manager.select_audit_implementation_groups.assert_called_once_with(
+            "App-Test",
+            groups=["custom_app"],
+            mode="add",
+        )
+
+    def test_select_audit_implementation_groups_ui_interactive(self):
+        """Verify select_audit_implementation_groups_ui interactively selects app, mode, and groups."""
+        mock_manager = MagicMock(spec=ExamplesManager)
+        mock_manager.test_connection.return_value = (True, "OK")
+        mock_manager.get_status.return_value = [
+            {
+                "name": "App-Interactive",
+                "exists": True,
+                "compliance_assessment_id": "ca-10",
+                "framework_name": "Multi-level DPP",
+                "selected_implementation_groups": ["Application information"],
+            }
+        ]
+        mock_manager.get_audit_implementation_groups.return_value = {
+            "app_name": "App-Interactive",
+            "compliance_assessment_id": "ca-10",
+            "framework_name": "Multi-level DPP",
+            "framework_ref": "mls",
+            "selected_implementation_groups": ["Application information"],
+            "available_implementation_groups": [
+                {"name": "Application information", "ref_id": "baseline"},
+                {"name": "Custom applications", "ref_id": "custom_app"},
+            ],
+        }
+        mock_manager.select_audit_implementation_groups.return_value = {
+            "app_name": "App-Interactive",
+            "compliance_assessment_id": "ca-10",
+            "selected_implementation_groups": ["Custom applications"],
+        }
+
+        # Simulated inputs:
+        # 1. Select app: "1"
+        # 2. Select mode: "2" (replace)
+        # 3. Select group: "2" (Custom applications)
+        simulated_inputs = ["1", "2", "2"]
+        buf = io.StringIO()
+        with (
+            patch("sys.stdout", buf),
+            patch("builtins.input", side_effect=simulated_inputs),
+            patch("time.sleep"),
+            patch("main.show_status"),
+        ):
+            select_audit_implementation_groups_ui(mock_manager)
+
+        output = buf.getvalue()
+        self.assertIn("Select Application / Audit to update:", output)
+        self.assertIn("Choose update mode:", output)
+        self.assertIn("IMPLEMENTATION GROUPS UPDATED SUCCESSFULLY", output)
+        mock_manager.select_audit_implementation_groups.assert_called_once_with(
+            "App-Interactive",
+            groups=["Custom applications"],
+            mode="replace",
+        )
+
+    def test_cli_select_groups_dispatch(self):
+        """Verify CLI --select-groups dispatches to select_audit_implementation_groups_ui with mode replace."""
+        from main import main
+        test_args = ["main.py", "--select-groups", "App-Demo", "--groups", "baseline,custom_app"]
+        with (
+            patch("sys.argv", test_args),
+            patch("main.select_audit_implementation_groups_ui") as mock_ui,
+        ):
+            main()
+            mock_ui.assert_called_once()
+            _args, kwargs = mock_ui.call_args
+            self.assertEqual(kwargs.get("app_name"), "App-Demo")
+            self.assertEqual(kwargs.get("groups"), ["baseline", "custom_app"])
+            self.assertEqual(kwargs.get("mode"), "replace")
+
+    def test_cli_add_groups_dispatch(self):
+        """Verify CLI --add-groups dispatches to select_audit_implementation_groups_ui with mode add."""
+        from main import main
+        test_args = ["main.py", "--add-groups", "App-Demo", "--groups", "saas_app"]
+        with (
+            patch("sys.argv", test_args),
+            patch("main.select_audit_implementation_groups_ui") as mock_ui,
+        ):
+            main()
+            mock_ui.assert_called_once()
+            _args, kwargs = mock_ui.call_args
+            self.assertEqual(kwargs.get("app_name"), "App-Demo")
+            self.assertEqual(kwargs.get("groups"), ["saas_app"])
+            self.assertEqual(kwargs.get("mode"), "add")
+
+    def test_cli_create_audit_with_groups_dispatch(self):
+        """Verify CLI --create-audit APP --groups GROUPS passes implementation_groups."""
+        from main import main
+        test_args = ["main.py", "--create-audit", "App-IG-Demo", "--groups", "baseline,saas_app"]
+        with (
+            patch("sys.argv", test_args),
+            patch("main.create_audit_demo_ui") as mock_ui,
+        ):
+            main()
+            mock_ui.assert_called_once()
+            _args, kwargs = mock_ui.call_args
+            self.assertEqual(kwargs.get("app_name"), "App-IG-Demo")
+            self.assertEqual(kwargs.get("implementation_groups"), ["baseline", "saas_app"])
 
 
 if __name__ == "__main__":

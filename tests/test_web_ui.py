@@ -269,6 +269,108 @@ class TestWebUI(unittest.TestCase):
         self.assertEqual(task["status"], "completed")
         mock_create_audit.assert_called_once()
 
+    def test_framework_implementation_groups_endpoint(self):
+        """Test GET /api/frameworks/<ref_id>/implementation-groups returns framework groups."""
+        with patch("classes.examples_manager.ExamplesManager.get_framework_implementation_groups") as mock_get_ig:
+            mock_get_ig.return_value = [
+                {"name": "Application information", "ref_id": "baseline", "default_selected": True},
+                {"name": "Custom applications", "ref_id": "custom_app", "default_selected": False},
+            ]
+            resp = self.client.get("/api/frameworks/mls/implementation-groups")
+            self.assertEqual(resp.status_code, 200)
+            data = resp.get_json()
+            self.assertEqual(data["framework"], "mls")
+            self.assertEqual(len(data["implementation_groups"]), 2)
+            self.assertEqual(data["implementation_groups"][0]["ref_id"], "baseline")
+
+    @patch("classes.examples_manager.ExamplesManager.find_target_framework")
+    @patch("classes.examples_manager.ExamplesManager.get_installed_frameworks")
+    @patch("classes.examples_manager.ExamplesManager.create_application_for_audit")
+    def test_audit_demo_endpoint_with_implementation_groups(self, mock_create_audit, mock_get_inst, mock_find_fw):
+        """Test POST /api/audit-demo forwards explicit implementation_groups to manager."""
+        mock_get_inst.return_value = [{"id": "fw-1", "name": "Multi-level DPP", "ref_id": "mls"}]
+        mock_find_fw.return_value = MagicMock(get_name=lambda: "Multi-level DPP")
+        mock_create_audit.return_value = {
+            "app_name": "App-Test-IG",
+            "user_email": "test@demo.com",
+            "selected_implementation_groups": ["Application information", "Custom applications"],
+        }
+
+        response = self.client.post(
+            "/api/audit-demo",
+            data=json.dumps({
+                "app_name": "App-Test-IG",
+                "user_email": "test@demo.com",
+                "framework": "mls",
+                "implementation_groups": ["baseline", "custom_app"],
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        task_id = data["task_id"]
+
+        for _ in range(50):
+            time.sleep(0.02)
+            task = TASK_MANAGER.get_task(task_id)
+            if task and task["status"] in ("completed", "failed"):
+                break
+
+        self.assertEqual(task["status"], "completed")
+        mock_create_audit.assert_called_once()
+        kwargs = mock_create_audit.call_args[1]
+        self.assertEqual(kwargs.get("implementation_groups"), ["baseline", "custom_app"])
+
+    def test_audit_implementation_groups_endpoints(self):
+        """Test GET and POST /api/audits/<app_name>/implementation-groups for inspecting and updating groups."""
+        mock_info = {
+            "app_name": "App-Audit-Demo",
+            "compliance_assessment_id": "ca-1",
+            "selected_implementation_groups": ["Application information"],
+            "available_implementation_groups": [
+                {"name": "Application information", "ref_id": "baseline"},
+                {"name": "Custom applications", "ref_id": "custom_app"},
+            ],
+        }
+
+        # GET implementation groups
+        with patch("classes.examples_manager.ExamplesManager.get_audit_implementation_groups", return_value=mock_info):
+            resp = self.client.get("/api/audits/App-Audit-Demo/implementation-groups")
+            self.assertEqual(resp.status_code, 200)
+            data = resp.get_json()
+            self.assertEqual(data["app_name"], "App-Audit-Demo")
+            self.assertEqual(data["selected_implementation_groups"], ["Application information"])
+
+        # POST invalid groups (not a list)
+        bad_resp = self.client.post(
+            "/api/audits/App-Audit-Demo/implementation-groups",
+            data=json.dumps({"groups": "not-a-list"}),
+            content_type="application/json",
+        )
+        self.assertEqual(bad_resp.status_code, 400)
+
+        # POST replace mode
+        updated_info_replace = dict(mock_info, selected_implementation_groups=["Custom applications"])
+        with patch("classes.examples_manager.ExamplesManager.select_audit_implementation_groups", return_value=updated_info_replace) as mock_select:
+            rep_resp = self.client.post(
+                "/api/audits/App-Audit-Demo/implementation-groups",
+                data=json.dumps({"groups": ["custom_app"], "mode": "replace"}),
+                content_type="application/json",
+            )
+            self.assertEqual(rep_resp.status_code, 200)
+            mock_select.assert_called_once_with("App-Audit-Demo", groups=["custom_app"], mode="replace")
+
+        # POST add mode
+        updated_info_add = dict(mock_info, selected_implementation_groups=["Application information", "Custom applications"])
+        with patch("classes.examples_manager.ExamplesManager.select_audit_implementation_groups", return_value=updated_info_add) as mock_add:
+            add_resp = self.client.post(
+                "/api/audits/App-Audit-Demo/implementation-groups",
+                data=json.dumps({"groups": ["custom_app"], "mode": "add"}),
+                content_type="application/json",
+            )
+            self.assertEqual(add_resp.status_code, 200)
+            mock_add.assert_called_once_with("App-Audit-Demo", groups=["custom_app"], mode="add")
+
     @patch("classes.examples_manager.ExamplesManager.generate_controls_and_risks_for_application")
     def test_generate_risks_endpoint(self, mock_gen):
         """Test POST /api/generate-risks launches calculation task."""

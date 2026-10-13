@@ -149,6 +149,8 @@ def print_status_table(status_list):
             print(f"    - Perimeter ID:             {s.get('perimeter_id') or 'None'}")
             print(f"    - Asset ID:                 {s.get('asset_id') or 'None'}")
             print(f"    - Compliance Assessment:    {s.get('compliance_assessment_name') or 'None'}")
+            if s.get("selected_implementation_groups"):
+                print(f"    - Implementation Groups:    {', '.join(s['selected_implementation_groups'])}")
             print(f"    - Findings Assessment ID:   {s.get('findings_assessment_id') or 'None'}")
             print(f"    - Audit Findings Count:     {s.get('findings_count', 0)}")
             print(f"    - Risk Assessment ID:       {s.get('risk_assessment_id') or 'None'}")
@@ -325,6 +327,7 @@ def create_audit_demo_ui(
     user_email: str | None = None,
     framework_ref_or_name: str | None = None,
     domain_name: str | None = None,
+    implementation_groups: list[str] | None = None,
 ):
     """Create an application and assign its compliance assessment to a user (interactive audit demo)."""
     ok, msg = manager.test_connection()
@@ -458,6 +461,40 @@ def create_audit_demo_ui(
                 selected_fw = installed_fws[0]
                 framework_ref_or_name = selected_fw.get("ref_id") or selected_fw.get("name")
 
+    # 5. Implementation Groups Selection
+    if implementation_groups is None and is_interactive_demo:
+        avail_groups = manager.get_framework_implementation_groups(framework_ref_or_name)
+        if avail_groups:
+            print("\nFramework Implementation Groups (Assessment Tracks):")
+            for idx, ig in enumerate(avail_groups, start=1):
+                def_mark = " [default selected]" if ig.get("default_selected") else ""
+                ref_disp = f" ({ig.get('ref_id')})" if ig.get("ref_id") else ""
+                print(f" {idx}) {ig.get('name')}{ref_disp}{def_mark}")
+                if ig.get("description"):
+                    print(f"     {ig.get('description')}")
+            try:
+                ig_input = input(
+                    f"\nSelect implementation groups [comma-separated 1-{len(avail_groups)}, 'all', or Enter for defaults] (or 'c' to cancel): "
+                ).strip()
+            except (StopIteration, EOFError):
+                ig_input = ""
+
+            if ig_input.lower() in ("c", "cancel"):
+                print("Operation canceled.")
+                return
+            if ig_input.lower() == "all":
+                implementation_groups = [ig.get("name") for ig in avail_groups]
+            elif ig_input:
+                parsed_groups = []
+                for part in ig_input.split(","):
+                    p = part.strip()
+                    if p.isdigit() and 1 <= int(p) <= len(avail_groups):
+                        parsed_groups.append(avail_groups[int(p) - 1].get("name"))
+                    elif p:
+                        parsed_groups.append(p)
+                if parsed_groups:
+                    implementation_groups = parsed_groups
+
     target_domain_disp = domain_name or manager.folder_name
     print(f"\n---> Provisioning application '{app_name}' in domain '{target_domain_disp}' and assigning audit to '{user_email}'...")
     try:
@@ -471,6 +508,8 @@ def create_audit_demo_ui(
         }
         if domain_name is not None:
             audit_call_kwargs["domain_name"] = domain_name
+        if implementation_groups is not None:
+            audit_call_kwargs["implementation_groups"] = implementation_groups
         res = manager.create_application_for_audit(**audit_call_kwargs)
         print("\n" + "=" * 80)
         print("          AUDIT DEMONSTRATION APPLICATION READY")
@@ -480,6 +519,8 @@ def create_audit_demo_ui(
         fw_display = res.get("framework_name", "Multi-level DPP")
         fw_ref_disp = f" ({res['framework_ref']})" if res.get("framework_ref") else ""
         print(f" Target Framework:         {fw_display}{fw_ref_disp}")
+        if res.get("selected_implementation_groups"):
+            print(f" Implementation Groups:    {', '.join(res['selected_implementation_groups'])}")
         print(f" Assigned User:            {res['user_email']} (ID: {res['user_id']})")
         print(f" User Status:              {'Newly Created' if res.get('user_created') else 'Existing User Reused'}")
         print(f" TPRM External Entity:     {res['entity_id']}")
@@ -501,6 +542,117 @@ def create_audit_demo_ui(
 
     except Exception as e:
         print(f"\n[ERROR] Failed to create audit demonstration for {app_name}: {e}")
+
+
+def select_audit_implementation_groups_ui(
+    manager: ExamplesManager,
+    app_name: str | None = None,
+    groups: list[str] | None = None,
+    mode: str = "add",
+):
+    """Select or add implementation groups for an existing audit/application."""
+    ok, msg = manager.test_connection()
+    if not ok:
+        print(f"\n[ERROR] API Connection Failed: {msg}")
+        return
+
+    print("\n" + "=" * 80)
+    print("      SELECT / ADD IMPLEMENTATION GROUPS FOR AN EXISTING AUDIT")
+    print("=" * 80)
+
+    # 1. Resolve application name
+    if not app_name:
+        status_list = manager.get_status()
+        deployed_with_ca = [s for s in status_list if s.get("exists") and s.get("compliance_assessment_id")]
+        if not deployed_with_ca:
+            print("\nNo deployed applications with compliance assessments found.")
+            print("Please create an application or audit demonstration first.")
+            return
+
+        print("\nSelect Application / Audit to update:")
+        for idx, item in enumerate(deployed_with_ca, start=1):
+            curr_groups = ", ".join(item.get("selected_implementation_groups") or []) or "None"
+            print(f" {idx}) {item['name']} (Framework: {item.get('framework_name') or item.get('framework_ref')}) [Current Groups: {curr_groups}]")
+
+        choice = input(f"Enter choice [1-{len(deployed_with_ca)}] (or 'c' to cancel): ").strip()
+        if choice.lower() in ("c", "cancel"):
+            print("Operation canceled.")
+            return
+        if not (choice.isdigit() and 1 <= int(choice) <= len(deployed_with_ca)):
+            print("[!] Invalid choice.")
+            return
+        app_name = deployed_with_ca[int(choice) - 1]["name"]
+
+    try:
+        group_info = manager.get_audit_implementation_groups(app_name)
+    except Exception as e:
+        print(f"\n[ERROR] Failed to inspect implementation groups for {app_name}: {e}")
+        return
+
+    print(f"\nTarget Application:        {group_info['app_name']}")
+    print(f"Compliance Assessment ID:  {group_info['compliance_assessment_id']}")
+    print(f"Target Framework:          {group_info['framework_name']} ({group_info['framework_ref']})")
+    curr_sel = group_info.get("selected_implementation_groups", [])
+    print(f"Current Selected Groups:   {', '.join(curr_sel) if curr_sel else 'None'}")
+
+    available = group_info.get("available_implementation_groups", [])
+    if not available:
+        print("\n[!] The target framework has no implementation group definitions.")
+        return
+
+    # If groups not provided via arguments, prompt interactively
+    if groups is None:
+        print("\nChoose update mode:")
+        print(" 1) Add further implementation groups (merge with current selection)")
+        print(" 2) Replace full selection of implementation groups")
+        mode_choice = input("Enter choice [1-2, default: 1] (or 'c' to cancel): ").strip()
+        if mode_choice.lower() in ("c", "cancel"):
+            print("Operation canceled.")
+            return
+        mode = "replace" if mode_choice == "2" else "add"
+
+        print("\nAvailable Framework Implementation Groups:")
+        for idx, ig in enumerate(available, start=1):
+            is_active = (ig.get("name") in curr_sel) or (ig.get("ref_id") in curr_sel)
+            active_mark = " [CURRENTLY ACTIVE]" if is_active else ""
+            def_mark = " [default]" if ig.get("default_selected") else ""
+            ref_disp = f" ({ig.get('ref_id')})" if ig.get("ref_id") else ""
+            print(f"  {idx}) {ig.get('name')}{ref_disp}{active_mark}{def_mark}")
+            if ig.get("description"):
+                print(f"      {ig.get('description')}")
+
+        sel_input = input(f"\nEnter groups to {'add' if mode == 'add' else 'set'} [comma-separated 1-{len(available)}, 'all'] (or 'c' to cancel): ").strip()
+        if sel_input.lower() in ("c", "cancel"):
+            print("Operation canceled.")
+            return
+        if sel_input.lower() == "all":
+            groups = [ig.get("name") for ig in available]
+        elif sel_input:
+            groups = []
+            for part in sel_input.split(","):
+                p = part.strip()
+                if p.isdigit() and 1 <= int(p) <= len(available):
+                    groups.append(available[int(p) - 1].get("name"))
+                elif p:
+                    groups.append(p)
+        else:
+            print("No groups entered. Operation canceled.")
+            return
+
+    try:
+        updated = manager.select_audit_implementation_groups(app_name, groups=groups, mode=mode)
+        print("\n" + "=" * 80)
+        print("       IMPLEMENTATION GROUPS UPDATED SUCCESSFULLY")
+        print("=" * 80)
+        print(f" Application Name:         {updated['app_name']}")
+        print(f" Assessment ID:            {updated['compliance_assessment_id']}")
+        print(f" Active Groups:            {', '.join(updated.get('selected_implementation_groups', []))}")
+        print("=" * 80)
+        print("\nWaiting 2s for CISO Assistant to finalize updates before checking status...")
+        time.sleep(2)
+        show_status(manager, wait_seconds=0)
+    except Exception as e:
+        print(f"\n[ERROR] Failed to update implementation groups for {app_name}: {e}")
 
 
 def generate_controls_and_risks_ui(
@@ -1189,10 +1341,11 @@ def interactive_menu(manager: ExamplesManager):
         print(" 10) Create a New Domain (Organizational Folder)")
         print(" 11) Launch Web UI & REST API Dashboard (http://127.0.0.1:5000)")
         print(" 12) Provision / Check NIS2 - ReCyF Dedicated Domain & Assets")
+        print(" 13) Select Implementation Groups for an Audit (Add / Modify Groups)")
         print(" 0) Exit")
         print("=" * 80)
 
-        choice = input("Enter your choice [0-12]: ").strip()
+        choice = input("Enter your choice [0-13]: ").strip()
 
         if choice == "1":
             show_status(manager, wait_seconds=2.0)
@@ -1337,11 +1490,13 @@ def interactive_menu(manager: ExamplesManager):
                 provision_nis2_ui()
             else:
                 status_nis2_ui()
+        elif choice == "13":
+            select_audit_implementation_groups_ui(manager)
         elif choice in ("0", "q", "exit"):
             print("\nGoodbye!")
             break
         else:
-            print("\n[!] Invalid choice. Please select an option from 0 to 12.")
+            print("\n[!] Invalid choice. Please select an option from 0 to 13.")
 
         input("\nPress [Enter] to return to the menu...")
 
@@ -1373,6 +1528,21 @@ def main():
         const="App-Audit-Demo",
         metavar="APP_NAME",
         help="Create application and assign compliance assessment to user without answers ('App-Audit-Demo' or custom name).",
+    )
+    parser.add_argument(
+        "--groups", "--implementation-groups",
+        metavar="GROUPS",
+        help="Comma-separated implementation groups (e.g. 'custom_app,baseline' or 'all') to use with --create-audit, --select-groups, or --add-groups.",
+    )
+    parser.add_argument(
+        "--select-groups",
+        metavar="APP_NAME",
+        help="Select / replace implementation groups for an existing audit/application (used with --groups).",
+    )
+    parser.add_argument(
+        "--add-groups",
+        metavar="APP_NAME",
+        help="Select further implementation groups (add to existing) for an existing audit/application (used with --groups).",
     )
     parser.add_argument(
         "--user",
@@ -1578,7 +1748,18 @@ def main():
         restore_ui(manager, file_path=args.restore)
         return
 
+    if args.select_groups:
+        ig_list = [g.strip() for g in args.groups.split(",") if g.strip()] if args.groups else None
+        select_audit_implementation_groups_ui(manager, app_name=args.select_groups, groups=ig_list, mode="replace")
+        return
+
+    if args.add_groups:
+        ig_list = [g.strip() for g in args.groups.split(",") if g.strip()] if args.groups else None
+        select_audit_implementation_groups_ui(manager, app_name=args.add_groups, groups=ig_list, mode="add")
+        return
+
     if args.create_audit:
+        ig_list = [g.strip() for g in args.groups.split(",") if g.strip()] if args.groups else None
         audit_call_kwargs = {
             "app_name": args.create_audit,
             "user_email": args.user,
@@ -1586,6 +1767,8 @@ def main():
         }
         if args.domain:
             audit_call_kwargs["domain_name"] = args.domain
+        if ig_list is not None:
+            audit_call_kwargs["implementation_groups"] = ig_list
         create_audit_demo_ui(
             manager,
             **audit_call_kwargs,

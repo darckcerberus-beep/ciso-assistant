@@ -642,21 +642,21 @@ class TestYamlIntegrity(unittest.TestCase):
         if not appsec_fw:
             return
 
-        # 1. Validate hosting choice c3 (SaaS) activates saas_app exclusively (does not activate internet_facing)
+        # 1. Validate hosting choice c3 (SaaS) activates saas_app and universal baseline (does not activate internet_facing)
         hosting_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:hosting")
         self.assertIsNotNone(hosting_node, "hosting node missing in AppSec")
         q1_hosting = hosting_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:hosting:q1")
         self.assertIsNotNone(q1_hosting)
         saas_choice = next(c for c in q1_hosting["choices"] if c["urn"] == "urn:intuitem:risk:req_node:appsec:hosting:q1:c3")
-        self.assertEqual(saas_choice.get("select_implementation_groups", []), ["saas_app"])
+        self.assertEqual(saas_choice.get("select_implementation_groups", []), ["saas_app", "baseline"])
         self.assertNotIn("internet_facing", saas_choice.get("select_implementation_groups", []))
 
-        # 2. Validate network_exposure is scoped to self-hosted delivery models (baseline, custom_app, cots_app)
+        # 2. Validate network_exposure is scoped to self-hosted delivery models (custom_app, cots_app)
         net_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:network_exposure")
         self.assertIsNotNone(net_node, "network_exposure node missing in AppSec")
         self.assertEqual(
             set(net_node.get("implementation_groups", [])),
-            {"baseline", "custom_app", "cots_app"},
+            {"custom_app", "cots_app"},
             "network_exposure should be scoped to self-hosted apps since SaaS is assumed externally exposed",
         )
         net_questions = net_node.get("questions", {})
@@ -935,36 +935,42 @@ class TestYamlIntegrity(unittest.TestCase):
                     f"Question {q_urn} in {ref_id} must not have cross-node depends_on",
                 )
 
-        # Verify shared hosting / baseline requirements include both custom_app and cots_app
-        # Universal IAM requirements (authentication_and_mfa, access_control_and_rbac) apply to all apps including saas_app
-        universal_iam_reqs = ["authentication_and_mfa", "access_control_and_rbac"]
-        for ref_id in universal_iam_reqs:
+        # Universal baseline requirements apply to all applications (Custom, COTS, and SaaS)
+        universal_baseline_reqs = [
+            "instructions_splash",
+            "info",
+            "stakeholder_identification",
+            "data_classification",
+            "hosting",
+            "iam_chapter",
+            "authentication_and_mfa",
+            "access_control_and_rbac",
+            "thank_you_splash",
+        ]
+        for ref_id in universal_baseline_reqs:
             node = appsec_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec:{ref_id}")
-            self.assertIsNotNone(node, f"IAM node {ref_id} missing in appsec")
+            self.assertIsNotNone(node, f"Universal baseline node {ref_id} missing in appsec")
             groups = node.get("implementation_groups", [])
-            self.assertIn("custom_app", groups)
-            self.assertIn("cots_app", groups)
-            self.assertIn("saas_app", groups)
-            self.assertIn("baseline", groups)
+            self.assertIn("baseline", groups, f"{ref_id} missing baseline group")
 
-        # Self-hosted infrastructure baseline requirements do not apply to SaaS
-        self_hosted_baseline_reqs = [
+        # Self-hosted infrastructure requirements apply to custom_app and cots_app, but NOT to baseline or saas_app
+        self_hosted_infra_reqs = [
             "secrets_management",
             "data_in_transit",
             "security_event_logging",
             "centralized_monitoring_and_alerting",
             "backup_and_disaster_recovery",
         ]
-        for ref_id in self_hosted_baseline_reqs:
+        for ref_id in self_hosted_infra_reqs:
             node = appsec_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec:{ref_id}")
             self.assertIsNotNone(node, f"Shared hosting node {ref_id} missing in appsec")
             groups = node.get("implementation_groups", [])
             self.assertIn("custom_app", groups, f"{ref_id} missing custom_app group")
             self.assertIn("cots_app", groups, f"{ref_id} missing cots_app group")
-            self.assertIn("baseline", groups, f"{ref_id} missing baseline group")
+            self.assertNotIn("baseline", groups, f"{ref_id} must not include baseline group")
             self.assertNotIn("saas_app", groups, f"{ref_id} must not include saas_app group")
 
-        # Verify sensitive data requirements are scoped to self-hosted delivery models (baseline, custom_app, cots_app)
+        # Verify sensitive data requirements are scoped to self-hosted delivery models (custom_app, cots_app)
         # confidential_app and secret_app were removed to prevent duplicate questions for SaaS applications
         sensitive_data_reqs = [
             "data_at_rest",
@@ -975,18 +981,18 @@ class TestYamlIntegrity(unittest.TestCase):
             node = appsec_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec:{ref_id}")
             self.assertIsNotNone(node, f"Sensitive data node {ref_id} missing in appsec")
             groups = node.get("implementation_groups", [])
-            self.assertIn("baseline", groups, f"{ref_id} missing baseline group")
+            self.assertNotIn("baseline", groups, f"{ref_id} must not include baseline group")
             self.assertIn("custom_app", groups, f"{ref_id} missing custom_app group")
             self.assertIn("cots_app", groups, f"{ref_id} missing cots_app group")
             self.assertNotIn("saas_app", groups, f"{ref_id} must not include saas_app group")
             self.assertNotIn("confidential_app", groups, f"{ref_id} must not include confidential_app group")
             self.assertNotIn("secret_app", groups, f"{ref_id} must not include secret_app group")
 
-        # Verify data_exchange is scoped to self-hosted delivery models (baseline, custom_app, cots_app) and excludes saas_app
+        # Verify data_exchange is scoped to self-hosted delivery models (custom_app, cots_app) and excludes saas_app and baseline
         de_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:data_exchange")
         self.assertIsNotNone(de_node, "data_exchange node missing in appsec")
         de_groups = de_node.get("implementation_groups", [])
-        self.assertIn("baseline", de_groups)
+        self.assertNotIn("baseline", de_groups)
         self.assertIn("custom_app", de_groups)
         self.assertIn("cots_app", de_groups)
         self.assertNotIn("saas_app", de_groups, "data_exchange must not include saas_app")
@@ -1004,22 +1010,22 @@ class TestYamlIntegrity(unittest.TestCase):
             self.assertNotIn("baseline", groups, f"{ref_id} must not include baseline group")
             self.assertNotIn("saas_app", groups, f"{ref_id} must not include saas_app group")
 
-        # Verify parent crypto_chapter excludes saas_app
+        # Verify parent crypto_chapter excludes saas_app and baseline
         crypto_chapter = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:crypto_chapter")
         self.assertIsNotNone(crypto_chapter, "Chapter crypto_chapter missing in appsec")
         c_groups = crypto_chapter.get("implementation_groups", [])
         self.assertIn("custom_app", c_groups)
         self.assertIn("cots_app", c_groups)
-        self.assertIn("baseline", c_groups)
+        self.assertNotIn("baseline", c_groups)
         self.assertNotIn("saas_app", c_groups, "Chapter crypto_chapter must not include saas_app group")
 
-        # Verify parent data_lifecycle_chapter excludes saas_app (since all its requirements are self-hosted)
+        # Verify parent data_lifecycle_chapter excludes saas_app and baseline (since all its requirements are self-hosted)
         dl_chapter = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:data_lifecycle_chapter")
         self.assertIsNotNone(dl_chapter, "Chapter data_lifecycle_chapter missing in appsec")
         dl_groups = dl_chapter.get("implementation_groups", [])
         self.assertIn("custom_app", dl_groups)
         self.assertIn("cots_app", dl_groups)
-        self.assertIn("baseline", dl_groups)
+        self.assertNotIn("baseline", dl_groups)
         self.assertNotIn("saas_app", dl_groups, "Chapter data_lifecycle_chapter must not include saas_app group")
 
         # Verify confidential_app and secret_app are not present in framework implementation groups
@@ -1037,7 +1043,7 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertIsNotNone(np_node, "non_prod_data missing in AppSec")
         self.assertEqual(np_node.get("parent_urn"), "urn:intuitem:risk:req_node:appsec:data_lifecycle_chapter")
         self.assertTrue(np_node.get("assessable"))
-        self.assertEqual(np_node.get("implementation_groups"), ["baseline", "custom_app", "cots_app"])
+        self.assertEqual(np_node.get("implementation_groups"), ["custom_app", "cots_app"])
 
         # Redundant SaaS data security nodes must NOT exist in Chapter 10
         self.assertNotIn(
@@ -1091,7 +1097,7 @@ class TestYamlIntegrity(unittest.TestCase):
         de_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:data_exchange")
         self.assertIsNotNone(de_node, "data_exchange missing in AppSec")
         self.assertEqual(de_node.get("parent_urn"), "urn:intuitem:risk:req_node:appsec:data_lifecycle_chapter")
-        self.assertEqual(de_node.get("implementation_groups"), ["baseline", "custom_app", "cots_app"])
+        self.assertEqual(de_node.get("implementation_groups"), ["custom_app", "cots_app"])
 
         # Self-hosted evaluates third_party_data_leakage, SaaS evaluates saas_provider_data_leakage
         self.assertIn("third_party_data_leakage", scenarios)
