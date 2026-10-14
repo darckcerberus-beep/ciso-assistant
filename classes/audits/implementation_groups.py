@@ -3,38 +3,136 @@
 from .. import utils
 
 
+def get_framework_triggered_implementation_groups_map(framework_id) -> dict[str, list[str]]:
+    """Return a mapping of triggered group identifier (lowercase) -> list of trigger question texts.
+
+    Inspects framework requirement node question choices for 'select_implementation_groups'.
+    """
+    triggered_map: dict[str, list[str]] = {}
+    try:
+        from ..examples_manager import ExamplesManager
+        fw_ident = framework_id
+        if hasattr(framework_id, "get_id"):
+            fw_ident = framework_id.get_id() or getattr(framework_id, "get_name", lambda: None)()
+        elif hasattr(framework_id, "json_object") and isinstance(getattr(framework_id, "json_object", None), dict):
+            fw_ident = framework_id.json_object.get("ref_id") or framework_id.json_object.get("id")
+        elif isinstance(framework_id, dict):
+            fw_ident = framework_id.get("id") or framework_id.get("ref_id") or framework_id.get("name")
+
+        fw_meta = ExamplesManager._load_framework_metadata(str(fw_ident or ""))
+        if fw_meta and isinstance(fw_meta, dict):
+            nodes = fw_meta.get("requirement_nodes", [])
+            for node in nodes:
+                if not isinstance(node, dict):
+                    continue
+                questions = node.get("questions", {})
+                q_items = questions.values() if isinstance(questions, dict) else (questions if isinstance(questions, list) else [])
+                for q in q_items:
+                    if not isinstance(q, dict):
+                        continue
+                    q_text = str(q.get("text", "")).strip()
+                    choices = q.get("choices", [])
+                    for choice in choices:
+                        if not isinstance(choice, dict):
+                            continue
+                        select_groups = choice.get("select_implementation_groups", []) or []
+                        for grp in select_groups:
+                            if grp:
+                                grp_norm = str(grp).strip().lower()
+                                if grp_norm not in triggered_map:
+                                    triggered_map[grp_norm] = []
+                                if q_text and q_text not in triggered_map[grp_norm]:
+                                    triggered_map[grp_norm].append(q_text)
+    except Exception:
+        pass
+    return triggered_map
+
+
 def get_framework_implementation_groups(framework_id):
     """Return the list of implementation group definitions for a framework.
 
     Supports framework ID string, Framework object, dictionary, or fallback lookup.
+    Enriches each definition with:
+    - 'is_triggered': bool (True if triggered by question answers)
+    - 'is_initial': bool (True if default_selected or not is_triggered)
+    - 'triggered_by_questions': list of question prompt strings that trigger this group
     """
+    defs = []
     if isinstance(framework_id, dict):
         framework = framework_id
+        defs = framework.get("implementation_groups_definition", [])
     elif hasattr(framework_id, "get_implementation_groups_definition"):
         defs = framework_id.get_implementation_groups_definition()
-        if defs:
-            return defs
-        framework = getattr(framework_id, "json_object", {}) or {}
+        if not defs:
+            framework = getattr(framework_id, "json_object", {}) or {}
+            defs = framework.get("implementation_groups_definition", [])
     elif hasattr(framework_id, "json_object"):
         framework = getattr(framework_id, "json_object", {}) or {}
-    else:
-        framework = utils.get_return(f"/api/frameworks/{framework_id}/")
-
-    if isinstance(framework, dict):
         defs = framework.get("implementation_groups_definition", [])
-        if defs:
-            return defs
+    else:
+        fw_str = str(framework_id).strip()
+        catalog_refs = {"mls", "vendor-due-diligence", "appsec"}
+        if fw_str.lower() not in catalog_refs and not fw_str.endswith((".yml", ".yaml")):
+            framework = utils.get_return(f"/api/frameworks/{fw_str}/")
+            if isinstance(framework, dict):
+                defs = framework.get("implementation_groups_definition", [])
 
-    # Fallback to local catalog / YAML definition if API response is empty or unauthenticated
-    try:
-        from ..examples_manager import ExamplesManager
-        fw_meta = ExamplesManager._load_framework_metadata(str(framework_id))
-        if fw_meta and fw_meta.get("implementation_groups_definition"):
-            return fw_meta.get("implementation_groups_definition")
-    except Exception:
-        pass
+    if not defs:
+        # Fallback to local catalog / YAML definition if API response is empty or unauthenticated
+        try:
+            from ..examples_manager import ExamplesManager
+            fw_meta = ExamplesManager._load_framework_metadata(str(framework_id))
+            if fw_meta and fw_meta.get("implementation_groups_definition"):
+                defs = fw_meta.get("implementation_groups_definition", [])
+        except Exception:
+            pass
 
-    return []
+    if not defs or not isinstance(defs, list):
+        return []
+
+    # Enrich definitions with triggered metadata
+    triggered_map = get_framework_triggered_implementation_groups_map(framework_id)
+
+    enriched_defs = []
+    for item in defs:
+        if not isinstance(item, dict):
+            continue
+        group_copy = dict(item)
+        ref_norm = str(group_copy.get("ref_id", "")).strip().lower()
+        name_norm = str(group_copy.get("name", "")).strip().lower()
+        urn_norm = str(group_copy.get("urn", "")).strip().lower()
+
+        trigger_qs = []
+        is_triggered = False
+        for identifier in (ref_norm, name_norm, urn_norm):
+            if identifier and identifier in triggered_map:
+                is_triggered = True
+                for q_text in triggered_map[identifier]:
+                    if q_text not in trigger_qs:
+                        trigger_qs.append(q_text)
+
+        is_default = bool(group_copy.get("default_selected"))
+        is_initial = is_default or (not is_triggered)
+
+        group_copy["is_triggered"] = is_triggered
+        group_copy["is_initial"] = is_initial
+        group_copy["triggered_by_questions"] = trigger_qs
+        enriched_defs.append(group_copy)
+
+    return enriched_defs
+
+
+def get_initial_implementation_groups(framework_id):
+    """Return only the implementation groups to display on initial audit creation.
+
+    Includes default groups and any group that is not triggered by answers to questions.
+    """
+    groups = get_framework_implementation_groups(framework_id)
+    return [
+        group
+        for group in groups
+        if isinstance(group, dict) and (group.get("default_selected") or not group.get("is_triggered"))
+    ]
 
 
 def get_default_implementation_groups(framework_id):

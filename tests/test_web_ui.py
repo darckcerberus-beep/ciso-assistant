@@ -371,6 +371,53 @@ class TestWebUI(unittest.TestCase):
             self.assertEqual(add_resp.status_code, 200)
             mock_add.assert_called_once_with("App-Audit-Demo", groups=["custom_app"], mode="add")
 
+    def test_audit_assign_implementation_groups_endpoint(self):
+        """Test POST /api/audits/<app_name>/assign-implementation-groups."""
+        mock_res = {
+            "app_name": "App-Audit-Demo",
+            "compliance_assessment_id": "ca-1",
+            "assignment_id": "asgn-10",
+            "status": "in_progress",
+            "assignment_status": "in_progress",
+            "assigned_user": "dev@company.local",
+            "assignee_email": "dev@company.local",
+            "assigned_groups": ["Custom applications"],
+            "assigned_requirements_count": 5,
+        }
+
+        # Invalid groups (empty or not list)
+        bad_resp = self.client.post(
+            "/api/audits/App-Audit-Demo/assign-implementation-groups",
+            data=json.dumps({"groups": "not-a-list"}),
+            content_type="application/json",
+        )
+        self.assertEqual(bad_resp.status_code, 400)
+
+        with patch("classes.examples_manager.ExamplesManager.assign_audit_implementation_groups", return_value=mock_res) as mock_assign:
+            resp = self.client.post(
+                "/api/audits/App-Audit-Demo/assign-implementation-groups",
+                data=json.dumps({
+                    "groups": ["custom_app"],
+                    "user_email": "dev@company.local",
+                    "first_name": "Dev",
+                    "last_name": "Lead",
+                    "start": True,
+                }),
+                content_type="application/json",
+            )
+            self.assertEqual(resp.status_code, 200)
+            data = resp.get_json()
+            self.assertTrue(data["success"])
+            self.assertEqual(data["data"]["assignment_id"], "asgn-10")
+            mock_assign.assert_called_once_with(
+                "App-Audit-Demo",
+                groups=["custom_app"],
+                user_email="dev@company.local",
+                first_name="Dev",
+                last_name="Lead",
+                start=True,
+            )
+
     @patch("classes.examples_manager.ExamplesManager.generate_controls_and_risks_for_application")
     def test_generate_risks_endpoint(self, mock_gen):
         """Test POST /api/generate-risks launches calculation task."""

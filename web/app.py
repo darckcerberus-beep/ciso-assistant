@@ -664,6 +664,37 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/audits/<path:app_name>/assign-implementation-groups", methods=["POST"])
+    def api_audit_assign_implementation_groups(app_name: str):
+        """Assign triggered or specified implementation groups to a respondent and start the assignment."""
+        payload = request.get_json() or {}
+        groups = payload.get("groups")
+        if groups is not None and not isinstance(groups, list):
+            groups = [str(groups)]
+        user_email = payload.get("user_email") or payload.get("email")
+        first_name = payload.get("first_name")
+        last_name = payload.get("last_name")
+        start = payload.get("start", True)
+
+        try:
+            res = manager.assign_audit_implementation_groups(
+                app_name_or_ca_id=app_name,
+                groups=groups,
+                user_email=user_email,
+                first_name=first_name,
+                last_name=last_name,
+                start=start,
+            )
+            return jsonify({
+                "message": f"Successfully assigned implementation groups to {res.get('assigned_user')}.",
+                "data": res,
+            })
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            LOGGER.error(f"Error assigning implementation groups: {e}")
+            return jsonify({"error": str(e)}), 500
+
     # -----------------------------------------------------------------------
     # Dynamic Risk & Controls Generator Endpoint (Feature 5)
     # -----------------------------------------------------------------------

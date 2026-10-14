@@ -15,6 +15,7 @@ from classes.audits.implementation_groups import (
     add_default_implementation_groups,
     get_default_implementation_groups,
     get_framework_implementation_groups,
+    get_initial_implementation_groups,
     resolve_implementation_groups,
     set_implementation_groups,
 )
@@ -124,6 +125,40 @@ class TestImplementationGroups(unittest.TestCase):
         payload3 = {"selected_implementation_groups": ["Existing Group"]}
         add_default_implementation_groups(payload3, fw_dict)
         self.assertEqual(payload3["selected_implementation_groups"], ["Existing Group"])
+
+    def test_get_framework_implementation_groups_annotations(self):
+        """Verify is_triggered, is_initial, and triggered_by_questions annotations."""
+        defs = [
+            {"name": "Application information", "ref_id": "info", "default_selected": True},
+            {"name": "Custom applications", "ref_id": "custom_app", "default_selected": False},
+        ]
+        mock_map = {"custom_app": ["Does the app use custom software?"]}
+        with patch("classes.audits.implementation_groups.get_framework_triggered_implementation_groups_map", return_value=mock_map):
+            annotated = get_framework_implementation_groups({"implementation_groups_definition": defs})
+            self.assertEqual(len(annotated), 2)
+            # Default group info
+            self.assertFalse(annotated[0]["is_triggered"])
+            self.assertTrue(annotated[0]["is_initial"])
+            self.assertEqual(annotated[0]["triggered_by_questions"], [])
+            # Triggered custom_app
+            self.assertTrue(annotated[1]["is_triggered"])
+            self.assertFalse(annotated[1]["is_initial"])
+            self.assertEqual(annotated[1]["triggered_by_questions"], ["Does the app use custom software?"])
+
+    def test_get_initial_implementation_groups(self):
+        """Verify get_initial_implementation_groups only returns groups that are default or not triggered."""
+        defs = [
+            {"name": "Application information", "ref_id": "info", "default_selected": True},
+            {"name": "General Controls", "ref_id": "general", "default_selected": False},
+            {"name": "Custom applications", "ref_id": "custom_app", "default_selected": False},
+        ]
+        mock_map = {"custom_app": ["Does the app use custom software?"]}
+        with patch("classes.audits.implementation_groups.get_framework_triggered_implementation_groups_map", return_value=mock_map):
+            initial = get_initial_implementation_groups({"implementation_groups_definition": defs})
+            names = [g["name"] for g in initial]
+            self.assertIn("Application information", names)
+            self.assertIn("General Controls", names)
+            self.assertNotIn("Custom applications", names)
 
 
 class TestComplianceAssessmentModel(unittest.TestCase):
@@ -293,6 +328,78 @@ class TestExamplesManagerImplementationGroups(unittest.TestCase):
                 ["custom_app"],
             )
             mock_ca.add_selected_implementation_groups.assert_called_once_with(["custom_app"])
+
+    def test_assign_audit_implementation_groups(self):
+        """Verify multi-step assignment of triggered implementation groups."""
+        mock_info = {
+            "app_name": "App-Audit",
+            "compliance_assessment_id": "ca-1",
+            "framework_id": "fw-1",
+            "selected_implementation_groups": ["Application information"],
+            "available_implementation_groups": [
+                {"name": "Application information", "ref_id": "info", "default_selected": True, "is_triggered": False, "is_initial": True},
+                {"name": "Custom applications", "ref_id": "custom_app", "default_selected": False, "is_triggered": True, "is_initial": False},
+            ],
+            "app_owner_email": "owner@company.local",
+            "existing_assignments": [
+                {"id": "asgn-1", "name": "Step 1 Profiling", "status": "completed", "requirements_count": 3}
+            ],
+        }
+
+        mock_ra1 = MagicMock(get_id=MagicMock(return_value="ra-1"), json_object={"implementation_groups": ["info"]})
+        mock_ra2 = MagicMock(get_id=MagicMock(return_value="ra-2"), json_object={"implementation_groups": ["custom_app"]})
+
+        mock_req_assessments = MagicMock()
+        mock_req_assessments.get_requirement_assessment_id_list_from_compliance_assessment_id.return_value = ["ra-1", "ra-2"]
+        mock_req_assessments.get_requirement_assessments.return_value = {"ra-1": mock_ra1, "ra-2": mock_ra2}
+
+        mock_req_assignments = MagicMock()
+        mock_asgn_existing = MagicMock(
+            get_compliance_assessment_id=MagicMock(return_value="ca-1"),
+            get_requirement_assessment_id_list=MagicMock(return_value=["ra-1"]),
+        )
+        mock_req_assignments.get_requirement_assignments.return_value = [mock_asgn_existing]
+
+        mock_user = MagicMock(get_id=MagicMock(return_value="u-100"), get_email=MagicMock(return_value="dev@company.local"))
+        mock_user_dict = MagicMock()
+        mock_user_dict.get_id_from_email.return_value = "u-100"
+        mock_user_dict.get_users.return_value = {"u-100": mock_user}
+
+        mock_ca = MagicMock(get_id=MagicMock(return_value="ca-1"), get_name=MagicMock(return_value="Assessment ca-1"))
+        mock_compliance_dict = MagicMock()
+        mock_compliance_dict.get_compliance_assessments.return_value = {"ca-1": mock_ca}
+        mock_compliance_dict.requirement_assessments = mock_req_assessments
+        mock_compliance_dict.requirement_assignments = mock_req_assignments
+
+        mock_data = {
+            "compliance_assessment_dict": mock_compliance_dict,
+            "user_dict": mock_user_dict,
+            "perimeter_dict": MagicMock(get_id_from_name=MagicMock(return_value="p-1")),
+        }
+
+        with (
+            patch.object(self.manager, "_init_data", return_value=mock_data),
+            patch.object(self.manager, "get_audit_implementation_groups", return_value=mock_info),
+            patch.object(self.manager, "resolve_actor_id", return_value="u-100"),
+            patch("classes.audits.requirement_assessment.create_requirement_assignment", return_value={"id": "asgn-2", "status": "draft"}) as mock_create_asgn,
+            patch("classes.audits.requirement_assignment.start_requirement_assignment", return_value={"id": "asgn-2", "status": "in_progress"}) as mock_start_asgn,
+        ):
+            res = self.manager.assign_audit_implementation_groups(
+                "App-Audit",
+                groups=["custom_app"],
+                user_email="dev@company.local",
+                start=True,
+            )
+            mock_ca.add_selected_implementation_groups.assert_called_once()
+            mock_create_asgn.assert_called_once()
+            payload_passed = mock_create_asgn.call_args[0][0]
+            self.assertEqual(payload_passed["compliance_assessment"], "ca-1")
+            self.assertEqual(payload_passed["actor"], ["u-100"])
+            self.assertEqual(payload_passed["requirement_assessments"], ["ra-2"])
+            mock_start_asgn.assert_called_once_with("asgn-2")
+            self.assertEqual(res["assignment_id"], "asgn-2")
+            self.assertEqual(res["assignment_status"], "in_progress")
+            self.assertEqual(res["assigned_requirements_count"], 1)
 
 
 if __name__ == "__main__":

@@ -655,6 +655,157 @@ def select_audit_implementation_groups_ui(
         print(f"\n[ERROR] Failed to update implementation groups for {app_name}: {e}")
 
 
+def assign_audit_implementation_groups_ui(
+    manager: ExamplesManager,
+    app_name: str | None = None,
+    groups: list[str] | None = None,
+    user: str | None = None,
+    start: bool = True,
+):
+    """Assign triggered implementation groups for an existing audit/application to a user and start."""
+    ok, msg = manager.test_connection()
+    if not ok:
+        print(f"\n[ERROR] API Connection Failed: {msg}")
+        return
+
+    print("\n" + "=" * 80)
+    print("      ASSIGN TRIGGERED IMPLEMENTATION GROUPS (MULTI-STEP AUDIT WORKFLOW)")
+    print("=" * 80)
+
+    # 1. Resolve application name
+    if not app_name:
+        status_list = manager.get_status()
+        deployed_with_ca = [s for s in status_list if s.get("exists") and s.get("compliance_assessment_id")]
+        if not deployed_with_ca:
+            print("\nNo deployed applications with compliance assessments found.")
+            print("Please create an application or audit demonstration first.")
+            return
+
+        print("\nSelect Application / Audit to assign implementation tracks for:")
+        for idx, item in enumerate(deployed_with_ca, start=1):
+            curr_groups = ", ".join(item.get("selected_implementation_groups") or []) or "None"
+            unassigned_count = item.get("unassigned_requirements_count", 0)
+            tag = f" [! {unassigned_count} UNASSIGNED REQS]" if unassigned_count > 0 else ""
+            print(f" {idx}) {item['name']} (Framework: {item.get('framework_name') or item.get('framework_ref')}) [Active Groups: {curr_groups}]{tag}")
+
+        choice = input(f"Enter choice [1-{len(deployed_with_ca)}] (or 'c' to cancel): ").strip()
+        if choice.lower() in ("c", "cancel"):
+            print("Operation canceled.")
+            return
+        if not (choice.isdigit() and 1 <= int(choice) <= len(deployed_with_ca)):
+            print("[!] Invalid choice.")
+            return
+        app_name = deployed_with_ca[int(choice) - 1]["name"]
+
+    try:
+        group_info = manager.get_audit_implementation_groups(app_name)
+    except Exception as e:
+        print(f"\n[ERROR] Failed to inspect implementation groups for {app_name}: {e}")
+        return
+
+    print(f"\nTarget Application:        {group_info['app_name']}")
+    print(f"Compliance Assessment ID:  {group_info['compliance_assessment_id']}")
+    print(f"Target Framework:          {group_info['framework_name']} ({group_info['framework_ref']})")
+    print(f"Application Owner:         {group_info.get('app_owner_email') or 'Unknown'}")
+    curr_sel = group_info.get("selected_implementation_groups", [])
+    print(f"Currently Active Groups:   {', '.join(curr_sel) if curr_sel else 'None'}")
+    print(f"Unassigned Requirements:   {group_info.get('unassigned_requirements_count', 0)}")
+
+    existing_asgns = group_info.get("existing_assignments", [])
+    if existing_asgns:
+        print("\nExisting Assignments:")
+        for asgn in existing_asgns:
+            print(f" - {asgn.get('name')} (Status: {asgn.get('status')}, Requirements: {asgn.get('requirements_count')})")
+
+    triggered_groups = group_info.get("triggered_implementation_groups", [])
+    active_triggered = group_info.get("active_triggered_groups", [])
+    unassigned_triggered = group_info.get("unassigned_triggered_groups", [])
+
+    print("\nTriggered Implementation Groups Detected:")
+    if not triggered_groups:
+        print("  [!] Target framework has no dynamic triggered implementation groups.")
+    else:
+        for idx, ig in enumerate(triggered_groups, start=1):
+            is_active = (ig.get("name") in curr_sel) or (ig.get("ref_id") in curr_sel)
+            active_str = "[ACTIVE]" if is_active else "[INACTIVE]"
+            trig_qs = ig.get("triggered_by_questions", [])
+            q_info = f" (Triggered by: {'; '.join(trig_qs)})" if trig_qs else ""
+            print(f"  {idx}) {ig.get('name')} ({ig.get('ref_id')}) {active_str}{q_info}")
+
+    # Resolve groups to assign
+    if groups is None:
+        default_groups = [g.get("name") for g in (unassigned_triggered or active_triggered or triggered_groups)]
+        default_disp = ", ".join(default_groups) if default_groups else "None"
+        print(f"\nDefault tracks to assign: {default_disp}")
+        sel_input = input("Enter groups to assign [comma-separated names/numbers, 'all', or press Enter for default]: ").strip()
+        if sel_input.lower() in ("c", "cancel"):
+            print("Operation canceled.")
+            return
+        if not sel_input:
+            groups = default_groups
+        elif sel_input.lower() == "all":
+            groups = [ig.get("name") for ig in triggered_groups]
+        else:
+            groups = []
+            for part in sel_input.split(","):
+                p = part.strip()
+                if p.isdigit() and 1 <= int(p) <= len(triggered_groups):
+                    groups.append(triggered_groups[int(p) - 1].get("name"))
+                elif p:
+                    groups.append(p)
+
+    if not groups:
+        print("No groups selected for assignment. Operation canceled.")
+        return
+
+    # Resolve user to assign to
+    user_email = user
+    if not user_email:
+        app_owner = group_info.get("app_owner_email")
+        if app_owner:
+            print("\nAssignee Options:")
+            print(f" 1) Application Owner ({app_owner})")
+            print(" 2) Custom Designated Respondent / Specialist")
+            u_choice = input("Enter choice [1-2, default: 1] (or 'c' to cancel): ").strip()
+            if u_choice.lower() in ("c", "cancel"):
+                print("Operation canceled.")
+                return
+            if u_choice == "2":
+                user_email = input("Enter respondent email address: ").strip()
+            else:
+                user_email = app_owner
+        else:
+            user_email = input("Enter respondent email address: ").strip()
+
+        if not user_email:
+            print("No email provided. Operation canceled.")
+            return
+
+    try:
+        res = manager.assign_audit_implementation_groups(
+            app_name_or_ca_id=app_name,
+            groups=groups,
+            user_email=user_email,
+            start=start,
+        )
+        print("\n" + "=" * 80)
+        print("       IMPLEMENTATION GROUPS ASSIGNED & STARTED SUCCESSFULLY")
+        print("=" * 80)
+        print(f" Application Name:         {res['app_name']}")
+        print(f" Assessment ID:            {res['compliance_assessment_id']}")
+        print(f" Assigned Groups:          {', '.join(res.get('assigned_groups', []))}")
+        print(f" Assignee Email:           {res.get('assignee_email')}")
+        print(f" Assignment ID:            {res.get('assignment_id')}")
+        print(f" Status:                   {res.get('assignment_status')}")
+        print(f" Requirements In Scope:    {res.get('assigned_requirements_count')}")
+        print("=" * 80)
+        print("\nWaiting 2s for CISO Assistant to finalize updates before checking status...")
+        time.sleep(2)
+        show_status(manager, wait_seconds=0)
+    except Exception as e:
+        print(f"\n[ERROR] Failed to assign implementation groups for {app_name}: {e}")
+
+
 def generate_controls_and_risks_ui(
     manager: ExamplesManager,
     app_name: str | None = None,
@@ -1342,10 +1493,11 @@ def interactive_menu(manager: ExamplesManager):
         print(" 11) Launch Web UI & REST API Dashboard (http://127.0.0.1:5000)")
         print(" 12) Provision / Check NIS2 - ReCyF Dedicated Domain & Assets")
         print(" 13) Select Implementation Groups for an Audit (Add / Modify Groups)")
+        print(" 14) Assign Triggered Implementation Groups (Multi-Step Audit Workflow)")
         print(" 0) Exit")
         print("=" * 80)
 
-        choice = input("Enter your choice [0-13]: ").strip()
+        choice = input("Enter your choice [0-14]: ").strip()
 
         if choice == "1":
             show_status(manager, wait_seconds=2.0)
@@ -1492,11 +1644,13 @@ def interactive_menu(manager: ExamplesManager):
                 status_nis2_ui()
         elif choice == "13":
             select_audit_implementation_groups_ui(manager)
+        elif choice == "14":
+            assign_audit_implementation_groups_ui(manager)
         elif choice in ("0", "q", "exit"):
             print("\nGoodbye!")
             break
         else:
-            print("\n[!] Invalid choice. Please select an option from 0 to 13.")
+            print("\n[!] Invalid choice. Please select an option from 0 to 14.")
 
         input("\nPress [Enter] to return to the menu...")
 
@@ -1543,6 +1697,11 @@ def main():
         "--add-groups",
         metavar="APP_NAME",
         help="Select further implementation groups (add to existing) for an existing audit/application (used with --groups).",
+    )
+    parser.add_argument(
+        "--assign-groups",
+        metavar="APP_NAME",
+        help="Assign triggered implementation groups for an audit to a user and start the assignment (used with --groups and --user).",
     )
     parser.add_argument(
         "--user",
@@ -1756,6 +1915,11 @@ def main():
     if args.add_groups:
         ig_list = [g.strip() for g in args.groups.split(",") if g.strip()] if args.groups else None
         select_audit_implementation_groups_ui(manager, app_name=args.add_groups, groups=ig_list, mode="add")
+        return
+
+    if args.assign_groups:
+        ig_list = [g.strip() for g in args.groups.split(",") if g.strip()] if args.groups else None
+        assign_audit_implementation_groups_ui(manager, app_name=args.assign_groups, groups=ig_list, user=args.user)
         return
 
     if args.create_audit:

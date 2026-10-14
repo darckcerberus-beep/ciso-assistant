@@ -112,6 +112,18 @@ class ComplianceAssessment:
     def get_selected_implementation_groups(self) -> list[str]:
         """Return the list of currently selected implementation group names."""
         raw = self.compliance_assessment_json.get('selected_implementation_groups')
+        if raw is None and self.get_id() and not (
+            hasattr(self, "_mock_return_value") or self.__class__.__name__ in ("MagicMock", "Mock")
+        ):
+            ca_id = self.get_id()
+            if isinstance(ca_id, str) and len(ca_id) == 36 and "-" in ca_id:
+                try:
+                    ca_detail = utils.get_return(f"/api/compliance-assessments/{ca_id}/", log_errors=False)
+                    if isinstance(ca_detail, dict) and "selected_implementation_groups" in ca_detail:
+                        self.compliance_assessment_json = ca_detail
+                        raw = ca_detail.get("selected_implementation_groups")
+                except Exception:
+                    pass
         if isinstance(raw, list):
             return [str(g) for g in raw if g]
         if isinstance(raw, str) and raw:

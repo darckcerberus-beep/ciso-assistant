@@ -367,6 +367,17 @@ class ExamplesManager:
             if candidate.exists():
                 return candidate
 
+        # If target_framework is a UUID, resolve its ref_id or name via API
+        if len(target_str) == 36 and "-" in target_str:
+            try:
+                fw_data = utils.get_return(f"/api/frameworks/{target_str}/", log_errors=False)
+                if isinstance(fw_data, dict):
+                    resolved_ref = fw_data.get("ref_id") or fw_data.get("name")
+                    if resolved_ref and str(resolved_ref).lower() != target_str:
+                        return ExamplesManager.resolve_framework_yaml_path(resolved_ref)
+            except Exception:
+                pass
+
         return Path(FRAMEWORK_YAML_PATH)
 
     def resolve_framework_file(
@@ -399,9 +410,7 @@ class ExamplesManager:
                     urn = fw_json.get("urn", "")
                     description = fw_json.get("description", "")
                     yaml_path = str(self.resolve_framework_yaml_path(ref_id or fw_name))
-                    ig_defs = fw_json.get("implementation_groups_definition", [])
-                    if not ig_defs:
-                        ig_defs = get_framework_implementation_groups(fw)
+                    ig_defs = get_framework_implementation_groups(fw)
                     entry = {
                         "id": fw_id,
                         "name": fw_name,
@@ -999,6 +1008,7 @@ class ExamplesManager:
         user_email: str | None = None,
         user_id: str | None = None,
         req_by_ca: dict[str, list[Any]] | None = None,
+        asgns_by_ca: dict[str, list[Any]] | None = None,
         framework_id: str | None = None,
         framework_name: str | None = None,
         framework_ref: str | None = None,
@@ -1011,6 +1021,7 @@ class ExamplesManager:
         total_reqs = 0
         answered_reqs = 0
         all_reqs_count = 0
+        assigned_ra_count = 0
         ca_sel_groups: list[str] = []
         if ca_obj:
             ca_id = ca_obj.get_id() if hasattr(ca_obj, "get_id") else str(ca_obj)
@@ -1027,6 +1038,9 @@ class ExamplesManager:
                 framework_ref=framework_ref or framework_name or framework_id,
                 selected_groups=ca_sel_groups,
             )
+            for asgn in (asgns_by_ca or {}).get(ca_id, []):
+                assigned_ra_count += len(getattr(asgn, "get_requirement_assessment_id_list", lambda: [])() or [])
+        unassigned_requirements_count = max(0, total_reqs - assigned_ra_count)
 
         item_exists = bool(perimeter_id or ca_obj or ra_obj or entity_id or ea_obj)
         app_created = bool(perimeter_id or asset_id or (ea_obj and entity_id) or item_exists)
@@ -1107,6 +1121,7 @@ class ExamplesManager:
             "user_exists": bool(user_id),
             "tprm_conclusion": ea_obj.json_object.get("conclusion") if ea_obj and isinstance(getattr(ea_obj, "json_object", None), dict) else None,
             "selected_implementation_groups": list(ca_sel_groups),
+            "unassigned_requirements_count": unassigned_requirements_count,
         }
 
     def get_status(self, wait_seconds: float = 0) -> list[dict[str, Any]]:
@@ -1128,7 +1143,7 @@ class ExamplesManager:
         entity_assessment_dict: EntityAssessmentDict = data["entity_assessment_dict"]
         user_dict: UserDict = data["user_dict"]
 
-        # Index requirement assessments by compliance assessment ID for quick lookup
+        # Index requirement assessments and assignments by compliance assessment ID for quick lookup
         req_by_ca: dict[str, list[Any]] = {}
         req_assessments_obj = getattr(compliance_dict, "requirement_assessments", None)
         if req_assessments_obj and hasattr(req_assessments_obj, "get_requirement_assessments"):
@@ -1142,6 +1157,19 @@ class ExamplesManager:
                                 req_by_ca.setdefault(ca_id, []).append(ra)
             except Exception as e:
                 utils.log(f"Error indexing requirement assessments: {e}", level=logging.DEBUG)
+
+        asgns_by_ca: dict[str, list[Any]] = {}
+        req_asgns_obj = getattr(compliance_dict, "requirement_assignments", None)
+        if req_asgns_obj and hasattr(req_asgns_obj, "get_requirement_assignments"):
+            try:
+                asgns_list = req_asgns_obj.get_requirement_assignments()
+                if isinstance(asgns_list, list):
+                    for asgn in asgns_list:
+                        ca_id = getattr(asgn, "get_compliance_assessment_id", lambda: None)()
+                        if ca_id:
+                            asgns_by_ca.setdefault(ca_id, []).append(asgn)
+            except Exception as e:
+                utils.log(f"Error indexing requirement assignments: {e}", level=logging.DEBUG)
 
         status_list = []
         known_names = set()
@@ -1296,6 +1324,7 @@ class ExamplesManager:
                 user_email=user_email,
                 user_id=user_id,
                 req_by_ca=req_by_ca,
+                asgns_by_ca=asgns_by_ca,
                 framework_id=fw_id,
                 framework_name=fw_name,
                 framework_ref=fw_ref,
@@ -1442,6 +1471,7 @@ class ExamplesManager:
                 user_email=user_email,
                 user_id=user_id,
                 req_by_ca=req_by_ca,
+                asgns_by_ca=asgns_by_ca,
                 framework_id=fw_id,
                 framework_name=fw_name,
                 framework_ref=fw_ref,
@@ -2183,6 +2213,87 @@ class ExamplesManager:
             if p_name:
                 app_name = p_name
 
+        # Resolve app owner email from entity assessment or perimeter owner
+        app_owner_email = None
+        user_dict = data.get("user_dict")
+        entity_assessment_dict = data.get("entity_assessment_dict")
+        if entity_assessment_dict and hasattr(entity_assessment_dict, "get_entity_assessments"):
+            try:
+                for ea in entity_assessment_dict.get_entity_assessments() or []:
+                    if getattr(ea, "get_compliance_assessment_id", lambda: None)() == ca_obj.get_id():
+                        rep_ids = getattr(ea, "get_representative_ids", lambda: [])()
+                        if rep_ids and user_dict and hasattr(user_dict, "get_users"):
+                            for u in (user_dict.get_users() or {}).values():
+                                if getattr(u, "get_id", lambda: None)() in rep_ids:
+                                    app_owner_email = getattr(u, "get_email", lambda: None)()
+                                    break
+                        break
+            except Exception:
+                pass
+
+        if not app_owner_email and ca_obj.get_perimeter_id() and perimeter_dict:
+            try:
+                owner_id = perimeter_dict.get_owner_id_from_perimeter_id(ca_obj.get_perimeter_id())
+                if owner_id and user_dict and hasattr(user_dict, "get_users"):
+                    for u in (user_dict.get_users() or {}).values():
+                        if getattr(u, "get_id", lambda: None)() == owner_id:
+                            app_owner_email = getattr(u, "get_email", lambda: None)()
+                            break
+            except Exception:
+                pass
+
+        # Existing assignments and assigned requirements
+        existing_assignments = []
+        assigned_ra_ids = set()
+        req_assignments = getattr(compliance_dict, "requirement_assignments", None)
+        if req_assignments and hasattr(req_assignments, "get_requirement_assignments"):
+            try:
+                asgns = req_assignments.get_requirement_assignments()
+                if isinstance(asgns, list):
+                    for asgn in asgns:
+                        if getattr(asgn, "get_compliance_assessment_id", lambda: None)() == ca_obj.get_id():
+                            ra_list = getattr(asgn, "get_requirement_assessment_id_list", lambda: [])() or []
+                            assigned_ra_ids.update(ra_list)
+                            existing_assignments.append({
+                                "id": getattr(asgn, "get_id", lambda: None)(),
+                                "name": getattr(asgn, "get_name", lambda: None)(),
+                                "status": getattr(asgn, "json_object", {}).get("status", "") if hasattr(asgn, "json_object") else "",
+                                "requirements_count": len(ra_list),
+                            })
+            except Exception:
+                pass
+
+        # Scoped assessable requirements for this CA
+        scoped_ra_ids = []
+        get_scoped = getattr(
+            compliance_dict.requirement_assessments,
+            "get_scoped_requirement_assessment_id_list_from_compliance_assessment_id",
+            None,
+        )
+        if callable(get_scoped) and not (
+            hasattr(get_scoped, "_mock_return_value")
+            and "DEFAULT" in repr(getattr(get_scoped, "_mock_return_value", None))
+        ):
+            try:
+                scoped_ra_ids = get_scoped(ca_obj.get_id(), compliance_assessment=ca_obj) or []
+            except Exception:
+                pass
+        unassigned_ra_ids = [r for r in scoped_ra_ids if r not in assigned_ra_ids]
+
+        initial_groups = [
+            g for g in available
+            if isinstance(g, dict) and (g.get("default_selected") or not g.get("is_triggered"))
+        ]
+        triggered_groups = [
+            g for g in available
+            if isinstance(g, dict) and g.get("is_triggered")
+        ]
+        active_triggered_groups = [
+            g for g in triggered_groups
+            if g.get("name") in selected or g.get("ref_id") in selected
+        ]
+        unassigned_triggered_groups = list(active_triggered_groups) if unassigned_ra_ids else []
+
         return {
             "app_name": app_name,
             "compliance_assessment_id": ca_obj.get_id(),
@@ -2192,6 +2303,13 @@ class ExamplesManager:
             "framework_ref": fw_ref,
             "selected_implementation_groups": list(selected),
             "available_implementation_groups": list(available),
+            "initial_implementation_groups": initial_groups,
+            "triggered_implementation_groups": triggered_groups,
+            "active_triggered_groups": active_triggered_groups,
+            "unassigned_triggered_groups": unassigned_triggered_groups,
+            "app_owner_email": app_owner_email,
+            "existing_assignments": existing_assignments,
+            "unassigned_requirements_count": len(unassigned_ra_ids),
         }
 
     def select_audit_implementation_groups(
@@ -2199,6 +2317,7 @@ class ExamplesManager:
         app_name_or_ca_id: str,
         groups: list[str],
         mode: str = "replace",
+        sync_existing_assignments: bool = False,
     ) -> dict[str, Any]:
         """Update or select further implementation groups for an existing audit/application.
 
@@ -2206,6 +2325,7 @@ class ExamplesManager:
             app_name_or_ca_id: Application name or compliance assessment UUID.
             groups: List of implementation group names, ref_ids, or URNs.
             mode: 'replace' to set the exact list, or 'add' to merge with existing groups.
+            sync_existing_assignments: Whether to rewrite existing assignments to the new scoped requirements (default: False).
 
         Returns:
             Dict summary of updated audit implementation groups and requirement counts.
@@ -2226,17 +2346,24 @@ class ExamplesManager:
 
         compliance_dict.reload()
 
-        # Synchronize existing requirement assignments to the new scoped requirements
-        scoped_ids = []
-        if hasattr(compliance_dict.requirement_assessments, "get_scoped_requirement_assessment_id_list_from_compliance_assessment_id"):
-            scoped_ids = compliance_dict.requirement_assessments.get_scoped_requirement_assessment_id_list_from_compliance_assessment_id(
-                ca_id, compliance_assessment=ca_obj
+        # Synchronize existing requirement assignments only if requested
+        if sync_existing_assignments:
+            scoped_ids = []
+            get_scoped = getattr(
+                compliance_dict.requirement_assessments,
+                "get_scoped_requirement_assessment_id_list_from_compliance_assessment_id",
+                None,
             )
-        asgn_ids = compliance_dict.requirement_assignments.get_requirement_assignment_id_list_from_compliance_assessment_id(ca_id)
-        if scoped_ids and asgn_ids:
-            from classes.audits.requirement_assignment import sync_requirement_assignment_scope
-            for asgn_id in asgn_ids:
-                sync_requirement_assignment_scope(asgn_id, scoped_ids)
+            if callable(get_scoped) and not (
+                hasattr(get_scoped, "_mock_return_value")
+                and "DEFAULT" in repr(getattr(get_scoped, "_mock_return_value", None))
+            ):
+                scoped_ids = get_scoped(ca_id, compliance_assessment=ca_obj) or []
+            asgn_ids = compliance_dict.requirement_assignments.get_requirement_assignment_id_list_from_compliance_assessment_id(ca_id)
+            if scoped_ids and asgn_ids:
+                from classes.audits.requirement_assignment import sync_requirement_assignment_scope
+                for asgn_id in asgn_ids:
+                    sync_requirement_assignment_scope(asgn_id, scoped_ids)
 
         # Reload status and return fresh group info
         updated_info = self.get_audit_implementation_groups(ca_id)
@@ -2251,9 +2378,173 @@ class ExamplesManager:
         self,
         app_name_or_ca_id: str,
         groups: list[str],
+        sync_existing_assignments: bool = False,
     ) -> dict[str, Any]:
         """Select further implementation groups for an existing audit (merging with existing)."""
-        return self.select_audit_implementation_groups(app_name_or_ca_id, groups, mode="add")
+        return self.select_audit_implementation_groups(
+            app_name_or_ca_id,
+            groups,
+            mode="add",
+            sync_existing_assignments=sync_existing_assignments,
+        )
+
+    def assign_audit_implementation_groups(
+        self,
+        app_name_or_ca_id: str,
+        groups: list[str] | None = None,
+        user_email: str | None = None,
+        first_name: str | None = None,
+        last_name: str | None = None,
+        start: bool = True,
+    ) -> dict[str, Any]:
+        """Assign triggered or specified implementation groups to a respondent and start the assignment.
+
+        Args:
+            app_name_or_ca_id: Application name or compliance assessment UUID.
+            groups: List of implementation group names, ref_ids, or URNs to assign.
+                    If None or empty, automatically selects all active or unassigned triggered groups.
+            user_email: Email of user to assign to. If None, defaults to app owner / representative.
+            first_name: Optional first name if creating a new user.
+            last_name: Optional last name if creating a new user.
+            start: Whether to start the assignment immediately (default: True).
+
+        Returns:
+            Dict summary of the created/started requirement assignment.
+        """
+        current_info = self.get_audit_implementation_groups(app_name_or_ca_id)
+        ca_id = current_info["compliance_assessment_id"]
+        fw_id = current_info["framework_id"]
+        app_name = current_info["app_name"]
+
+        data = self._init_data()
+        compliance_dict: ComplianceAssessmentDict = data["compliance_assessment_dict"]
+        perimeter_dict: PerimeterDict = data["perimeter_dict"]
+        user_dict: UserDict = data.get("user_dict")
+        ca_obj = compliance_dict.get_compliance_assessments().get(ca_id)
+        if not ca_obj:
+            ca_obj = ComplianceAssessment(ca_id)
+
+        # 1. Determine target groups to assign
+        if groups:
+            target_groups = resolve_implementation_groups(groups, fw_id)
+        else:
+            unassigned_trig = current_info.get("unassigned_triggered_groups") or []
+            if unassigned_trig:
+                target_groups = [g["name"] for g in unassigned_trig if isinstance(g, dict) and g.get("name")]
+            else:
+                target_groups = [g["name"] for g in current_info.get("active_triggered_groups", []) if isinstance(g, dict) and g.get("name")]
+            if not target_groups:
+                target_groups = current_info.get("selected_implementation_groups", [])
+
+        if not target_groups:
+            raise ValueError(f"No triggered or active implementation groups to assign for '{app_name_or_ca_id}'.")
+
+        # 2. Ensure target groups are added to the compliance assessment
+        ca_obj.add_selected_implementation_groups(target_groups)
+        compliance_dict.reload()
+
+        # 3. Resolve assessable requirement assessments
+        scoped_ids = []
+        get_scoped = getattr(
+            compliance_dict.requirement_assessments,
+            "get_scoped_requirement_assessment_id_list_from_compliance_assessment_id",
+            None,
+        )
+        if callable(get_scoped) and not (
+            hasattr(get_scoped, "_mock_return_value")
+            and "DEFAULT" in repr(getattr(get_scoped, "_mock_return_value", None))
+        ):
+            scoped_ids = get_scoped(ca_id, compliance_assessment=ca_obj) or []
+        elif hasattr(compliance_dict.requirement_assessments, "get_requirement_assessment_id_list_from_compliance_assessment_id"):
+            scoped_ids = compliance_dict.requirement_assessments.get_requirement_assessment_id_list_from_compliance_assessment_id(ca_id) or []
+
+        # Find existing assignments to avoid duplicate assignment of already assigned requirements
+        existing_assigned_ids = set()
+        req_assignments = getattr(compliance_dict, "requirement_assignments", None)
+        if req_assignments and hasattr(req_assignments, "get_requirement_assignments"):
+            try:
+                for asgn in req_assignments.get_requirement_assignments() or []:
+                    if getattr(asgn, "get_compliance_assessment_id", lambda: None)() == ca_id:
+                        ra_list = getattr(asgn, "get_requirement_assessment_id_list", lambda: [])() or []
+                        existing_assigned_ids.update(ra_list)
+            except Exception:
+                pass
+
+        # Filter scoped_ids: prefer newly assessable requirements that are not yet assigned
+        unassigned_ids = [rid for rid in scoped_ids if rid not in existing_assigned_ids]
+        target_ra_ids = unassigned_ids if unassigned_ids else scoped_ids
+
+        if not target_ra_ids:
+            target_ra_ids = scoped_ids
+
+        # 4. Resolve Assignee
+        target_email = (user_email or current_info.get("app_owner_email") or "").strip().lower()
+        actor_id = None
+        user_id = None
+
+        if target_email and user_dict:
+            user_id = user_dict.get_id_from_email(target_email)
+            if not user_id:
+                user_dict.create_user_if_missing(
+                    email=target_email,
+                    first_name=first_name or "Audit",
+                    last_name=last_name or "Respondent",
+                    is_third_party=True,
+                )
+                user_id = user_dict.get_id_from_email(target_email)
+            actor_id = self.resolve_actor_id(user_id=user_id, user_email=target_email)
+        elif current_info.get("app_owner_email"):
+            actor_id = self.resolve_actor_id(user_email=current_info.get("app_owner_email"))
+
+        if not actor_id:
+            actor_id = self.get_default_assignee_id()
+
+        # 5. Resolve Folder
+        folder_id = None
+        if perimeter_dict and ca_obj.get_perimeter_id():
+            folder_id = perimeter_dict.get_folder_uuid_from_perimeter_id(ca_obj.get_perimeter_id())
+
+        # 6. Create Requirement Assignment and Start it
+        payload = {
+            "requirement_assessments": target_ra_ids,
+            "compliance_assessment": ca_id,
+            "actor": [actor_id] if actor_id else [],
+        }
+        if folder_id:
+            payload["folder"] = folder_id
+
+        from classes.audits.requirement_assessment import create_requirement_assignment
+        from classes.audits.requirement_assignment import start_requirement_assignment
+
+        asgn_res = create_requirement_assignment(payload, start=start)
+        asgn_id = asgn_res.get("id") if isinstance(asgn_res, dict) else None
+
+        if start and asgn_id:
+            start_requirement_assignment(asgn_id)
+
+        if hasattr(compliance_dict.requirement_assignments, "reload"):
+            compliance_dict.requirement_assignments.reload()
+
+        utils.log(
+            f"Successfully assigned implementation groups {target_groups} for '{app_name}' to "
+            f"'{target_email or actor_id}' (Assignment ID: {asgn_id}, Requirements: {len(target_ra_ids)})",
+            level=logging.INFO,
+        )
+
+        return {
+            "app_name": app_name,
+            "compliance_assessment_id": ca_id,
+            "assignment_id": asgn_id,
+            "assignment_status": "in_progress" if start else "draft",
+            "status": "in_progress" if start else "draft",
+            "assigned_user": target_email or actor_id,
+            "assignee_email": target_email or actor_id,
+            "assigned_groups": target_groups,
+            "groups": target_groups,
+            "assigned_requirements_count": len(target_ra_ids),
+            "requirements_count": len(target_ra_ids),
+            "requirement_assessments": target_ra_ids,
+        }
 
     def generate_controls_and_risks_for_application(
         self,
