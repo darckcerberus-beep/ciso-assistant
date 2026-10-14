@@ -33,6 +33,59 @@ def start_requirement_assignment(assignment_id: str) -> bool:
     return False
 
 
+def sync_requirement_assignment_scope(assignment_id: str, target_requirement_assessment_ids: list[str]) -> bool:
+    """Synchronize a requirement assignment to contain precisely target_requirement_assessment_ids.
+
+    Handles assignments in draft or in_progress status by safely transitioning if needed,
+    applying the PATCH with the scoped requirement assessment IDs, and restoring in_progress status.
+    """
+    if not assignment_id or not target_requirement_assessment_ids:
+        return False
+
+    assignment = utils.get_return(f"/api/requirement-assignments/{assignment_id}/")
+    if not isinstance(assignment, dict) or not assignment.get("id"):
+        return False
+
+    current_ids = set()
+    for ra in assignment.get("requirement_assessments", []):
+        if isinstance(ra, dict):
+            current_ids.add(str(ra.get("id", "")))
+        elif ra:
+            current_ids.add(str(ra))
+    target_ids = {str(r) for r in target_requirement_assessment_ids if r}
+
+    if current_ids == target_ids:
+        return True
+
+    status_val = assignment.get("status", "draft")
+    was_in_progress = (status_val == "in_progress")
+
+    if was_in_progress:
+        # Valid CISO Assistant workflow transitions: in_progress -> submitted -> draft
+        utils.get_return(
+            f"/api/requirement-assignments/{assignment_id}/set_status/",
+            method="POST",
+            payload={"status": "submitted"},
+        )
+        utils.get_return(
+            f"/api/requirement-assignments/{assignment_id}/set_status/",
+            method="POST",
+            payload={"status": "draft"},
+        )
+
+    payload = {"requirement_assessments": sorted(list(target_ids))}
+    patch_res = utils.get_return(
+        f"/api/requirement-assignments/{assignment_id}/",
+        method="PATCH",
+        payload=payload,
+    )
+
+    if was_in_progress:
+        start_requirement_assignment(assignment_id)
+
+    return isinstance(patch_res, dict) and not patch_res.get("error")
+
+
 class RequirementAssignment:
     """Represent a task assigning requirement assessments to an actor."""
 

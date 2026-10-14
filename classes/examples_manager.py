@@ -2064,7 +2064,7 @@ class ExamplesManager:
         # Step 9: Verify requirement assignment is created and started
         compliance_dict.requirement_assignments.reload()
         assignment_ids = compliance_dict.requirement_assignments.get_requirement_assignment_id_list_from_compliance_assessment_id(ca_id)
-        if not assignment_ids and req_ids and ea_id:
+        if req_ids and ea_id:
             for ea in entity_assessment_dict.get_entity_assessments():
                 if ea.get_id() == ea_id:
                     ea.assign_requirements_to_representatives([user_id] if user_id else None)
@@ -2225,6 +2225,18 @@ class ExamplesManager:
             ca_obj.set_selected_implementation_groups(groups)
 
         compliance_dict.reload()
+
+        # Synchronize existing requirement assignments to the new scoped requirements
+        scoped_ids = []
+        if hasattr(compliance_dict.requirement_assessments, "get_scoped_requirement_assessment_id_list_from_compliance_assessment_id"):
+            scoped_ids = compliance_dict.requirement_assessments.get_scoped_requirement_assessment_id_list_from_compliance_assessment_id(
+                ca_id, compliance_assessment=ca_obj
+            )
+        asgn_ids = compliance_dict.requirement_assignments.get_requirement_assignment_id_list_from_compliance_assessment_id(ca_id)
+        if scoped_ids and asgn_ids:
+            from classes.audits.requirement_assignment import sync_requirement_assignment_scope
+            for asgn_id in asgn_ids:
+                sync_requirement_assignment_scope(asgn_id, scoped_ids)
 
         # Reload status and return fresh group info
         updated_info = self.get_audit_implementation_groups(ca_id)

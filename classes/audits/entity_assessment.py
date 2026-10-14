@@ -8,7 +8,7 @@ from .. import utils
 from .compliance import AUDITOR_SCORE_METHOD, AUDITOR_SCORE_VISIBILITY
 from .implementation_groups import add_default_implementation_groups
 from .requirement_assessment import create_requirement_assignment
-from .requirement_assignment import start_requirement_assignment
+from .requirement_assignment import start_requirement_assignment, sync_requirement_assignment_scope
 
 
 class EntityAssessment:
@@ -354,12 +354,64 @@ class EntityAssessment:
 
     @staticmethod
     def _get_requirement_assessment_ids(compliance_assessment_id):
-        """Return the requirement assessments created for a compliance assessment."""
+        """Return the scoped assessable requirement assessments created for a compliance assessment."""
+        # 1. Try canonical CISO Assistant requirements_list endpoint
+        try:
+            res = utils.get_return(
+                f"/api/compliance-assessments/{compliance_assessment_id}/requirements_list/?assessable=true"
+            )
+            if isinstance(res, dict) and "requirement_assessments" in res:
+                ra_list = res.get("requirement_assessments", [])
+                if isinstance(ra_list, list):
+                    scoped = [
+                        str(ra["id"])
+                        for ra in ra_list
+                        if isinstance(ra, dict) and ra.get("id")
+                    ]
+                    if scoped:
+                        return list(dict.fromkeys(scoped))
+        except Exception:
+            pass
+
+        # 2. Local fallback: filter by assessable and selected implementation groups
+        ca_data = None
+        try:
+            ca_data = utils.get_return(f"/api/compliance-assessments/{compliance_assessment_id}/")
+        except Exception:
+            pass
+        selected_groups = ca_data.get("selected_implementation_groups", []) if isinstance(ca_data, dict) else []
+        fw_id = None
+        if isinstance(ca_data, dict):
+            fw_info = ca_data.get("framework", {})
+            fw_id = fw_info.get("id") if isinstance(fw_info, dict) else str(fw_info)
+
+        matched_identifiers = set()
+        if selected_groups:
+            try:
+                from .implementation_groups import get_framework_implementation_groups
+                ig_defs = get_framework_implementation_groups(fw_id) if fw_id else []
+                for sel in selected_groups:
+                    sel_clean = str(sel).strip().lower()
+                    matched_identifiers.add(sel_clean)
+                    for ig in ig_defs:
+                        if not isinstance(ig, dict):
+                            continue
+                        ig_name = str(ig.get("name") or "").strip().lower()
+                        ig_ref = str(ig.get("ref_id") or "").strip().lower()
+                        ig_urn = str(ig.get("urn") or "").strip().lower()
+                        if sel_clean in (ig_name, ig_ref, ig_urn):
+                            if ig_name:
+                                matched_identifiers.add(ig_name)
+                            if ig_ref:
+                                matched_identifiers.add(ig_ref)
+                            if ig_urn:
+                                matched_identifiers.add(ig_urn)
+            except Exception:
+                pass
+
         requirement_assessment_ids = []
-        for requirement_assessment in utils.get_all_results(
-            "/api/requirement-assessments/",
-            force_reload=True,
-        ):
+        raw_list = utils.get_all_results("/api/requirement-assessments/", force_reload=True)
+        for requirement_assessment in raw_list:
             compliance_assessment = requirement_assessment.get('compliance_assessment', {})
             assessment_id = (
                 compliance_assessment.get('id')
@@ -369,6 +421,33 @@ class EntityAssessment:
             if assessment_id != compliance_assessment_id:
                 continue
 
+            req = requirement_assessment.get('requirement', {}) if isinstance(requirement_assessment, dict) else {}
+            assessable = requirement_assessment.get('assessable', True) and req.get('assessable', True) and req.get('display_mode') != 'splash'
+            if not assessable:
+                continue
+
+            if matched_identifiers:
+                req_igs = [str(g).strip().lower() for g in req.get('implementation_groups', []) if g]
+                if not any(g in matched_identifiers for g in req_igs):
+                    continue
+
+            requirement_assessment_id = requirement_assessment.get('id')
+            if requirement_assessment_id:
+                requirement_assessment_ids.append(str(requirement_assessment_id))
+
+        if requirement_assessment_ids:
+            return list(dict.fromkeys(requirement_assessment_ids))
+
+        # 3. Fallback to all requirement assessment IDs for CA
+        for requirement_assessment in raw_list:
+            compliance_assessment = requirement_assessment.get('compliance_assessment', {})
+            assessment_id = (
+                compliance_assessment.get('id')
+                if isinstance(compliance_assessment, dict)
+                else compliance_assessment
+            )
+            if assessment_id != compliance_assessment_id:
+                continue
             requirement_assessment_id = requirement_assessment.get('id')
             if requirement_assessment_id:
                 requirement_assessment_ids.append(str(requirement_assessment_id))
@@ -447,11 +526,13 @@ class EntityAssessment:
         )
         if existing_assignment:
             assignment_id = existing_assignment.get('id')
-            if assignment_id and existing_assignment.get('status') != 'in_progress':
-                start_requirement_assignment(assignment_id)
+            if assignment_id:
+                sync_requirement_assignment_scope(assignment_id, requirement_assessment_ids)
+                if existing_assignment.get('status') != 'in_progress':
+                    start_requirement_assignment(assignment_id)
             utils.log(
                 f"Requirement assignments already exist for entity assessment {self.get_id()} "
-                f"with representative(s): {representative_ids}",
+                f"with representative(s): {representative_ids}; ensured scoped to {len(requirement_assessment_ids)} requirements",
                 level=logging.INFO,
             )
             return existing_assignment

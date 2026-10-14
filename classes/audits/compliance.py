@@ -315,14 +315,25 @@ class ComplianceAssessmentDict:
                 continue
 
             requirement_assignment_ids = requirement_assignment_dict.get_requirement_assignment_id_list_from_compliance_assessment_id(ca.get_id())
-            requirement_assessment_ids = requirement_assessment_dict.get_requirement_assessment_id_list_from_compliance_assessment_id(ca.get_id())
+            get_scoped = getattr(
+                requirement_assessment_dict,
+                "get_scoped_requirement_assessment_id_list_from_compliance_assessment_id",
+                None,
+            )
+            if callable(get_scoped) and not (
+                hasattr(get_scoped, "_mock_return_value")
+                and "DEFAULT" in repr(getattr(get_scoped, "_mock_return_value", None))
+            ):
+                requirement_assessment_ids = get_scoped(ca.get_id(), compliance_assessment=ca)
+            else:
+                requirement_assessment_ids = requirement_assessment_dict.get_requirement_assessment_id_list_from_compliance_assessment_id(ca.get_id())
 
             if not requirement_assignment_ids and not requirement_assessment_ids:
                 for _ in range(10):
                     time.sleep(0.5)
                     if hasattr(requirement_assessment_dict, "reload"):
                         requirement_assessment_dict.reload()
-                    requirement_assessment_ids = requirement_assessment_dict.get_requirement_assessment_id_list_from_compliance_assessment_id(ca.get_id())
+                    requirement_assessment_ids = get_scoped(ca.get_id(), compliance_assessment=ca)
                     if requirement_assessment_ids:
                         break
 

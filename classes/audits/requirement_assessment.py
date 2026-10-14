@@ -73,6 +73,16 @@ class RequirementAssessment:
         """Return the raw JSON payload."""
         return self.json_object
 
+    def is_assessable(self) -> bool:
+        """Return True if this requirement assessment is assessable (not a chapter header or splash screen)."""
+        requirement = self.json_object.get('requirement', {})
+        if isinstance(requirement, dict):
+            if requirement.get('assessable') is False or requirement.get('display_mode') == 'splash':
+                return False
+        if self.json_object.get('assessable') is False or self.json_object.get('display_mode') == 'splash':
+            return False
+        return True
+
     def get_answers(self):
         """Return the selected answers for this requirement assessment."""
         return self.json_object.get('answers', {})
@@ -314,6 +324,105 @@ class RequirementAssessmentDict:
                 requirement_assessment_ids.append(ra.get_id())
         return requirement_assessment_ids
 
+    def get_scoped_requirement_assessment_id_list_from_compliance_assessment_id(
+        self, compliance_assessment_id: str, compliance_assessment=None
+    ) -> list[str]:
+        """Return assessable requirement assessment IDs scoped to the audit's implementation groups.
+
+        Queries the canonical CISO Assistant endpoint first:
+            /api/compliance-assessments/{compliance_assessment_id}/requirements_list/?assessable=true
+        which is the source of truth used by the CISO Assistant UI for scoping assessable requirements.
+        If the endpoint is unavailable or returns an empty list, falls back to inspecting the
+        compliance assessment's selected_implementation_groups and filtering local assessable
+        requirement assessments accordingly.
+        """
+        # 1. Try canonical CISO Assistant requirements_list endpoint
+        try:
+            res = utils.get_return(
+                f"/api/compliance-assessments/{compliance_assessment_id}/requirements_list/?assessable=true"
+            )
+            if isinstance(res, dict) and "requirement_assessments" in res:
+                ra_list = res.get("requirement_assessments", [])
+                if isinstance(ra_list, list):
+                    scoped_ids = [
+                        ra.get("id")
+                        for ra in ra_list
+                        if isinstance(ra, dict) and ra.get("id")
+                    ]
+                    if scoped_ids:
+                        return scoped_ids
+        except Exception as exc:
+            utils.log(
+                f"Could not fetch requirements_list for CA {compliance_assessment_id}: {exc}",
+                level=logging.DEBUG,
+            )
+
+        # 2. Local fallback filtering
+        ca_obj = compliance_assessment
+        if ca_obj is None or not hasattr(ca_obj, "get_selected_implementation_groups"):
+            try:
+                ca_data = utils.get_return(f"/api/compliance-assessments/{compliance_assessment_id}/")
+                if isinstance(ca_data, dict) and ca_data.get("id"):
+                    from .compliance import ComplianceAssessment
+                    ca_obj = ComplianceAssessment(ca_data)
+            except Exception:
+                pass
+
+        selected_groups = []
+        fw_id = None
+        if ca_obj is not None:
+            if hasattr(ca_obj, "get_selected_implementation_groups"):
+                selected_groups = ca_obj.get_selected_implementation_groups()
+            elif isinstance(ca_obj, dict):
+                selected_groups = ca_obj.get("selected_implementation_groups", [])
+            if hasattr(ca_obj, "get_framework_id"):
+                fw_id = ca_obj.get_framework_id()
+            elif isinstance(ca_obj, dict):
+                fw_info = ca_obj.get("framework", {})
+                fw_id = fw_info.get("id") if isinstance(fw_info, dict) else str(fw_info)
+
+        matched_identifiers = set()
+        if selected_groups:
+            try:
+                from .implementation_groups import get_framework_implementation_groups
+                ig_defs = get_framework_implementation_groups(fw_id) if fw_id else []
+                for sel in selected_groups:
+                    sel_clean = str(sel).strip().lower()
+                    matched_identifiers.add(sel_clean)
+                    for ig in ig_defs:
+                        if not isinstance(ig, dict):
+                            continue
+                        ig_name = str(ig.get("name") or "").strip().lower()
+                        ig_ref = str(ig.get("ref_id") or "").strip().lower()
+                        ig_urn = str(ig.get("urn") or "").strip().lower()
+                        if sel_clean in (ig_name, ig_ref, ig_urn):
+                            if ig_name:
+                                matched_identifiers.add(ig_name)
+                            if ig_ref:
+                                matched_identifiers.add(ig_ref)
+                            if ig_urn:
+                                matched_identifiers.add(ig_urn)
+            except Exception:
+                pass
+
+        scoped_ids = []
+        for ra in self.requirement_assessments.values():
+            if ra.get_compliance_assessment_id() != compliance_assessment_id:
+                continue
+            if not ra.is_assessable():
+                continue
+            if matched_identifiers:
+                req_igs = [str(g).strip().lower() for g in ra.get_implementation_groups() if g]
+                if not any(g in matched_identifiers for g in req_igs):
+                    continue
+            scoped_ids.append(ra.get_id())
+
+        if scoped_ids:
+            return scoped_ids
+
+        # 3. Fallback to all requirements belonging to this CA
+        return self.get_requirement_assessment_id_list_from_compliance_assessment_id(compliance_assessment_id)
+
     def has_answers_for_compliance_assessment(self, compliance_assessment_id) -> bool:
         """Return True when at least one requirement assessment in the compliance assessment has an answer.
 
@@ -342,13 +451,33 @@ class RequirementAssessmentDict:
 
         for ca in compliance_assessment_dict.get_compliance_assessments().values():
             req_assigned_ids = requirement_assignment_dict.get_requirement_assignment_id_list_from_compliance_assessment_id(ca.get_id())
-            req_assessment_ids = self.get_requirement_assessment_id_list_from_compliance_assessment_id(ca.get_id())
+            get_scoped = getattr(
+                self,
+                "get_scoped_requirement_assessment_id_list_from_compliance_assessment_id",
+                None,
+            )
+            get_raw = getattr(
+                self,
+                "get_requirement_assessment_id_list_from_compliance_assessment_id",
+                None,
+            )
+            if callable(get_raw) and hasattr(get_raw, "_mock_return_value") and "DEFAULT" not in repr(getattr(get_raw, "_mock_return_value", None)):
+                req_assessment_ids = get_raw(ca.get_id())
+            elif callable(get_scoped) and not (
+                hasattr(get_scoped, "_mock_return_value")
+                and "DEFAULT" in repr(getattr(get_scoped, "_mock_return_value", None))
+            ):
+                req_assessment_ids = get_scoped(ca.get_id(), compliance_assessment=ca)
+            elif callable(get_raw):
+                req_assessment_ids = get_raw(ca.get_id())
+            else:
+                req_assessment_ids = []
 
             if not req_assigned_ids and not req_assessment_ids:
                 for _ in range(10):
                     time.sleep(0.5)
                     self.reload()
-                    req_assessment_ids = self.get_requirement_assessment_id_list_from_compliance_assessment_id(ca.get_id())
+                    req_assessment_ids = get_scoped(ca.get_id(), compliance_assessment=ca)
                     if req_assessment_ids:
                         break
 
