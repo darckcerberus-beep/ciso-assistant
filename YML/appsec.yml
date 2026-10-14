@@ -1395,6 +1395,27 @@ objects:
           Introductory splash screen explaining questionnaire navigation, answering guidelines, dynamic section triggering based on data classification and hosting model, and audit evidence expectations.
         implementation_groups: ["info", "baseline"]
 
+      # === SPLASH SCREEN: APPLICATION INFORMATION & GOVERNANCE ===
+      - urn: urn:intuitem:risk:req_node:appsec:info_splash
+        assessable: false
+        display_mode: splash
+        depth: 1
+        ref_id: info_splash
+        name: "Application Information & Governance - Introduction"
+        description: >
+          Welcome to the Application Information & Governance Track.
+
+          This initial profiling stage establishes foundational context and ownership for the application:
+          - Stakeholder Identification: Business owner, technical lead, and data custodian points of contact.
+          - Data Classification: Maximum confidentiality tier handled by the application (Public, Internal, Confidential, or Secret).
+          - Delivery & Hosting Model: In-house custom development, commercial off-the-shelf (COTS) package, or third-party SaaS.
+
+          Your responses in this section dynamically trigger specialized downstream tracks and determine applicable technical controls.
+        annotation: >
+          Introductory splash screen for the Application Information and Governance implementation group (info),
+          orienting respondents on initial application profiling, ownership accountability, and scope discovery.
+        implementation_groups: ["info"]
+
       # === CHAPTER 1: APPLICATION INFORMATION & GOVERNANCE ===
       - urn: urn:intuitem:risk:req_node:appsec:info
         assessable: false
@@ -1557,6 +1578,47 @@ objects:
                 select_implementation_groups: ["saas_app", "baseline"]
                 color: "#17a2b8"
 
+      # === SPLASH SCREEN: CUSTOM SOFTWARE TRACK ===
+      - urn: urn:intuitem:risk:req_node:appsec:custom_app_splash
+        assessable: false
+        display_mode: splash
+        depth: 1
+        ref_id: custom_app_splash
+        name: "Custom Software Track (In-House Development) - Introduction"
+        description: >
+          Welcome to the Custom Software Track for In-House Development.
+
+          This track evaluates secure engineering practices and code-level defenses for applications developed and maintained internally:
+          - Secure SDLC & DevSecOps: Automated CI/CD security gates, SAST, DAST, SCA dependency scanning, SBOM generation, and mandatory peer code review.
+          - Application Defenses & Code Hygiene: Secure session management, parameterized queries (SQLi defense), context-aware output encoding (XSS defense), SSRF protection, and file upload validation.
+          - Cryptography & Secrets: Dedicated vault integration, strong cipher suites, and data-in-transit/at-rest protection.
+          - Non-Production Data Sanitization: Pseudonymization, data masking, and automated test data purging.
+          - Security Logging: Tamper-resistant audit trails, OWASP Top 10 security event logging, and centralized SIEM streaming.
+        annotation: >
+          Introductory splash screen for the Custom Software Track implementation group (custom_app),
+          guiding engineering teams, software architects, and AppSec leads on in-house development and DevSecOps controls.
+        implementation_groups: ["custom_app"]
+
+      # === SPLASH SCREEN: BOUGHT SOFTWARE TRACK (COTS) ===
+      - urn: urn:intuitem:risk:req_node:appsec:cots_app_splash
+        assessable: false
+        display_mode: splash
+        depth: 1
+        ref_id: cots_app_splash
+        name: "Bought Software Track (COTS / Vendor Package) - Introduction"
+        description: >
+          Welcome to the Bought Software Track (COTS / Vendor Package).
+
+          This track governs operational security, deployment hardening, and patch management for commercial off-the-shelf software deployed on internal or private cloud infrastructure:
+          - Deployment Hardening: Disabling default accounts and sample data, closing unused administrative ports, and enforcing generic error handling.
+          - Vendor Patch Governance: Adherence to vendor patch management SLAs, active CVE vulnerability tracking, and emergency hotfix deployment workflows.
+          - Cryptographic Controls & Secrets: Vault-managed database credentials, TLS termination, and encryption at rest.
+          - Data Protection & Lifecycle: Non-production masking, compliant data destruction, and operational disaster recovery.
+        annotation: >
+          Introductory splash screen for the Bought Software Track implementation group (cots_app),
+          directing system administrators and infrastructure teams on deployment baselines and vendor CVE governance.
+        implementation_groups: ["cots_app"]
+
       # Requirement: Determine network exposure
       - urn: urn:intuitem:risk:req_node:appsec:network_exposure
         assessable: true
@@ -1590,6 +1652,25 @@ objects:
                 compute_result: true
                 select_implementation_groups: ["internet_facing"]
                 color: "#fd7e14"
+
+      # === SPLASH SCREEN: APPLICATION SECURITY BASELINE ===
+      - urn: urn:intuitem:risk:req_node:appsec:baseline_splash
+        assessable: false
+        display_mode: splash
+        depth: 1
+        ref_id: baseline_splash
+        name: "Application Security Baseline - Introduction"
+        description: >
+          Welcome to the Application Security Baseline Track.
+
+          This track evaluates universal cybersecurity controls required across all enterprise applications, regardless of whether they are developed internally, procured as COTS, or consumed via SaaS:
+          - Centralized Authentication & SSO: Federated identity integration (SAML 2.0 / OIDC) and directory services.
+          - Multi-Factor Authentication (MFA): Mandatory phishing-resistant MFA for all administrative users and remote access.
+          - Role-Based Access Control (RBAC): Least-privilege authorization, segregation of duties, and periodic access reviews.
+        annotation: >
+          Introductory splash screen for the Application Security Baseline implementation group (baseline),
+          highlighting mandatory universal authentication, identity federation, and access control baselines.
+        implementation_groups: ["baseline"]
 
       # === CHAPTER 2: IDENTITY, AUTHENTICATION & ACCESS CONTROL ===
       - urn: urn:intuitem:risk:req_node:appsec:iam_chapter
@@ -2330,6 +2411,25 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
+      # === SPLASH SCREEN: INTERNET-FACING APPLICATION TRACK ===
+      - urn: urn:intuitem:risk:req_node:appsec:internet_facing_splash
+        assessable: false
+        display_mode: splash
+        depth: 1
+        ref_id: internet_facing_splash
+        name: "Internet-Facing Application Track - Introduction"
+        description: >
+          Welcome to the Internet-Facing Application Track.
+
+          This track enforces advanced edge defenses and external assurance for applications accessible over the public Internet:
+          - Perimeter & Edge Protection: Anti-DDoS mitigation, Web Application Firewall (WAF) rule sets, and modern TLS termination.
+          - API Security & Abuse Defense: Granular rate limiting, quota enforcement, API authentication gateway controls, and strict request payload validation.
+          - Independent Penetration Testing: Annual third-party penetration testing and formal vulnerability remediation SLAs for external-facing assets.
+        annotation: >
+          Introductory splash screen for the Internet-Facing Application Track implementation group (internet_facing),
+          focusing on perimeter hardening, WAF protection, API rate limiting, and external penetration testing.
+        implementation_groups: ["internet_facing"]
+
       # === CHAPTER 6: API SECURITY & EDGE PROTECTIONS ===
       - urn: urn:intuitem:risk:req_node:appsec:api_chapter
         assessable: false
@@ -2854,6 +2954,29 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+
+      # === SPLASH SCREEN: SAAS APPLICATION TRACK ===
+      - urn: urn:intuitem:risk:req_node:appsec:saas_app_splash
+        assessable: false
+        display_mode: splash
+        depth: 1
+        ref_id: saas_app_splash
+        name: "SaaS Application Track - Introduction"
+        description: >
+          Welcome to the SaaS Application Track.
+
+          This track governs third-party Software-as-a-Service (SaaS) applications where infrastructure and
+          codebases are operated externally by a vendor. Security posture is enforced through binding
+          contractual exhibits, independent audit certifications, and operational service level agreements (SLAs):
+          - Master Agreements & Security Exhibits: Binding Security Schedules, Data Processing Agreements (DPA), and Right-to-Audit clauses.
+          - Third-Party Assurance: Independent SOC 2 Type II reports, ISO/IEC 27001 certifications, and vendor security questionnaires.
+          - Data Protection & Isolation: Multi-tenant logical data isolation, customer data encryption, and certified data destruction upon contract termination.
+          - Incident Response SLAs: Mandatory security breach notification window (24 to 72 hours) and coordinated incident response procedures.
+          - Enterprise Identity & Monitoring: SAML 2.0 / OIDC SSO federation, SCIM user provisioning, MFA enforcement, and SIEM security log streaming.
+        annotation: >
+          Introductory splash screen for the SaaS Application Track implementation group (saas_app),
+          guiding vendor management, procurement, and risk teams on SaaS security schedules and independent audit assurance.
+        implementation_groups: ["saas_app"]
 
       # ========================================================================
       # CHAPTER 10: SAAS REQUIREMENTS & VENDOR SECURITY EXHIBIT
@@ -3866,7 +3989,7 @@ objects:
           If your application architecture, hosting model, or exposure profile changes in the future, please re-evaluate this assessment.
         annotation: >
           Concluding splash screen expressing gratitude to the respondent and detailing subsequent compliance verification, risk assessment, and remediation workflows.
-        implementation_groups: ["info", "baseline"]
+        implementation_groups: ["info", "baseline", "custom_app", "cots_app", "saas_app", "internet_facing"]
 
 # ============================================================================
 # AUDIT CONFIGURATION
@@ -3912,7 +4035,7 @@ test_metadata:
   expected_threats_count: 9
   expected_vulnerabilities_count: 18
   expected_reference_controls_count: 26
-  expected_requirement_nodes_count: 61
+  expected_requirement_nodes_count: 67
   matrix_dimensions:
     likelihood_levels: 4
     impact_levels: 4

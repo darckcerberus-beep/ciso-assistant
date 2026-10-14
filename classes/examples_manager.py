@@ -24,7 +24,10 @@ from classes.audits.entity_assessment import EntityAssessmentDict
 from classes.audits.finding import FindingDict, FindingsAssessmentDict
 from classes.audits.implementation_groups import (
     add_default_implementation_groups,
+    determine_implementation_groups_triggered_by_others,
     get_framework_implementation_groups,
+    get_implementation_groups_triggered_by_others,
+    get_visible_implementation_groups,
     resolve_implementation_groups,
 )
 from classes.organization.asset import AssetDict
@@ -2159,6 +2162,42 @@ class ExamplesManager:
             return get_framework_implementation_groups(framework_ref_or_name)
         return []
 
+    def determine_implementation_groups_triggered_by_others(
+        self,
+        framework_ref_or_name: str | None = None,
+        active_groups: Any = None,
+        ca_reqs: Any = None,
+        answers: Any = None,
+        yaml_path: str | Path | None = None,
+    ) -> dict[str, Any]:
+        """Determine implementation groups triggered by other groups and question choices for a framework."""
+        fw = self.find_target_framework(framework_ref_or_name)
+        target = fw or framework_ref_or_name
+        return determine_implementation_groups_triggered_by_others(
+            framework_id=target,
+            active_groups=active_groups,
+            ca_reqs=ca_reqs,
+            answers=answers,
+            yaml_path=yaml_path,
+        )
+
+    def get_implementation_groups_triggered_by_others(
+        self,
+        framework_ref_or_name: str | None = None,
+        active_groups: Any = None,
+        ca_reqs: Any = None,
+        answers: Any = None,
+        yaml_path: str | Path | None = None,
+    ) -> dict[str, Any]:
+        """Alias for determine_implementation_groups_triggered_by_others."""
+        return self.determine_implementation_groups_triggered_by_others(
+            framework_ref_or_name=framework_ref_or_name,
+            active_groups=active_groups,
+            ca_reqs=ca_reqs,
+            answers=answers,
+            yaml_path=yaml_path,
+        )
+
     def get_audit_implementation_groups(self, app_name_or_ca_id: str) -> dict[str, Any]:
         """Retrieve current selected and available implementation groups for an audit."""
         target = str(app_name_or_ca_id).strip()
@@ -2204,7 +2243,27 @@ class ExamplesManager:
             else (getattr(ca_obj, "compliance_assessment_json", {}) or {}).get("selected_implementation_groups", [])
         ) or []
 
-        available = get_framework_implementation_groups(framework or fw_id)
+        # Collect ca_reqs to evaluate answered triggers
+        ca_reqs = None
+        req_assessments = getattr(compliance_dict, "requirement_assessments", None)
+        if req_assessments and hasattr(req_assessments, "get_requirement_assessment_id_list_from_compliance_assessment_id"):
+            try:
+                ra_ids = req_assessments.get_requirement_assessment_id_list_from_compliance_assessment_id(ca_obj.get_id())
+                all_ras = req_assessments.get_requirement_assessments() or {}
+                ca_reqs = [all_ras[rid] for rid in ra_ids if rid in all_ras]
+            except Exception:
+                pass
+
+        dep_info = determine_implementation_groups_triggered_by_others(
+            framework_id=framework or fw_id,
+            active_groups=selected,
+            ca_reqs=ca_reqs,
+        )
+        available = dep_info.get("all_groups", [])
+        always_selectable = dep_info.get("always_selectable_groups", [])
+        hidden_groups = dep_info.get("hidden_groups", [])
+        triggered_groups = dep_info.get("triggered_groups", [])
+        visible_groups = dep_info.get("visible_groups", [])
 
         # Resolve app name from perimeter
         app_name = target
@@ -2280,13 +2339,9 @@ class ExamplesManager:
                 pass
         unassigned_ra_ids = [r for r in scoped_ra_ids if r not in assigned_ra_ids]
 
-        initial_groups = [
+        initial_groups = list(always_selectable) if always_selectable else [
             g for g in available
             if isinstance(g, dict) and (g.get("default_selected") or not g.get("is_triggered"))
-        ]
-        triggered_groups = [
-            g for g in available
-            if isinstance(g, dict) and g.get("is_triggered")
         ]
         active_triggered_groups = [
             g for g in triggered_groups
@@ -2303,10 +2358,14 @@ class ExamplesManager:
             "framework_ref": fw_ref,
             "selected_implementation_groups": list(selected),
             "available_implementation_groups": list(available),
+            "always_selectable_groups": list(always_selectable),
+            "hidden_implementation_groups": list(hidden_groups),
+            "visible_implementation_groups": list(visible_groups),
             "initial_implementation_groups": initial_groups,
             "triggered_implementation_groups": triggered_groups,
             "active_triggered_groups": active_triggered_groups,
             "unassigned_triggered_groups": unassigned_triggered_groups,
+            "groups_triggered_by_others_map": dep_info.get("dependency_map", {}),
             "app_owner_email": app_owner_email,
             "existing_assignments": existing_assignments,
             "unassigned_requirements_count": len(unassigned_ra_ids),

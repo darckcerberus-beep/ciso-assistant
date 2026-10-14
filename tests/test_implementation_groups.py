@@ -13,9 +13,12 @@ from unittest.mock import MagicMock, patch
 from classes.audits.compliance import ComplianceAssessment, ComplianceAssessmentDict
 from classes.audits.implementation_groups import (
     add_default_implementation_groups,
+    determine_implementation_groups_triggered_by_others,
     get_default_implementation_groups,
     get_framework_implementation_groups,
+    get_implementation_groups_triggered_by_others,
     get_initial_implementation_groups,
+    get_visible_implementation_groups,
     resolve_implementation_groups,
     set_implementation_groups,
 )
@@ -276,6 +279,29 @@ class TestExamplesManagerImplementationGroups(unittest.TestCase):
             self.assertEqual(res["framework_ref"], "mls")
             self.assertEqual(res["selected_implementation_groups"], ["Application information"])
             self.assertEqual(len(res["available_implementation_groups"]), 2)
+            self.assertIn("always_selectable_groups", res)
+            self.assertIn("hidden_implementation_groups", res)
+            self.assertIn("visible_implementation_groups", res)
+            self.assertIn("groups_triggered_by_others_map", res)
+
+    def test_examples_manager_determine_implementation_groups(self):
+        """Verify ExamplesManager delegation to determine_implementation_groups_triggered_by_others."""
+        mock_fw = MagicMock()
+        mock_fw.get_id.return_value = "test_fw"
+        mock_fw.get_name.return_value = "Test FW"
+        mock_fw.json_object = {
+            "ref_id": "test_fw",
+            "implementation_groups_definition": [
+                {"name": "Info", "ref_id": "info", "default_selected": True},
+            ],
+            "requirement_nodes": [],
+        }
+        with patch.object(self.manager, "find_target_framework", return_value=mock_fw):
+            res = self.manager.determine_implementation_groups_triggered_by_others("test_fw")
+            self.assertEqual(len(res["always_selectable_groups"]), 1)
+            self.assertEqual(res["always_selectable_groups"][0]["name"], "Info")
+            alias_res = self.manager.get_implementation_groups_triggered_by_others("test_fw")
+            self.assertEqual(alias_res["framework_id"], "test_fw")
 
     def test_select_and_add_audit_implementation_groups(self):
         """Verify selecting and adding implementation groups via ExamplesManager."""
@@ -400,6 +426,178 @@ class TestExamplesManagerImplementationGroups(unittest.TestCase):
             self.assertEqual(res["assignment_id"], "asgn-2")
             self.assertEqual(res["assignment_status"], "in_progress")
             self.assertEqual(res["assigned_requirements_count"], 1)
+
+
+class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
+    """Test suite for determine_implementation_groups_triggered_by_others logic."""
+
+    def setUp(self):
+        self.mock_fw = {
+            "ref_id": "test_fw",
+            "name": "Test Framework",
+            "implementation_groups_definition": [
+                {
+                    "name": "Application information",
+                    "ref_id": "info",
+                    "default_selected": True,
+                },
+                {
+                    "name": "Custom Software Track",
+                    "ref_id": "custom_app",
+                    "default_selected": False,
+                },
+                {
+                    "name": "COTS Software Track",
+                    "ref_id": "cots_app",
+                    "default_selected": False,
+                },
+                {
+                    "name": "Internet Facing Track",
+                    "ref_id": "internet_facing",
+                    "default_selected": False,
+                },
+            ],
+            "requirement_nodes": [
+                {
+                    "ref_id": "node_hosting",
+                    "name": "Hosting Model",
+                    "implementation_groups": ["info"],
+                    "questions": {
+                        "q1": {
+                            "text": "What is the hosting model?",
+                            "choices": [
+                                {
+                                    "ref_id": "c_custom",
+                                    "value": "Custom Development",
+                                    "select_implementation_groups": ["custom_app"],
+                                },
+                                {
+                                    "ref_id": "c_cots",
+                                    "value": "Bought Software",
+                                    "select_implementation_groups": ["cots_app"],
+                                },
+                            ],
+                        }
+                    },
+                },
+                {
+                    "ref_id": "node_exposure",
+                    "name": "Exposure",
+                    "implementation_groups": ["custom_app", "cots_app"],
+                    "questions": {
+                        "q2": {
+                            "text": "Is it exposed to the Internet?",
+                            "choices": [
+                                {
+                                    "ref_id": "c_pub",
+                                    "value": "Public Internet",
+                                    "select_implementation_groups": ["internet_facing"],
+                                }
+                            ],
+                        }
+                    },
+                },
+            ],
+        }
+
+    def test_determine_implementation_groups_triggered_by_others_initial(self):
+        """Verify initial state: only always_selectable (untriggered) are shown; others are hidden."""
+        res = determine_implementation_groups_triggered_by_others(self.mock_fw)
+
+        always_selectable_names = [g["name"] for g in res["always_selectable_groups"]]
+        hidden_names = [g["name"] for g in res["hidden_groups"]]
+        triggered_names = [g["name"] for g in res["triggered_groups"]]
+        visible_names = [g["name"] for g in res["visible_groups"]]
+
+        # 'Application information' does not need to be triggered
+        self.assertIn("Application information", always_selectable_names)
+        self.assertIn("Application information", visible_names)
+
+        # 'Custom Software Track', 'COTS Software Track', 'Internet Facing Track' must be triggered but haven't
+        self.assertIn("Custom Software Track", hidden_names)
+        self.assertIn("COTS Software Track", hidden_names)
+        self.assertIn("Internet Facing Track", hidden_names)
+        self.assertEqual(len(triggered_names), 0)
+        self.assertEqual(len(visible_names), 1)
+
+        # Check dependency mapping (triggered by other groups)
+        dep_map = res["dependency_map"]
+        self.assertIn("Application information", dep_map["Custom Software Track"]["triggered_by_groups"])
+        self.assertIn("Custom Software Track", dep_map["Internet Facing Track"]["triggered_by_groups"])
+        self.assertIn("COTS Software Track", dep_map["Internet Facing Track"]["triggered_by_groups"])
+
+    def test_determine_implementation_groups_with_answers(self):
+        """Verify that answering the trigger question makes the group triggered and visible."""
+        answers = {
+            "node_hosting": {
+                "q1": "Custom Development",
+            }
+        }
+        res = determine_implementation_groups_triggered_by_others(self.mock_fw, answers=answers)
+
+        always_selectable_names = [g["name"] for g in res["always_selectable_groups"]]
+        hidden_names = [g["name"] for g in res["hidden_groups"]]
+        triggered_names = [g["name"] for g in res["triggered_groups"]]
+        visible_names = [g["name"] for g in res["visible_groups"]]
+
+        self.assertIn("Application information", always_selectable_names)
+        self.assertIn("Custom Software Track", triggered_names)
+        self.assertIn("Custom Software Track", visible_names)
+        self.assertIn("Application information", visible_names)
+
+        # COTS and Internet facing remain hidden because their triggers haven't matched
+        self.assertIn("COTS Software Track", hidden_names)
+        self.assertIn("Internet Facing Track", hidden_names)
+
+    def test_determine_implementation_groups_with_active_groups(self):
+        """Verify groups active in audit are recognized as triggered and visible."""
+        res = determine_implementation_groups_triggered_by_others(
+            self.mock_fw, active_groups=["custom_app"]
+        )
+        visible_names = [g["name"] for g in res["visible_groups"]]
+        triggered_names = [g["name"] for g in res["triggered_groups"]]
+
+        self.assertIn("Custom Software Track", visible_names)
+        self.assertIn("Custom Software Track", triggered_names)
+
+    def test_determine_implementation_groups_with_ca_reqs(self):
+        """Verify evaluating triggers from requirement assessment objects."""
+        mock_ra = MagicMock()
+        mock_ra.get_ref_id.return_value = "node_exposure"
+        mock_ra.get_urn.return_value = "urn:node_exposure"
+        mock_ra.get_answers.return_value = {"q2": "Public Internet"}
+
+        res = determine_implementation_groups_triggered_by_others(
+            self.mock_fw, ca_reqs=[mock_ra]
+        )
+        triggered_names = [g["name"] for g in res["triggered_groups"]]
+        self.assertIn("Internet Facing Track", triggered_names)
+
+    def test_get_visible_implementation_groups_and_alias(self):
+        """Verify get_visible_implementation_groups and get_implementation_groups_triggered_by_others alias."""
+        visible = get_visible_implementation_groups(self.mock_fw, active_groups=["cots_app"])
+        visible_names = [g["name"] for g in visible]
+        self.assertIn("Application information", visible_names)
+        self.assertIn("COTS Software Track", visible_names)
+        self.assertNotIn("Internet Facing Track", visible_names)
+
+        alias_res = get_implementation_groups_triggered_by_others(self.mock_fw)
+        self.assertEqual(len(alias_res["all_groups"]), 4)
+
+    def test_appsec_real_framework_dependencies(self):
+        """Verify dependency analysis on the real AppSec framework definition."""
+        res = determine_implementation_groups_triggered_by_others("appsec")
+        self.assertGreater(len(res["all_groups"]), 0)
+
+        always_selectable = [g["ref_id"] for g in res["always_selectable_groups"]]
+        hidden = [g["ref_id"] for g in res["hidden_groups"]]
+
+        self.assertIn("info", always_selectable)
+        self.assertIn("baseline", always_selectable)
+        self.assertIn("custom_app", hidden)
+        self.assertIn("cots_app", hidden)
+        self.assertIn("saas_app", hidden)
+        self.assertIn("internet_facing", hidden)
 
 
 if __name__ == "__main__":

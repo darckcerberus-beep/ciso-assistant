@@ -1966,8 +1966,8 @@
         return;
       }
 
-      // Filter only initial implementation groups: default_selected is true, or not triggered by questions
-      const displayIgs = allIgs.filter(ig => Boolean(ig.default_selected) || !ig.is_triggered);
+      // Filter only always selectable implementation groups: groups that do not need to be triggered
+      const displayIgs = allIgs.filter(ig => Boolean(ig.always_selectable) || (Boolean(ig.default_selected) || !ig.is_triggered));
       if (displayIgs.length === 0) {
         container.classList.add("hidden");
         listDiv.innerHTML = "";
@@ -2190,16 +2190,22 @@
           });
         }
 
-        // 6. Tab 2: All Available Groups Checkboxes
+        const visibleGroups = data.visible_implementation_groups || available.filter(ig => !ig.is_hidden);
+        const hiddenGroups = data.hidden_implementation_groups || available.filter(ig => ig.is_hidden);
+
+        // 6. Tab 2: Visible Implementation Groups Checkboxes
         cbsContainer.innerHTML = "";
-        if (available.length === 0) {
-          cbsContainer.innerHTML = `<div class="p-3 text-slate-500 text-xs italic text-center">Framework has no implementation group definitions.</div>`;
+        if (visibleGroups.length === 0) {
+          cbsContainer.innerHTML = `<div class="p-3 text-slate-500 text-xs italic text-center">No selectable implementation groups currently available.</div>`;
         } else {
-          available.forEach((ig, idx) => {
+          visibleGroups.forEach((ig, idx) => {
             const name = ig.name || ig.ref_id;
             const refId = ig.ref_id || "";
             const desc = ig.description || "";
             const isCurrentlySelected = selected.some(s => s === name || (refId && s.toLowerCase() === refId.toLowerCase()));
+            const isAlwaysSelectable = Boolean(ig.always_selectable);
+            const hasBeenTriggered = Boolean(ig.has_been_triggered);
+            const isDef = Boolean(ig.default_selected);
             const cbId = `mg-cb-${idx}`;
 
             const item = document.createElement("div");
@@ -2211,14 +2217,29 @@
                   <span class="font-semibold text-white">${name}</span>
                   ${refId ? `<span class="px-1.5 py-0.2 rounded text-[10px] font-mono bg-surface-900 text-slate-400 border border-slate-700">${refId}</span>` : ''}
                   ${isCurrentlySelected ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">active</span>` : ''}
-                  ${ig.default_selected ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-medium bg-slate-800 text-slate-400 border border-slate-700">default</span>` : ''}
-                  ${ig.is_triggered ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-medium bg-amber-500/15 text-amber-400 border border-amber-500/30">dynamic</span>` : ''}
+                  ${isDef ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">default</span>` : ''}
+                  ${isAlwaysSelectable ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-medium bg-slate-800 text-slate-300 border border-slate-700">always selectable</span>` : ''}
+                  ${hasBeenTriggered && !isAlwaysSelectable ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">triggered by answers</span>` : ''}
                 </div>
                 ${desc ? `<p class="text-[11px] text-slate-400 leading-tight">${desc}</p>` : ''}
               </label>
             `;
             cbsContainer.appendChild(item);
           });
+        }
+
+        // Informational banner for hidden groups that must be triggered
+        if (hiddenGroups.length > 0) {
+          const hiddenNotice = document.createElement("div");
+          hiddenNotice.className = "mt-3 p-2.5 rounded-lg bg-surface-900/80 border border-slate-700/60 text-[11px] text-slate-400 flex items-start space-x-2";
+          hiddenNotice.innerHTML = `
+            <i data-lucide="eye-off" class="w-3.5 h-3.5 text-slate-500 mt-0.5 shrink-0"></i>
+            <div class="leading-relaxed flex-1">
+              <strong class="text-slate-300">${hiddenGroups.length} Dynamic Track(s) Hidden:</strong>
+              <span>${hiddenGroups.map(g => g.name || g.ref_id).join(", ")} must be triggered by answering upstream assessment questions before they can be selected.</span>
+            </div>
+          `;
+          cbsContainer.appendChild(hiddenNotice);
         }
 
         switchMgTab(defaultTab);

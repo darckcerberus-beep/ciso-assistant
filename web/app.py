@@ -632,8 +632,17 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
     @app.route("/api/frameworks/<path:framework_ref>/implementation-groups")
     def api_framework_implementation_groups(framework_ref: str):
         """Retrieve available implementation groups for a framework."""
-        groups = manager.get_framework_implementation_groups(framework_ref)
-        return jsonify({"framework": framework_ref, "implementation_groups": groups})
+        dep_info = manager.determine_implementation_groups_triggered_by_others(framework_ref)
+        return jsonify({
+            "framework": framework_ref,
+            "implementation_groups": dep_info.get("all_groups", []),
+            "always_selectable_groups": dep_info.get("always_selectable_groups", []),
+            "hidden_groups": dep_info.get("hidden_groups", []),
+            "triggered_groups": dep_info.get("triggered_groups", []),
+            "visible_groups": dep_info.get("visible_groups", []),
+            "dependency_map": dep_info.get("dependency_map", {}),
+            "summary": dep_info.get("summary", {}),
+        })
 
     @app.route("/api/audits/<path:app_name>/implementation-groups", methods=["GET", "POST", "PATCH"])
     def api_audit_implementation_groups(app_name: str):
