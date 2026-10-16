@@ -68,18 +68,103 @@ def _get_node_choices(node: dict[str, Any], q_key: str | None = None) -> list[di
     return all_choices
 
 
-def get_framework_triggered_implementation_groups_map(framework_id: Any) -> dict[str, list[str]]:
-    """Return a mapping of triggered group identifier (lowercase) -> list of trigger question texts.
+def _check_dep_match(
+    dep: dict[str, Any],
+    req_ident: str,
+    q_ident: str,
+    ans_val: Any,
+    matched_choice: dict[str, Any] | None = None,
+) -> bool:
+    """Check if an answer to a question matches an implementation_groups_dependencies entry."""
+    dep_q_urn = str(dep.get("question_urn", "")).strip().lower()
+    dep_q_ref = str(dep.get("question_ref_id", "")).strip().lower()
 
-    Inspects framework requirement node question choices for 'select_implementation_groups'.
+    q_matched = False
+    norm_q = str(q_ident or "").strip().lower()
+    norm_req = str(req_ident or "").strip().lower()
+
+    if dep_q_urn and (norm_q == dep_q_urn or norm_q in dep_q_urn or dep_q_urn in norm_q):
+        q_matched = True
+    elif dep_q_ref and (
+        norm_q == dep_q_ref
+        or norm_q.endswith(f":{dep_q_ref}")
+        or norm_q.endswith(dep_q_ref)
+        or (norm_req and f"{norm_req}:{norm_q}".endswith(dep_q_ref))
+    ):
+        q_matched = True
+    elif not q_ident and dep_q_ref and norm_req and (norm_req in dep_q_ref or dep_q_ref in norm_req):
+        q_matched = True
+
+    if not q_matched:
+        return False
+
+    dep_c_urn = str(dep.get("choice_urn", "")).strip().lower()
+    dep_c_val = str(dep.get("choice_value", "")).strip().lower()
+
+    if matched_choice:
+        mc_urn = str(matched_choice.get("urn", "")).strip().lower()
+        mc_val = str(matched_choice.get("value", "")).strip().lower()
+        mc_ref = str(matched_choice.get("ref_id", "")).strip().lower()
+        if dep_c_urn and mc_urn == dep_c_urn:
+            return True
+        if dep_c_val and (mc_val == dep_c_val or dep_c_val in mc_val or mc_val in dep_c_val):
+            return True
+        if dep_c_urn and mc_ref and dep_c_urn.endswith(f":{mc_ref}"):
+            return True
+
+    temp_c = {"urn": dep.get("choice_urn"), "value": dep.get("choice_value"), "ref_id": dep.get("choice_ref_id")}
+    return _match_choice(temp_c, ans_val)
+
+
+def get_framework_implementation_groups_dependencies(framework_id: Any) -> list[dict[str, Any]]:
+    """Return implementation groups dependencies defined for a framework.
+
+    Returns a list of dependency dictionaries containing:
+    - target_implementation_group: target group name or ref_id
+    - name: human readable track name
+    - question_urn / question_ref_id: triggering question identifier
+    - choice_urn / choice_value: triggering choice identifier and text
+    - prompt: user-facing question prompt for interactive triggering
+    """
+    if isinstance(framework_id, dict) and "implementation_groups_dependencies" in framework_id:
+        return list(framework_id.get("implementation_groups_dependencies", []) or [])
+    if hasattr(framework_id, "json_object") and isinstance(getattr(framework_id, "json_object", None), dict):
+        deps = framework_id.json_object.get("implementation_groups_dependencies")
+        if isinstance(deps, list) and deps:
+            return list(deps)
+    try:
+        from ..examples_manager import ExamplesManager
+        fw_ident = framework_id
+        if hasattr(framework_id, "get_id"):
+            fw_ident = framework_id.get_id() or getattr(framework_id, "get_name", lambda: None)()
+        elif hasattr(framework_id, "json_object") and isinstance(getattr(framework_id, "json_object", None), dict):
+            fw_ident = framework_id.json_object.get("ref_id") or framework_id.json_object.get("id")
+        elif isinstance(framework_id, dict):
+            fw_ident = framework_id.get("id") or framework_id.get("ref_id") or framework_id.get("name")
+        fw_meta = ExamplesManager._load_framework_metadata(str(fw_ident or ""))
+        if fw_meta and isinstance(fw_meta, dict):
+            return list(fw_meta.get("implementation_groups_dependencies", []) or [])
+    except Exception:
+        pass
+    return []
+
+
+def get_framework_triggered_implementation_groups_map(framework_id: Any) -> dict[str, list[str]]:
+    """Return a mapping of triggered group identifier (lowercase) -> list of trigger question texts or prompts.
+
+    Inspects framework requirement node question choices for 'select_implementation_groups'
+    as well as framework-level 'implementation_groups_dependencies'.
     """
     triggered_map: dict[str, list[str]] = {}
     try:
         nodes = []
-        if isinstance(framework_id, dict) and "requirement_nodes" in framework_id:
+        ig_deps = []
+        if isinstance(framework_id, dict):
             nodes = framework_id.get("requirement_nodes", []) or []
-        elif hasattr(framework_id, "json_object") and isinstance(getattr(framework_id, "json_object", None), dict) and framework_id.json_object.get("requirement_nodes"):
+            ig_deps = framework_id.get("implementation_groups_dependencies", []) or []
+        elif hasattr(framework_id, "json_object") and isinstance(getattr(framework_id, "json_object", None), dict):
             nodes = framework_id.json_object.get("requirement_nodes", []) or []
+            ig_deps = framework_id.json_object.get("implementation_groups_dependencies", []) or []
         else:
             from ..examples_manager import ExamplesManager
             fw_ident = framework_id
@@ -93,7 +178,9 @@ def get_framework_triggered_implementation_groups_map(framework_id: Any) -> dict
             fw_meta = ExamplesManager._load_framework_metadata(str(fw_ident or ""))
             if fw_meta and isinstance(fw_meta, dict):
                 nodes = fw_meta.get("requirement_nodes", []) or []
+                ig_deps = fw_meta.get("implementation_groups_dependencies", []) or []
 
+        # 1. From choice-level select_implementation_groups
         for node in nodes:
             if not isinstance(node, dict):
                 continue
@@ -115,6 +202,36 @@ def get_framework_triggered_implementation_groups_map(framework_id: Any) -> dict
                                 triggered_map[grp_norm] = []
                             if q_text and q_text not in triggered_map[grp_norm]:
                                 triggered_map[grp_norm].append(q_text)
+
+        # 2. From framework-level implementation_groups_dependencies
+        for dep in ig_deps:
+            if not isinstance(dep, dict):
+                continue
+            tg = dep.get("target_implementation_group")
+            if not tg:
+                continue
+            tg_norm = str(tg).strip().lower()
+            if tg_norm not in triggered_map:
+                triggered_map[tg_norm] = []
+            prompt = dep.get("prompt")
+            q_urn = dep.get("question_urn")
+            q_ref = dep.get("question_ref_id")
+            q_text = ""
+            for node in nodes:
+                qs = node.get("questions", {})
+                q_items = qs.values() if isinstance(qs, dict) else (qs if isinstance(qs, list) else [])
+                for q in q_items:
+                    if not isinstance(q, dict):
+                        continue
+                    if (q_urn and str(q.get("urn", "")).strip().lower() == str(q_urn).strip().lower()) or \
+                       (q_ref and str(q.get("ref_id", "")).strip().lower() == str(q_ref).strip().lower()):
+                        q_text = str(q.get("text", "")).strip()
+                        break
+                if q_text:
+                    break
+            trigger_text = prompt or q_text or str(q_ref or q_urn or "")
+            if trigger_text and trigger_text not in triggered_map[tg_norm]:
+                triggered_map[tg_norm].append(trigger_text)
     except Exception:
         pass
     return triggered_map
@@ -126,6 +243,7 @@ def determine_implementation_groups_triggered_by_others(
     ca_reqs: Any = None,
     answers: Any = None,
     yaml_path: str | Path | None = None,
+    auto_trigger: bool = False,
 ) -> dict[str, Any]:
     """Determine the implementation groups that are triggered by other groups and question choices.
 
@@ -147,14 +265,19 @@ def determine_implementation_groups_triggered_by_others(
         - 'visible_groups': list of group dicts
         - 'all_groups': list of all group dicts enriched with trigger status
         - 'dependency_map': mapping of canonical group name -> trigger dependency details
+        - 'candidate_dependencies': list of dependencies whose question/choice condition matched answers
+        - 'pending_dependencies': candidate dependencies whose target group is not yet active
+        - 'pending_triggered_groups': canonical group names for pending dependencies
         - 'summary': counts breakdown
     """
     defs: list[dict[str, Any]] = []
     nodes: list[dict[str, Any]] = []
+    ig_dependencies: list[dict[str, Any]] = []
 
     if isinstance(framework_id, dict):
         defs = framework_id.get("implementation_groups_definition", []) or []
         nodes = framework_id.get("requirement_nodes", []) or []
+        ig_dependencies = framework_id.get("implementation_groups_dependencies", []) or []
     elif hasattr(framework_id, "get_implementation_groups_definition"):
         res_defs = framework_id.get_implementation_groups_definition()
         if isinstance(res_defs, list) and res_defs:
@@ -163,9 +286,11 @@ def determine_implementation_groups_triggered_by_others(
             defs = framework_id.json_object.get("implementation_groups_definition", []) or []
         if hasattr(framework_id, "json_object") and isinstance(framework_id.json_object, dict):
             nodes = framework_id.json_object.get("requirement_nodes", []) or []
+            ig_dependencies = framework_id.json_object.get("implementation_groups_dependencies", []) or []
     elif hasattr(framework_id, "json_object") and isinstance(framework_id.json_object, dict):
         defs = framework_id.json_object.get("implementation_groups_definition", []) or []
         nodes = framework_id.json_object.get("requirement_nodes", []) or []
+        ig_dependencies = framework_id.json_object.get("implementation_groups_dependencies", []) or []
     else:
         fw_str = str(framework_id).strip()
         catalog_refs = {"mls", "vendor-due-diligence", "appsec"}
@@ -173,6 +298,8 @@ def determine_implementation_groups_triggered_by_others(
             framework = utils.get_return(f"/api/frameworks/{fw_str}/")
             if isinstance(framework, dict):
                 defs = framework.get("implementation_groups_definition", []) or []
+                nodes = framework.get("requirement_nodes", []) or []
+                ig_dependencies = framework.get("implementation_groups_dependencies", []) or []
 
     fw_ident = framework_id
     if hasattr(framework_id, "get_id"):
@@ -190,8 +317,8 @@ def determine_implementation_groups_triggered_by_others(
     elif isinstance(framework_id, dict):
         fw_ident = framework_id.get("id") or framework_id.get("ref_id") or framework_id.get("name")
 
-    # Load from framework metadata only if defs or nodes are missing
-    if not defs or not nodes:
+    # Load from framework metadata if defs, nodes, or ig_dependencies are missing
+    if not defs or not nodes or not ig_dependencies:
         try:
             from ..examples_manager import ExamplesManager
             fw_meta = ExamplesManager._load_framework_metadata(str(fw_ident or ""))
@@ -200,6 +327,8 @@ def determine_implementation_groups_triggered_by_others(
                     defs = fw_meta.get("implementation_groups_definition", []) or []
                 if not nodes:
                     nodes = fw_meta.get("requirement_nodes", []) or []
+                if not ig_dependencies:
+                    ig_dependencies = fw_meta.get("implementation_groups_dependencies", []) or []
         except Exception:
             pass
 
@@ -310,6 +439,84 @@ def determine_implementation_groups_triggered_by_others(
                         "question_text": q_text,
                     })
 
+    # Process framework-level implementation_groups_dependencies
+    for dep_entry in ig_dependencies:
+        if not isinstance(dep_entry, dict):
+            continue
+        tg_raw = dep_entry.get("target_implementation_group")
+        if not tg_raw:
+            continue
+        tg_can = _canonical(tg_raw)
+        if tg_can not in dependency_map:
+            dependency_map[tg_can] = {
+                "is_triggered_by_others": False,
+                "triggered_by_groups": [],
+                "triggered_by_nodes": [],
+                "triggered_by_questions": [],
+                "triggering_choices": [],
+                "dependencies": [],
+                "prompt": "",
+            }
+        dep = dependency_map[tg_can]
+        dep["is_triggered_by_others"] = True
+        if "dependencies" not in dep:
+            dep["dependencies"] = []
+        dep["dependencies"].append(dict(dep_entry))
+        prompt = dep_entry.get("prompt", "")
+        if prompt and not dep.get("prompt"):
+            dep["prompt"] = prompt
+
+        q_urn = dep_entry.get("question_urn", "")
+        q_ref = dep_entry.get("question_ref_id", "")
+        c_urn = dep_entry.get("choice_urn", "")
+        c_val = dep_entry.get("choice_value", "")
+
+        target_node = None
+        target_q_text = ""
+        for node in nodes:
+            if not isinstance(node, dict):
+                continue
+            questions = node.get("questions", {})
+            q_items = questions.values() if isinstance(questions, dict) else (questions if isinstance(questions, list) else [])
+            for q in q_items:
+                if not isinstance(q, dict):
+                    continue
+                if (q_urn and str(q.get("urn", "")).strip().lower() == str(q_urn).strip().lower()) or \
+                   (q_ref and str(q.get("ref_id", "")).strip().lower() == str(q_ref).strip().lower()):
+                    target_node = node
+                    target_q_text = str(q.get("text", "")).strip()
+                    break
+            if target_node:
+                break
+
+        if target_node:
+            n_ref = str(target_node.get("ref_id", "")).strip()
+            n_name = str(target_node.get("name", "")).strip()
+            n_urn = str(target_node.get("urn", "")).strip()
+            parent_groups_raw = target_node.get("implementation_groups", []) or []
+            parent_groups = [_canonical(pg) for pg in parent_groups_raw if pg]
+            for pg in parent_groups:
+                if pg != tg_can and pg not in dep["triggered_by_groups"]:
+                    dep["triggered_by_groups"].append(pg)
+            node_ident = n_ref or n_name or n_urn
+            if node_ident and node_ident not in dep["triggered_by_nodes"]:
+                dep["triggered_by_nodes"].append(node_ident)
+
+        if target_q_text and target_q_text not in dep["triggered_by_questions"]:
+            dep["triggered_by_questions"].append(target_q_text)
+        elif prompt and prompt not in dep["triggered_by_questions"]:
+            dep["triggered_by_questions"].append(prompt)
+
+        dep["triggering_choices"].append({
+            "choice_value": c_val,
+            "choice_ref": dep_entry.get("choice_ref_id"),
+            "choice_urn": c_urn,
+            "node_ref": q_ref or (target_node.get("ref_id") if target_node else ""),
+            "question_text": target_q_text or prompt,
+            "question_urn": q_urn,
+            "prompt": prompt,
+        })
+
     # In case get_framework_triggered_implementation_groups_map was mocked in unit tests
     try:
         from unittest.mock import Mock
@@ -324,6 +531,8 @@ def determine_implementation_groups_triggered_by_others(
                         "triggered_by_nodes": [],
                         "triggered_by_questions": [],
                         "triggering_choices": [],
+                        "dependencies": [],
+                        "prompt": "",
                     }
                 dep = dependency_map[grp_can]
                 dep["is_triggered_by_others"] = True
@@ -333,8 +542,24 @@ def determine_implementation_groups_triggered_by_others(
     except Exception:
         pass
 
-    # Determine which groups have actually been triggered
+    # Determine which groups have actually been triggered or are candidate triggers
     triggered_canonical_set: set[str] = set()
+    candidate_dependencies: list[dict[str, Any]] = []
+
+    def _record_dep_match(dep_entry: dict[str, Any]) -> None:
+        tg = dep_entry.get("target_implementation_group")
+        if not tg:
+            return
+        tg_can = _canonical(tg)
+        dep_rec = dict(dep_entry)
+        dep_rec["canonical_group_name"] = tg_can
+        if not any(
+            d.get("target_implementation_group") == tg and d.get("choice_urn") == dep_entry.get("choice_urn")
+            for d in candidate_dependencies
+        ):
+            candidate_dependencies.append(dep_rec)
+        if auto_trigger:
+            triggered_canonical_set.add(tg_can)
 
     # 1. From active_groups
     if active_groups:
@@ -353,13 +578,18 @@ def determine_implementation_groups_triggered_by_others(
                 q_key = row.get("question", "")
                 ans_val = row.get("answer")
                 node = nodes_by_ref.get(req_ref) or nodes_by_urn.get(req_ref)
+                matched_c = None
                 if node:
                     choices = _get_node_choices(node, q_key)
                     for c in choices:
                         if _match_choice(c, ans_val):
+                            matched_c = c
                             for grp in c.get("select_implementation_groups", []) or []:
                                 if grp:
                                     triggered_canonical_set.add(_canonical(grp))
+                for dep in ig_dependencies:
+                    if _check_dep_match(dep, req_ref, q_key, ans_val, matched_choice=matched_c):
+                        _record_dep_match(dep)
         except Exception:
             pass
 
@@ -372,13 +602,18 @@ def determine_implementation_groups_triggered_by_others(
                     q_key = row.get("question", "")
                     ans_val = row.get("answer")
                     node = nodes_by_ref.get(req_ref) or nodes_by_urn.get(req_ref)
+                    matched_c = None
                     if node:
                         choices = _get_node_choices(node, q_key)
                         for c in choices:
                             if _match_choice(c, ans_val):
+                                matched_c = c
                                 for grp in c.get("select_implementation_groups", []) or []:
                                     if grp:
                                         triggered_canonical_set.add(_canonical(grp))
+                    for dep in ig_dependencies:
+                        if _check_dep_match(dep, req_ref, q_key, ans_val, matched_choice=matched_c):
+                            _record_dep_match(dep)
         elif isinstance(answers, dict):
             for k, val in answers.items():
                 k_str = str(k).strip()
@@ -388,11 +623,16 @@ def determine_implementation_groups_triggered_by_others(
                     # {req_ref: {q_key: ans_val}}
                     for q_k, a_v in val.items():
                         choices = _get_node_choices(node, q_k) if node else []
+                        matched_c = None
                         for c in choices:
                             if _match_choice(c, a_v):
+                                matched_c = c
                                 for grp in c.get("select_implementation_groups", []) or []:
                                     if grp:
                                         triggered_canonical_set.add(_canonical(grp))
+                        for dep in ig_dependencies:
+                            if _check_dep_match(dep, k_str, q_k, a_v, matched_choice=matched_c):
+                                _record_dep_match(dep)
                 else:
                     # Could be {q_key: ans_val} or {node_ref: ans_val}
                     choices = _get_node_choices(node) if node else []
@@ -401,11 +641,16 @@ def determine_implementation_groups_triggered_by_others(
                             q_choices = _get_node_choices(n, k_str)
                             if q_choices:
                                 choices.extend(q_choices)
+                    matched_c = None
                     for c in choices:
                         if _match_choice(c, val):
+                            matched_c = c
                             for grp in c.get("select_implementation_groups", []) or []:
                                 if grp:
                                     triggered_canonical_set.add(_canonical(grp))
+                    for dep in ig_dependencies:
+                        if _check_dep_match(dep, k_str, k_str, val, matched_choice=matched_c):
+                            _record_dep_match(dep)
 
     # 4. From ca_reqs
     if ca_reqs:
@@ -425,11 +670,27 @@ def determine_implementation_groups_triggered_by_others(
                         qs = ra.get_questions()
                         q_def = qs.get(q_k, {}) if isinstance(qs, dict) else {}
                         choices = [c for c in q_def.get("choices", []) if isinstance(c, dict)]
+                    matched_c = None
                     for c in choices:
                         if _match_choice(c, a_v):
+                            matched_c = c
                             for grp in c.get("select_implementation_groups", []) or []:
                                 if grp:
                                     triggered_canonical_set.add(_canonical(grp))
+                    for dep in ig_dependencies:
+                        if _check_dep_match(dep, ra_ref or ra_urn, str(q_k), a_v, matched_choice=matched_c):
+                            _record_dep_match(dep)
+
+    # Identify pending candidate dependencies (conditions met by answers, but group not yet active in audit)
+    pending_dependencies: list[dict[str, Any]] = [
+        d for d in candidate_dependencies
+        if d.get("canonical_group_name") not in triggered_canonical_set
+        and d.get("target_implementation_group") not in triggered_canonical_set
+        and _canonical(d.get("target_implementation_group", "")) not in triggered_canonical_set
+    ]
+    pending_triggered_groups: list[str] = list({
+        d.get("canonical_group_name") for d in pending_dependencies if d.get("canonical_group_name")
+    })
 
     # Classify all implementation groups
     all_groups: list[dict[str, Any]] = []
@@ -483,6 +744,15 @@ def determine_implementation_groups_triggered_by_others(
         group_copy["should_show"] = should_show
         group_copy["is_hidden"] = is_hidden
         group_copy["is_initial"] = always_selectable
+        group_copy["prompt"] = dep.get("prompt", "")
+        group_copy["dependencies"] = dep.get("dependencies", [])
+        group_copy["is_pending_trigger"] = bool(
+            c_name in pending_triggered_groups or (r_id and _canonical(r_id) in pending_triggered_groups)
+        )
+        group_copy["condition_matched"] = bool(any(
+            d.get("canonical_group_name") == c_name or d.get("target_implementation_group") == r_id
+            for d in candidate_dependencies
+        ))
 
         all_groups.append(group_copy)
         if always_selectable:
@@ -503,12 +773,16 @@ def determine_implementation_groups_triggered_by_others(
         "visible_groups": visible_groups,
         "all_groups": all_groups,
         "dependency_map": dependency_map,
+        "candidate_dependencies": candidate_dependencies,
+        "pending_dependencies": pending_dependencies,
+        "pending_triggered_groups": pending_triggered_groups,
         "summary": {
             "total": len(all_groups),
             "always_selectable_count": len(always_selectable_groups),
             "triggered_count": len(triggered_groups),
             "hidden_count": len(hidden_groups),
             "visible_count": len(visible_groups),
+            "pending_count": len(pending_triggered_groups),
         },
     }
 

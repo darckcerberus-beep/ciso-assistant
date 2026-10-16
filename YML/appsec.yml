@@ -1364,6 +1364,37 @@ objects:
         ref_id: "internet_facing"
         description: "Requirements for applications exposed to the Internet"
 
+    # Implementation groups dependencies define triggers and interactive prompts
+    implementation_groups_dependencies:
+      - target_implementation_group: "custom_app"
+        name: "Custom Software Track (In-house Development)"
+        question_urn: "urn:intuitem:risk:req_node:appsec:hosting:q1"
+        question_ref_id: "hosting:q1"
+        choice_urn: "urn:intuitem:risk:req_node:appsec:hosting:q1:c1"
+        choice_value: "Custom software created and deployed by my teams (In-house development)"
+        prompt: "The application is developed in-house. Do you want to trigger the Custom Software Track (custom_app)?"
+      - target_implementation_group: "cots_app"
+        name: "Bought Software Track (COTS / Vendor Package)"
+        question_urn: "urn:intuitem:risk:req_node:appsec:hosting:q1"
+        question_ref_id: "hosting:q1"
+        choice_urn: "urn:intuitem:risk:req_node:appsec:hosting:q1:c2"
+        choice_value: "Bought software deployed by my teams (COTS / Vendor package)"
+        prompt: "The application is commercial off-the-shelf software. Do you want to trigger the Bought Software Track (cots_app)?"
+      - target_implementation_group: "saas_app"
+        name: "SaaS Application Track"
+        question_urn: "urn:intuitem:risk:req_node:appsec:hosting:q1"
+        question_ref_id: "hosting:q1"
+        choice_urn: "urn:intuitem:risk:req_node:appsec:hosting:q1:c3"
+        choice_value: "SaaS (Third-party software hosted and operated by a vendor)"
+        prompt: "The application is third-party SaaS. Do you want to trigger the SaaS Application Track (saas_app)?"
+      - target_implementation_group: "internet_facing"
+        name: "Internet-Facing Application Track"
+        question_urn: "urn:intuitem:risk:req_node:appsec:network_exposure:q1"
+        question_ref_id: "network_exposure:q1"
+        choice_urn: "urn:intuitem:risk:req_node:appsec:network_exposure:q1:c2"
+        choice_value: "Internet-facing (Public Web / Mobile API)"
+        prompt: "The application is exposed to the public Internet. Do you want to trigger the Internet-Facing Track (internet_facing)?"
+
     # ====================================================================
     # REQUIREMENT NODES - Hierarchical assessment structure
     # ====================================================================
@@ -1442,7 +1473,7 @@ objects:
           - CMDB / Service Catalog configuration item entry with assigned technical & business owners
           - Data Governance RACI matrix or formal appointment documentation
         vulnerabilities: ["urn:intuitem:risk:vulnerability:appsec:unclear_accountability"]
-        implementation_groups: ["info", "baseline"]
+        implementation_groups: ["baseline"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:stakeholder_designation
         questions:
@@ -1523,7 +1554,7 @@ objects:
           - Data flow diagram identifying sensitivity tags on data stores and APIs
         reference_controls: ["urn:intuitem:risk:control:appsec:identify_data_classification"]
         vulnerabilities: ["urn:intuitem:risk:vulnerability:appsec:lack_of_data_classification"]
-        implementation_groups: ["info", "baseline"]
+        implementation_groups: ["baseline"]
         questions:
           urn:intuitem:risk:req_node:appsec:data_classification:q1:
             type: unique_choice
@@ -1559,7 +1590,7 @@ objects:
         typical_evidence: >
           - Architecture design document (ADD) / System topology diagram
           - Software procurement contract, vendor license, or Git repository metadata
-        implementation_groups: ["info", "baseline"]
+        implementation_groups: ["baseline"]
         questions:
           urn:intuitem:risk:req_node:appsec:hosting:q1:
             type: unique_choice
@@ -1567,15 +1598,12 @@ objects:
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:hosting:q1:c1
                 value: "Custom software created and deployed by my teams (In-house development)"
-                select_implementation_groups: ["custom_app", "baseline"]
                 color: "#17a2b8"
               - urn: urn:intuitem:risk:req_node:appsec:hosting:q1:c2
                 value: "Bought software deployed by my teams (COTS / Vendor package)"
-                select_implementation_groups: ["cots_app", "baseline"]
                 color: "#17a2b8"
               - urn: urn:intuitem:risk:req_node:appsec:hosting:q1:c3
                 value: "SaaS (Third-party software hosted and operated by a vendor)"
-                select_implementation_groups: ["saas_app", "baseline"]
                 color: "#17a2b8"
 
       # === SPLASH SCREEN: CUSTOM SOFTWARE TRACK ===
@@ -1650,7 +1678,6 @@ objects:
                 value: "Internet-facing (Public Web / Mobile API)"
                 add_score: 100
                 compute_result: true
-                select_implementation_groups: ["internet_facing"]
                 color: "#fd7e14"
 
       # === SPLASH SCREEN: APPLICATION SECURITY BASELINE ===
@@ -1681,7 +1708,7 @@ objects:
         description: "Enforce strong authentication, Multi-Factor Authentication (MFA), federated SSO, and granular authorization controls."
         annotation: >
           Comprehensive IAM controls aligned with OWASP ASVS V2 (Authentication) and V4 (Access Control).
-        implementation_groups: ["baseline", "custom_app", "cots_app", "saas_app"]
+        implementation_groups: ["custom_app", "cots_app", "saas_app"]
 
       # Requirement: Centralized Identity, Authentication & MFA
       - urn: urn:intuitem:risk:req_node:appsec:authentication_and_mfa
@@ -1702,7 +1729,7 @@ objects:
           - Brute-force lockout and rate-limiting configuration
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:weak_authentication_controls
-        implementation_groups: ["baseline", "custom_app", "cots_app", "saas_app"]
+        implementation_groups: ["custom_app", "cots_app", "saas_app"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:centralized_identity_sso
           - urn:intuitem:risk:control:appsec:enforce_mfa_and_strong_auth
@@ -1774,7 +1801,7 @@ objects:
           - Periodic User Access Review (UAR) and entitlement recertification campaign sign-offs in SailPoint
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:broken_authorization_rbac
-        implementation_groups: ["baseline", "custom_app", "cots_app", "saas_app"]
+        implementation_groups: ["custom_app", "cots_app", "saas_app"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:enforce_least_privilege_rbac
         questions:

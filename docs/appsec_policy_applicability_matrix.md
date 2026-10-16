@@ -60,10 +60,11 @@ Requirement nodes are assigned to native CISO Assistant Implementation Groups, e
 > [!NOTE]
 > Data classification (`data_classification`) strictly determines the **confidentiality impact level** for risk scenario calculations (impact levels 1 to 4). It intentionally does not activate separate implementation groups, ensuring self-hosted requirements (`data_at_rest`, `non_prod_data`, `data_destruction`) are not asked redundantly for SaaS applications, which are governed by dedicated controls in Chapter 10.
 
-Profiling triggers in `hosting:q1` dynamically activate the tracks:
-- **Custom Software**: Activates `custom_app` and `baseline`.
-- **Bought Software (COTS)**: Activates `cots_app` and `baseline`.
-- **SaaS**: Activates `saas_app` and `baseline`.
+Implementation group dependencies in `implementation_groups_dependencies` define the orchestrator prompts:
+- **Custom Software**: Matches `hosting:q1:c1` and prompts to trigger `custom_app`.
+- **Bought Software (COTS)**: Matches `hosting:q1:c2` and prompts to trigger `cots_app`.
+- **SaaS**: Matches `hosting:q1:c3` and prompts to trigger `saas_app`.
+- **Internet-Facing**: Matches `network_exposure:q1:c2` and prompts to trigger `internet_facing`.
 
 ### B. Dynamic Dependencies (`depends_on`) — Question-Level Scoping
 Within active requirement nodes, questions are dynamically conditioned using intra-node dependencies:
@@ -78,7 +79,7 @@ Within active requirement nodes, questions are dynamically conditioned using int
 - **`instructions_splash`**: Guidance splash screen detailing assessment expectations.
 - **`stakeholder_identification`**: Mandatory documentation of Business Owner, Technical Owner, and Information Security Officer (CISO/SecOps delegate).
 - **`data_classification`**: Formally categorizes data assets into Public, Internal, Confidential, or Secret (Confidentiality impact governing all risk scenario ratings).
-- **`hosting`**: Discriminates between Custom (In-house), Bought (COTS), and SaaS. Selecting SaaS automatically triggers `saas_app` (cloud provider perimeter defenses, WAF, and penetration testing are governed under Chapter 10).
+- **`hosting`**: Discriminates between Custom (In-house), Bought (COTS), and SaaS. Prompts to trigger `saas_app`, `custom_app`, or `cots_app` based on `implementation_groups_dependencies` (cloud provider perimeter defenses, WAF, and penetration testing are governed under Chapter 10 for SaaS).
 - **`network_exposure`** (`custom_app`, `cots_app`): Identifies whether self-hosted applications are restricted to internal corporate networks or exposed to the public Internet (bypassed for SaaS).
 
 ### Chapter 2: Identity, Authentication & Access Control (IAM)
@@ -203,16 +204,16 @@ The table below defines the exact applicability criteria for every requirement a
 | Chapter | Requirement Ref ID | Requirement Name | Implementation Groups | Delivery Scope | Sensitivity Scope | Exposure Scope | Dynamic Condition (`depends_on`) |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **0. Splash** | `instructions_splash` | Instructions & Guidance | `info`, `baseline` | All | All | All | None (Always visible) |
-| **1. Profile** | `stakeholder_identification` | Stakeholder Identification | `info`, `baseline` | All | All | All | None |
-| **1. Profile** | `data_classification` | Application Data Classification | `info`, `baseline` | All | All | All | None |
-| **1. Profile** | `hosting` | Delivery & Hosting Model | `info`, `baseline` | All | All | All | None (SaaS activates `saas_app`, `baseline`) |
+| **1. Profile** | `stakeholder_identification` | Stakeholder Identification | `baseline` | All | All | All | None |
+| **1. Profile** | `data_classification` | Application Data Classification | `baseline` | All | All | All | None |
+| **1. Profile** | `hosting` | Delivery & Hosting Model | `baseline` | All | All | All | None (SaaS activates `saas_app`, `baseline`) |
 | **1. Profile** | `network_exposure` | Application Network Exposure | `custom_app`, `cots_app` | Custom, COTS | All | All | Active for self-hosted apps; SaaS is governed by cloud controls in Chapter 10 |
-| **2. IAM** | `authentication_and_mfa` (q1) | Authentication Mode (SSO vs Direct) | `baseline`, `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | None |
-| **2. IAM** | `authentication_and_mfa` (q2) | Password Policy & Lockout | `baseline`, `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | `q1 == Direct Authentication` |
-| **2. IAM** | `authentication_and_mfa` (q3) | Admin MFA Enforcement | `baseline`, `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | `q1 == Direct Authentication` |
-| **2. IAM** | `access_control_and_rbac` (q1) | Granular RBAC & Least Privilege | `baseline`, `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | None |
-| **2. IAM** | `access_control_and_rbac` (q2) | Enterprise IGA (SailPoint) Connector | `baseline`, `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | None |
-| **2. IAM** | `access_control_and_rbac` (q3) | Periodic Access Recertifications | `baseline`, `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | None |
+| **2. IAM** | `authentication_and_mfa` (q1) | Authentication Mode (SSO vs Direct) | `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | None |
+| **2. IAM** | `authentication_and_mfa` (q2) | Password Policy & Lockout | `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | `q1 == Direct Authentication` |
+| **2. IAM** | `authentication_and_mfa` (q3) | Admin MFA Enforcement | `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | `q1 == Direct Authentication` |
+| **2. IAM** | `access_control_and_rbac` (q1) | Granular RBAC & Least Privilege | `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | None |
+| **2. IAM** | `access_control_and_rbac` (q2) | Enterprise IGA (SailPoint) Connector | `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | None |
+| **2. IAM** | `access_control_and_rbac` (q3) | Periodic Access Recertifications | `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | None |
 | **2. IAM** | `session_management` (q1) | Cryptographic Session Tokens & Cookies | `custom_app` | **Custom Only** | All | All | **Active exclusively if custom_app is selected** |
 | **3. Defenses** | `input_validation_and_injection_defense` (q1) | Server-Side Input Schema Validation | `custom_app` | **Custom Only** | All | All | **Active exclusively if custom_app is selected** |
 | **3. Defenses** | `input_validation_and_injection_defense` (q2) | Parameterized Queries / ORMs | `custom_app` | **Custom Only** | All | All | **Active exclusively if custom_app is selected** |

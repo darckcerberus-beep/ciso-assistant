@@ -26,6 +26,7 @@ from classes.audits.implementation_groups import (
     add_default_implementation_groups,
     determine_implementation_groups_triggered_by_others,
     get_framework_implementation_groups,
+    get_framework_implementation_groups_dependencies,
     get_implementation_groups_triggered_by_others,
     get_visible_implementation_groups,
     resolve_implementation_groups,
@@ -657,6 +658,7 @@ class ExamplesManager:
                         return {
                             "implementation_groups_definition": fw_obj.get("implementation_groups_definition", []),
                             "requirement_nodes": fw_obj.get("requirement_nodes", []),
+                            "implementation_groups_dependencies": fw_obj.get("implementation_groups_dependencies", []) or [],
                         }
             except Exception:
                 pass
@@ -705,10 +707,12 @@ class ExamplesManager:
                         fw_obj = fw_doc.get("framework", {}) or fw_doc
                     ig_defs = fw_obj.get("implementation_groups_definition", [])
                     nodes = fw_obj.get("requirement_nodes", [])
+                    ig_deps = fw_obj.get("implementation_groups_dependencies", []) or []
                     if ig_defs or nodes:
                         res = {
                             "implementation_groups_definition": ig_defs,
                             "requirement_nodes": nodes or [],
+                            "implementation_groups_dependencies": ig_deps,
                         }
                         cls._framework_metadata_cache[cache_key] = res
                         return res
@@ -735,11 +739,13 @@ class ExamplesManager:
             if fw_obj and isinstance(fw_obj, dict):
                 fw_id = fw_obj.get("id")
                 ig_defs = fw_obj.get("implementation_groups_definition", [])
+                ig_deps = fw_obj.get("implementation_groups_dependencies", []) or []
                 nodes = utils.get_all_results(f"/api/requirement-nodes/?framework={fw_id}", force_reload=False)
                 if ig_defs or nodes:
                     res = {
                         "implementation_groups_definition": ig_defs,
                         "requirement_nodes": nodes or [],
+                        "implementation_groups_dependencies": ig_deps,
                     }
                     cls._framework_metadata_cache[cache_key] = res
                     return res
@@ -758,9 +764,11 @@ class ExamplesManager:
                             fw_obj = fw_doc.get("framework", {}) or fw_doc
                         ig_defs = fw_obj.get("implementation_groups_definition", [])
                         nodes = fw_obj.get("requirement_nodes", [])
+                        ig_deps = fw_obj.get("implementation_groups_dependencies", []) or []
                         res = {
                             "implementation_groups_definition": ig_defs,
                             "requirement_nodes": nodes or [],
+                            "implementation_groups_dependencies": ig_deps,
                         }
                         cls._framework_metadata_cache[cache_key] = res
                         return res
@@ -2162,6 +2170,12 @@ class ExamplesManager:
             return get_framework_implementation_groups(framework_ref_or_name)
         return []
 
+    def get_framework_implementation_groups_dependencies(self, framework_ref_or_name: str | None = None) -> list[dict[str, Any]]:
+        """Return the list of implementation group dependencies defined for a framework."""
+        fw = self.find_target_framework(framework_ref_or_name)
+        target = fw or framework_ref_or_name
+        return get_framework_implementation_groups_dependencies(target)
+
     def determine_implementation_groups_triggered_by_others(
         self,
         framework_ref_or_name: str | None = None,
@@ -2365,7 +2379,11 @@ class ExamplesManager:
             "triggered_implementation_groups": triggered_groups,
             "active_triggered_groups": active_triggered_groups,
             "unassigned_triggered_groups": unassigned_triggered_groups,
+            "candidate_dependencies": dep_info.get("candidate_dependencies", []),
+            "pending_dependencies": dep_info.get("pending_dependencies", []),
+            "pending_triggered_groups": dep_info.get("pending_triggered_groups", []),
             "groups_triggered_by_others_map": dep_info.get("dependency_map", {}),
+            "dependency_map": dep_info.get("dependency_map", {}),
             "app_owner_email": app_owner_email,
             "existing_assignments": existing_assignments,
             "unassigned_requirements_count": len(unassigned_ra_ids),
@@ -2446,6 +2464,47 @@ class ExamplesManager:
             mode="add",
             sync_existing_assignments=sync_existing_assignments,
         )
+
+    def prompt_trigger_implementation_groups(
+        self,
+        app_name_or_ca_id: str,
+        interactive: bool = True,
+        auto_confirm: bool = False,
+    ) -> list[str]:
+        """Inspect audit answers for implementation group dependencies and prompt the user to trigger them.
+
+        Uses the 'prompt' defined in the framework's implementation_groups_dependencies.
+        If confirmed by the user (or auto_confirm=True), triggers and adds the groups to the audit.
+
+        Returns:
+            List of newly added implementation group names.
+        """
+        group_info = self.get_audit_implementation_groups(app_name_or_ca_id)
+        pending = group_info.get("pending_dependencies", [])
+        if not pending:
+            return []
+
+        newly_triggered: list[str] = []
+        for dep in pending:
+            target_ig = dep.get("target_implementation_group")
+            if not target_ig:
+                continue
+            prompt_text = dep.get("prompt") or f"Do you want to trigger {dep.get('name', target_ig)} ({target_ig})?"
+            confirm = False
+            if interactive and not auto_confirm:
+                try:
+                    ans = input(f"\n{prompt_text} [Y/n]: ").strip().lower()
+                    confirm = ans in ("", "y", "yes")
+                except (StopIteration, EOFError):
+                    confirm = False
+            else:
+                confirm = True
+
+            if confirm:
+                self.select_audit_implementation_groups(app_name_or_ca_id, groups=[target_ig], mode="add")
+                newly_triggered.append(dep.get("name") or target_ig)
+
+        return newly_triggered
 
     def assign_audit_implementation_groups(
         self,
