@@ -656,22 +656,22 @@ class TestYamlIntegrity(unittest.TestCase):
         if not appsec_fw:
             return
 
-        # 1. Validate hosting choice c3 (SaaS) activates saas_app and universal baseline (does not activate internet_facing)
+        # 1. Validate hosting choice c3 (SaaS) unconditionally activates saas_app and internet_facing
         hosting_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:hosting")
         self.assertIsNotNone(hosting_node, "hosting node missing in AppSec")
         q1_hosting = hosting_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:hosting:q1")
         self.assertIsNotNone(q1_hosting)
         saas_choice = next(c for c in q1_hosting["choices"] if c["urn"] == "urn:intuitem:risk:req_node:appsec:hosting:q1:c3")
-        self.assertEqual(saas_choice.get("select_implementation_groups", []), ["saas_app", "baseline"])
-        self.assertNotIn("internet_facing", saas_choice.get("select_implementation_groups", []))
+        self.assertIn("saas_app", saas_choice.get("select_implementation_groups", []))
+        self.assertIn("internet_facing", saas_choice.get("select_implementation_groups", []))
 
-        # 2. Validate network_exposure is in baseline
+        # 2. Validate network_exposure is scoped to self-hosted delivery models (custom_app, cots_app)
         net_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:network_exposure")
         self.assertIsNotNone(net_node, "network_exposure node missing in AppSec")
         self.assertEqual(
             set(net_node.get("implementation_groups", [])),
-            {"baseline"},
-            "network_exposure should be in baseline",
+            {"custom_app", "cots_app"},
+            "network_exposure should be scoped to self-hosted apps since SaaS is assumed externally exposed",
         )
         net_questions = net_node.get("questions", {})
         self.assertEqual(len(net_questions), 1, "network_exposure should define 1 profiling question (q1: exposure discriminator)")
@@ -872,6 +872,7 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertIn("cots_app", bought_choice.get("select_implementation_groups", []))
         self.assertIn("baseline", bought_choice.get("select_implementation_groups", []))
         self.assertIn("saas_app", saas_choice.get("select_implementation_groups", []))
+        self.assertIn("internet_facing", saas_choice.get("select_implementation_groups", []))
 
         # 2. In Chapter 5 (sdlc_chapter), DevSecOps automation scopes custom_app to CI/CD and COTS/SaaS to vendor guidelines
         sdlc_chapter = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:sdlc_chapter")
@@ -956,7 +957,6 @@ class TestYamlIntegrity(unittest.TestCase):
             "stakeholder_identification",
             "data_classification",
             "hosting",
-            "network_exposure",
             "baseline_splash",
             "thank_you_splash",
         ]

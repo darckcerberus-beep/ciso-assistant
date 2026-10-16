@@ -46,7 +46,7 @@ Define or customize your operational situations/cases here for reference:
 | 4 | Application Information & Governance | `stakeholder_identification` | `q4` | Is the information about stakeholders updated in LeanIX / CMDB? (Stakeholder assig... | `info` | All applications (Info profiling) |
 | 5 | Application Information & Governance | `data_classification` | `q1` | What is the maximum classification level handled? (Public, Internal, Confidential,... | `info` | All applications (Info profiling - Confidentiality) |
 | 6 | Application Information & Governance | `hosting` | `q1` | What is the delivery and hosting model of the application? | `info` | All applications (Info profiling - Hosting model) |
-| 7 | Application Information & Governance | `network_exposure` | `q1` | What is the network exposure of the application? | `baseline` | All applications (Network exposure profiling) |
+| 7 | Application Information & Governance | `network_exposure` | `q1` | What is the network exposure of the application? | `custom_app, cots_app` | Self-Hosted only (Custom & COTS) |
 | 8 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q1` | How do users authenticate to the application? | `custom_app, cots_app, saas_app` | **All applications** (Custom, COTS, SaaS) - Mandatory SSO |
 | 9 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q2` | If direct authentication is used, are strong password policies and brute-force loc... | `custom_app, cots_app, saas_app` | All applications (If direct auth used - Password policy) |
 | 10 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q3` | If direct authentication is used, is Multi-Factor Authentication (MFA) enforced fo... | `custom_app, cots_app, saas_app` | All applications (If direct auth used - Admin MFA) |
@@ -212,7 +212,7 @@ Action - None
   - [x] All applications (Info profiling - Hosting model)
 
 #### Node: Application Network Exposure (`network_exposure`)
-- **Implementation Groups**: `baseline`
+- **Implementation Groups**: `custom_app, cots_app`
 - **Description**: Determine whether applications are accessible from the public Internet or restricted to private internal networks.
 
 ##### Q7. `network_exposure:q1`

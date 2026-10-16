@@ -79,8 +79,8 @@ Within active requirement nodes, questions are dynamically conditioned using int
 - **`instructions_splash`**: Guidance splash screen detailing assessment expectations.
 - **`stakeholder_identification`**: Mandatory documentation of Business Owner, Technical Owner, and Information Security Officer (CISO/SecOps delegate).
 - **`data_classification`**: Formally categorizes data assets into Public, Internal, Confidential, or Secret (Confidentiality impact governing all risk scenario ratings).
-- **`hosting`**: Discriminates between Custom (In-house), Bought (COTS), and SaaS. Selecting SaaS automatically triggers `saas_app` (cloud provider perimeter defenses, WAF, and penetration testing are governed under Chapter 10).
-- **`network_exposure`** (`baseline`): Identifies whether applications are restricted to internal corporate networks or exposed to the public Internet (triggers `internet_facing` track).
+- **`hosting`**: Discriminates between Custom (In-house), Bought (COTS), and SaaS. Selecting SaaS automatically triggers `saas_app` and `internet_facing` (since SaaS applications are unconditionally assumed to be externally exposed).
+- **`network_exposure`** (`custom_app`, `cots_app`): Identifies whether self-hosted applications are restricted to internal corporate networks or exposed to the public Internet (triggers `internet_facing` track for self-hosted apps; bypassed for SaaS).
 - **`baseline_splash`**: Generic transition splash screen concluding baseline profiling and introducing technical security questions across dynamically triggered implementation groups.
 
 ### Chapter 2: Identity, Authentication & Access Control (IAM)
@@ -207,8 +207,8 @@ The table below defines the exact applicability criteria for every requirement a
 | **0. Splash** | `instructions_splash` | Instructions & Guidance | `info`, `baseline` | All | All | All | None (Always visible) |
 | **1. Profile** | `stakeholder_identification` | Stakeholder Identification | `baseline` | All | All | All | None |
 | **1. Profile** | `data_classification` | Application Data Classification | `baseline` | All | All | All | None |
-| **1. Profile** | `hosting` | Delivery & Hosting Model | `baseline` | All | All | All | None (SaaS activates `saas_app`, `baseline`) |
-| **1. Profile** | `network_exposure` | Application Network Exposure | `baseline` | All | All | All | Triggers `internet_facing` track |
+| **1. Profile** | `hosting` | Delivery & Hosting Model | `baseline` | All | All | All | None (SaaS activates `saas_app`, `internet_facing`, `baseline`) |
+| **1. Profile** | `network_exposure` | Application Network Exposure | `custom_app`, `cots_app` | Custom, COTS | All | All | Triggers `internet_facing` track for self-hosted apps; bypassed for SaaS |
 | **1. Splash** | `baseline_splash` | Technical Assessment Transition | `baseline` | All | All | All | Generic transition introducing technical questions |
 | **2. IAM** | `authentication_and_mfa` (q1) | Authentication Mode (SSO vs Direct) | `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | None |
 | **2. IAM** | `authentication_and_mfa` (q2) | Password Policy & Lockout | `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | `q1 == Direct Authentication` |

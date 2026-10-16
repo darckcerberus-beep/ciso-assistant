@@ -1550,7 +1550,7 @@ objects:
                 color: "#17a2b8"
               - urn: urn:intuitem:risk:req_node:appsec:hosting:q1:c3
                 value: "SaaS (Third-party software hosted and operated by a vendor)"
-                select_implementation_groups: ["saas_app", "baseline"]
+                select_implementation_groups: ["saas_app", "internet_facing", "baseline"]
                 color: "#17a2b8"
 
       # Requirement: Determine network exposure
@@ -1569,7 +1569,7 @@ objects:
         typical_evidence: >
           - Network zoning diagram showing DMZ, perimeter firewalls, and reverse proxies
           - DNS configuration and IP address allocation records
-        implementation_groups: ["baseline"]
+        implementation_groups: ["custom_app", "cots_app"]
         questions:
           urn:intuitem:risk:req_node:appsec:network_exposure:q1:
             type: unique_choice
