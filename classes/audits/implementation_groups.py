@@ -652,12 +652,44 @@ def determine_implementation_groups_triggered_by_others(
                         if _check_dep_match(dep, k_str, k_str, val, matched_choice=matched_c):
                             _record_dep_match(dep)
 
-    # 4. From ca_reqs
     if ca_reqs:
         req_list = ca_reqs.values() if isinstance(ca_reqs, dict) else (ca_reqs if isinstance(ca_reqs, list) else [])
         for ra in req_list:
-            ra_ref = str(ra.get("ref_id", "") if isinstance(ra, dict) else getattr(ra, "get_ref_id", lambda: getattr(ra, "ref_id", ""))() or "").strip().lower()
-            ra_urn = str(ra.get("urn", "") if isinstance(ra, dict) else getattr(ra, "get_urn", lambda: getattr(ra, "urn", ""))() or "").strip().lower()
+            ra_ref = ""
+            if isinstance(ra, dict):
+                ra_ref = str(ra.get("ref_id") or "").strip().lower()
+            else:
+                for method_name in ("get_ref_id", "get_requirement_ref_id"):
+                    m = getattr(ra, method_name, None)
+                    if callable(m):
+                        try:
+                            val = m()
+                            if isinstance(val, str) and not val.startswith("<MagicMock"):
+                                ra_ref = val.strip().lower()
+                                break
+                        except Exception:
+                            pass
+                if not ra_ref and hasattr(ra, "ref_id"):
+                    val = getattr(ra, "ref_id", "")
+                    if isinstance(val, str) and not val.startswith("<MagicMock"):
+                        ra_ref = val.strip().lower()
+
+            ra_urn = ""
+            if isinstance(ra, dict):
+                ra_urn = str(ra.get("urn") or "").strip().lower()
+            else:
+                m = getattr(ra, "get_urn", None)
+                if callable(m):
+                    try:
+                        val = m()
+                        if isinstance(val, str) and not val.startswith("<MagicMock"):
+                            ra_urn = val.strip().lower()
+                    except Exception:
+                        pass
+                if not ra_urn and hasattr(ra, "urn"):
+                    val = getattr(ra, "urn", "")
+                    if isinstance(val, str) and not val.startswith("<MagicMock"):
+                        ra_urn = val.strip().lower()
             node = nodes_by_ref.get(ra_ref) or nodes_by_urn.get(ra_urn)
 
             ra_answers = ra.get_answers() if hasattr(ra, "get_answers") else (ra.get("answers") if isinstance(ra, dict) else {})

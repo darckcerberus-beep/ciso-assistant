@@ -602,22 +602,6 @@ def select_audit_implementation_groups_ui(
 
     # If groups not provided via arguments, prompt interactively
     if groups is None:
-        pending = group_info.get("pending_dependencies", [])
-        if pending:
-            print("\nProfile Answers Detected Matching Implementation Group Dependencies:")
-            for dep in pending:
-                prompt_text = dep.get("prompt") or f"Do you want to trigger {dep.get('name')} ({dep.get('target_implementation_group')})?"
-                try:
-                    ans = input(f" [?] {prompt_text} [Y/n]: ").strip().lower()
-                    if ans in ("", "y", "yes"):
-                        manager.select_audit_implementation_groups(app_name, groups=[dep.get("target_implementation_group")], mode="add")
-                        group_info = manager.get_audit_implementation_groups(app_name)
-                        curr_sel = group_info.get("selected_implementation_groups", [])
-                        available = group_info.get("available_implementation_groups", [])
-                        print(f"     [+] Triggered track: {dep.get('name')}")
-                except (StopIteration, EOFError):
-                    pass
-
         print("\nChoose update mode:")
         print(" 1) Add further implementation groups (merge with current selection)")
         print(" 2) Replace full selection of implementation groups")
@@ -747,26 +731,6 @@ def assign_audit_implementation_groups_ui(
             trig_qs = ig.get("triggered_by_questions", [])
             q_info = f" (Triggered by: {'; '.join(trig_qs)})" if trig_qs else ""
             print(f"  {idx}) {ig.get('name')} ({ig.get('ref_id')}) {active_str}{q_info}")
-
-    # Check for pending dependencies from answers that have not yet been activated
-    if groups is None:
-        pending = group_info.get("pending_dependencies", [])
-        if pending:
-            print("\nCandidate Implementation Groups Triggered by Answers:")
-            for dep in pending:
-                prompt_text = dep.get("prompt") or f"Do you want to trigger {dep.get('name')} ({dep.get('target_implementation_group')})?"
-                try:
-                    ans = input(f" [?] {prompt_text} [Y/n]: ").strip().lower()
-                    if ans in ("", "y", "yes"):
-                        manager.select_audit_implementation_groups(app_name, groups=[dep.get("target_implementation_group")], mode="add")
-                        group_info = manager.get_audit_implementation_groups(app_name)
-                        curr_sel = group_info.get("selected_implementation_groups", [])
-                        triggered_groups = group_info.get("triggered_implementation_groups", [])
-                        active_triggered = group_info.get("active_triggered_groups", [])
-                        unassigned_triggered = group_info.get("unassigned_triggered_groups", [])
-                        print(f"     [+] Triggered & activated track: {dep.get('name')}")
-                except (StopIteration, EOFError):
-                    pass
 
     # Resolve groups to assign
     if groups is None:
@@ -957,9 +921,6 @@ def generate_controls_and_risks_ui(
         print(f" Risk Scenarios Evaluated: {res.get('scenarios_created', 0)}")
         print(f" Controls Linked:          {res.get('existing_controls_linked', 0)} active, {res.get('planned_controls_linked', 0)} planned")
         print(f" Audit Findings Created:   {res.get('findings_count', 0)}")
-        newly_triggered = manager.prompt_trigger_implementation_groups(app_name, interactive=interactive)
-        if newly_triggered:
-            print(f" Triggered Implementation Groups: {', '.join(newly_triggered)}")
         print("-" * 80)
 
         print(f" View the generated scenarios and controls in CISO Assistant at:")

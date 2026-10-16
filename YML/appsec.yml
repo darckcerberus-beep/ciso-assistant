@@ -1364,37 +1364,6 @@ objects:
         ref_id: "internet_facing"
         description: "Requirements for applications exposed to the Internet"
 
-    # Implementation groups dependencies define triggers and interactive prompts
-    implementation_groups_dependencies:
-      - target_implementation_group: "custom_app"
-        name: "Custom Software Track (In-house Development)"
-        question_urn: "urn:intuitem:risk:req_node:appsec:hosting:q1"
-        question_ref_id: "hosting:q1"
-        choice_urn: "urn:intuitem:risk:req_node:appsec:hosting:q1:c1"
-        choice_value: "Custom software created and deployed by my teams (In-house development)"
-        prompt: "The application is developed in-house. Do you want to trigger the Custom Software Track (custom_app)?"
-      - target_implementation_group: "cots_app"
-        name: "Bought Software Track (COTS / Vendor Package)"
-        question_urn: "urn:intuitem:risk:req_node:appsec:hosting:q1"
-        question_ref_id: "hosting:q1"
-        choice_urn: "urn:intuitem:risk:req_node:appsec:hosting:q1:c2"
-        choice_value: "Bought software deployed by my teams (COTS / Vendor package)"
-        prompt: "The application is commercial off-the-shelf software. Do you want to trigger the Bought Software Track (cots_app)?"
-      - target_implementation_group: "saas_app"
-        name: "SaaS Application Track"
-        question_urn: "urn:intuitem:risk:req_node:appsec:hosting:q1"
-        question_ref_id: "hosting:q1"
-        choice_urn: "urn:intuitem:risk:req_node:appsec:hosting:q1:c3"
-        choice_value: "SaaS (Third-party software hosted and operated by a vendor)"
-        prompt: "The application is third-party SaaS. Do you want to trigger the SaaS Application Track (saas_app)?"
-      - target_implementation_group: "internet_facing"
-        name: "Internet-Facing Application Track"
-        question_urn: "urn:intuitem:risk:req_node:appsec:network_exposure:q1"
-        question_ref_id: "network_exposure:q1"
-        choice_urn: "urn:intuitem:risk:req_node:appsec:network_exposure:q1:c2"
-        choice_value: "Internet-facing (Public Web / Mobile API)"
-        prompt: "The application is exposed to the public Internet. Do you want to trigger the Internet-Facing Track (internet_facing)?"
-
     # ====================================================================
     # REQUIREMENT NODES - Hierarchical assessment structure
     # ====================================================================
@@ -1406,46 +1375,21 @@ objects:
         depth: 1
         ref_id: instructions_splash
         name: "Instructions & Guidance"
-        description: >
-          Welcome to the Comprehensive Application Security Assessment (AppSec).
+        description: |
+          ### Welcome to the Application Security Assessment (AppSec)!
 
-          This framework evaluates the security posture, architecture robustness, cryptographic defenses,
-          secure software development lifecycle (DevSecOps), and operational resilience of your application.
+          This questionnaire helps evaluate your application's security posture, data protection controls, and operational resilience. Whether you are developing **custom software**, deploying **commercial software (COTS)**, or onboarding a **third-party SaaS solution**, this assessment is tailored to your setup.
 
-          How to complete this assessment:
-          1. Answer accurately: Select the choices that best reflect the current architecture and operational state of your application.
-          2. Dynamic tracks: Questions in Chapter 1 (Data Classification, Hosting Model, and Network Exposure for self-hosted apps) dynamically trigger advanced tracks:
-             - Confidential / Secret Data Protection (Encryption in Transit & Rest, Non-Prod Data Masking, Compliant Destruction)
-             - Internet-Facing Controls (API Rate Limiting, CSP, External Pentesting)
-             - SaaS Contractual Governance (Security Exhibits, Audit Rights, Incident Reporting SLAs)
-          3. SaaS Applications: Third-party SaaS solutions hosted on external vendor cloud infrastructure are inherently and unconditionally assumed to be externally exposed (automatically activating internet_facing) and to exchange data with the SaaS provider outside the group. External network exposure and data exchange profiling questions in Chapters 1 and 7 are bypassed; vendor security commitments, data transfer DPAs, and confidentiality obligations are governed directly in Chapter 10 (SaaS Requirements, covering Master Services Agreements, Security Exhibits, SOC 2 / ISO 27001 assurance, SLAs, and DPAs).
-          4. Scoping & Responsibility: This framework evaluates application-level posture, architecture, data governance, and DevSecOps. Central enterprise IT infrastructure controls (such as corporate EDR coverage on internal company laptops and servers) are governed centrally by Corporate IT / SecOps and are intentionally not queried here to avoid asking application owners questions outside their domain. For third-party SaaS applications, provider endpoint security and EDR commitments are evaluated contractually in Chapter 10.
-          5. Evidence: For assessable requirements, ensure supporting documentation (architecture diagrams, CI/CD pipelines, KMS configs, pentest reports, or executed SaaS contracts and SOC 2 reports) can be provided upon audit review.
-          6. Progress & Submission: You can complete this questionnaire progressively. Once submitted, CISO Assistant will automatically calculate likelihood and impact across all risk scenarios.
+          #### How to complete this assessment:
+          1. **Answer accurately:** Select the choices that best reflect your application's current architecture and operations.
+          2. **Tailored questions:** Initial questions in *Chapter 1* (data sensitivity, hosting model, and exposure) automatically customize the remaining sections so you only see what is relevant to your application.
+          3. **Keep evidence handy:** Where applicable, have supporting documentation ready (such as architecture diagrams, CI/CD pipeline settings, or vendor SOC 2 / ISO 27001 reports).
+          4. **Save as you go:** You can complete this questionnaire progressively at your own pace.
+
+          > **Note:** Once submitted, CISO Assistant will automatically evaluate risk scenarios and link recommended security controls. If you need any help along the way, feel free to reach out to the security team!
         annotation: >
           Introductory splash screen explaining questionnaire navigation, answering guidelines, dynamic section triggering based on data classification and hosting model, and audit evidence expectations.
         implementation_groups: ["info", "baseline"]
-
-      # === SPLASH SCREEN: APPLICATION INFORMATION & GOVERNANCE ===
-      - urn: urn:intuitem:risk:req_node:appsec:info_splash
-        assessable: false
-        display_mode: splash
-        depth: 1
-        ref_id: info_splash
-        name: "Application Information & Governance - Introduction"
-        description: >
-          Welcome to the Application Information & Governance Track.
-
-          This initial profiling stage establishes foundational context and ownership for the application:
-          - Stakeholder Identification: Business owner, technical lead, and data custodian points of contact.
-          - Data Classification: Maximum confidentiality tier handled by the application (Public, Internal, Confidential, or Secret).
-          - Delivery & Hosting Model: In-house custom development, commercial off-the-shelf (COTS) package, or third-party SaaS.
-
-          Your responses in this section dynamically trigger specialized downstream tracks and determine applicable technical controls.
-        annotation: >
-          Introductory splash screen for the Application Information and Governance implementation group (info),
-          orienting respondents on initial application profiling, ownership accountability, and scope discovery.
-        implementation_groups: ["info"]
 
       # === CHAPTER 1: APPLICATION INFORMATION & GOVERNANCE ===
       - urn: urn:intuitem:risk:req_node:appsec:info
@@ -1598,54 +1542,16 @@ objects:
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:hosting:q1:c1
                 value: "Custom software created and deployed by my teams (In-house development)"
+                select_implementation_groups: ["custom_app", "baseline"]
                 color: "#17a2b8"
               - urn: urn:intuitem:risk:req_node:appsec:hosting:q1:c2
                 value: "Bought software deployed by my teams (COTS / Vendor package)"
+                select_implementation_groups: ["cots_app", "baseline"]
                 color: "#17a2b8"
               - urn: urn:intuitem:risk:req_node:appsec:hosting:q1:c3
                 value: "SaaS (Third-party software hosted and operated by a vendor)"
+                select_implementation_groups: ["saas_app", "baseline"]
                 color: "#17a2b8"
-
-      # === SPLASH SCREEN: CUSTOM SOFTWARE TRACK ===
-      - urn: urn:intuitem:risk:req_node:appsec:custom_app_splash
-        assessable: false
-        display_mode: splash
-        depth: 1
-        ref_id: custom_app_splash
-        name: "Custom Software Track (In-House Development) - Introduction"
-        description: >
-          Welcome to the Custom Software Track for In-House Development.
-
-          This track evaluates secure engineering practices and code-level defenses for applications developed and maintained internally:
-          - Secure SDLC & DevSecOps: Automated CI/CD security gates, SAST, DAST, SCA dependency scanning, SBOM generation, and mandatory peer code review.
-          - Application Defenses & Code Hygiene: Secure session management, parameterized queries (SQLi defense), context-aware output encoding (XSS defense), SSRF protection, and file upload validation.
-          - Cryptography & Secrets: Dedicated vault integration, strong cipher suites, and data-in-transit/at-rest protection.
-          - Non-Production Data Sanitization: Pseudonymization, data masking, and automated test data purging.
-          - Security Logging: Tamper-resistant audit trails, OWASP Top 10 security event logging, and centralized SIEM streaming.
-        annotation: >
-          Introductory splash screen for the Custom Software Track implementation group (custom_app),
-          guiding engineering teams, software architects, and AppSec leads on in-house development and DevSecOps controls.
-        implementation_groups: ["custom_app"]
-
-      # === SPLASH SCREEN: BOUGHT SOFTWARE TRACK (COTS) ===
-      - urn: urn:intuitem:risk:req_node:appsec:cots_app_splash
-        assessable: false
-        display_mode: splash
-        depth: 1
-        ref_id: cots_app_splash
-        name: "Bought Software Track (COTS / Vendor Package) - Introduction"
-        description: >
-          Welcome to the Bought Software Track (COTS / Vendor Package).
-
-          This track governs operational security, deployment hardening, and patch management for commercial off-the-shelf software deployed on internal or private cloud infrastructure:
-          - Deployment Hardening: Disabling default accounts and sample data, closing unused administrative ports, and enforcing generic error handling.
-          - Vendor Patch Governance: Adherence to vendor patch management SLAs, active CVE vulnerability tracking, and emergency hotfix deployment workflows.
-          - Cryptographic Controls & Secrets: Vault-managed database credentials, TLS termination, and encryption at rest.
-          - Data Protection & Lifecycle: Non-production masking, compliant data destruction, and operational disaster recovery.
-        annotation: >
-          Introductory splash screen for the Bought Software Track implementation group (cots_app),
-          directing system administrators and infrastructure teams on deployment baselines and vendor CVE governance.
-        implementation_groups: ["cots_app"]
 
       # Requirement: Determine network exposure
       - urn: urn:intuitem:risk:req_node:appsec:network_exposure
@@ -1663,7 +1569,7 @@ objects:
         typical_evidence: >
           - Network zoning diagram showing DMZ, perimeter firewalls, and reverse proxies
           - DNS configuration and IP address allocation records
-        implementation_groups: ["custom_app", "cots_app"]
+        implementation_groups: ["baseline"]
         questions:
           urn:intuitem:risk:req_node:appsec:network_exposure:q1:
             type: unique_choice
@@ -1678,25 +1584,33 @@ objects:
                 value: "Internet-facing (Public Web / Mobile API)"
                 add_score: 100
                 compute_result: true
+                select_implementation_groups: ["internet_facing"]
                 color: "#fd7e14"
 
-      # === SPLASH SCREEN: APPLICATION SECURITY BASELINE ===
+      # === SPLASH SCREEN: TECHNICAL SECURITY ASSESSMENT TRANSITION ===
       - urn: urn:intuitem:risk:req_node:appsec:baseline_splash
         assessable: false
         display_mode: splash
         depth: 1
         ref_id: baseline_splash
-        name: "Application Security Baseline - Introduction"
-        description: >
-          Welcome to the Application Security Baseline Track.
+        name: "Technical Security Assessment - Overview"
+        description: |
+          ### Baseline Profiling Complete: Technical Security Assessment
 
-          This track evaluates universal cybersecurity controls required across all enterprise applications, regardless of whether they are developed internally, procured as COTS, or consumed via SaaS:
-          - Centralized Authentication & SSO: Federated identity integration (SAML 2.0 / OIDC) and directory services.
-          - Multi-Factor Authentication (MFA): Mandatory phishing-resistant MFA for all administrative users and remote access.
-          - Role-Based Access Control (RBAC): Least-privilege authorization, segregation of duties, and periodic access reviews.
+          You have completed the baseline profiling questions covering application ownership, data classification, hosting model, and network exposure.
+
+          The following chapters evaluate the **technical cybersecurity controls** applicable to your application. Based on your profiling answers, subsequent sections are dynamically tailored:
+          - **Identity, Authentication & Access Control:** Federated SSO, Multi-Factor Authentication (MFA), and role-based permissions.
+          - **Application Architecture & Defenses:** Secure design patterns, input validation, output encoding, or third-party vendor assurance depending on your delivery track (Custom in-house, Bought COTS, or SaaS).
+          - **Secrets & Infrastructure Security:** Hardening baselines, secret management, and encryption at rest and in transit.
+          - **Perimeter & Edge Defenses:** If your application is exposed to the public Internet, relevant edge protections (WAF, anti-DDoS, and penetration testing) will be evaluated.
+          - **Resilience & Governance:** Audit logging, data protection, and incident response readiness.
+
+          > **Note:** Only the technical requirements relevant to your application's delivery track and network exposure tier will be in scope.
+
+          Please proceed to the next section to begin the technical evaluation.
         annotation: >
-          Introductory splash screen for the Application Security Baseline implementation group (baseline),
-          highlighting mandatory universal authentication, identity federation, and access control baselines.
+          Generic transition splash screen concluding the baseline profiling phase and introducing upcoming technical security questions across dynamically triggered implementation groups.
         implementation_groups: ["baseline"]
 
       # === CHAPTER 2: IDENTITY, AUTHENTICATION & ACCESS CONTROL ===
@@ -2438,25 +2352,6 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # === SPLASH SCREEN: INTERNET-FACING APPLICATION TRACK ===
-      - urn: urn:intuitem:risk:req_node:appsec:internet_facing_splash
-        assessable: false
-        display_mode: splash
-        depth: 1
-        ref_id: internet_facing_splash
-        name: "Internet-Facing Application Track - Introduction"
-        description: >
-          Welcome to the Internet-Facing Application Track.
-
-          This track enforces advanced edge defenses and external assurance for applications accessible over the public Internet:
-          - Perimeter & Edge Protection: Anti-DDoS mitigation, Web Application Firewall (WAF) rule sets, and modern TLS termination.
-          - API Security & Abuse Defense: Granular rate limiting, quota enforcement, API authentication gateway controls, and strict request payload validation.
-          - Independent Penetration Testing: Annual third-party penetration testing and formal vulnerability remediation SLAs for external-facing assets.
-        annotation: >
-          Introductory splash screen for the Internet-Facing Application Track implementation group (internet_facing),
-          focusing on perimeter hardening, WAF protection, API rate limiting, and external penetration testing.
-        implementation_groups: ["internet_facing"]
-
       # === CHAPTER 6: API SECURITY & EDGE PROTECTIONS ===
       - urn: urn:intuitem:risk:req_node:appsec:api_chapter
         assessable: false
@@ -2981,29 +2876,6 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
-
-      # === SPLASH SCREEN: SAAS APPLICATION TRACK ===
-      - urn: urn:intuitem:risk:req_node:appsec:saas_app_splash
-        assessable: false
-        display_mode: splash
-        depth: 1
-        ref_id: saas_app_splash
-        name: "SaaS Application Track - Introduction"
-        description: >
-          Welcome to the SaaS Application Track.
-
-          This track governs third-party Software-as-a-Service (SaaS) applications where infrastructure and
-          codebases are operated externally by a vendor. Security posture is enforced through binding
-          contractual exhibits, independent audit certifications, and operational service level agreements (SLAs):
-          - Master Agreements & Security Exhibits: Binding Security Schedules, Data Processing Agreements (DPA), and Right-to-Audit clauses.
-          - Third-Party Assurance: Independent SOC 2 Type II reports, ISO/IEC 27001 certifications, and vendor security questionnaires.
-          - Data Protection & Isolation: Multi-tenant logical data isolation, customer data encryption, and certified data destruction upon contract termination.
-          - Incident Response SLAs: Mandatory security breach notification window (24 to 72 hours) and coordinated incident response procedures.
-          - Enterprise Identity & Monitoring: SAML 2.0 / OIDC SSO federation, SCIM user provisioning, MFA enforcement, and SIEM security log streaming.
-        annotation: >
-          Introductory splash screen for the SaaS Application Track implementation group (saas_app),
-          guiding vendor management, procurement, and risk teams on SaaS security schedules and independent audit assurance.
-        implementation_groups: ["saas_app"]
 
       # ========================================================================
       # CHAPTER 10: SAAS REQUIREMENTS & VENDOR SECURITY EXHIBIT
@@ -4003,17 +3875,17 @@ objects:
         depth: 1
         ref_id: thank_you_splash
         name: "Assessment Completed - Thank You"
-        description: >
-          Thank you for completing the Application Security Assessment (AppSec).
+        description: |
+          ### Thank you for completing the Application Security Assessment (AppSec)!
 
           Your responses have been successfully submitted and will serve as the baseline for evaluating application risk scenarios and governing cybersecurity controls.
 
-          Next Steps:
-          1. Automated Risk Modeling: CISO Assistant will automatically calculate likelihood and impact across applicable threat scenarios based on your answers.
-          2. Controls Verification: Recommended and applied technical controls will be linked to mitigate identified risk scenarios.
-          3. Governance & Follow-Up: If any compliance gaps, findings, or security exceptions are required, the security team will reach out to coordinate remediation planning and stakeholder sign-offs.
+          #### Next Steps:
+          1. **Automated Risk Modeling:** CISO Assistant will automatically calculate likelihood and impact across applicable threat scenarios based on your answers.
+          2. **Controls Verification:** Recommended and applied technical controls will be linked to mitigate identified risk scenarios.
+          3. **Governance & Follow-Up:** If any compliance gaps, findings, or security exceptions are required, the security team will reach out to coordinate remediation planning and stakeholder sign-offs.
 
-          If your application architecture, hosting model, or exposure profile changes in the future, please re-evaluate this assessment.
+          > **Note:** If your application architecture, hosting model, or exposure profile changes in the future, please re-evaluate this assessment.
         annotation: >
           Concluding splash screen expressing gratitude to the respondent and detailing subsequent compliance verification, risk assessment, and remediation workflows.
         implementation_groups: ["info", "baseline", "custom_app", "cots_app", "saas_app", "internet_facing"]
@@ -4062,7 +3934,7 @@ test_metadata:
   expected_threats_count: 9
   expected_vulnerabilities_count: 18
   expected_reference_controls_count: 26
-  expected_requirement_nodes_count: 67
+  expected_requirement_nodes_count: 62
   matrix_dimensions:
     likelihood_levels: 4
     impact_levels: 4

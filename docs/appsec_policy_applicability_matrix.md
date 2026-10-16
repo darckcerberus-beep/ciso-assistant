@@ -60,11 +60,11 @@ Requirement nodes are assigned to native CISO Assistant Implementation Groups, e
 > [!NOTE]
 > Data classification (`data_classification`) strictly determines the **confidentiality impact level** for risk scenario calculations (impact levels 1 to 4). It intentionally does not activate separate implementation groups, ensuring self-hosted requirements (`data_at_rest`, `non_prod_data`, `data_destruction`) are not asked redundantly for SaaS applications, which are governed by dedicated controls in Chapter 10.
 
-Implementation group dependencies in `implementation_groups_dependencies` define the orchestrator prompts:
-- **Custom Software**: Matches `hosting:q1:c1` and prompts to trigger `custom_app`.
-- **Bought Software (COTS)**: Matches `hosting:q1:c2` and prompts to trigger `cots_app`.
-- **SaaS**: Matches `hosting:q1:c3` and prompts to trigger `saas_app`.
-- **Internet-Facing**: Matches `network_exposure:q1:c2` and prompts to trigger `internet_facing`.
+Profiling triggers in `hosting:q1` dynamically activate the tracks:
+- **Custom Software**: Activates `custom_app` and `baseline`.
+- **Bought Software (COTS)**: Activates `cots_app` and `baseline`.
+- **SaaS**: Activates `saas_app` and `baseline`.
+- **Internet-Facing**: Activates `internet_facing` (triggered by `network_exposure:q1:c2`).
 
 ### B. Dynamic Dependencies (`depends_on`) — Question-Level Scoping
 Within active requirement nodes, questions are dynamically conditioned using intra-node dependencies:
@@ -79,8 +79,9 @@ Within active requirement nodes, questions are dynamically conditioned using int
 - **`instructions_splash`**: Guidance splash screen detailing assessment expectations.
 - **`stakeholder_identification`**: Mandatory documentation of Business Owner, Technical Owner, and Information Security Officer (CISO/SecOps delegate).
 - **`data_classification`**: Formally categorizes data assets into Public, Internal, Confidential, or Secret (Confidentiality impact governing all risk scenario ratings).
-- **`hosting`**: Discriminates between Custom (In-house), Bought (COTS), and SaaS. Prompts to trigger `saas_app`, `custom_app`, or `cots_app` based on `implementation_groups_dependencies` (cloud provider perimeter defenses, WAF, and penetration testing are governed under Chapter 10 for SaaS).
-- **`network_exposure`** (`custom_app`, `cots_app`): Identifies whether self-hosted applications are restricted to internal corporate networks or exposed to the public Internet (bypassed for SaaS).
+- **`hosting`**: Discriminates between Custom (In-house), Bought (COTS), and SaaS. Selecting SaaS automatically triggers `saas_app` (cloud provider perimeter defenses, WAF, and penetration testing are governed under Chapter 10).
+- **`network_exposure`** (`baseline`): Identifies whether applications are restricted to internal corporate networks or exposed to the public Internet (triggers `internet_facing` track).
+- **`baseline_splash`**: Generic transition splash screen concluding baseline profiling and introducing technical security questions across dynamically triggered implementation groups.
 
 ### Chapter 2: Identity, Authentication & Access Control (IAM)
 - **`authentication_and_mfa`** (`baseline`, `custom_app`, `cots_app`, `saas_app` - All applications):
@@ -207,7 +208,8 @@ The table below defines the exact applicability criteria for every requirement a
 | **1. Profile** | `stakeholder_identification` | Stakeholder Identification | `baseline` | All | All | All | None |
 | **1. Profile** | `data_classification` | Application Data Classification | `baseline` | All | All | All | None |
 | **1. Profile** | `hosting` | Delivery & Hosting Model | `baseline` | All | All | All | None (SaaS activates `saas_app`, `baseline`) |
-| **1. Profile** | `network_exposure` | Application Network Exposure | `custom_app`, `cots_app` | Custom, COTS | All | All | Active for self-hosted apps; SaaS is governed by cloud controls in Chapter 10 |
+| **1. Profile** | `network_exposure` | Application Network Exposure | `baseline` | All | All | All | Triggers `internet_facing` track |
+| **1. Splash** | `baseline_splash` | Technical Assessment Transition | `baseline` | All | All | All | Generic transition introducing technical questions |
 | **2. IAM** | `authentication_and_mfa` (q1) | Authentication Mode (SSO vs Direct) | `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | None |
 | **2. IAM** | `authentication_and_mfa` (q2) | Password Policy & Lockout | `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | `q1 == Direct Authentication` |
 | **2. IAM** | `authentication_and_mfa` (q3) | Admin MFA Enforcement | `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | `q1 == Direct Authentication` |

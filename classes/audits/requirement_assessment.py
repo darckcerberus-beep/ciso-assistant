@@ -167,6 +167,10 @@ class RequirementAssessment:
             return requirement.get('ref_id', '')
         return ''
 
+    def get_ref_id(self):
+        """Return the underlying requirement's ref_id (alias for get_requirement_ref_id)."""
+        return self.get_requirement_ref_id()
+
     def get_questions(self):
         """Return the question definitions ({question_urn: {type, text, choices}}) for this requirement."""
         requirement = self.json_object.get('requirement', {})

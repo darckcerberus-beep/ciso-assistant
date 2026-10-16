@@ -602,6 +602,7 @@ class ExamplesManager:
             "advanced",
             "saas_chapter",
             "instructions_splash",
+            "baseline_splash",
             "thank_you_splash",
         }
         ref_id = ExamplesManager._extract_ra_ref_id(ra)
@@ -2256,10 +2257,27 @@ class ExamplesManager:
             if hasattr(ca_obj, "get_selected_implementation_groups")
             else (getattr(ca_obj, "compliance_assessment_json", {}) or {}).get("selected_implementation_groups", [])
         ) or []
+        # Refresh live data so answers submitted in CISO Assistant are evaluated
+        if hasattr(compliance_dict, "reload") and callable(compliance_dict.reload):
+            try:
+                compliance_dict.reload()
+            except Exception:
+                pass
+        req_assessments = getattr(compliance_dict, "requirement_assessments", None)
+        if req_assessments and hasattr(req_assessments, "reload") and callable(req_assessments.reload):
+            try:
+                req_assessments.reload()
+            except Exception:
+                pass
+        req_assignments = getattr(compliance_dict, "requirement_assignments", None)
+        if req_assignments and hasattr(req_assignments, "reload") and callable(req_assignments.reload):
+            try:
+                req_assignments.reload()
+            except Exception:
+                pass
 
         # Collect ca_reqs to evaluate answered triggers
         ca_reqs = None
-        req_assessments = getattr(compliance_dict, "requirement_assessments", None)
         if req_assessments and hasattr(req_assessments, "get_requirement_assessment_id_list_from_compliance_assessment_id"):
             try:
                 ra_ids = req_assessments.get_requirement_assessment_id_list_from_compliance_assessment_id(ca_obj.get_id())

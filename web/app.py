@@ -659,11 +659,17 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
         payload = request.get_json() or {}
         groups = payload.get("groups", [])
         mode = payload.get("mode", "add")
+        sync_asgns = payload.get("sync_existing_assignments", False)
         if not isinstance(groups, list):
             return jsonify({"error": "'groups' must be a list of implementation group names or IDs."}), 400
 
         try:
-            info = manager.select_audit_implementation_groups(app_name, groups=groups, mode=mode)
+            info = manager.select_audit_implementation_groups(
+                app_name,
+                groups=groups,
+                mode=mode,
+                sync_existing_assignments=sync_asgns,
+            )
             return jsonify({
                 "message": f"Successfully updated implementation groups for '{app_name}'.",
                 "data": info,

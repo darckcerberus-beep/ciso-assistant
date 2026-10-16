@@ -16,7 +16,6 @@ from classes.audits.implementation_groups import (
     determine_implementation_groups_triggered_by_others,
     get_default_implementation_groups,
     get_framework_implementation_groups,
-    get_framework_implementation_groups_dependencies,
     get_implementation_groups_triggered_by_others,
     get_initial_implementation_groups,
     get_visible_implementation_groups,
@@ -600,72 +599,6 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         self.assertIn("saas_app", hidden)
         self.assertIn("internet_facing", hidden)
 
-    def test_get_framework_implementation_groups_dependencies(self):
-        """Verify extraction of implementation_groups_dependencies from appsec framework."""
-        deps = get_framework_implementation_groups_dependencies("appsec")
-        self.assertEqual(len(deps), 4)
-        targets = [d["target_implementation_group"] for d in deps]
-        self.assertIn("custom_app", targets)
-        self.assertIn("cots_app", targets)
-        self.assertIn("saas_app", targets)
-        self.assertIn("internet_facing", targets)
-        for d in deps:
-            self.assertTrue(bool(d.get("prompt")))
-            self.assertTrue(bool(d.get("question_urn")))
-            self.assertTrue(bool(d.get("choice_urn")))
-
-    def test_implementation_groups_dependencies_pending_and_prompt(self):
-        """Verify that answering a triggering question marks the IG as pending (not auto-triggered) with prompt."""
-        # Answer hosting:q1 with custom software choice
-        answers = {
-            "hosting": {
-                "urn:intuitem:risk:req_node:appsec:hosting:q1": "urn:intuitem:risk:req_node:appsec:hosting:q1:c1"
-            }
-        }
-        res = determine_implementation_groups_triggered_by_others("appsec", answers=answers)
-
-        # custom_app is NOT automatically activated in triggered_groups
-        triggered_refs = [g["ref_id"] for g in res["triggered_groups"]]
-        self.assertNotIn("custom_app", triggered_refs)
-
-        # custom_app IS detected as a pending candidate dependency with prompt
-        pending = res["pending_dependencies"]
-        self.assertTrue(any(d["target_implementation_group"] == "custom_app" for d in pending))
-        custom_dep = next(d for d in pending if d["target_implementation_group"] == "custom_app")
-        self.assertIn("in-house", custom_dep["prompt"].lower())
-
-        # If auto_trigger is explicitly requested, it is activated
-        res_auto = determine_implementation_groups_triggered_by_others("appsec", answers=answers, auto_trigger=True)
-        auto_triggered_refs = [g["ref_id"] for g in res_auto["triggered_groups"]]
-        self.assertIn("custom_app", auto_triggered_refs)
-
-    def test_prompt_trigger_implementation_groups_orchestrator(self):
-        """Verify orchestrator prompt_trigger_implementation_groups workflow with confirmation."""
-        manager = ExamplesManager()
-        # Mock get_audit_implementation_groups to return a pending dependency
-        pending_dep = {
-            "target_implementation_group": "custom_app",
-            "name": "Custom Software Track (In-house Development)",
-            "prompt": "The application is developed in-house. Do you want to trigger the Custom Software Track (custom_app)?",
-        }
-        mock_info = {
-            "pending_dependencies": [pending_dep],
-            "selected_implementation_groups": ["Application Security Baseline"],
-        }
-        with patch.object(manager, "get_audit_implementation_groups", return_value=mock_info):
-            with patch.object(manager, "select_audit_implementation_groups") as mock_select:
-                with patch("builtins.input", return_value="y"):
-                    newly = manager.prompt_trigger_implementation_groups("Test-App", interactive=True)
-                    self.assertEqual(len(newly), 1)
-                    mock_select.assert_called_once_with("Test-App", groups=["custom_app"], mode="add")
-
-                # When user declines ('n'), group is not triggered
-                mock_select.reset_mock()
-                with patch("builtins.input", return_value="n"):
-                    newly_declined = manager.prompt_trigger_implementation_groups("Test-App", interactive=True)
-                    self.assertEqual(len(newly_declined), 0)
-                    mock_select.assert_not_called()
-
-
 if __name__ == "__main__":
     unittest.main()
+

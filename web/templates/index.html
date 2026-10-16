@@ -2085,6 +2085,15 @@
         const selected = data.selected_implementation_groups || [];
         const available = data.available_implementation_groups || [];
         const triggered = data.triggered_implementation_groups || [];
+        const pendingDeps = data.pending_dependencies || [];
+        const pendingGroupNames = new Set(
+          (data.pending_triggered_groups || []).map(g => String(g).toLowerCase())
+        );
+        pendingDeps.forEach(d => {
+          if (d.canonical_group_name) pendingGroupNames.add(String(d.canonical_group_name).toLowerCase());
+          if (d.target_implementation_group) pendingGroupNames.add(String(d.target_implementation_group).toLowerCase());
+          if (d.name) pendingGroupNames.add(String(d.name).toLowerCase());
+        });
         const unassignedReqs = data.unassigned_requirements_count || 0;
         const existingAsgns = data.existing_assignments || [];
 
@@ -2101,9 +2110,13 @@
           });
         }
 
-        // 2. Unassigned Pill
+        // 2. Unassigned / Pending Pill
+        const pendingCount = pendingDeps.length;
         if (unassignedReqs > 0) {
           unassignedPill.innerText = `${unassignedReqs} Unassigned`;
+          unassignedPill.classList.remove("hidden");
+        } else if (pendingCount > 0) {
+          unassignedPill.innerText = `${pendingCount} Triggered`;
           unassignedPill.classList.remove("hidden");
         } else {
           unassignedPill.classList.add("hidden");
@@ -2118,6 +2131,12 @@
           alertIcon.setAttribute("data-lucide", "alert-triangle");
           alertIcon.className = "w-4 h-4 shrink-0 text-amber-400 mt-0.5";
           alertText.innerHTML = `<strong>Triggered Tracks Ready for Assignment:</strong> Initial questionnaire has been answered, activating dynamic tracks with <strong>${unassignedReqs} unassigned requirements</strong>. Select the target tracks and respondent below to create and start the assignment.`;
+        } else if (pendingDeps.length > 0) {
+          alertBox.className = "p-3 rounded-lg border text-xs flex items-start space-x-2.5 bg-amber-500/10 border-amber-500/30 text-amber-200";
+          alertIcon.setAttribute("data-lucide", "sparkles");
+          alertIcon.className = "w-4 h-4 shrink-0 text-amber-400 mt-0.5";
+          const trackNames = pendingDeps.map(d => d.name || d.target_implementation_group).join(", ");
+          alertText.innerHTML = `<strong>Dynamic Tracks Triggered by Answers:</strong> Assessment answers matched criteria for <strong>${pendingDeps.length} dynamic track(s)</strong> (<em>${trackNames}</em>). Select the tracks below to assign and start, or manage all tracks on the next tab.`;
         } else if (triggered.length > 0) {
           alertBox.className = "p-3 rounded-lg border text-xs flex items-start space-x-2.5 bg-surface-800/80 border-slate-700/60 text-slate-300";
           alertIcon.setAttribute("data-lucide", "info");
@@ -2127,42 +2146,86 @@
           alertBox.className = "p-3 rounded-lg border text-xs flex items-start space-x-2.5 bg-surface-800/80 border-slate-700/60 text-slate-400";
           alertIcon.setAttribute("data-lucide", "info");
           alertIcon.className = "w-4 h-4 shrink-0 text-slate-400 mt-0.5";
-          alertText.innerText = "This framework does not define question-triggered dynamic implementation tracks. All groups can be managed manually on the next tab.";
+          alertText.innerHTML = `No question-triggered tracks are currently pending from answers. All implementation groups can be selected and updated manually on the <strong>All Framework Tracks (Manual)</strong> tab.`;
         }
 
-        // 4. Triggered Checkboxes
+        // 4. Triggered Checkboxes (Tab 1)
         trigContainer.innerHTML = "";
-        if (triggered.length === 0) {
-          trigContainer.innerHTML = `<div class="p-3 text-slate-500 text-xs italic text-center">No question-triggered implementation tracks defined for this framework.</div>`;
-        } else {
-          triggered.forEach((ig, idx) => {
-            const name = ig.name || ig.ref_id;
-            const refId = ig.ref_id || "";
-            const desc = ig.description || "";
-            const isCurrentlySelected = selected.some(s => s === name || (refId && s.toLowerCase() === refId.toLowerCase()));
-            const trigQs = ig.triggered_by_questions || [];
-            const cbId = `mg-trig-cb-${idx}`;
+        const trigItemsToRender = [];
+        const seenTrigKeys = new Set();
 
-            const item = document.createElement("div");
-            item.className = `flex items-start space-x-2.5 p-2.5 rounded-lg border transition ${isCurrentlySelected ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-surface-800/80 border-slate-700/60 hover:border-slate-600'}`;
-            item.innerHTML = `
-              <input type="checkbox" id="${cbId}" value="${name}" ${isCurrentlySelected || unassignedReqs > 0 ? 'checked' : ''} class="mt-0.5 w-4 h-4 rounded text-brand-500 bg-surface-900 border-slate-700 focus:ring-0">
+        pendingDeps.forEach(dep => {
+          const name = dep.name || dep.target_implementation_group;
+          const refId = dep.target_implementation_group || "";
+          const key = (refId || name).toLowerCase();
+          if (!seenTrigKeys.has(key)) {
+            seenTrigKeys.add(key);
+            trigItemsToRender.push({
+              name,
+              ref_id: refId,
+              prompt: dep.prompt,
+              choice_value: dep.choice_value,
+              is_pending: true,
+              is_selected: selected.some(s => s === name || (refId && s.toLowerCase() === refId.toLowerCase())),
+            });
+          }
+        });
+
+        triggered.forEach(ig => {
+          const name = ig.name || ig.ref_id;
+          const refId = ig.ref_id || "";
+          const key = (refId || name).toLowerCase();
+          if (!seenTrigKeys.has(key)) {
+            seenTrigKeys.add(key);
+            trigItemsToRender.push({
+              name,
+              ref_id: refId,
+              description: ig.description,
+              prompt: ig.prompt,
+              triggered_by_questions: ig.triggered_by_questions || [],
+              is_pending: false,
+              is_selected: selected.some(s => s === name || (refId && s.toLowerCase() === refId.toLowerCase())),
+            });
+          }
+        });
+
+        if (trigItemsToRender.length === 0) {
+          trigContainer.innerHTML = `
+            <div class="p-4 text-slate-400 text-xs italic text-center space-y-2">
+              <p>No question-triggered implementation tracks currently pending for this audit.</p>
+              <button type="button" onclick="switchMgTab('manual')" class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow transition">
+                <i data-lucide="sliders" class="w-3.5 h-3.5"></i>
+                <span>Open All Framework Tracks (Manual)</span>
+              </button>
+            </div>
+          `;
+        } else {
+          trigItemsToRender.forEach((item, idx) => {
+            const cbId = `mg-trig-cb-${idx}`;
+            const isChecked = item.is_pending || item.is_selected || unassignedReqs > 0;
+            const el = document.createElement("div");
+            el.className = `flex items-start space-x-2.5 p-2.5 rounded-lg border transition ${item.is_selected ? 'bg-indigo-500/10 border-indigo-500/30' : (item.is_pending ? 'bg-amber-500/10 border-amber-500/30' : 'bg-surface-800/80 border-slate-700/60 hover:border-slate-600')}`;
+            el.innerHTML = `
+              <input type="checkbox" id="${cbId}" value="${item.name}" ${isChecked ? 'checked' : ''} class="mt-0.5 w-4 h-4 rounded text-brand-500 bg-surface-900 border-slate-700 focus:ring-0">
               <label for="${cbId}" class="text-xs text-slate-200 cursor-pointer select-none space-y-1 flex-1">
                 <div class="flex items-center space-x-1.5 flex-wrap">
-                  <span class="font-semibold text-white">${name}</span>
-                  ${refId ? `<span class="px-1.5 py-0.2 rounded text-[10px] font-mono bg-surface-900 text-slate-400 border border-slate-700">${refId}</span>` : ''}
-                  ${isCurrentlySelected ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">active in audit</span>` : ''}
+                  <span class="font-semibold text-white">${item.name}</span>
+                  ${item.ref_id ? `<span class="px-1.5 py-0.2 rounded text-[10px] font-mono bg-surface-900 text-slate-400 border border-slate-700">${item.ref_id}</span>` : ''}
+                  ${item.is_selected ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">active in audit</span>` : ''}
+                  ${item.is_pending && !item.is_selected ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">triggered by answers</span>` : ''}
                 </div>
-                ${desc ? `<p class="text-[11px] text-slate-400 leading-tight">${desc}</p>` : ''}
-                ${trigQs.length > 0 ? `
+                ${item.prompt ? `<p class="text-[11px] text-amber-200/90 leading-tight font-medium">${item.prompt}</p>` : ''}
+                ${item.choice_value ? `<p class="text-[10px] text-slate-400 leading-tight">Triggered by answer: <em>${item.choice_value}</em></p>` : ''}
+                ${item.description && !item.prompt ? `<p class="text-[11px] text-slate-400 leading-tight">${item.description}</p>` : ''}
+                ${item.triggered_by_questions?.length > 0 ? `
                   <div class="text-[10px] text-brand-400/90 bg-brand-500/10 px-2 py-0.5 rounded border border-brand-500/20 inline-flex items-center space-x-1">
                     <i data-lucide="help-circle" class="w-2.5 h-2.5"></i>
-                    <span>Triggered by: ${trigQs.join('; ')}</span>
+                    <span>Triggered by: ${item.triggered_by_questions.join('; ')}</span>
                   </div>
                 ` : ''}
               </label>
             `;
-            trigContainer.appendChild(item);
+            trigContainer.appendChild(el);
           });
         }
 
@@ -2190,37 +2253,43 @@
           });
         }
 
-        const visibleGroups = data.visible_implementation_groups || available.filter(ig => !ig.is_hidden);
-        const hiddenGroups = data.hidden_implementation_groups || available.filter(ig => ig.is_hidden);
-
-        // 6. Tab 2: Visible Implementation Groups Checkboxes
+        // 6. Tab 2: All Implementation Groups Checkboxes (Manual Selection)
         cbsContainer.innerHTML = "";
-        if (visibleGroups.length === 0) {
-          cbsContainer.innerHTML = `<div class="p-3 text-slate-500 text-xs italic text-center">No selectable implementation groups currently available.</div>`;
+        if (available.length === 0) {
+          cbsContainer.innerHTML = `<div class="p-3 text-slate-500 text-xs italic text-center">No implementation groups defined for this framework.</div>`;
         } else {
-          visibleGroups.forEach((ig, idx) => {
+          available.forEach((ig, idx) => {
             const name = ig.name || ig.ref_id;
             const refId = ig.ref_id || "";
             const desc = ig.description || "";
             const isCurrentlySelected = selected.some(s => s === name || (refId && s.toLowerCase() === refId.toLowerCase()));
             const isAlwaysSelectable = Boolean(ig.always_selectable);
-            const hasBeenTriggered = Boolean(ig.has_been_triggered);
             const isDef = Boolean(ig.default_selected);
+            const isPending = Boolean(
+              ig.is_pending_trigger
+              || ig.condition_matched
+              || pendingGroupNames.has(name.toLowerCase())
+              || (refId && pendingGroupNames.has(refId.toLowerCase()))
+            );
+            const hasBeenTriggered = Boolean(ig.has_been_triggered) || isPending;
+            const prompt = ig.prompt || (pendingDeps.find(d => (d.target_implementation_group || "").toLowerCase() === refId.toLowerCase() || (d.name || "").toLowerCase() === name.toLowerCase())?.prompt) || "";
             const cbId = `mg-cb-${idx}`;
 
             const item = document.createElement("div");
-            item.className = `flex items-start space-x-2.5 p-2.5 rounded-lg border transition ${isCurrentlySelected ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-surface-800/80 border-slate-700/60 hover:border-slate-600'}`;
+            item.className = `flex items-start space-x-2.5 p-2.5 rounded-lg border transition ${isCurrentlySelected ? 'bg-indigo-500/10 border-indigo-500/30' : (isPending ? 'bg-amber-500/10 border-amber-500/30' : 'bg-surface-800/80 border-slate-700/60 hover:border-slate-600')}`;
             item.innerHTML = `
-              <input type="checkbox" id="${cbId}" value="${name}" ${isCurrentlySelected ? 'checked' : ''} class="mt-0.5 w-4 h-4 rounded text-indigo-600 bg-surface-900 border-slate-700 focus:ring-0">
+              <input type="checkbox" id="${cbId}" value="${name}" ${isCurrentlySelected || isPending ? 'checked' : ''} class="mt-0.5 w-4 h-4 rounded text-indigo-600 bg-surface-900 border-slate-700 focus:ring-0">
               <label for="${cbId}" class="text-xs text-slate-200 cursor-pointer select-none space-y-0.5 flex-1">
                 <div class="flex items-center space-x-1.5 flex-wrap">
                   <span class="font-semibold text-white">${name}</span>
                   ${refId ? `<span class="px-1.5 py-0.2 rounded text-[10px] font-mono bg-surface-900 text-slate-400 border border-slate-700">${refId}</span>` : ''}
                   ${isCurrentlySelected ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">active</span>` : ''}
+                  ${isPending && !isCurrentlySelected ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">triggered by answers (pending)</span>` : ''}
                   ${isDef ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">default</span>` : ''}
                   ${isAlwaysSelectable ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-medium bg-slate-800 text-slate-300 border border-slate-700">always selectable</span>` : ''}
-                  ${hasBeenTriggered && !isAlwaysSelectable ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">triggered by answers</span>` : ''}
+                  ${hasBeenTriggered && !isAlwaysSelectable && !isPending ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">triggered by answers</span>` : ''}
                 </div>
+                ${prompt ? `<p class="text-[11px] text-amber-200/90 leading-tight font-medium mt-0.5">${prompt}</p>` : ''}
                 ${desc ? `<p class="text-[11px] text-slate-400 leading-tight">${desc}</p>` : ''}
               </label>
             `;
@@ -2228,21 +2297,11 @@
           });
         }
 
-        // Informational banner for hidden groups that must be triggered
-        if (hiddenGroups.length > 0) {
-          const hiddenNotice = document.createElement("div");
-          hiddenNotice.className = "mt-3 p-2.5 rounded-lg bg-surface-900/80 border border-slate-700/60 text-[11px] text-slate-400 flex items-start space-x-2";
-          hiddenNotice.innerHTML = `
-            <i data-lucide="eye-off" class="w-3.5 h-3.5 text-slate-500 mt-0.5 shrink-0"></i>
-            <div class="leading-relaxed flex-1">
-              <strong class="text-slate-300">${hiddenGroups.length} Dynamic Track(s) Hidden:</strong>
-              <span>${hiddenGroups.map(g => g.name || g.ref_id).join(", ")} must be triggered by answering upstream assessment questions before they can be selected.</span>
-            </div>
-          `;
-          cbsContainer.appendChild(hiddenNotice);
+        let activeTab = defaultTab;
+        if (trigItemsToRender.length === 0 && unassignedReqs === 0) {
+          activeTab = "manual";
         }
-
-        switchMgTab(defaultTab);
+        switchMgTab(activeTab);
         lucide.createIcons();
       } catch (err) {
         showToast(err.message, "error");
