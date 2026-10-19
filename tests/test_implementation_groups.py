@@ -599,6 +599,30 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         self.assertIn("saas_app", hidden)
         self.assertIn("internet_facing", hidden)
 
+    def test_appsec_manual_no_triggered_implementation_groups(self):
+        """Verify that the manual AppSec framework has no triggered implementation groups."""
+        res = determine_implementation_groups_triggered_by_others("appsec_manual")
+        self.assertGreater(len(res["all_groups"]), 0)
+
+        always_selectable = [g["ref_id"] for g in res["always_selectable_groups"]]
+        hidden = [g["ref_id"] for g in res["hidden_groups"]]
+        triggered = [g["ref_id"] for g in res["triggered_groups"]]
+
+        # All implementation groups are always selectable (no groups are hidden or triggered)
+        self.assertEqual(len(hidden), 0)
+        self.assertEqual(len(triggered), 0)
+        self.assertIn("info", always_selectable)
+        self.assertIn("custom_app", always_selectable)
+        self.assertIn("cots_app", always_selectable)
+        self.assertIn("saas_app", always_selectable)
+        self.assertIn("baseline", always_selectable)
+        self.assertIn("internet_facing", always_selectable)
+
+        # Triggered map must be empty
+        from classes.audits.implementation_groups import get_framework_triggered_implementation_groups_map
+        trig_map = get_framework_triggered_implementation_groups_map("appsec_manual")
+        self.assertEqual(trig_map, {})
+
 if __name__ == "__main__":
     unittest.main()
 

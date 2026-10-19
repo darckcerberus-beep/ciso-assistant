@@ -79,7 +79,7 @@ Within active requirement nodes, questions are dynamically conditioned using int
 - **`instructions_splash`**: Guidance splash screen detailing assessment expectations.
 - **`stakeholder_identification`**: Mandatory documentation of Business Owner, Technical Owner, and Information Security Officer (CISO/SecOps delegate).
 - **`data_classification`**: Formally categorizes data assets into Public, Internal, Confidential, or Secret (Confidentiality impact governing all risk scenario ratings).
-- **`hosting`**: Discriminates between Custom (In-house), Bought (COTS), and SaaS. Selecting SaaS automatically triggers `saas_app` and `internet_facing` (since SaaS applications are unconditionally assumed to be externally exposed).
+- **`hosting`**: Discriminates between Custom (In-house), Bought (COTS), and SaaS. Selecting SaaS automatically triggers `saas_app` and `baseline` (SaaS edge protections and rate limiting are implicitly managed by the provider to protect their infrastructure, bypassing `internet_facing`).
 - **`network_exposure`** (`custom_app`, `cots_app`): Identifies whether self-hosted applications are restricted to internal corporate networks or exposed to the public Internet (triggers `internet_facing` track for self-hosted apps; bypassed for SaaS).
 - **`baseline_splash`**: Generic transition splash screen concluding baseline profiling and introducing technical security questions across dynamically triggered implementation groups.
 
@@ -96,14 +96,8 @@ Within active requirement nodes, questions are dynamically conditioned using int
   - `q1`: Enforces cryptographically secure session tokens, `HttpOnly`, `Secure`, `SameSite` cookie flags, and idle session timeouts.
 
 ### Chapter 3: Application Vulnerability Defense & Code Hygiene
-- **`input_validation_and_injection_defense`** (`custom_app` only):
-  - `q1`: Strict server-side schema validation and allow-lists.
-  - `q2`: Parameterized queries, prepared statements, or ORMs preventing SQL/NoSQL injection.
-- **`output_encoding_and_web_defenses`** (`custom_app` only):
-  - `q1`: Context-aware output encoding across dynamic UI templates preventing XSS.
-  - `q2`: Standard HTTP security response headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options) in application middleware.
-- **`error_handling_and_info_leakage`** (`custom_app` only):
-  - `q1`: Production debug modes (`DEBUG=False`) and detailed stack traces disabled with generic error handlers.
+- **`owasp_top_10_defenses`** (`custom_app` only):
+  - `q1`: Enforces secure coding guidelines and defenses against OWASP Top 10 vulnerabilities (input validation, parameterized queries, context-aware output encoding, and disabling debug modes).
 - **`ssrf_and_cloud_metadata_defense`** (`custom_app` only):
   - `q1`: Egress request destination allow-listing and RFC 1918 / loopback / link-local blocking.
   - `q2`: Cloud Instance Metadata Service (IMDSv2) token-backed protection and hop-limit restriction.
@@ -136,7 +130,7 @@ Within active requirement nodes, questions are dynamically conditioned using int
   - Applicable strictly to self-hosted applications exposed to the public Internet (Custom and COTS).
   - `q1`: Edge Web Application Firewall (WAF, e.g., Cloudflare, AWS WAF), bot protection, and automated rate limiting / throttling controls.
   - `q2`: API payload strict validation against documented API specifications (OpenAPI / JSON schema).
-  - *SaaS Policy*: SaaS platform edge WAF, anti-DDoS, and transport controls are governed under Chapter 10 (`saas_network_security` and `saas_web_app_security`).
+  - *SaaS Policy*: Excluded from the SaaS questionnaire; rate limiting and edge infrastructure protections are implicitly taken into account by the SaaS provider to protect their own infrastructure. Contractual network security is governed under Chapter 10 (`saas_network_security`).
 
 ### Chapter 7: Data Lifecycle & Sanitization
 - **`data_exchange`** (`baseline`, `custom_app`, `cots_app`):
@@ -176,7 +170,7 @@ Within active requirement nodes, questions are dynamically conditioned using int
 ### Chapter 10: SaaS Requirements & Vendor Security Exhibit
 - **`saas_contract_compliance`**: Execution of Master Agreement and Security Schedules (SaaS MSA and binding Security Exhibit). Detailed technical clauses (audit, incidents, IAM, confidentiality) are merged into their respective sections.
 - **`saas_governance_and_policy`**: Documented Information Security Policy and formal annual management reviews.
-- **`saas_confidentiality_and_data_protection`**: Vendor employee NDAs and tenant-isolated encryption.
+- **`saas_confidentiality_and_data_protection`**: Vendor employee NDAs, tenant data access controls, and contractual data encryption (in transit and at rest).
 - **`saas_security_awareness`**: Mandatory annual cybersecurity training for vendor personnel.
 - **`saas_iam`**: Multi-Factor Authentication (MFA) strictly enforced for root, administrative, and break-glass access to the SaaS tenant management console independently of standard user SSO.
 - **`saas_entitlements_and_privileges`**: Provider-side administrative privilege governance (least privilege RBAC, inventory of privileged accounts, and periodic recertifications across provider personnel accessing tenant data/infrastructure). Client employee access and IGA recertification are evaluated under Chapter 2.
@@ -184,7 +178,7 @@ Within active requirement nodes, questions are dynamically conditioned using int
 - **`saas_workstation_security`**: Hardened vendor laptops, EDR, full-disk encryption, and patch compliance.
 - **`saas_mobile_security`**: Mobile Device Management (MDM) on vendor devices accessing customer tenant data.
 - **`saas_network_security`**: Edge Anti-DDoS and WAF protection.
-- **`saas_environment_isolation`**: Multi-tenant data isolation and cryptographic sovereignty (BYOK/HYOK).
+- **`saas_environment_isolation`**: Multi-tenant data isolation, logical segregation, and network traffic filtering.
 - **`saas_secure_development`**: Vendor DevSecOps and secure software development lifecycle guarantees.
 - **`saas_web_app_security`**: Perimeter transport encryption (TLS 1.2+), port filtering, and admin interface access control.
 - **`saas_penetration_testing_and_vulnerability_management`**: SaaS penetration testing governance (authorized client pentest, annual vendor pentest with audit reports/attestations, or refusal) and contractual vulnerability remediation SLAs (Critical <= 7d, High <= 30d).
@@ -207,7 +201,7 @@ The table below defines the exact applicability criteria for every requirement a
 | **0. Splash** | `instructions_splash` | Instructions & Guidance | `info`, `baseline` | All | All | All | None (Always visible) |
 | **1. Profile** | `stakeholder_identification` | Stakeholder Identification | `baseline` | All | All | All | None |
 | **1. Profile** | `data_classification` | Application Data Classification | `baseline` | All | All | All | None |
-| **1. Profile** | `hosting` | Delivery & Hosting Model | `baseline` | All | All | All | None (SaaS activates `saas_app`, `internet_facing`, `baseline`) |
+| **1. Profile** | `hosting` | Delivery & Hosting Model | `baseline` | All | All | All | None (SaaS activates `saas_app`, `baseline`) |
 | **1. Profile** | `network_exposure` | Application Network Exposure | `custom_app`, `cots_app` | Custom, COTS | All | All | Triggers `internet_facing` track for self-hosted apps; bypassed for SaaS |
 | **1. Splash** | `baseline_splash` | Technical Assessment Transition | `baseline` | All | All | All | Generic transition introducing technical questions |
 | **2. IAM** | `authentication_and_mfa` (q1) | Authentication Mode (SSO vs Direct) | `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | None |
@@ -217,11 +211,7 @@ The table below defines the exact applicability criteria for every requirement a
 | **2. IAM** | `access_control_and_rbac` (q2) | Enterprise IGA (SailPoint) Connector | `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | None |
 | **2. IAM** | `access_control_and_rbac` (q3) | Periodic Access Recertifications | `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | None |
 | **2. IAM** | `session_management` (q1) | Cryptographic Session Tokens & Cookies | `custom_app` | **Custom Only** | All | All | **Active exclusively if custom_app is selected** |
-| **3. Defenses** | `input_validation_and_injection_defense` (q1) | Server-Side Input Schema Validation | `custom_app` | **Custom Only** | All | All | **Active exclusively if custom_app is selected** |
-| **3. Defenses** | `input_validation_and_injection_defense` (q2) | Parameterized Queries / ORMs | `custom_app` | **Custom Only** | All | All | **Active exclusively if custom_app is selected** |
-| **3. Defenses** | `output_encoding_and_web_defenses` (q1) | Context-Aware Output Encoding (XSS) | `custom_app` | **Custom Only** | All | All | **Active exclusively if custom_app is selected** |
-| **3. Defenses** | `output_encoding_and_web_defenses` (q2) | HTTP Security Headers (CSP, HSTS) | `custom_app` | **Custom Only** | All | All | **Active exclusively if custom_app is selected** |
-| **3. Defenses** | `error_handling_and_info_leakage` (q1) | Debug Modes & Stack Traces Disabled | `custom_app` | **Custom Only** | All | All | **Active exclusively if custom_app is selected** |
+| **3. Defenses** | `owasp_top_10_defenses` (q1) | OWASP Top 10 Secure Coding & Defenses | `custom_app` | **Custom Only** | All | All | **Active exclusively if custom_app is selected** |
 | **4. Crypto** | `secrets_management` (q1) | Centralized Secrets Vault | `custom_app`, `cots_app` | Custom, COTS | All | All | None |
 | **4. Crypto** | `data_in_transit` (q1) | Encryption in Transit (TLS 1.2+) | `custom_app`, `cots_app` | Custom, COTS | All | All | None |
 | **4. Crypto** | `data_at_rest` (q1) | Encryption at Rest (AES-256) | `custom_app`, `cots_app` | Custom, COTS | All | All | Active for Self-Hosted Applications |
@@ -246,7 +236,7 @@ The table below defines the exact applicability criteria for every requirement a
 | **9. Resilience**| `backup_and_disaster_recovery` (q1) | Immutable Backups & DR Testing | `custom_app`, `cots_app` | Custom, COTS | All | All | None |
 | **10. SaaS** | `saas_contract_compliance` (q1)| SaaS Agreement & Schedules | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_governance_and_policy` | Security Policy & Management Review | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
-| **10. SaaS** | `saas_confidentiality_and_data_protection` | Staff NDAs & Tenant Encryption | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
+| **10. SaaS** | `saas_confidentiality_and_data_protection` | Staff NDAs & Contractual Data Encryption | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_security_awareness` | Annual Security Awareness Training | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_iam` (q1) | Admin Console MFA Enforcement | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_entitlements_and_privileges` (q1-q2) | Provider Staff RBAC & Periodic Recertifications | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
@@ -289,7 +279,7 @@ When reviewing an assessment in CISO Assistant, verify the questionnaire selecti
 
 3. **If assessing a SaaS Platform (`hosting:q1 == SaaS`):**
    - [x] Chapter 10 (SaaS Track, 22 requirement nodes) is **ACTIVATED and VISIBLE** (governed via MSA/DPA/SLA contracts, SOC 2 Type II reports, and third-party pentest attestations).
-   - [x] Internal hosting and development chapters (Chapters 2, 3, 5, 8, 9) are **EXCLUDED**.
+   - [x] Internal hosting, development, and edge chapters (Chapters 2, 3, 5, 6, 8, 9) are **EXCLUDED**.
 
 4. **If assessing an Application handling Public or Internal data (`Data Classification <= Internal`):**
    - [x] Encryption in transit (`data_in_transit`) is **EXCLUDED**.

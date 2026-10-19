@@ -29,8 +29,8 @@ description: >
   Supports both internally managed applications and SaaS solutions whose security controls
   are defined with a contract and certified via third-party audit reports (SOC 2, ISO 27001).
 copyright: DCME Corp
-version: 17
-publication_date: 2026-10-11
+version: 21
+publication_date: 2026-10-19
 provider: DCME Corp
 packager: DCME Corp
 
@@ -203,7 +203,7 @@ objects:
       description: >
         Adversaries exploit unvalidated user inputs to execute SQL injection,
         remote command execution, or cross-site scripting (XSS), compromising application integrity.
-      likelihood: urn:intuitem:risk:req_node:appsec:input_validation_and_injection_defense
+      likelihood: urn:intuitem:risk:req_node:appsec:owasp_top_10_defenses
       impact: urn:intuitem:risk:req_node:appsec:data_classification
       threats:
         - urn:intuitem:risk:threat:appsec:injection_attacks
@@ -1530,7 +1530,7 @@ objects:
           Application delivery and hosting model classification:
           - Custom software created and deployed by my teams: In-house developed software where source code is written and maintained internally. Subject to internal DevSecOps (SAST, DAST, SCA/SBOM, peer code review) and self-hosted network exposure discrimination.
           - Bought software deployed by my teams: Commercial Off-The-Shelf (COTS) or vendor software package deployed on internal infrastructure. Subject to vendor security patch management, CVE tracking, deployment configuration hardening, and self-hosted network exposure discrimination.
-          - SaaS: Third-party software hosted and operated by a vendor. SaaS applications are inherently hosted on external cloud infrastructure and unconditionally assumed to be externally exposed to the public Internet, automatically activating both the SaaS Track (saas_app) in Chapter 10 and the Internet-Facing Track (internet_facing).
+          - SaaS: Third-party software hosted and operated by a vendor. SaaS applications are inherently hosted on external cloud infrastructure and governed via Chapter 10 (saas_app). Edge perimeter protections and rate limiting (api_security_and_rate_limiting) are bypassed as they are implicitly maintained by the provider to protect their own infrastructure.
         typical_evidence: >
           - Architecture design document (ADD) / System topology diagram
           - Software procurement contract, vendor license, or Git repository metadata
@@ -1550,7 +1550,7 @@ objects:
                 color: "#17a2b8"
               - urn: urn:intuitem:risk:req_node:appsec:hosting:q1:c3
                 value: "SaaS (Third-party software hosted and operated by a vendor)"
-                select_implementation_groups: ["saas_app", "internet_facing", "baseline"]
+                select_implementation_groups: ["saas_app", "baseline"]
                 color: "#17a2b8"
 
       # Requirement: Determine network exposure
@@ -1815,137 +1815,39 @@ objects:
           - Secure file upload validation (magic bytes, UUID paths) and malware scanning in private object storage.
         implementation_groups: ["custom_app"]
 
-      # Requirement: Input validation & Parameterized Queries
-      - urn: urn:intuitem:risk:req_node:appsec:input_validation_and_injection_defense
+      # Requirement: OWASP Top 10 Vulnerability Defenses & Secure Coding
+      - urn: urn:intuitem:risk:req_node:appsec:owasp_top_10_defenses
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:app_defenses_chapter
-        ref_id: input_validation_and_injection_defense
-        name: Input Validation & Injection Prevention
-        description: "Enforce strict server-side input schema validation and parameterized queries (or ORMs) to eliminate SQL, NoSQL, and command injection flaws."
+        ref_id: owasp_top_10_defenses
+        name: OWASP Top 10 Secure Coding & Defenses
+        description: "Enforce secure coding guidelines and defenses against OWASP Top 10 vulnerabilities, including input validation, parameterized queries, context-aware output encoding, and secure error handling."
         annotation: >
-          Injection defense controls for custom software:
-          - Strict schema validation and allow-listing on all untrusted inputs across API endpoints and web forms.
-          - Parameterized queries, prepared statements, or ORMs eliminating SQLi, NoSQLi, and command injection vulnerabilities.
+          OWASP Top 10 vulnerability defenses for custom software:
+          - Server-side input validation and parameterized queries/ORMs eliminating injection flaws (SQLi, NoSQLi, command injection).
+          - Context-aware output encoding and modern HTTP security headers preventing Cross-Site Scripting (XSS).
+          - Generic error handlers suppressing debug modes, stack traces, and internal server paths in production.
         typical_evidence: >
-          - Server-side input validation schema definitions and API contracts
-          - SAST audit verifying parameterized queries and absence of dynamic SQL concatenation
+          - Secure coding standard documentation referencing OWASP Top 10
+          - Static Application Security Testing (SAST) rule configuration and clean scan report
+          - Server-side input schema validation and parameterized query code reviews
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:flawed_input_validation
         implementation_groups: ["custom_app"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:secure_input_validation_and_encoding
         questions:
-          urn:intuitem:risk:req_node:appsec:input_validation_and_injection_defense:q1:
+          urn:intuitem:risk:req_node:appsec:owasp_top_10_defenses:q1:
             type: unique_choice
-            text: "Are all user-supplied inputs validated on the server side using strict allow-lists and schema rules?"
+            text: "Do you apply coding guidelines against OWASP Top 10 vulnerabilities (including input validation, parameterized queries, output encoding, and secure error handling)?"
             choices:
-              - urn: urn:intuitem:risk:req_node:appsec:input_validation_and_injection_defense:q1:c1
-                value: "Yes"
-                add_score: 50
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:input_validation_and_injection_defense:q1:c2
-                value: "No"
-                add_score: 0
-                compute_result: false
-                color: "#dc3545"
-          urn:intuitem:risk:req_node:appsec:input_validation_and_injection_defense:q2:
-            type: unique_choice
-            text: "Are database interactions executed via parameterized queries, prepared statements, or ORMs to prevent SQL and NoSQL injections?"
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec:input_validation_and_injection_defense:q2:c1
-                value: "Yes"
-                add_score: 50
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:input_validation_and_injection_defense:q2:c2
-                value: "No"
-                add_score: 0
-                compute_result: false
-                color: "#dc3545"
-
-      # Requirement: Output encoding & Web security headers
-      - urn: urn:intuitem:risk:req_node:appsec:output_encoding_and_web_defenses
-        assessable: true
-        depth: 2
-        parent_urn: urn:intuitem:risk:req_node:appsec:app_defenses_chapter
-        ref_id: output_encoding_and_web_defenses
-        name: Output Encoding & Web Security Headers
-        description: "Enforce context-aware output encoding across dynamic templates and configure modern HTTP security headers to prevent Cross-Site Scripting (XSS)."
-        annotation: >
-          Cross-site scripting and web defense controls for custom software:
-          - Context-aware output encoding (HTML, JavaScript, CSS, URL) across dynamic templates and responses.
-          - Standard HTTP security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options) configured to mitigate client-side attacks.
-        typical_evidence: >
-          - Web response HTTP headers scan report (e.g. securityheaders.com)
-          - Template engine auto-escaping documentation and source code review
-        vulnerabilities:
-          - urn:intuitem:risk:vulnerability:appsec:flawed_input_validation
-        implementation_groups: ["custom_app"]
-        reference_controls:
-          - urn:intuitem:risk:control:appsec:secure_input_validation_and_encoding
-        questions:
-          urn:intuitem:risk:req_node:appsec:output_encoding_and_web_defenses:q1:
-            type: unique_choice
-            text: "Is context-aware output encoding enforced across all dynamic responses to prevent Cross-Site Scripting (XSS)?"
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec:output_encoding_and_web_defenses:q1:c1
-                value: "Yes"
-                add_score: 50
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:output_encoding_and_web_defenses:q1:c2
-                value: "No"
-                add_score: 0
-                compute_result: false
-                color: "#dc3545"
-          urn:intuitem:risk:req_node:appsec:output_encoding_and_web_defenses:q2:
-            type: unique_choice
-            text: "Are standard HTTP security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options) configured in application middleware or response handlers?"
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec:output_encoding_and_web_defenses:q2:c1
-                value: "Yes"
-                add_score: 50
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:output_encoding_and_web_defenses:q2:c2
-                value: "No"
-                add_score: 0
-                compute_result: false
-                color: "#dc3545"
-
-      # Requirement: Error handling & debug mode
-      - urn: urn:intuitem:risk:req_node:appsec:error_handling_and_info_leakage
-        assessable: true
-        depth: 2
-        parent_urn: urn:intuitem:risk:req_node:appsec:app_defenses_chapter
-        ref_id: error_handling_and_info_leakage
-        name: Error Handling & Debug Protection
-        description: "Disable debug modes, detailed stack traces, and internal server paths in production responses via generic error handlers."
-        annotation: >
-          Information disclosure prevention for custom software:
-          - Debug modes strictly disabled in application code and configuration (DEBUG=False).
-          - Generic error pages (4xx/5xx) masking internal stack traces, system paths, and database schemas.
-        typical_evidence: >
-          - Production configuration verification proving DEBUG=False
-          - Custom error page handler configuration (4xx, 5xx) in application framework
-        vulnerabilities:
-          - urn:intuitem:risk:vulnerability:appsec:flawed_input_validation
-        implementation_groups: ["custom_app"]
-        reference_controls:
-          - urn:intuitem:risk:control:appsec:secure_input_validation_and_encoding
-        questions:
-          urn:intuitem:risk:req_node:appsec:error_handling_and_info_leakage:q1:
-            type: unique_choice
-            text: "Are debug modes and detailed stack traces disabled in production environments with generic error handlers configured?"
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec:error_handling_and_info_leakage:q1:c1
+              - urn: urn:intuitem:risk:req_node:appsec:owasp_top_10_defenses:q1:c1
                 value: "Yes"
                 add_score: 100
                 compute_result: true
                 color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:error_handling_and_info_leakage:q1:c2
+              - urn: urn:intuitem:risk:req_node:appsec:owasp_top_10_defenses:q1:c2
                 value: "No"
                 add_score: 0
                 compute_result: false
@@ -2370,9 +2272,10 @@ objects:
         parent_urn: urn:intuitem:risk:req_node:appsec:api_chapter
         ref_id: api_security_and_rate_limiting
         name: API Gateway, Edge WAF, Rate Limiting & Bot Protection
-        description: "Protect exposed web and API endpoints against abusive traffic, automated bots, and volumetric attacks via an edge Web Application Firewall (WAF, e.g., Cloudflare), rate limiting, and schema validation."
+        description: "Protect exposed web and API endpoints against abusive traffic, automated bots, and volumetric attacks via an edge Web Application Firewall (WAF, e.g., Cloudflare), rate limiting, and schema validation. (Applicable to self-hosted apps; SaaS providers implicitly manage edge and rate limiting protections)."
         annotation: >
           Guards against automated scraping, credential stuffing, bot attacks, and volumetric exhaustion via edge WAFs (e.g. Cloudflare, AWS WAF & Shield, Azure WAF, Cloud Armor) and API gateways.
+          Applicable strictly to self-hosted internet-facing applications (Custom and COTS). Excluded from SaaS questionnaires as rate limiting and edge infrastructure protections are implicitly maintained by the SaaS provider to protect their own infrastructure.
         typical_evidence: >
           - Edge WAF, anti-DDoS, and bot protection rule configuration (e.g. Cloudflare, AWS WAF & Shield, Google Cloud Armor, Azure WAF)
           - API gateway rate limiting and throttling policy definition
@@ -2995,17 +2898,16 @@ objects:
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_confidentiality_and_data_protection
         name: "Confidentiality & Data Protection"
-        description: "Enforce vendor personnel access governance (Customer Lockbox), contractual employee NDAs, and state-of-the-art key/certificate management."
+        description: "Enforce vendor personnel confidentiality (NDAs), customer data access controls, and data encryption mandated in the contract (in transit and at rest)."
         annotation: >
           Contractual requirements:
-          - Enforce an IT Charter and contractual confidentiality (NDAs) for all vendor personnel and subcontractors accessing customer data.
-          - Enforce Customer Lockbox / explicit client approval workflows before vendor support or engineering personnel can access tenant data.
-          - Define procedures for cryptographic key and certificate lifecycle management.
-          - Utilize state-of-the-art cryptographic algorithms and protocols for data protection.
+          - Mandate confidentiality agreements (NDAs) and security rules for all vendor personnel and subcontractors with access to customer data.
+          - Restrict vendor access to customer tenant data, requiring customer approval before vendor support or engineering personnel can access it.
+          - Mandate data encryption in the contract: customer data must be encrypted in transit (e.g., TLS/HTTPS) and at rest (e.g., AES-256).
         typical_evidence: >
-          - IT Acceptable Use Charter and employee confidentiality undertaking / NDA agreement templates
-          - Customer Lockbox / privileged vendor access approval workflow documentation
-          - Cryptographic Key and Certificate Management SOP
+          - Executed SaaS Agreement, Data Processing Addendum (DPA), or Security Exhibit mandating data encryption (in transit and at rest)
+          - Vendor confidentiality clauses / NDA agreements for vendor staff and subcontractors
+          - Vendor support access approval procedures or SOC 2 Type II report confirming confidentiality and encryption controls
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:contractual_gap
         implementation_groups: ["saas_app"]
@@ -3014,7 +2916,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec:saas_confidentiality_and_data_protection:q1:
             type: unique_choice
-            text: "Does the contract enforce strict vendor personnel access governance (e.g. Customer Lockbox / explicit client approval workflows before vendor support or engineering can access customer tenant data), supported by binding confidentiality agreements (NDAs) and employee security charters?"
+            text: "Does the contract require vendor personnel to sign confidentiality agreements (NDAs) and restrict access to customer data (e.g. requiring client approval before vendor support or engineering can access tenant data)?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:saas_confidentiality_and_data_protection:q1:c1
                 value: "Yes"
@@ -3028,7 +2930,7 @@ objects:
                 color: "#dc3545"
           urn:intuitem:risk:req_node:appsec:saas_confidentiality_and_data_protection:q2:
             type: unique_choice
-            text: "Does the contract require and are cryptographic keys and certificates governed by documented lifecycle procedures using state-of-the-art algorithms and protocols?"
+            text: "Does the contract mandate data encryption for all customer data, both in transit (e.g. TLS/HTTPS) and at rest (e.g. AES-256)?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:saas_confidentiality_and_data_protection:q2:c1
                 value: "Yes"
@@ -3380,16 +3282,15 @@ objects:
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_environment_isolation
         name: "Environment Security & Tenant Isolation"
-        description: "Ensure multi-tenant environment isolation, network traffic filtering, and customer-managed cryptographic sovereignty (BYOK/HYOK)."
+        description: "Ensure multi-tenant environment isolation, logical data segregation, and network traffic filtering."
         annotation: >
           Contractual requirements:
-          - Robust logical or physical tenant isolation preventing cross-tenant leakage.
+          - Robust logical or physical tenant isolation preventing cross-tenant data leakage.
           - Network traffic filtering and antimalware defenses.
-          - Dedicated tenant cryptographic sovereignty and key management (BYOK / HYOK / KMS envelope isolation).
           - Complete traceability and audit logging of administrative and user actions.
         typical_evidence: >
           - Architecture whitepaper detailing logical/physical tenant isolation (DB schemas, VPCs, IAM roles)
-          - KMS tenant key management policy and BYOK / HYOK configuration whitepaper
+          - SOC 2 Type II report confirming multi-tenant isolation controls (CC6.6)
           - CloudTrail / audit trails recording administrative activities
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:weak_tenant_isolation
@@ -3403,24 +3304,10 @@ objects:
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:saas_environment_isolation:q1:c1
                 value: "Yes"
-                add_score: 50
+                add_score: 100
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec:saas_environment_isolation:q1:c2
-                value: "No"
-                add_score: 0
-                compute_result: false
-                color: "#dc3545"
-          urn:intuitem:risk:req_node:appsec:saas_environment_isolation:q2:
-            type: unique_choice
-            text: "Does the SaaS architecture support tenant-specific cryptographic sovereignty, such as dedicated tenant encryption keys, Bring-Your-Own-Key (BYOK/HYOK), or KMS envelope isolation to prevent vendor-level access to at-rest customer data?"
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec:saas_environment_isolation:q2:c1
-                value: "Yes"
-                add_score: 50
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:saas_environment_isolation:q2:c2
                 value: "No"
                 add_score: 0
                 compute_result: false
@@ -3934,7 +3821,7 @@ test_metadata:
   expected_threats_count: 9
   expected_vulnerabilities_count: 18
   expected_reference_controls_count: 26
-  expected_requirement_nodes_count: 62
+  expected_requirement_nodes_count: 60
   matrix_dimensions:
     likelihood_levels: 4
     impact_levels: 4

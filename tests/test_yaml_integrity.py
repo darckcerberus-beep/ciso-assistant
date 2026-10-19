@@ -418,7 +418,7 @@ class TestYamlIntegrity(unittest.TestCase):
                 splash_ref_ids = [n.get("ref_id") for n in splash_nodes]
                 expected_splash_ref_ids = (
                     ["instructions_splash", "baseline_splash", "thank_you_splash"]
-                    if fw["ref_id"] == "appsec"
+                    if fw["ref_id"] in ("appsec", "appsec_manual")
                     else ["instructions_splash", "thank_you_splash"]
                 )
                 self.assertEqual(
@@ -656,14 +656,14 @@ class TestYamlIntegrity(unittest.TestCase):
         if not appsec_fw:
             return
 
-        # 1. Validate hosting choice c3 (SaaS) unconditionally activates saas_app and internet_facing
+        # 1. Validate hosting choice c3 (SaaS) activates saas_app and baseline (does not activate internet_facing)
         hosting_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:hosting")
         self.assertIsNotNone(hosting_node, "hosting node missing in AppSec")
         q1_hosting = hosting_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:hosting:q1")
         self.assertIsNotNone(q1_hosting)
         saas_choice = next(c for c in q1_hosting["choices"] if c["urn"] == "urn:intuitem:risk:req_node:appsec:hosting:q1:c3")
-        self.assertIn("saas_app", saas_choice.get("select_implementation_groups", []))
-        self.assertIn("internet_facing", saas_choice.get("select_implementation_groups", []))
+        self.assertEqual(saas_choice.get("select_implementation_groups", []), ["saas_app", "baseline"])
+        self.assertNotIn("internet_facing", saas_choice.get("select_implementation_groups", []))
 
         # 2. Validate network_exposure is scoped to self-hosted delivery models (custom_app, cots_app)
         net_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:network_exposure")
@@ -872,7 +872,7 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertIn("cots_app", bought_choice.get("select_implementation_groups", []))
         self.assertIn("baseline", bought_choice.get("select_implementation_groups", []))
         self.assertIn("saas_app", saas_choice.get("select_implementation_groups", []))
-        self.assertIn("internet_facing", saas_choice.get("select_implementation_groups", []))
+        self.assertNotIn("internet_facing", saas_choice.get("select_implementation_groups", []))
 
         # 2. In Chapter 5 (sdlc_chapter), DevSecOps automation scopes custom_app to CI/CD and COTS/SaaS to vendor guidelines
         sdlc_chapter = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:sdlc_chapter")
@@ -923,9 +923,7 @@ class TestYamlIntegrity(unittest.TestCase):
 
         defenses_reqs = [
             "session_management",
-            "input_validation_and_injection_defense",
-            "output_encoding_and_web_defenses",
-            "error_handling_and_info_leakage",
+            "owasp_top_10_defenses",
             "ssrf_and_cloud_metadata_defense",
             "file_upload_security",
         ]
@@ -1303,6 +1301,53 @@ class TestYamlIntegrity(unittest.TestCase):
                 for choice in q_def.get("choices", []):
                     c_urn = choice.get("urn", "")
                     self.assertTrue(":c1" in c_urn or ":c2" in c_urn, f"Choice URN {c_urn} does not follow standard taxonomy")
+
+    def test_appsec_manual_structure_and_scoping(self):
+        """Ensure AppSec Manual variant has no triggered IGs and scopes Chapter 1 to info group."""
+        manual_fw = next((fw for fw in self.frameworks if fw["ref_id"] == "appsec_manual"), None)
+        self.assertIsNotNone(manual_fw, "appsec_manual framework not found in catalog")
+
+        # 1. Implementation groups: info is default_selected, baseline is not
+        ig_defs = manual_fw["ig_defs_by_ref"]
+        self.assertIn("info", ig_defs)
+        self.assertTrue(ig_defs["info"].get("default_selected", False))
+        self.assertIn("baseline", ig_defs)
+        self.assertFalse(ig_defs["baseline"].get("default_selected", False))
+
+        # 2. No choices have select_implementation_groups
+        for n_urn, node in manual_fw["req_nodes"].items():
+            for q_key, q in node.get("questions", {}).items():
+                for c in q.get("choices", []):
+                    self.assertNotIn(
+                        "select_implementation_groups",
+                        c,
+                        f"Choice {c.get('urn')} in appsec_manual must not have select_implementation_groups",
+                    )
+
+        # 3. Chapter 1 profiling questions are scoped to info group
+        chapter1_nodes = [
+            "instructions_splash",
+            "info",
+            "stakeholder_identification",
+            "data_classification",
+            "hosting",
+            "network_exposure",
+        ]
+        for ref_id in chapter1_nodes:
+            node = manual_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec_manual:{ref_id}")
+            self.assertIsNotNone(node, f"Node {ref_id} missing in appsec_manual")
+            self.assertEqual(
+                node.get("implementation_groups"),
+                ["info"],
+                f"Node {ref_id} in appsec_manual must be scoped to ['info']",
+            )
+
+        # 4. Total requirement nodes and scenarios match standard AppSec
+        self.assertEqual(len(manual_fw["req_nodes"]), 60)
+        self.assertEqual(len(manual_fw["scenarios"]), 20)
+        self.assertEqual(len(manual_fw["threats"]), 9)
+        self.assertEqual(len(manual_fw["vulns"]), 18)
+        self.assertEqual(len(manual_fw["ref_ctrls"]), 26)
 
 
 if __name__ == "__main__":

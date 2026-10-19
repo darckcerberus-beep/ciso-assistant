@@ -117,6 +117,12 @@ FRAMEWORK_CATALOG = [
         "yaml_path": "YML/appsec.yml",
         "description": "Comprehensive application security evaluation framework based on Multi-level DPP, extending data protection with OWASP ASVS and DevSecOps controls",
     },
+    {
+        "ref_id": "appsec_manual",
+        "name": "Application Security Assessment Framework (AppSec - Manual IG)",
+        "yaml_path": "YML/appsec_manual.yml",
+        "description": "Comprehensive application security evaluation framework with manual Implementation Group assignment without choice-level triggering",
+    },
 ]
 
 

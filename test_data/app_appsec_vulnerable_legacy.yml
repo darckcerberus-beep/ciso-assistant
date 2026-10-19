@@ -128,35 +128,11 @@ answers:
   # CHAPTER 3: APPLICATION VULNERABILITY DEFENSE & CODE HYGIENE
   # ============================================================================
 
-  - requirement: "input_validation_and_injection_defense"
-    question: "Are all user-supplied inputs validated on the server side using strict allow-lists and schema rules?"
+  - requirement: "owasp_top_10_defenses"
+    question: "Do you apply coding guidelines against OWASP Top 10 vulnerabilities (including input validation, parameterized queries, output encoding, and secure error handling)?"
     answer: "No"
     result: "not_compliant"
-    observation: "Client-side validation only; API endpoints lack server-side input schema enforcement."
-
-  - requirement: "input_validation_and_injection_defense"
-    question: "Are database interactions executed via parameterized queries or ORMs to prevent SQL/NoSQL injections?"
-    answer: "No"
-    result: "not_compliant"
-    observation: "Direct SQL string concatenation used throughout legacy stored procedures."
-
-  - requirement: "output_encoding_and_web_defenses"
-    question: "Is context-aware output encoding enforced across all dynamic responses to prevent Cross-Site Scripting (XSS)?"
-    answer: "No"
-    result: "not_compliant"
-    observation: "Unencoded output rendering in web views exposes multiple reflected XSS vulnerabilities."
-
-  - requirement: "output_encoding_and_web_defenses"
-    question: "Are standard HTTP security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options) configured?"
-    answer: "No"
-    result: "not_compliant"
-    observation: "Missing all defensive HTTP headers; vulnerable to clickjacking and MIME-sniffing."
-
-  - requirement: "error_handling_and_info_leakage"
-    question: "Are debug modes and detailed stack traces disabled in production environments?"
-    answer: "No"
-    result: "not_compliant"
-    observation: "Production server displays full ASP.NET debug stack traces including database connection strings."
+    observation: "No formal secure coding guidelines enforced; application suffers from dynamic SQL concatenation, unencoded template rendering, and verbose debug errors."
 
   - requirement: "ssrf_and_cloud_metadata_defense"
     question: "Are outbound HTTP requests initiated by the application strictly validated using destination allow-lists with connections to RFC 1918 private subnets and localhost blocked?"
@@ -434,7 +410,7 @@ expected_risk_scenarios:
     control_priority: 2
 
   - scenario: "Application compromise via injection attack"
-    likelihood_requirement: "input_validation_and_injection_defense"
+    likelihood_requirement: "owasp_top_10_defenses"
     likelihood_score: 0
     scaled_likelihood: 4
     scaled_impact: 2

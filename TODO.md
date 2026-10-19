@@ -178,7 +178,7 @@ To cleanly separate requirements across software delivery tracks without empty f
    - `c2` (Bought software COTS): `select_implementation_groups: ["cots_app", "baseline"]`.
    - `c3` (SaaS): `select_implementation_groups: ["saas_app"]`.
 3. **Requirement Partitioning**:
-   - **`custom_app` only**: `session_management`, Chapter 3 Code Hygiene (`input_validation_and_injection_defense`, `output_encoding_and_web_defenses`, `error_handling_and_info_leakage`), and Chapter 5 DevSecOps (`automated_security_testing`, `supply_chain_and_dependencies`, `code_review_and_ci_cd_integrity`). Excluded from COTS and SaaS audits.
+   - **`custom_app` only**: `session_management`, Chapter 3 Code Hygiene (`owasp_top_10_defenses`), and Chapter 5 DevSecOps (`automated_security_testing`, `supply_chain_and_dependencies`, `code_review_and_ci_cd_integrity`). Excluded from COTS and SaaS audits.
    - **Shared Self-Hosted (`baseline`, `custom_app`, `cots_app`)**: Chapter 2 IAM (`authentication_and_mfa`, `access_control_and_rbac`), Chapter 4 Secrets (`secrets_management`), Chapter 8 Logging (`security_event_logging`, `centralized_monitoring_and_alerting`), Chapter 9 Resilience (`penetration_testing_and_vulnerability_management`, `backup_and_disaster_recovery`). Excluded from SaaS audits.
    - **`saas_app` only**: Chapter 10 SaaS Requirements (all 22 requirement nodes). Excluded from Custom and COTS audits.
 ---
@@ -260,4 +260,60 @@ Completely eliminated duplicated data security questions (`non_prod_data`, `data
 - **Integrity & Zero Orphans**: Maintained 0 orphaned controls, 0 orphaned vulnerabilities, and 100 max points per assessable requirement node across 62 total nodes (21 in Chapter 10).
 - **Framework Version**: Incremented to `version: 13`.
 - **Test Suite**: All 217 automated unit tests pass.
+
+---
+
+## 15. SaaS Questionnaire API Security & Rate Limiting Scoping (Version 18)
+
+Removed the `api_security_and_rate_limiting` requirement from the SaaS questionnaire track:
+- **Provider Implicit Infrastructure Protection**: In third-party SaaS delivery models, API rate limiting, bot throttling, and edge infrastructure protections are implicitly maintained by the cloud provider to safeguard their own multi-tenant systems. Evaluating self-hosted API gateway configurations against SaaS solutions is out of scope.
+- **Implementation Group Scoping**: Removed `internet_facing` from `hosting:q1:c3` (`SaaS`), configuring SaaS to select only `["saas_app", "baseline"]`. Chapter 6 (`api_chapter`) and its requirement node `api_security_and_rate_limiting` remain strictly scoped to self-hosted internet-facing applications (`custom_app` and `cots_app` when `network_exposure == internet_facing`).
+- **Contractual Coverage in Chapter 10**: SaaS cloud perimeter defenses, edge anti-DDoS, and WAF commitments remain contractually evaluated under Chapter 10 Section 9 (`saas_network_security`).
+- **Framework Version**: Incremented to `version: 18`.
+- **Test Suite**: Verified framework integrity and implementation group tests pass.
+
+---
+
+## 16. Rephrasing SaaS Confidentiality & Data Protection for Application Owners (Version 19)
+
+Rephrased `saas_confidentiality_and_data_protection` in Chapter 10 (`saas_chapter`) of [`YML/appsec.yml`](file:///home/python/ciso-assistant/YML/appsec.yml) to eliminate overly complex cryptographic terminology and clearly mandate data encryption in the contract:
+- **Simplified Requirement Scope & Clarity**: Replaced technical jargon ("state-of-the-art key/certificate management", "Customer Lockbox") with clear obligations understandable to application owners:
+  - **`description`**: "Enforce vendor personnel confidentiality (NDAs), customer data access controls, and data encryption mandated in the contract (in transit and at rest)."
+  - **`annotation` & `typical_evidence`**: Aligned to contractual confidentiality (NDAs), tenant data access restrictions requiring customer approval, and contractual encryption mandates supported by DPAs and SOC 2 Type II reports.
+- **Simplified Dual Questions**:
+  - **Question 1 (`q1`)**: Rephrased from dense lockbox/charter phrasing to: *"Does the contract require vendor personnel to sign confidentiality agreements (NDAs) and restrict access to customer data (e.g. requiring client approval before vendor support or engineering can access tenant data)?"* (50 pts).
+  - **Question 2 (`q2`)**: Replaced abstract key lifecycle question with clear contractual encryption mandate: *"Does the contract mandate data encryption for all customer data, both in transit (e.g. TLS/HTTPS) and at rest (e.g. AES-256)?"* (50 pts).
+- **Framework Version**: Incremented to `version: 19`, publication date updated to `2026-10-19`.
+- **Synchronized Documentation**: Updated [`docs/appsec_questions_cases.md`](file:///home/python/ciso-assistant/docs/appsec_questions_cases.md) and [`docs/appsec_policy_applicability_matrix.md`](file:///home/python/ciso-assistant/docs/appsec_policy_applicability_matrix.md).
+- **Test Suite**: Verified all automated integrity and schema tests pass.
+
+---
+
+## 17. Removal of SaaS BYOK Requirement from Environment Isolation (Version 20)
+
+Removed premature Customer-Managed Keys (BYOK/HYOK) cryptographic sovereignty requirement from `saas_environment_isolation` in Chapter 10 (`saas_chapter`) of [`YML/appsec.yml`](file:///home/python/ciso-assistant/YML/appsec.yml):
+- **Requirement Simplification**: Eliminated BYOK / HYOK / KMS envelope isolation references from requirement node metadata:
+  - **`description`**: "Ensure multi-tenant environment isolation, logical data segregation, and network traffic filtering."
+  - **`annotation` & `typical_evidence`**: Focused on robust logical and physical tenant boundary isolation, network filtering, and SOC 2 Type II CC6.6 testing evidence, removing BYOK KMS configuration whitepaper requirements.
+- **Single Question Normalization**:
+  - Removed Question 2 (`q2` - BYOK / HYOK cryptographic sovereignty).
+  - Normalized Question 1 (`q1` - logical/physical environment isolation and traffic filtering) to 100 points (`add_score: 100`, `compute_result: true`), maintaining 100 points per assessable requirement node across Chapter 10.
+- **Framework Version**: Incremented to `version: 20`, publication date updated to `2026-10-19`.
+- **Synchronized Documentation**: Updated [`docs/appsec_questions_cases.md`](file:///home/python/ciso-assistant/docs/appsec_questions_cases.md) (removed Q68, renumbered Q68-Q81) and [`docs/appsec_policy_applicability_matrix.md`](file:///home/python/ciso-assistant/docs/appsec_policy_applicability_matrix.md).
+- **Test Suite**: Verified all automated integrity and schema tests pass (`python3 -m unittest tests/test_yaml_integrity.py`).
+
+---
+
+## 18. Manual Implementation Group AppSec Framework Variant (`appsec_manual.yml`)
+
+Created a second version of the AppSec assessment framework at [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml) with no triggered Implementation Groups (IGs) to enable two-stage manual audits:
+- **Two-Stage Audit Workflow**: In this variant, auditors first assign the general info group (`info`), allowing the application owner to answer initial profiling questions (ownership, data sensitivity, hosting model, and exposure) before deciding and manually assigning subsequent implementation tracks (`custom_app`, `cots_app`, `saas_app`, `internet_facing`).
+- **Elimination of Triggering Mechanism**: Completely removed `select_implementation_groups` from choice definitions in `hosting:q1` (Custom, COTS, SaaS) and `network_exposure:q1` (Internet-facing). `determine_implementation_groups_triggered_by_others` reports 0 hidden and 0 triggered groups, with all groups directly selectable.
+- **Profiling Scoping to `info`**: Scoped all Chapter 1 requirements (`instructions_splash`, `info`, `stakeholder_identification`, `data_classification`, `hosting`, and `network_exposure`) to `implementation_groups: ["info"]`, with `info` as the sole `default_selected: true` group.
+- **Catalog Registration & Isolated URN Namespace**: Registered `appsec_manual` in `FRAMEWORK_CATALOG` (`classes/examples_manager.py`) with dedicated URN namespace (`urn:intuitem:risk:*:appsec_manual:*`) preserving full foreign key and relational integrity without conflicting with `appsec`.
+- **Automated Validation**: Added test assertions in [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py) (`test_appsec_manual_structure_and_scoping`) and [`tests/test_implementation_groups.py`](file:///home/python/ciso-assistant/tests/test_implementation_groups.py) (`test_appsec_manual_no_triggered_implementation_groups`). All 249 tests pass.
+
+
+
+
 

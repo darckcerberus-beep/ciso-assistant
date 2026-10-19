@@ -122,35 +122,11 @@ answers:
   # CHAPTER 3: APPLICATION VULNERABILITY DEFENSE & CODE HYGIENE
   # ============================================================================
 
-  - requirement: "input_validation_and_injection_defense"
-    question: "Are all user-supplied inputs validated on the server side using strict allow-lists and schema rules?"
+  - requirement: "owasp_top_10_defenses"
+    question: "Do you apply coding guidelines against OWASP Top 10 vulnerabilities (including input validation, parameterized queries, output encoding, and secure error handling)?"
     answer: "Yes"
     result: "compliant"
-    observation: "Server-side schema validation via OpenAPI 3.0 and Pydantic allow-lists on all API gateways and microservices."
-
-  - requirement: "input_validation_and_injection_defense"
-    question: "Are database interactions executed via parameterized queries or ORMs to prevent SQL/NoSQL injections?"
-    answer: "Yes"
-    result: "compliant"
-    observation: "100% of database interactions utilize parameterized queries through SQLAlchemy and Prisma ORM."
-
-  - requirement: "output_encoding_and_web_defenses"
-    question: "Is context-aware output encoding enforced across all dynamic responses to prevent Cross-Site Scripting (XSS)?"
-    answer: "Yes"
-    result: "compliant"
-    observation: "Context-aware encoding enforced through modern web frameworks and automated template sanitization."
-
-  - requirement: "output_encoding_and_web_defenses"
-    question: "Are standard HTTP security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options) configured?"
-    answer: "Yes"
-    result: "compliant"
-    observation: "Strict CSP, HSTS (max-age=31536000; includeSubDomains; preload), X-Frame-Options: DENY, and X-Content-Type-Options: nosniff active."
-
-  - requirement: "error_handling_and_info_leakage"
-    question: "Are debug modes and detailed stack traces disabled in production environments?"
-    answer: "Yes"
-    result: "compliant"
-    observation: "Debug mode disabled in production builds. Standardized generic RFC 7807 problem details returned with opaque correlation IDs."
+    observation: "Development teams strictly enforce secure coding guidelines adhering to OWASP Top 10 standards across all in-house services."
 
   - requirement: "ssrf_and_cloud_metadata_defense"
     question: "Are outbound HTTP requests initiated by the application strictly validated using destination allow-lists with connections to RFC 1918 private subnets and localhost blocked?"
@@ -349,7 +325,7 @@ expected_risk_scenarios:
     control_priority: 3
 
   - scenario: "Application compromise via injection attack"
-    likelihood_requirement: "input_validation_and_injection_defense"
+    likelihood_requirement: "owasp_top_10_defenses"
     likelihood_score: 100
     scaled_likelihood: 1
     scaled_impact: 4
