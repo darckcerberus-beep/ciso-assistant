@@ -1324,14 +1324,13 @@ class TestYamlIntegrity(unittest.TestCase):
                         f"Choice {c.get('urn')} in appsec_manual must not have select_implementation_groups",
                     )
 
-        # 3. Chapter 1 profiling questions are scoped to info group
+        # 3. Chapter 1 profiling questions are scoped to info group (network_exposure is scoped to custom_app, cots_app)
         chapter1_nodes = [
             "instructions_splash",
             "info",
             "stakeholder_identification",
             "data_classification",
             "hosting",
-            "network_exposure",
         ]
         for ref_id in chapter1_nodes:
             node = manual_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec_manual:{ref_id}")
@@ -1342,12 +1341,41 @@ class TestYamlIntegrity(unittest.TestCase):
                 f"Node {ref_id} in appsec_manual must be scoped to ['info']",
             )
 
-        # 4. Total requirement nodes and scenarios match standard AppSec
-        self.assertEqual(len(manual_fw["req_nodes"]), 60)
+        net_node = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:network_exposure")
+        self.assertIsNotNone(net_node, "Node network_exposure missing in appsec_manual")
+        self.assertEqual(
+            set(net_node.get("implementation_groups", [])),
+            {"custom_app", "cots_app"},
+            "network_exposure in appsec_manual must be scoped to self-hosted apps ['custom_app', 'cots_app']",
+        )
+
+        # 4. Total requirement nodes (62 after splitting contractual vs operational checks) and scenarios
+        self.assertEqual(len(manual_fw["req_nodes"]), 62)
         self.assertEqual(len(manual_fw["scenarios"]), 20)
         self.assertEqual(len(manual_fw["threats"]), 9)
         self.assertEqual(len(manual_fw["vulns"]), 18)
         self.assertEqual(len(manual_fw["ref_ctrls"]), 26)
+
+        # 5. Split requirements: COTS & SaaS contractual vs "is effectively done" checks
+        cots_support = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:cots_vendor_support")
+        self.assertIsNotNone(cots_support, "cots_vendor_support missing in appsec_manual")
+        self.assertEqual(cots_support.get("implementation_groups"), ["cots_app"])
+        self.assertEqual(len(cots_support.get("questions", {})), 1)
+
+        cots_hardening = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening")
+        self.assertIsNotNone(cots_hardening, "cots_deployment_hardening missing in appsec_manual")
+        self.assertEqual(cots_hardening.get("implementation_groups"), ["cots_app"])
+        self.assertEqual(len(cots_hardening.get("questions", {})), 2)
+
+        saas_pentest = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:saas_penetration_testing")
+        self.assertIsNotNone(saas_pentest, "saas_penetration_testing missing in appsec_manual")
+        self.assertEqual(saas_pentest.get("implementation_groups"), ["saas_app"])
+        self.assertEqual(len(saas_pentest.get("questions", {})), 1)
+
+        saas_sla = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:saas_vulnerability_remediation_sla")
+        self.assertIsNotNone(saas_sla, "saas_vulnerability_remediation_sla missing in appsec_manual")
+        self.assertEqual(saas_sla.get("implementation_groups"), ["saas_app"])
+        self.assertEqual(len(saas_sla.get("questions", {})), 1)
 
 
 if __name__ == "__main__":

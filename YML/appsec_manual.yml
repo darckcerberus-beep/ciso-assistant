@@ -30,7 +30,7 @@ description: >
   before auditors manually assign relevant tracks (Custom, COTS, SaaS, Internet-Facing) without
   dynamic choice triggering.
 copyright: DCME Corp
-version: 1
+version: 2
 publication_date: 2026-10-19
 provider: DCME Corp
 packager: DCME Corp
@@ -325,7 +325,7 @@ objects:
       description: >
         Known security vulnerabilities in the third-party SaaS platform remain unaddressed due to the absence
         of independent penetration test attestations, vendor testing refusals, or uncommitted remediation SLAs.
-      likelihood: urn:intuitem:risk:req_node:appsec_manual:saas_penetration_testing_and_vulnerability_management
+      likelihood: urn:intuitem:risk:req_node:appsec_manual:saas_penetration_testing
       impact: urn:intuitem:risk:req_node:appsec_manual:data_classification
       threats:
         - urn:intuitem:risk:threat:appsec_manual:unauthorized_access
@@ -1364,6 +1364,72 @@ objects:
         ref_id: "internet_facing"
         description: "Requirements for applications exposed to the Internet"
 
+    # Implementation groups dependencies define conditions under which tracks become relevant
+    # without choice-level auto-triggering in respondent questionnaires, allowing orchestrator-driven assignment.
+    implementation_groups_dependencies:
+      - target_implementation_group: "custom_app"
+        name: "Custom Software Track (In-house Development)"
+        question_urn: "urn:intuitem:risk:req_node:appsec_manual:hosting:q1"
+        question_ref_id: "hosting:q1"
+        choice_urn: "urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c1"
+        choice_ref_id: "c1"
+        choice_value: "Custom software created and deployed by my teams (In-house development)"
+        prompt: "Application is in-house custom developed software. Trigger Custom Software Track?"
+
+      - target_implementation_group: "cots_app"
+        name: "Bought Software Track (COTS / Vendor Package)"
+        question_urn: "urn:intuitem:risk:req_node:appsec_manual:hosting:q1"
+        question_ref_id: "hosting:q1"
+        choice_urn: "urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c2"
+        choice_ref_id: "c2"
+        choice_value: "Bought software deployed by my teams (COTS / Vendor package)"
+        prompt: "Application is bought COTS software deployed internally. Trigger Bought Software Track?"
+
+      - target_implementation_group: "saas_app"
+        name: "SaaS Application Track"
+        question_urn: "urn:intuitem:risk:req_node:appsec_manual:hosting:q1"
+        question_ref_id: "hosting:q1"
+        choice_urn: "urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c3"
+        choice_ref_id: "c3"
+        choice_value: "SaaS (Third-party software hosted and operated by a vendor)"
+        prompt: "Application is a third-party hosted SaaS solution. Trigger SaaS Application Track?"
+
+      - target_implementation_group: "internet_facing"
+        name: "Internet-Facing Application Track"
+        question_urn: "urn:intuitem:risk:req_node:appsec_manual:network_exposure:q1"
+        question_ref_id: "network_exposure:q1"
+        choice_urn: "urn:intuitem:risk:req_node:appsec_manual:network_exposure:q1:c2"
+        choice_ref_id: "c2"
+        choice_value: "Internet-facing (Public Web / Mobile API)"
+        prompt: "Application is exposed to the public Internet. Trigger Internet-Facing Application Track?"
+
+      - target_implementation_group: "baseline"
+        name: "Application Security Baseline"
+        question_urn: "urn:intuitem:risk:req_node:appsec_manual:hosting:q1"
+        question_ref_id: "hosting:q1"
+        choice_urn: "urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c1"
+        choice_ref_id: "c1"
+        choice_value: "Custom software created and deployed by my teams (In-house development)"
+        prompt: "Trigger Core Application Security Baseline?"
+
+      - target_implementation_group: "baseline"
+        name: "Application Security Baseline"
+        question_urn: "urn:intuitem:risk:req_node:appsec_manual:hosting:q1"
+        question_ref_id: "hosting:q1"
+        choice_urn: "urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c2"
+        choice_ref_id: "c2"
+        choice_value: "Bought software deployed by my teams (COTS / Vendor package)"
+        prompt: "Trigger Core Application Security Baseline?"
+
+      - target_implementation_group: "baseline"
+        name: "Application Security Baseline"
+        question_urn: "urn:intuitem:risk:req_node:appsec_manual:hosting:q1"
+        question_ref_id: "hosting:q1"
+        choice_urn: "urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c3"
+        choice_ref_id: "c3"
+        choice_value: "SaaS (Third-party software hosted and operated by a vendor)"
+        prompt: "Trigger Core Application Security Baseline?"
+
     # ====================================================================
     # REQUIREMENT NODES - Hierarchical assessment structure
     # ====================================================================
@@ -1566,7 +1632,7 @@ objects:
         typical_evidence: >
           - Network zoning diagram showing DMZ, perimeter firewalls, and reverse proxies
           - DNS configuration and IP address allocation records
-        implementation_groups: ["info"]
+        implementation_groups: ["custom_app", "cots_app"]
         questions:
           urn:intuitem:risk:req_node:appsec_manual:network_exposure:q1:
             type: unique_choice
@@ -1602,12 +1668,12 @@ objects:
           - **Perimeter & Edge Defenses:** If your application is exposed to the public Internet, relevant edge protections (WAF, anti-DDoS, and penetration testing) will be evaluated.
           - **Resilience & Governance:** Audit logging, data protection, and incident response readiness.
 
-          > **Note:** Only the technical requirements relevant to your application's delivery track and network exposure tier will be in scope.
+          > **Note:** Only the technical requirements relevant to your application's delivery track and network exposure tier will be in scope. If there are no further questions, it means that they have not been triggered yet, but we will get back to you soon.
 
           Please proceed to the next section to begin the technical evaluation.
         annotation: >
           Generic transition splash screen concluding the baseline profiling phase and introducing upcoming technical security questions across assigned implementation groups.
-        implementation_groups: ["baseline"]
+        implementation_groups: ["info", "baseline"]
 
       # === CHAPTER 2: IDENTITY, AUTHENTICATION & ACCESS CONTROL ===
       - urn: urn:intuitem:risk:req_node:appsec_manual:iam_chapter
@@ -2076,8 +2142,8 @@ objects:
         annotation: >
           Secure software development lifecycle controls:
           - Custom in-house software: Shift-left security automation (SAST, DAST, SCA/SBOM, peer code reviews).
-          - COTS and SaaS software: Verification that third-party vendors adhere to recognized secure coding guidelines without requiring proprietary source-code disclosures.
-        implementation_groups: ["custom_app", "cots_app", "saas_app"]
+          - COTS software: Verification that third-party vendors adhere to recognized secure coding guidelines without requiring proprietary source-code disclosures.
+        implementation_groups: ["custom_app", "cots_app"]
 
       # Requirement: Automated security testing (SAST/DAST)
       - urn: urn:intuitem:risk:req_node:appsec_manual:automated_security_testing
@@ -2709,23 +2775,21 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Requirement: COTS Software Hardening & Patch SLAs
+      # Requirement: COTS Software Hardening & Patch SLAs ("is effectively done" check)
       - urn: urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec_manual:resilience_chapter
         ref_id: cots_deployment_hardening
-        name: "COTS Deployment Hardening, Vendor Support & Patch SLAs"
-        description: "Enforce vendor hardening benchmarks, verify that COTS software actively receives vendor security patches (not End-of-Life / EOL), and deploy updates within strict patch SLAs."
+        name: "COTS Deployment Hardening & Patch SLAs"
+        description: "Enforce vendor hardening benchmarks, reset default credentials, and deploy published vendor security patches within formal patch SLAs."
         annotation: >
           Commercial off-the-shelf (COTS) software package deployment controls:
           - Default vendor credentials (usernames, passwords, encryption keys) removed or reset before production deployment.
           - Host and application deployment hardened against vendor security guides or CIS benchmarks (disabling sample code, unneeded modules, admin web consoles).
-          - Active Vendor Support Lifecycle: The software must be under an active vendor maintenance/subscription agreement and supported release version (not End-of-Life / EOL or End-of-Support / EOS) to continuously receive security patches and CVE fixes.
           - Strict SLA enforcement for deploying critical vendor patches within 14 days of release.
         typical_evidence: >
           - Hardening baseline checklist and configuration audit extract
-          - Active vendor software maintenance / support contract confirmation and vendor EOL lifecycle matrix
           - Vendor patch management SLA tracking records and vulnerability remediation tickets
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec_manual:untested_application_security
@@ -2739,7 +2803,7 @@ objects:
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening:q1:c1
                 value: "Yes"
-                add_score: 40
+                add_score: 50
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening:q1:c2
@@ -2749,11 +2813,11 @@ objects:
                 color: "#dc3545"
           urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening:q2:
             type: unique_choice
-            text: "Does the COTS software actively receive security patches and vulnerability updates from the vendor (under an active maintenance/support contract, not End-of-Life / EOL or End-of-Support / EOS)?"
+            text: "Are published vendor security patches, hotfixes, and critical vulnerability updates deployed within formal SLAs (Critical <= 14 days)?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening:q2:c1
                 value: "Yes"
-                add_score: 30
+                add_score: 50
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening:q2:c2
@@ -2761,16 +2825,37 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
-          urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening:q3:
+
+      # Requirement: COTS Active Vendor Support Contract (contractual check)
+      - urn: urn:intuitem:risk:req_node:appsec_manual:cots_vendor_support
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec_manual:resilience_chapter
+        ref_id: cots_vendor_support
+        name: "COTS Vendor Maintenance & Support Contract"
+        description: "Verify that COTS software is covered by an active vendor maintenance/support contract and receives regular security updates (not End-of-Life / EOL or End-of-Support / EOS)."
+        annotation: >
+          Commercial off-the-shelf (COTS) active vendor support lifecycle:
+          - Active Vendor Support Lifecycle: The software must be under an active vendor maintenance/subscription agreement and supported release version (not End-of-Life / EOL or End-of-Support / EOS) to continuously receive security patches and CVE fixes.
+        typical_evidence: >
+          - Active vendor software maintenance / support contract confirmation and vendor EOL lifecycle matrix
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec_manual:contractual_gap
+          - urn:intuitem:risk:vulnerability:appsec_manual:untested_application_security
+        implementation_groups: ["cots_app"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec_manual:regular_penetration_testing
+        questions:
+          urn:intuitem:risk:req_node:appsec_manual:cots_vendor_support:q1:
             type: unique_choice
-            text: "Are published vendor security patches, hotfixes, and critical vulnerability updates deployed within formal SLAs (Critical <= 14 days)?"
+            text: "Does the COTS software actively receive security patches and vulnerability updates from the vendor (under an active maintenance/support contract, not End-of-Life / EOL or End-of-Support / EOS)?"
             choices:
-              - urn: urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening:q3:c1
+              - urn: urn:intuitem:risk:req_node:appsec_manual:cots_vendor_support:q1:c1
                 value: "Yes"
-                add_score: 30
+                add_score: 100
                 compute_result: true
                 color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening:q3:c2
+              - urn: urn:intuitem:risk:req_node:appsec_manual:cots_vendor_support:q1:c2
                 value: "No"
                 add_score: 0
                 compute_result: false
@@ -3400,55 +3485,76 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 12b: SaaS Penetration Testing & Vulnerability Remediation
-      - urn: urn:intuitem:risk:req_node:appsec_manual:saas_penetration_testing_and_vulnerability_management
+      # Section 12b: SaaS Independent Penetration Testing ("is effectively done" check)
+      - urn: urn:intuitem:risk:req_node:appsec_manual:saas_penetration_testing
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec_manual:saas_chapter
-        ref_id: saas_penetration_testing_and_vulnerability_management
-        name: "SaaS Penetration Testing & Vulnerability Remediation"
-        description: "Verify SaaS contractual authorization for penetration testing (or vendor annual third-party pentest audit reports) and contractual commitment to vulnerability remediation SLAs."
+        ref_id: saas_penetration_testing
+        name: "SaaS Independent Penetration Testing"
+        description: "Verify independent penetration testing of the SaaS platform via customer-led testing authorization or annual third-party audit reports and attestations."
         annotation: >
-          Section 12b (SaaS Penetration Testing & Vulnerability Remediation). Contractual governance within the security exhibit verifying whether the contract authorizes customer-led penetration testing, mandates that the provider undergoes annual independent penetration tests and provides audit reports/attestations, or if intrusive testing is refused, along with contractually binding vulnerability remediation SLAs.
+          Section 12b (SaaS Penetration Testing). Verification that independent penetration testing is effectively performed on the SaaS platform—either through customer-led penetration testing authorization or annual independent penetration tests conducted by the vendor with summary audit reports / attestations provided to the client.
         typical_evidence: >
           - SaaS contractual security exhibit / schedule authorizing customer penetration testing
           - Annual third-party penetration test executive summary attestation letter from provider
-          - Provider vulnerability remediation SLA commitments and tracking reports
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec_manual:untested_application_security
         implementation_groups: ["saas_app"]
         reference_controls:
           - urn:intuitem:risk:control:appsec_manual:regular_penetration_testing
         questions:
-          urn:intuitem:risk:req_node:appsec_manual:saas_penetration_testing_and_vulnerability_management:q1:
+          urn:intuitem:risk:req_node:appsec_manual:saas_penetration_testing:q1:
             type: unique_choice
             text: "How is independent penetration testing governed and performed on the SaaS platform?"
             choices:
-              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_penetration_testing_and_vulnerability_management:q1:c1
+              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_penetration_testing:q1:c1
                 value: "We are allowed to pentest (SaaS contract authorizes customer-led penetration testing)"
-                add_score: 50
+                add_score: 100
                 compute_result: true
                 color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_penetration_testing_and_vulnerability_management:q1:c2
+              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_penetration_testing:q1:c2
                 value: "The SaaS vendor does the pentest (contract mandates that the vendor undergoes annual independent penetration tests and provides audit reports/attestations)"
-                add_score: 50
+                add_score: 100
                 compute_result: true
                 color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_penetration_testing_and_vulnerability_management:q1:c3
+              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_penetration_testing:q1:c3
                 value: "They refuse (the SaaS vendor refuses penetration testing and provides no reports)"
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
-          urn:intuitem:risk:req_node:appsec_manual:saas_penetration_testing_and_vulnerability_management:q2:
+
+      # Section 12c: SaaS Contractual Vulnerability Remediation SLAs (contractual check)
+      - urn: urn:intuitem:risk:req_node:appsec_manual:saas_vulnerability_remediation_sla
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec_manual:saas_chapter
+        ref_id: saas_vulnerability_remediation_sla
+        name: "SaaS Contractual Vulnerability Remediation SLAs"
+        description: "Enforce contractually binding vulnerability remediation SLAs for security flaws discovered in the SaaS platform."
+        annotation: >
+          Section 12c (SaaS Vulnerability Remediation SLAs). Contractual governance within the security schedule committing the provider to legally binding remediation timelines (e.g. Critical within 7 days, High within 30 days) for all identified vulnerabilities.
+        typical_evidence: >
+          - SaaS contractual security exhibit / schedule committing vendor to vulnerability remediation SLAs
+          - Vendor SLA performance and vulnerability remediation tracking reports
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec_manual:contractual_gap
+          - urn:intuitem:risk:vulnerability:appsec_manual:untested_application_security
+        implementation_groups: ["saas_app"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec_manual:regular_penetration_testing
+          - urn:intuitem:risk:control:appsec_manual:saas_contract
+        questions:
+          urn:intuitem:risk:req_node:appsec_manual:saas_vulnerability_remediation_sla:q1:
             type: unique_choice
             text: "Does the SaaS contract commit the provider to formal vulnerability remediation SLAs (e.g. Critical within 7 days, High within 30 days)?"
             choices:
-              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_penetration_testing_and_vulnerability_management:q2:c1
+              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_vulnerability_remediation_sla:q1:c1
                 value: "Yes"
-                add_score: 50
+                add_score: 100
                 compute_result: true
                 color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_penetration_testing_and_vulnerability_management:q2:c2
+              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_vulnerability_remediation_sla:q1:c2
                 value: "No"
                 add_score: 0
                 compute_result: false
@@ -3817,7 +3923,7 @@ test_metadata:
   expected_threats_count: 9
   expected_vulnerabilities_count: 18
   expected_reference_controls_count: 26
-  expected_requirement_nodes_count: 60
+  expected_requirement_nodes_count: 62
   matrix_dimensions:
     likelihood_levels: 4
     impact_levels: 4

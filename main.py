@@ -611,28 +611,52 @@ def select_audit_implementation_groups_ui(
             return
         mode = "replace" if mode_choice == "2" else "add"
 
-        print("\nAvailable Framework Implementation Groups:")
-        for idx, ig in enumerate(available, start=1):
+        visible = group_info.get("visible_implementation_groups", [])
+        hidden = group_info.get("hidden_implementation_groups", [])
+        target_pool = visible if (visible and hidden) else available
+
+        print("\nAvailable Implementation Groups:")
+        for idx, ig in enumerate(target_pool, start=1):
             is_active = (ig.get("name") in curr_sel) or (ig.get("ref_id") in curr_sel)
             active_mark = " [CURRENTLY ACTIVE]" if is_active else ""
             def_mark = " [default]" if ig.get("default_selected") else ""
+            trig_mark = " [TRIGGERED BY ANSWERS]" if (ig.get("condition_matched") or ig.get("is_pending_trigger")) and not is_active else ""
             ref_disp = f" ({ig.get('ref_id')})" if ig.get("ref_id") else ""
-            print(f"  {idx}) {ig.get('name')}{ref_disp}{active_mark}{def_mark}")
+            print(f"  {idx}) {ig.get('name')}{ref_disp}{active_mark}{def_mark}{trig_mark}")
             if ig.get("description"):
                 print(f"      {ig.get('description')}")
 
-        sel_input = input(f"\nEnter groups to {'add' if mode == 'add' else 'set'} [comma-separated 1-{len(available)}, 'all'] (or 'c' to cancel): ").strip()
+        if hidden and target_pool is visible:
+            hidden_names = ", ".join(h.get("name") or h.get("ref_id") for h in hidden)
+            print(f"\n  (Note: {len(hidden)} non-relevant tracks hidden based on answers/profiling: {hidden_names})")
+            print("  (Type 'all-tracks' to view and select from all framework tracks)")
+
+        sel_input = input(f"\nEnter groups to {'add' if mode == 'add' else 'set'} [comma-separated 1-{len(target_pool)}, 'all'] (or 'c' to cancel): ").strip()
         if sel_input.lower() in ("c", "cancel"):
             print("Operation canceled.")
             return
+        if sel_input.lower() == "all-tracks" and hidden:
+            target_pool = available
+            print("\nAll Framework Implementation Groups:")
+            for idx, ig in enumerate(target_pool, start=1):
+                is_active = (ig.get("name") in curr_sel) or (ig.get("ref_id") in curr_sel)
+                active_mark = " [CURRENTLY ACTIVE]" if is_active else ""
+                def_mark = " [default]" if ig.get("default_selected") else ""
+                ref_disp = f" ({ig.get('ref_id')})" if ig.get("ref_id") else ""
+                print(f"  {idx}) {ig.get('name')}{ref_disp}{active_mark}{def_mark}")
+            sel_input = input(f"\nEnter groups to {'add' if mode == 'add' else 'set'} [comma-separated 1-{len(target_pool)}, 'all'] (or 'c' to cancel): ").strip()
+            if sel_input.lower() in ("c", "cancel"):
+                print("Operation canceled.")
+                return
+
         if sel_input.lower() == "all":
-            groups = [ig.get("name") for ig in available]
+            groups = [ig.get("name") for ig in target_pool]
         elif sel_input:
             groups = []
             for part in sel_input.split(","):
                 p = part.strip()
-                if p.isdigit() and 1 <= int(p) <= len(available):
-                    groups.append(available[int(p) - 1].get("name"))
+                if p.isdigit() and 1 <= int(p) <= len(target_pool):
+                    groups.append(target_pool[int(p) - 1].get("name"))
                 elif p:
                     groups.append(p)
         else:

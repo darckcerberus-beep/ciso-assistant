@@ -599,29 +599,83 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         self.assertIn("saas_app", hidden)
         self.assertIn("internet_facing", hidden)
 
-    def test_appsec_manual_no_triggered_implementation_groups(self):
-        """Verify that the manual AppSec framework has no triggered implementation groups."""
-        res = determine_implementation_groups_triggered_by_others("appsec_manual")
-        self.assertGreater(len(res["all_groups"]), 0)
+    def test_appsec_manual_triggered_implementation_groups_orchestration(self):
+        """Verify that the manual AppSec framework hides non-relevant tracks and enables orchestrator-driven dynamic triggering."""
+        # 1. Initial State: Only 'info' (basic profiling) is always selectable; all dependent tracks are hidden
+        res_initial = determine_implementation_groups_triggered_by_others("appsec_manual")
+        self.assertGreater(len(res_initial["all_groups"]), 0)
 
-        always_selectable = [g["ref_id"] for g in res["always_selectable_groups"]]
-        hidden = [g["ref_id"] for g in res["hidden_groups"]]
-        triggered = [g["ref_id"] for g in res["triggered_groups"]]
+        always_selectable = [g["ref_id"] for g in res_initial["always_selectable_groups"]]
+        hidden = [g["ref_id"] for g in res_initial["hidden_groups"]]
+        triggered = [g["ref_id"] for g in res_initial["triggered_groups"]]
+        visible = [g["ref_id"] for g in res_initial["visible_groups"]]
 
-        # All implementation groups are always selectable (no groups are hidden or triggered)
-        self.assertEqual(len(hidden), 0)
+        self.assertEqual(always_selectable, ["info"])
+        self.assertEqual(visible, ["info"])
         self.assertEqual(len(triggered), 0)
-        self.assertIn("info", always_selectable)
-        self.assertIn("custom_app", always_selectable)
-        self.assertIn("cots_app", always_selectable)
-        self.assertIn("saas_app", always_selectable)
-        self.assertIn("baseline", always_selectable)
-        self.assertIn("internet_facing", always_selectable)
+        self.assertIn("custom_app", hidden)
+        self.assertIn("cots_app", hidden)
+        self.assertIn("saas_app", hidden)
+        self.assertIn("baseline", hidden)
+        self.assertIn("internet_facing", hidden)
 
-        # Triggered map must be empty
+        # Triggered map defines prompts for orchestrator
         from classes.audits.implementation_groups import get_framework_triggered_implementation_groups_map
         trig_map = get_framework_triggered_implementation_groups_map("appsec_manual")
-        self.assertEqual(trig_map, {})
+        self.assertIn("custom_app", trig_map)
+        self.assertIn("cots_app", trig_map)
+        self.assertIn("saas_app", trig_map)
+        self.assertIn("internet_facing", trig_map)
+
+        # 2. Answers Provided: Custom Software + Internet-Facing
+        custom_answers = {
+            "hosting": {
+                "q1": "Custom software created and deployed by my teams (In-house development)",
+            },
+            "network_exposure": {
+                "q1": "Internet-facing (Public Web / Mobile API)",
+            },
+        }
+        res_custom = determine_implementation_groups_triggered_by_others("appsec_manual", answers=custom_answers)
+
+        triggered_custom = [g["ref_id"] for g in res_custom["triggered_groups"]]
+        visible_custom = [g["ref_id"] for g in res_custom["visible_groups"]]
+        hidden_custom = [g["ref_id"] for g in res_custom["hidden_groups"]]
+        pending_custom = [d["target_implementation_group"] for d in res_custom["pending_dependencies"]]
+
+        # Custom & Internet-Facing (and baseline) are now triggered & visible
+        self.assertIn("custom_app", triggered_custom)
+        self.assertIn("internet_facing", triggered_custom)
+        self.assertIn("baseline", triggered_custom)
+        self.assertIn("info", visible_custom)
+        self.assertIn("custom_app", visible_custom)
+        self.assertIn("internet_facing", visible_custom)
+        self.assertIn("custom_app", pending_custom)
+        self.assertIn("internet_facing", pending_custom)
+
+        # Non-relevant tracks (COTS, SaaS) remain hidden and non-selectable
+        self.assertIn("cots_app", hidden_custom)
+        self.assertIn("saas_app", hidden_custom)
+        self.assertNotIn("cots_app", visible_custom)
+        self.assertNotIn("saas_app", visible_custom)
+
+        # 3. Answers Provided: COTS Software + Internal Network
+        cots_answers = {
+            "hosting": {
+                "q1": "Bought software deployed by my teams (COTS / Vendor package)",
+            },
+            "network_exposure": {
+                "q1": "Internal / Restricted Network only",
+            },
+        }
+        res_cots = determine_implementation_groups_triggered_by_others("appsec_manual", answers=cots_answers)
+        triggered_cots = [g["ref_id"] for g in res_cots["triggered_groups"]]
+        hidden_cots = [g["ref_id"] for g in res_cots["hidden_groups"]]
+
+        self.assertIn("cots_app", triggered_cots)
+        self.assertIn("custom_app", hidden_cots)
+        self.assertIn("saas_app", hidden_cots)
+        self.assertIn("internet_facing", hidden_cots)
 
 if __name__ == "__main__":
     unittest.main()

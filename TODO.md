@@ -313,6 +313,61 @@ Created a second version of the AppSec assessment framework at [`YML/appsec_manu
 - **Catalog Registration & Isolated URN Namespace**: Registered `appsec_manual` in `FRAMEWORK_CATALOG` (`classes/examples_manager.py`) with dedicated URN namespace (`urn:intuitem:risk:*:appsec_manual:*`) preserving full foreign key and relational integrity without conflicting with `appsec`.
 - **Automated Validation**: Added test assertions in [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py) (`test_appsec_manual_structure_and_scoping`) and [`tests/test_implementation_groups.py`](file:///home/python/ciso-assistant/tests/test_implementation_groups.py) (`test_appsec_manual_no_triggered_implementation_groups`). All 249 tests pass.
 
+---
+
+## 19. Separation of Contractual and Operational ("Is Effectively Done") Checks in `appsec_manual.yml` (Version 2)
+
+Separated requirements in [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml) that mixed contractual commitment questions with operational "is effectively done" questions into distinct requirements:
+- **COTS Hardening & Vendor Support Split**:
+  - `cots_deployment_hardening` ("is effectively done" check): Scoped to `cots_app`, retaining Q1 (default credentials changed & configuration hardened, 50 pts) and Q2 (published vendor patches deployed within formal SLAs, 50 pts), totalling 100 points.
+  - `cots_vendor_support` (contractual check): Scoped to `cots_app`, validating that COTS software is covered by an active vendor maintenance/support contract and receives regular security updates (not EOL/EOS) (100 pts).
+- **SaaS Penetration Testing & SLA Remediation Split**:
+  - `saas_penetration_testing` ("is effectively done" check): Scoped to `saas_app`, verifying independent penetration testing on the SaaS platform via customer-led testing authorization or annual vendor pentest audit reports/attestations (100 pts).
+  - `saas_vulnerability_remediation_sla` (contractual check): Scoped to `saas_app`, verifying contractual commitments in the security exhibit committing the provider to formal vulnerability remediation SLAs (Critical <= 7d, High <= 30d) (100 pts).
+  - Updated risk scenario `saas_unpatched_vulnerability_exploitation` likelihood URN to point to `urn:intuitem:risk:req_node:appsec_manual:saas_penetration_testing`.
+- **Framework Version & Metadata**: Incremented to `version: 2` with `expected_requirement_nodes_count: 62`.
+- **Automated Validation**: Updated test assertions in [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py) (`test_appsec_manual_structure_and_scoping`). All tests pass.
+
+---
+
+## 20. Orchestrator-Driven Dynamic Implementation Group Triggering & Relevance Scoping in `appsec_manual`
+
+Enhanced `appsec_manual` and the orchestration engine to mimic dynamic implementation group triggering without auto-activating tracks in the respondent's UI, enabling auditors to ask basic profiling info first, hide non-relevant tracks, and selectively trigger/assign relevant tracks to different team members in the orchestrator:
+- **Framework-Level Implementation Group Dependencies**: Added `implementation_groups_dependencies` to [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml#L1367) mapping question choices in Chapter 1 (`hosting:q1` choices for Custom, COTS, and SaaS; `network_exposure:q1` choices for Internet-facing) to target implementation tracks (`custom_app`, `cots_app`, `saas_app`, `baseline`, `internet_facing`) with prompt metadata.
+- **Initial Relevance & Scoping**:
+  - `info` is the sole `default_selected: true` group.
+  - On initial audit creation, all dependent tracks (`custom_app`, `cots_app`, `saas_app`, `baseline`, `internet_facing`) are categorized into `hidden_groups`, with only `info` active and visible.
+  - Updated intermediate splash screen `baseline_splash` implementation groups to `["info", "baseline"]` so profiling respondents receive guidance upon completing basic info questions.
+- **Orchestrator-Driven Answer Evaluation**:
+  - Enhanced `determine_implementation_groups_triggered_by_others` in [`classes/audits/implementation_groups.py`](file:///home/python/ciso-assistant/classes/audits/implementation_groups.py) so answers matching `implementation_groups_dependencies` mark matching tracks as condition-matched and visible/triggered, while non-matching tracks remain strictly hidden and non-selectable.
+  - Candidate dependencies whose target groups are not yet active in the audit are populated in `pending_dependencies` and `pending_triggered_groups`.
+- **Multi-Role Assignment Orchestration**:
+  - In Web UI: Pending dynamic tracks are detected and surfaced in the assignment drawer, allowing the auditor to assign each track to designated team members (e.g. `custom_app` to developers, `internet_facing` to secops).
+  - In CLI: Updated `select_audit_implementation_groups_ui` in [`main.py`](file:///home/python/ciso-assistant/main.py) to prioritize relevant/visible tracks and indicate non-relevant tracks hidden based on profiling answers.
+- **Automated Validation**: Added test assertions in [`tests/test_implementation_groups.py`](file:///home/python/ciso-assistant/tests/test_implementation_groups.py) (`test_appsec_manual_triggered_implementation_groups_orchestration`). All unit tests pass.
+
+---
+
+## 21. Fix Non-Relevant Questions for SaaS Applications in `appsec_manual` Audit
+
+Identified and resolved the issue where non-relevant Custom software, COTS, and self-hosted exposure questions were appearing during a SaaS application audit:
+- **Active Assessment Implementation Group Scoping**:
+  - Found active compliance assessment `2fe15fde-680d-4f95-85d5-6624fd37cb70` (`Assessment of Application Security Assessment Framework (AppSec - Manual IG) in App-Audit-Demo-Manual-CISO`) was created with `selected_implementation_groups: []`. In CISO Assistant, empty implementation groups cause the platform to render all 62 requirements across all tracks.
+  - Resolved `selected_implementation_groups` via the API using canonical ref_ids `['info', 'saas_app']` (mapped by CISO Assistant to `['Application information & Governance', 'SaaS Application Track']`).
+  - Cleared unassessed stray answers on non-applicable `session_management` and `network_exposure`.
+- **Framework Scoping Alignment in `YML/appsec_manual.yml`**:
+  - `network_exposure`: Updated implementation groups from `["info"]` to `["custom_app", "cots_app"]` to match `appsec.yml` and [`docs/appsec_policy_applicability_matrix.md`](file:///home/python/ciso-assistant/docs/appsec_policy_applicability_matrix.md). For SaaS applications, perimeter/exposure protections are managed by the SaaS vendor and governed under Chapter 10, so network exposure questions are bypassed.
+  - `sdlc_chapter`: Updated implementation groups from `["custom_app", "cots_app", "saas_app"]` to `["custom_app", "cots_app"]`, removing empty SDLC chapter artifacts for SaaS respondents.
+  - Synchronized updated requirement nodes directly to CISO Assistant via `/api/requirement-nodes/`.
+- **API Serializer Compatibility in `classes/audits/compliance.py`**:
+  - Updated `ComplianceAssessment.set_selected_implementation_groups` and `resolve_implementation_groups` to resolve group identifiers to canonical `ref_id` strings (`info`, `saas_app`) when communicating with CISO Assistant API endpoints, preventing silent fallback to `[]`.
+- **Automated Verification**:
+  - Updated unit test assertions in [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py) (`test_appsec_manual_structure_and_scoping`).
+  - Verified live audit questionnaire reduced from 62 to exactly 27 relevant questions (Chapter 1 info, Chapter 2 IAM SSO & RBAC, Chapter 10 SaaS requirements).
+  - All 252 unit tests pass (`python3 -m unittest discover tests`).
+
+
+
 
 
 

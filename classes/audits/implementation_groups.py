@@ -714,11 +714,18 @@ def determine_implementation_groups_triggered_by_others(
                             _record_dep_match(dep)
 
     # Identify pending candidate dependencies (conditions met by answers, but group not yet active in audit)
+    active_canonical_set: set[str] = set()
+    if active_groups:
+        active_list = active_groups if isinstance(active_groups, (list, tuple, set)) else [active_groups]
+        for ag in active_list:
+            if ag:
+                active_canonical_set.add(_canonical(ag))
+
     pending_dependencies: list[dict[str, Any]] = [
         d for d in candidate_dependencies
-        if d.get("canonical_group_name") not in triggered_canonical_set
-        and d.get("target_implementation_group") not in triggered_canonical_set
-        and _canonical(d.get("target_implementation_group", "")) not in triggered_canonical_set
+        if d.get("canonical_group_name") not in active_canonical_set
+        and d.get("target_implementation_group") not in active_canonical_set
+        and _canonical(d.get("target_implementation_group", "")) not in active_canonical_set
     ]
     pending_triggered_groups: list[str] = list({
         d.get("canonical_group_name") for d in pending_dependencies if d.get("canonical_group_name")
@@ -750,11 +757,20 @@ def determine_implementation_groups_triggered_by_others(
         needs_trigger = bool(is_triggered_by_others and (not is_default))
         always_selectable = bool(not needs_trigger)
 
+        # Check if condition matched via candidate_dependencies (answers met trigger criteria)
+        condition_matched = bool(any(
+            d.get("canonical_group_name") == c_name
+            or d.get("target_implementation_group") == r_id
+            or _canonical(d.get("target_implementation_group", "")) == c_name
+            for d in candidate_dependencies
+        ))
+
         # A group has been triggered if its canonical name, ref_id, or URN was activated or matched by an answer
         has_been_triggered = bool(
             c_name in triggered_canonical_set
             or (r_id and _canonical(r_id) in triggered_canonical_set)
             or (u_urn and _canonical(u_urn) in triggered_canonical_set)
+            or condition_matched
         )
 
         should_show = bool(always_selectable or has_been_triggered)
@@ -890,11 +906,13 @@ def get_default_implementation_groups(framework_id: Any) -> list[str]:
     ]
 
 
-def resolve_implementation_groups(groups: Any, framework_id: Any) -> list[str]:
-    """Resolve group names, ref_ids, or URNs to canonical group names as defined in framework.
+def resolve_implementation_groups(
+    groups: Any, framework_id: Any, target_key: str = "name"
+) -> list[str]:
+    """Resolve group names, ref_ids, or URNs to canonical group names or ref_ids as defined in framework.
 
     Matches each input group string against the framework's implementation group definitions.
-    If a match is found by name, ref_id, or urn, the canonical name is used.
+    If a match is found by name, ref_id, or urn, target_key ('name' or 'ref_id') is used.
     If no match is found, the original group string is preserved.
     Deduplicates groups while preserving order.
     """
@@ -921,7 +939,10 @@ def resolve_implementation_groups(groups: Any, framework_id: Any) -> list[str]:
                 or (ig_ref and g_str.lower() == ig_ref.lower())
                 or (ig_urn and g_str.lower() == ig_urn.lower())
             ):
-                canonical = ig_name or ig_ref or g_str
+                if target_key == "ref_id":
+                    canonical = ig_ref or ig_name or g_str
+                else:
+                    canonical = ig_name or ig_ref or g_str
                 if canonical not in resolved:
                     resolved.append(canonical)
                 matched = True

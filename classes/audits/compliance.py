@@ -134,7 +134,12 @@ class ComplianceAssessment:
         """Update selected implementation groups for this assessment via API PATCH."""
         fw_id = self.get_framework_id()
         resolved = resolve_implementation_groups(groups, fw_id) if fw_id else list(groups or [])
-        payload = {'selected_implementation_groups': resolved}
+        # The CISO Assistant API expects ref_id strings (e.g. 'info', 'saas_app') in selected_implementation_groups
+        try:
+            resolved_refs = resolve_implementation_groups(resolved, fw_id, "ref_id") if fw_id else resolved
+        except TypeError:
+            resolved_refs = resolved
+        payload = {'selected_implementation_groups': resolved_refs}
         res = utils.get_return(
             f"/api/compliance-assessments/{self.get_id()}/",
             method="PATCH",
@@ -145,7 +150,7 @@ class ComplianceAssessment:
         elif isinstance(res, dict) and res.get("id"):
             self.compliance_assessment_json = res
         else:
-            self.compliance_assessment_json['selected_implementation_groups'] = resolved
+            self.compliance_assessment_json['selected_implementation_groups'] = resolved_refs
         return self.compliance_assessment_json
 
     def add_selected_implementation_groups(self, groups: list[str]) -> dict:
