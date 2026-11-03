@@ -30,7 +30,7 @@ description: >
   before auditors manually assign relevant tracks (Custom, COTS, SaaS, Internet-Facing) without
   dynamic choice triggering.
 copyright: DCME Corp
-version: 2
+version: 3
 publication_date: 2026-10-19
 provider: DCME Corp
 packager: DCME Corp
@@ -1583,6 +1583,37 @@ objects:
                 value: "Secret"
                 color: "#dc3545"
 
+      # Requirement: Determine PCI DSS payment card data scoping
+      - urn: urn:intuitem:risk:req_node:appsec_manual:pci_dss_scoping
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec_manual:info
+        ref_id: pci_dss_scoping
+        name: "PCI DSS Payment Card Scoping"
+        description: "Determine whether the application processes, stores, or transmits payment cardholder data subject to PCI DSS compliance requirements."
+        annotation: >
+          Cardholder Data Environment (CDE) scoping under PCI DSS:
+          - No: The application does not handle, process, transmit, or store payment cardholder data (Primary Account Number / PAN, CVV, expiration date).
+          - Yes: The application processes, stores, or transmits payment card data and is subject to PCI DSS compliance obligations.
+        typical_evidence: >
+          - PCI DSS scoping document and Cardholder Data Environment (CDE) boundary diagram
+          - Data flow diagram identifying cardholder data flows, payment gateways, and tokenization services
+        implementation_groups: ["info"]
+        questions:
+          urn:intuitem:risk:req_node:appsec_manual:pci_dss_scoping:q1:
+            type: unique_choice
+            text: "Does the application process, store, or transmit payment card data?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec_manual:pci_dss_scoping:q1:c1
+                value: "No - Out of scope / Not applicable"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec_manual:pci_dss_scoping:q1:c2
+                value: "Yes - Payment data is processed"
+                add_score: 100
+                compute_result: true
+                color: "#fd7e14"
 
       # Requirement: Determine hosting model
       - urn: urn:intuitem:risk:req_node:appsec_manual:hosting
@@ -3789,36 +3820,23 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec_manual:saas_pci_dss:q1:
             type: unique_choice
-            text: "Does the application process, store, or transmit payment card data?"
+            text: "If payment card data is processed, does the contract require and does the provider maintain active PCI DSS certification, provide an annual AOC, and enforce dedicated payment incident procedures with immediate notification?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_pci_dss:q1:c1
-                value: "No - Out of scope / Not applicable"
-                add_score: 100
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_pci_dss:q1:c2
-                value: "Yes - Payment data is processed"
-                add_score: 0
-                compute_result: false
-                color: "#fd7e14"
-          urn:intuitem:risk:req_node:appsec_manual:saas_pci_dss:q2:
-            type: unique_choice
-            text: "If payment card data is processed, does the contract require and does the provider maintain active PCI DSS certification, provide an annual AOC, and enforce dedicated payment incident procedures with immediate notification?"
-            depends_on:
-              question: urn:intuitem:risk:req_node:appsec_manual:saas_pci_dss:q1
-              answers: ["urn:intuitem:risk:req_node:appsec_manual:saas_pci_dss:q1:c2"]
-              condition: any
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_pci_dss:q2:c1
                 value: "Yes"
                 add_score: 100
                 compute_result: true
                 color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_pci_dss:q2:c2
+              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_pci_dss:q1:c2
                 value: "No"
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_pci_dss:q1:c3
+                value: "Not applicable - No payment card data processed"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
 
       # Section 21: Non-Conformity Management & Contractual Remedies
       - urn: urn:intuitem:risk:req_node:appsec_manual:saas_non_conformity_remediation
@@ -3923,7 +3941,7 @@ test_metadata:
   expected_threats_count: 9
   expected_vulnerabilities_count: 18
   expected_reference_controls_count: 26
-  expected_requirement_nodes_count: 62
+  expected_requirement_nodes_count: 63
   matrix_dimensions:
     likelihood_levels: 4
     impact_levels: 4

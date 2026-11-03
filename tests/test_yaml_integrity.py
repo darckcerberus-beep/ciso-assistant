@@ -1330,6 +1330,7 @@ class TestYamlIntegrity(unittest.TestCase):
             "info",
             "stakeholder_identification",
             "data_classification",
+            "pci_dss_scoping",
             "hosting",
         ]
         for ref_id in chapter1_nodes:
@@ -1349,8 +1350,8 @@ class TestYamlIntegrity(unittest.TestCase):
             "network_exposure in appsec_manual must be scoped to self-hosted apps ['custom_app', 'cots_app']",
         )
 
-        # 4. Total requirement nodes (62 after splitting contractual vs operational checks) and scenarios
-        self.assertEqual(len(manual_fw["req_nodes"]), 62)
+        # 4. Total requirement nodes (63 after splitting contractual vs operational checks and moving PCI-DSS scoping to info) and scenarios
+        self.assertEqual(len(manual_fw["req_nodes"]), 63)
         self.assertEqual(len(manual_fw["scenarios"]), 20)
         self.assertEqual(len(manual_fw["threats"]), 9)
         self.assertEqual(len(manual_fw["vulns"]), 18)
@@ -1376,6 +1377,16 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertIsNotNone(saas_sla, "saas_vulnerability_remediation_sla missing in appsec_manual")
         self.assertEqual(saas_sla.get("implementation_groups"), ["saas_app"])
         self.assertEqual(len(saas_sla.get("questions", {})), 1)
+
+        pci_scoping = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:pci_dss_scoping")
+        self.assertIsNotNone(pci_scoping, "pci_dss_scoping missing in appsec_manual")
+        self.assertEqual(pci_scoping.get("implementation_groups"), ["info"])
+        self.assertEqual(len(pci_scoping.get("questions", {})), 1)
+
+        saas_pci = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:saas_pci_dss")
+        self.assertIsNotNone(saas_pci, "saas_pci_dss missing in appsec_manual")
+        self.assertEqual(saas_pci.get("implementation_groups"), ["saas_app"])
+        self.assertEqual(len(saas_pci.get("questions", {})), 1)
 
 
 if __name__ == "__main__":

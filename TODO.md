@@ -366,6 +366,18 @@ Identified and resolved the issue where non-relevant Custom software, COTS, and 
   - Verified live audit questionnaire reduced from 62 to exactly 27 relevant questions (Chapter 1 info, Chapter 2 IAM SSO & RBAC, Chapter 10 SaaS requirements).
   - All 252 unit tests pass (`python3 -m unittest discover tests`).
 
+---
+
+## 22. Relocation of PCI-DSS Scoping to Info Section in `appsec_manual.yml` (Version 3)
+
+Relocated the PCI-DSS scoping question from the SaaS-specific track into Chapter 1 (`info`) to enable universal payment card data profiling during initial application onboarding:
+- **Dedicated Profiling Requirement Node in Chapter 1**: Added [`pci_dss_scoping`](file:///home/python/ciso-assistant/YML/appsec_manual.yml#L1586) (*"PCI DSS Payment Card Scoping"*) under `parent_urn: urn:intuitem:risk:req_node:appsec_manual:info` with `implementation_groups: ["info"]`, capturing whether the application processes, stores, or transmits payment card data (`pci_dss_scoping:q1`).
+- **Normalized SaaS PCI DSS Contractual Governance**:
+  - In Chapter 10 (`saas_chapter`), updated [`saas_pci_dss`](file:///home/python/ciso-assistant/YML/appsec_manual.yml#L3821) to focus strictly on contractual compliance (requiring active PCI DSS certification, annual AOC, and dedicated incident procedures).
+  - Removed cross-node dependency and added an explicit `Not applicable - No payment card data processed` option (100 pts) alongside `Yes` (100 pts) and `No` (0 pts) for SaaS respondents.
+- **Framework Version & Test Metadata**: Incremented to `version: 3` with `expected_requirement_nodes_count: 63`.
+- **Automated Validation**: Updated test assertions in [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py) (`test_appsec_manual_structure_and_scoping`). All tests pass.
+
 
 
 
