@@ -1324,14 +1324,14 @@ class TestYamlIntegrity(unittest.TestCase):
                         f"Choice {c.get('urn')} in appsec_manual must not have select_implementation_groups",
                     )
 
-        # 3. Chapter 1 profiling questions are scoped to info group (network_exposure is scoped to custom_app, cots_app)
+        # 3. Chapter 1 profiling questions are scoped to info group
         chapter1_nodes = [
             "instructions_splash",
             "info",
             "stakeholder_identification",
             "data_classification",
-            "pci_dss_scoping",
             "hosting",
+            "network_exposure",
         ]
         for ref_id in chapter1_nodes:
             node = manual_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec_manual:{ref_id}")
@@ -1344,14 +1344,10 @@ class TestYamlIntegrity(unittest.TestCase):
 
         net_node = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:network_exposure")
         self.assertIsNotNone(net_node, "Node network_exposure missing in appsec_manual")
-        self.assertEqual(
-            set(net_node.get("implementation_groups", [])),
-            {"custom_app", "cots_app"},
-            "network_exposure in appsec_manual must be scoped to self-hosted apps ['custom_app', 'cots_app']",
-        )
+        self.assertEqual(len(net_node.get("questions", {})), 1)
 
-        # 4. Total requirement nodes (63 after splitting contractual vs operational checks and moving PCI-DSS scoping to info) and scenarios
-        self.assertEqual(len(manual_fw["req_nodes"]), 63)
+        # 4. Total requirement nodes (62 after splitting contractual vs operational checks) and scenarios
+        self.assertEqual(len(manual_fw["req_nodes"]), 62)
         self.assertEqual(len(manual_fw["scenarios"]), 20)
         self.assertEqual(len(manual_fw["threats"]), 9)
         self.assertEqual(len(manual_fw["vulns"]), 18)
@@ -1378,15 +1374,10 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertEqual(saas_sla.get("implementation_groups"), ["saas_app"])
         self.assertEqual(len(saas_sla.get("questions", {})), 1)
 
-        pci_scoping = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:pci_dss_scoping")
-        self.assertIsNotNone(pci_scoping, "pci_dss_scoping missing in appsec_manual")
-        self.assertEqual(pci_scoping.get("implementation_groups"), ["info"])
-        self.assertEqual(len(pci_scoping.get("questions", {})), 1)
-
         saas_pci = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:saas_pci_dss")
         self.assertIsNotNone(saas_pci, "saas_pci_dss missing in appsec_manual")
         self.assertEqual(saas_pci.get("implementation_groups"), ["saas_app"])
-        self.assertEqual(len(saas_pci.get("questions", {})), 1)
+        self.assertEqual(len(saas_pci.get("questions", {})), 2)
 
 
 if __name__ == "__main__":

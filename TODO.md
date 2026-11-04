@@ -368,15 +368,31 @@ Identified and resolved the issue where non-relevant Custom software, COTS, and 
 
 ---
 
-## 22. Relocation of PCI-DSS Scoping to Info Section in `appsec_manual.yml` (Version 3)
+## 22. Generalized PCI-DSS Scoping Phrasing in SaaS Track (Version 3)
 
-Relocated the PCI-DSS scoping question from the SaaS-specific track into Chapter 1 (`info`) to enable universal payment card data profiling during initial application onboarding:
-- **Dedicated Profiling Requirement Node in Chapter 1**: Added [`pci_dss_scoping`](file:///home/python/ciso-assistant/YML/appsec_manual.yml#L1586) (*"PCI DSS Payment Card Scoping"*) under `parent_urn: urn:intuitem:risk:req_node:appsec_manual:info` with `implementation_groups: ["info"]`, capturing whether the application processes, stores, or transmits payment card data (`pci_dss_scoping:q1`).
-- **Normalized SaaS PCI DSS Contractual Governance**:
-  - In Chapter 10 (`saas_chapter`), updated [`saas_pci_dss`](file:///home/python/ciso-assistant/YML/appsec_manual.yml#L3821) to focus strictly on contractual compliance (requiring active PCI DSS certification, annual AOC, and dedicated incident procedures).
-  - Removed cross-node dependency and added an explicit `Not applicable - No payment card data processed` option (100 pts) alongside `Yes` (100 pts) and `No` (0 pts) for SaaS respondents.
-- **Framework Version & Test Metadata**: Incremented to `version: 3` with `expected_requirement_nodes_count: 63`.
-- **Automated Validation**: Updated test assertions in [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py) (`test_appsec_manual_structure_and_scoping`). All tests pass.
+Maintained PCI-DSS scoping and contractual governance strictly under Chapter 10 (`saas_chapter` / `saas_pci_dss`) for SaaS applications only, while generalizing the scoping question phrasing to capture all in-scope systems (including connected-to and security-impacting applications that do not directly handle cardholder data):
+- **SaaS-Only Scoping & Governance**: Kept PCI-DSS evaluation strictly under [`saas_pci_dss`](file:///home/python/ciso-assistant/YML/appsec_manual.yml#L3770) (`implementation_groups: ["saas_app"]`), keeping Chapter 1 (`info`) focused strictly on baseline organizational profiling (stakeholders, data classification, hosting model).
+- **Generalized Scoping Question (`q1`)**:
+  - Text: *"Is the application or service in scope for PCI DSS? (e.g., processes, stores, or transmits cardholder data, connects to the Cardholder Data Environment, or can impact the security of the CDE)"*.
+  - Choices: `No - Out of scope / Not applicable` (100 pts) and `Yes - In scope for PCI DSS` (0 pts).
+- **Conditional Contractual Compliance Question (`q2`)**:
+  - Text: *"If in scope for PCI DSS, does the contract require and does the provider maintain active PCI DSS certification, provide an annual AOC, and enforce dedicated payment incident procedures with immediate notification?"*.
+  - Choices: `Yes` (100 pts) and `No` (0 pts).
+  - Evaluated conditionally when `q1` indicates in scope (`Yes`).
+- **Synchronized Frameworks**: Aligned generic PCI DSS scoping phrasing across both [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml) and [`YML/appsec.yml`](file:///home/python/ciso-assistant/YML/appsec.yml).
+- **Framework Version & Test Metadata**: Maintained `version: 3` with `expected_requirement_nodes_count: 62`.
+- **Automated Validation**: Verified all test assertions in [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py) (`test_appsec_manual_structure_and_scoping`). All 50 tests pass.
+
+---
+
+## 23. Network Exposure Scoped to Info Section in `appsec_manual.yml` (Version 3)
+
+Reinstated the network exposure question (`network_exposure`) into the general profiling `info` section in [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml#L1618):
+- **Scoping to Info Group**: Changed `implementation_groups` from `["custom_app", "cots_app"]` to `["info"]` under Chapter 1 (`parent_urn: urn:intuitem:risk:req_node:appsec_manual:info`), ensuring all applications answer network accessibility tier profiling (`Internal / Restricted Network only` vs. `Internet-facing`) during the initial `info` audit stage before specific tracks are assigned.
+- **Generic Profiling Description**: Updated description to *"Determine whether the application is accessible from the public Internet or restricted to private internal networks."*
+- **Automated Validation**:
+  - Updated [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py) to include `network_exposure` among Chapter 1 `info`-scoped nodes.
+  - Verified tests pass in both [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py) and [`tests/test_implementation_groups.py`](file:///home/python/ciso-assistant/tests/test_implementation_groups.py) (50/50 passed).
 
 
 

@@ -1583,38 +1583,6 @@ objects:
                 value: "Secret"
                 color: "#dc3545"
 
-      # Requirement: Determine PCI DSS payment card data scoping
-      - urn: urn:intuitem:risk:req_node:appsec_manual:pci_dss_scoping
-        assessable: true
-        depth: 2
-        parent_urn: urn:intuitem:risk:req_node:appsec_manual:info
-        ref_id: pci_dss_scoping
-        name: "PCI DSS Payment Card Scoping"
-        description: "Determine whether the application processes, stores, or transmits payment cardholder data subject to PCI DSS compliance requirements."
-        annotation: >
-          Cardholder Data Environment (CDE) scoping under PCI DSS:
-          - No: The application does not handle, process, transmit, or store payment cardholder data (Primary Account Number / PAN, CVV, expiration date).
-          - Yes: The application processes, stores, or transmits payment card data and is subject to PCI DSS compliance obligations.
-        typical_evidence: >
-          - PCI DSS scoping document and Cardholder Data Environment (CDE) boundary diagram
-          - Data flow diagram identifying cardholder data flows, payment gateways, and tokenization services
-        implementation_groups: ["info"]
-        questions:
-          urn:intuitem:risk:req_node:appsec_manual:pci_dss_scoping:q1:
-            type: unique_choice
-            text: "Does the application process, store, or transmit payment card data?"
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec_manual:pci_dss_scoping:q1:c1
-                value: "No - Out of scope / Not applicable"
-                add_score: 100
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec_manual:pci_dss_scoping:q1:c2
-                value: "Yes - Payment data is processed"
-                add_score: 100
-                compute_result: true
-                color: "#fd7e14"
-
       # Requirement: Determine hosting model
       - urn: urn:intuitem:risk:req_node:appsec_manual:hosting
         assessable: true
@@ -1654,16 +1622,15 @@ objects:
         parent_urn: urn:intuitem:risk:req_node:appsec_manual:info
         ref_id: network_exposure
         name: Application Network Exposure
-        description: "Determine whether self-hosted applications (Custom or COTS) are accessible from the public Internet or restricted to private internal networks. (Third-party SaaS applications are evaluated under Chapter 10 for cloud perimeter defenses)."
+        description: "Determine whether the application is accessible from the public Internet or restricted to private internal networks."
         annotation: >
-          Network accessibility tier for self-hosted applications (Custom or COTS):
+          Network accessibility tier:
           - Internal / Restricted: Accessible exclusively from internal corporate networks, private VPC endpoints, or via VPN with zero public Internet reachability.
-          - Internet-facing: Accessible directly over the public Internet (customer portals, public web apps, mobile backends). Used to assign the Internet-Facing track (internet_facing) for self-hosted perimeter controls.
-          Note: Third-party SaaS solutions do not activate the self-hosted internet_facing track; their perimeter defenses (WAF/DDoS) and external penetration testing are governed by cloud provider controls in Chapter 10.
+          - Internet-facing: Accessible directly over the public Internet (customer portals, public web apps, mobile backends). Used to assign the Internet-Facing track (internet_facing) for perimeter controls.
         typical_evidence: >
           - Network zoning diagram showing DMZ, perimeter firewalls, and reverse proxies
           - DNS configuration and IP address allocation records
-        implementation_groups: ["custom_app", "cots_app"]
+        implementation_groups: ["info"]
         questions:
           urn:intuitem:risk:req_node:appsec_manual:network_exposure:q1:
             type: unique_choice
@@ -3803,12 +3770,12 @@ objects:
         parent_urn: urn:intuitem:risk:req_node:appsec_manual:saas_chapter
         ref_id: saas_pci_dss
         name: "PCI DSS Payment Security"
-        description: "Maintain PCI DSS certification for payment data environments, provide annual AOCs, implement dedicated cardholder incident procedures, and immediately notify payment incidents."
+        description: "Maintain PCI DSS certification for in-scope payment environments, provide annual AOCs, implement dedicated cardholder incident procedures, and immediately notify payment incidents."
         annotation: >
           Contractual requirements:
-          - Valid PCI DSS certification for environments processing, storing, or transmitting cardholder data.
+          - Valid PCI DSS certification for environments in scope for PCI DSS (CDE, connected-to, or security-impacting).
           - Annual provision of Attestation of Compliance (AOC).
-          - Dedicated payment card incident response procedure with immediate client notification.
+          - Dedicated payment incident response procedure with immediate client notification.
         typical_evidence: >
           - Valid PCI DSS Attestation of Compliance (AOC) signed by Qualified Security Assessor (QSA)
           - Payment Incident Response SOP and immediate notification procedure
@@ -3820,23 +3787,36 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec_manual:saas_pci_dss:q1:
             type: unique_choice
-            text: "If payment card data is processed, does the contract require and does the provider maintain active PCI DSS certification, provide an annual AOC, and enforce dedicated payment incident procedures with immediate notification?"
+            text: "Is the application or service in scope for PCI DSS? (e.g., processes, stores, or transmits cardholder data, connects to the Cardholder Data Environment, or can impact the security of the CDE)"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_pci_dss:q1:c1
-                value: "Yes"
+                value: "No - Out of scope / Not applicable"
                 add_score: 100
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_pci_dss:q1:c2
+                value: "Yes - In scope for PCI DSS"
+                add_score: 0
+                compute_result: false
+                color: "#fd7e14"
+          urn:intuitem:risk:req_node:appsec_manual:saas_pci_dss:q2:
+            type: unique_choice
+            text: "If in scope for PCI DSS, does the contract require and does the provider maintain active PCI DSS certification, provide an annual AOC, and enforce dedicated payment incident procedures with immediate notification?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec_manual:saas_pci_dss:q1
+              answers: ["urn:intuitem:risk:req_node:appsec_manual:saas_pci_dss:q1:c2"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_pci_dss:q2:c1
+                value: "Yes"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_pci_dss:q2:c2
                 value: "No"
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
-              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_pci_dss:q1:c3
-                value: "Not applicable - No payment card data processed"
-                add_score: 100
-                compute_result: true
-                color: "#33a745"
 
       # Section 21: Non-Conformity Management & Contractual Remedies
       - urn: urn:intuitem:risk:req_node:appsec_manual:saas_non_conformity_remediation
@@ -3941,7 +3921,7 @@ test_metadata:
   expected_threats_count: 9
   expected_vulnerabilities_count: 18
   expected_reference_controls_count: 26
-  expected_requirement_nodes_count: 63
+  expected_requirement_nodes_count: 62
   matrix_dimensions:
     likelihood_levels: 4
     impact_levels: 4

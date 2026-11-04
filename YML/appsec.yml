@@ -3670,12 +3670,12 @@ objects:
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_pci_dss
         name: "PCI DSS Payment Security"
-        description: "Maintain PCI DSS certification for payment data environments, provide annual AOCs, implement dedicated cardholder incident procedures, and immediately notify payment incidents."
+        description: "Maintain PCI DSS certification for in-scope payment environments, provide annual AOCs, implement dedicated cardholder incident procedures, and immediately notify payment incidents."
         annotation: >
           Contractual requirements:
-          - Valid PCI DSS certification for environments processing, storing, or transmitting cardholder data.
+          - Valid PCI DSS certification for environments in scope for PCI DSS (CDE, connected-to, or security-impacting).
           - Annual provision of Attestation of Compliance (AOC).
-          - Dedicated payment card incident response procedure with immediate client notification.
+          - Dedicated payment incident response procedure with immediate client notification.
         typical_evidence: >
           - Valid PCI DSS Attestation of Compliance (AOC) signed by Qualified Security Assessor (QSA)
           - Payment Incident Response SOP and immediate notification procedure
@@ -3687,7 +3687,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec:saas_pci_dss:q1:
             type: unique_choice
-            text: "Does the application process, store, or transmit payment card data?"
+            text: "Is the application or service in scope for PCI DSS? (e.g., processes, stores, or transmits cardholder data, connects to the Cardholder Data Environment, or can impact the security of the CDE)"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:saas_pci_dss:q1:c1
                 value: "No - Out of scope / Not applicable"
@@ -3695,13 +3695,13 @@ objects:
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec:saas_pci_dss:q1:c2
-                value: "Yes - Payment data is processed"
+                value: "Yes - In scope for PCI DSS"
                 add_score: 0
                 compute_result: false
                 color: "#fd7e14"
           urn:intuitem:risk:req_node:appsec:saas_pci_dss:q2:
             type: unique_choice
-            text: "If payment card data is processed, does the contract require and does the provider maintain active PCI DSS certification, provide an annual AOC, and enforce dedicated payment incident procedures with immediate notification?"
+            text: "If in scope for PCI DSS, does the contract require and does the provider maintain active PCI DSS certification, provide an annual AOC, and enforce dedicated payment incident procedures with immediate notification?"
             depends_on:
               question: urn:intuitem:risk:req_node:appsec:saas_pci_dss:q1
               answers: ["urn:intuitem:risk:req_node:appsec:saas_pci_dss:q1:c2"]
