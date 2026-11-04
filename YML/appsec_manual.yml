@@ -2943,7 +2943,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec_manual:saas_governance_and_policy:q1:
             type: unique_choice
-            text: "Does the contract require and does the provider maintain an Information Security Policy based on a recognized framework (such as ISO 27001), updated at least annually?"
+            text: "Does the contract require the provider to maintain an Information Security Policy based on a recognized framework (such as ISO 27001), updated at least annually?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_governance_and_policy:q1:c1
                 value: "Yes"
@@ -2957,7 +2957,7 @@ objects:
                 color: "#dc3545"
           urn:intuitem:risk:req_node:appsec_manual:saas_governance_and_policy:q2:
             type: unique_choice
-            text: "Does the contract require and does the provider maintain an active Information Security Management System (ISMS) and perform risk analyses at least annually?"
+            text: "Does the contract require the provider to maintain an active Information Security Management System (ISMS) and perform risk analyses at least annually?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_governance_and_policy:q2:c1
                 value: "Yes"
@@ -3046,7 +3046,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec_manual:saas_security_awareness:q1:
             type: unique_choice
-            text: "Does the contract require and are vendor personnel trained and sensitized to cybersecurity risks, data breaches, and non-compliance consequences at least annually?"
+            text: "Does the contract require vendor personnel to be trained and sensitized to cybersecurity risks, data breaches, and non-compliance consequences at least annually?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_security_awareness:q1:c1
                 value: "Yes"
@@ -3060,7 +3060,7 @@ objects:
                 color: "#dc3545"
           urn:intuitem:risk:req_node:appsec_manual:saas_security_awareness:q2:
             type: unique_choice
-            text: "Does the contract require and are formal security incident reporting procedures disseminated and maintained accessible to all staff?"
+            text: "Does the contract require formal security incident reporting procedures to be disseminated and maintained accessible to all staff?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_security_awareness:q2:c1
                 value: "Yes"
@@ -3134,7 +3134,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec_manual:saas_entitlements_and_privileges:q1:
             type: unique_choice
-            text: "Does the contract require and does the provider apply least privilege and Role-Based Access Control (RBAC), restricting admin rights and maintaining an inventory of privileged accounts across its internal personnel?"
+            text: "Does the contract require the provider to apply least privilege and Role-Based Access Control (RBAC), restricting admin rights and maintaining an inventory of privileged accounts across its internal personnel?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_entitlements_and_privileges:q1:c1
                 value: "Yes"
@@ -3148,7 +3148,7 @@ objects:
                 color: "#dc3545"
           urn:intuitem:risk:req_node:appsec_manual:saas_entitlements_and_privileges:q2:
             type: unique_choice
-            text: "Does the contract mandate and does the provider conduct periodic access reviews and recertifications of its internal personnel granted privileged or operational access to tenant data and infrastructure?"
+            text: "Does the contract require the provider to conduct periodic access reviews and recertifications of its internal personnel granted privileged or operational access to tenant data and infrastructure?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_entitlements_and_privileges:q2:c1
                 value: "Yes"
@@ -3191,7 +3191,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec_manual:saas_logging_and_incidents:q1:
             type: unique_choice
-            text: "Does the contract require and does the SaaS solution record tamper-resistant logs of logins, logouts, access, and administrative actions, with continuous monitoring and audit telemetry export into the client SIEM?"
+            text: "Does the contract require the SaaS solution to record tamper-resistant logs of logins, logouts, access, and administrative actions, with continuous monitoring and audit telemetry export into the client SIEM?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_logging_and_incidents:q1:c1
                 value: "Yes"
@@ -3205,7 +3205,7 @@ objects:
                 color: "#dc3545"
           urn:intuitem:risk:req_node:appsec_manual:saas_logging_and_incidents:q2:
             type: unique_choice
-            text: "Does the contract legally bind the provider to notify the client of any security incident or anomaly within a maximum of 48 hours of discovery, and is a formal incident notification and escalation procedure operational?"
+            text: "Does the contract legally bind the provider to notify the client of any security incident or anomaly within a maximum of 48 hours of discovery?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_logging_and_incidents:q2:c1
                 value: "Yes"
@@ -3248,7 +3248,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec_manual:saas_workstation_security:q1:
             type: unique_choice
-            text: "Does the contract require and are provider workstations protected by session auto-lock after inactivity, active local firewalls, hardened configurations, and updated EDR/antivirus?"
+            text: "Does the contract require provider workstations to be protected by session auto-lock after inactivity, active local firewalls, hardened configurations, and updated EDR/antivirus?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_workstation_security:q1:c1
                 value: "Yes"
@@ -3262,7 +3262,7 @@ objects:
                 color: "#dc3545"
           urn:intuitem:risk:req_node:appsec_manual:saas_workstation_security:q2:
             type: unique_choice
-            text: "Does the contract require and are all workstations and removable media fully encrypted, governed by patch management and a formal lost/compromised equipment procedure?"
+            text: "Does the contract require all workstations and removable media to be fully encrypted, governed by patch management and a formal lost/compromised equipment procedure?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_workstation_security:q2:c1
                 value: "Yes"
@@ -3301,7 +3301,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec_manual:saas_mobile_security:q1:
             type: unique_choice
-            text: "Does the contract require and are mobile devices accessing the service governed by a formal MDM policy with mandatory device encryption, remote wipe capabilities, and controlled data synchronization?"
+            text: "Does the contract require mobile devices accessing the service to be governed by a formal MDM policy with mandatory device encryption, remote wipe capabilities, and controlled data synchronization?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_mobile_security:q1:c1
                 value: "Yes"
@@ -3341,7 +3341,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec_manual:saas_network_security:q1:
             type: unique_choice
-            text: "Does the contract mandate and does the provider enforce a formal network security policy with strict ingress/egress filtering, anti-DDoS and WAF protections (e.g. Cloudflare, or competitor services such as AWS WAF & Shield, Google Cloud Armor, Azure WAF, Akamai, Fastly, Imperva), secure Wi-Fi, and protected remote access (VPN/ZTNA)?"
+            text: "Does the contract require the provider to enforce a formal network security policy with strict ingress/egress filtering, anti-DDoS and WAF protections (e.g. Cloudflare, or competitor services such as AWS WAF & Shield, Google Cloud Armor, Azure WAF, Akamai, Fastly, Imperva), secure Wi-Fi, and protected remote access (VPN/ZTNA)?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_network_security:q1:c1
                 value: "Yes"
@@ -3379,7 +3379,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec_manual:saas_environment_isolation:q1:
             type: unique_choice
-            text: "Does the contract require and does the SaaS architecture enforce robust logical or physical client environment isolation, traffic filtering, and antimalware defenses?"
+            text: "Does the contract require the SaaS architecture to enforce robust logical or physical client environment isolation, traffic filtering, and antimalware defenses?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_environment_isolation:q1:c1
                 value: "Yes"
@@ -3418,7 +3418,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec_manual:saas_secure_development:q1:
             type: unique_choice
-            text: "Does the contract require and is source code stored in secure repositories with mandatory peer reviews and strict segregation between development, test, and production environments?"
+            text: "Does the contract require source code to be stored in secure repositories with mandatory peer reviews and strict segregation between development, test, and production environments?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_secure_development:q1:c1
                 value: "Yes"
@@ -3470,7 +3470,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec_manual:saas_web_app_security:q1:
             type: unique_choice
-            text: "Does the contract require and are web services protected with TLS 1.2+ minimum, network ports restricted to the strict minimum, and administrative interfaces strictly controlled?"
+            text: "Does the contract require web services to be protected with TLS 1.2+ minimum, network ports restricted to the strict minimum, and administrative interfaces strictly controlled?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_web_app_security:q1:c1
                 value: "Yes"
@@ -3582,7 +3582,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec_manual:saas_data_hosting_and_residency:q1:
             type: unique_choice
-            text: "Does the contract mandate and is all customer data (including primary databases, processing pipelines, and backups) hosted primarily within the European Union (EU) or European Economic Area (EEA)?"
+            text: "Does the contract mandate that all customer data (including primary databases, processing pipelines, and backups) be hosted primarily within the European Union (EU) or European Economic Area (EEA)?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_data_hosting_and_residency:q1:c1
                 value: "Yes"
@@ -3621,7 +3621,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec_manual:saas_physical_security:q1:
             type: unique_choice
-            text: "Does the contract require and are provider facilities and datacenters secured with badge access controls, sensitive zone restrictions, trace logging, and regular physical access reviews?"
+            text: "Does the contract require provider facilities and datacenters to be secured with badge access controls, sensitive zone restrictions, trace logging, and regular physical access reviews?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_physical_security:q1:c1
                 value: "Yes"
@@ -3661,7 +3661,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec_manual:saas_backup_and_business_continuity:q1:
             type: unique_choice
-            text: "Does the contract require and are automated backups encrypted, immutable, and verified through regular documented restoration tests?"
+            text: "Does the contract require automated backups to be encrypted, immutable, and verified through regular documented restoration tests?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_backup_and_business_continuity:q1:c1
                 value: "Yes"
@@ -3675,7 +3675,7 @@ objects:
                 color: "#dc3545"
           urn:intuitem:risk:req_node:appsec_manual:saas_backup_and_business_continuity:q2:
             type: unique_choice
-            text: "Does the contract mandate and does the provider maintain documented BCP/DRP plans tested at least annually, with contractually defined RTO and RPO targets?"
+            text: "Does the contract require the provider to maintain documented BCP/DRP plans tested at least annually, with contractually defined RTO and RPO targets?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_backup_and_business_continuity:q2:c1
                 value: "Yes"
@@ -3713,7 +3713,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec_manual:saas_subcontractor_management:q1:
             type: unique_choice
-            text: "Does the contract mandate and does the vendor maintain a formal subcontractor vetting process with documented compliance verification, while assuming full liability for all downstream subcontractors?"
+            text: "Does the contract require the vendor to maintain a formal subcontractor vetting process with documented compliance verification, while assuming full liability for all downstream subcontractors?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_subcontractor_management:q1:c1
                 value: "Yes"
@@ -3750,7 +3750,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec_manual:saas_audit_and_compliance:q1:
             type: unique_choice
-            text: "Does the contract legally grant the client (or an authorized third party) the right to audit (e.g., review independent annual SOC 2 Type II or ISO 27001 reports), and does the provider perform annual compliance checks and actively provide audit evidence and remediation plans?"
+            text: "Does the contract legally grant the client (or an authorized third party) the right to audit (e.g., review independent annual SOC 2 Type II or ISO 27001 reports)?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_audit_and_compliance:q1:c1
                 value: "Yes"
@@ -3801,7 +3801,7 @@ objects:
                 color: "#fd7e14"
           urn:intuitem:risk:req_node:appsec_manual:saas_pci_dss:q2:
             type: unique_choice
-            text: "If in scope for PCI DSS, does the contract require and does the provider maintain active PCI DSS certification, provide an annual AOC, and enforce dedicated payment incident procedures with immediate notification?"
+            text: "If in scope for PCI DSS, does the contract require the provider to maintain active PCI DSS certification, provide an annual AOC, and enforce dedicated payment incident procedures with immediate notification?"
             depends_on:
               question: urn:intuitem:risk:req_node:appsec_manual:saas_pci_dss:q1
               answers: ["urn:intuitem:risk:req_node:appsec_manual:saas_pci_dss:q1:c2"]
