@@ -72,6 +72,12 @@ answers:
     result: "compliant"
     observation: "Cloud-native microservices on Amazon Web Services (AWS) managed multi-tenant SaaS infrastructure with strict tenant segregation."
 
+  - requirement: "hosting"
+    question: "Is the SaaS vendor ISO/IEC 27001 or SOC 2 Type II certified?"
+    answer: "Yes - The SaaS vendor holds an active ISO/IEC 27001 certification or SOC 2 Type II report"
+    result: "compliant"
+    observation: "Vendor holds active ISO/IEC 27001:2022 certification and annual SOC 2 Type II report."
+
   # ============================================================================
   # CHAPTER 2: IDENTITY, AUTHENTICATION & ACCESS CONTROL
   # ============================================================================
@@ -214,17 +220,17 @@ answers:
   # CHAPTER 9: TESTING, PATCHING & RESILIENCE
   # ============================================================================
 
-  - requirement: "saas_penetration_testing_and_vulnerability_management"
+  - requirement: "saas_audit_and_compliance"
+    question: "Does the contract legally grant the client (or an authorized independent third party) the right to audit the provider and obtain compliance evidence to verify adherence to contractual security obligations?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Enterprise agreement includes explicit Right to Audit and annual compliance evidence delivery."
+
+  - requirement: "saas_audit_and_compliance"
     question: "How is independent penetration testing governed and performed on the SaaS platform?"
     answer: "The SaaS vendor does the pentest (contract mandates that the vendor undergoes annual independent penetration tests and provides audit reports/attestations)"
     result: "compliant"
     observation: "Annual external penetration test completed by CREST-accredited vendor in May 2026."
-
-  - requirement: "saas_penetration_testing_and_vulnerability_management"
-    question: "Does the SaaS contract commit the provider to formal vulnerability remediation SLAs (e.g. Critical within 7 days, High within 30 days)?"
-    answer: "Yes"
-    result: "compliant"
-    observation: "Strict remediation SLA enforced: Critical within 48 hours, High within 14 days; 100% SLA compliance achieved in 2026."
 
   - requirement: "backup_and_disaster_recovery"
     question: "Are automated and encrypted backups maintained for application state and databases, with restoration tests performed at least annually?"
@@ -345,8 +351,8 @@ expected_risk_scenarios:
     risk_level: 2
     control_priority: 3
 
-  - scenario: "Exploitation of unpatched SaaS vulnerability"
-    likelihood_requirement: "saas_penetration_testing_and_vulnerability_management"
+  - scenario: "Reliance on unverified SaaS security posture"
+    likelihood_requirement: "saas_audit_and_compliance"
     likelihood_score: 100
     scaled_likelihood: 1
     scaled_impact: 4

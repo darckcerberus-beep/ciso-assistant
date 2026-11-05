@@ -29,7 +29,7 @@ description: >
   Supports both internally managed applications and SaaS solutions whose security controls
   are defined with a contract and certified via third-party audit reports (SOC 2, ISO 27001).
 copyright: DCME Corp
-version: 25
+version: 26
 publication_date: 2026-11-05
 provider: DCME Corp
 packager: DCME Corp
@@ -323,8 +323,8 @@ objects:
       name: "Exploitation of unpatched SaaS vulnerability"
       description: >
         Known security vulnerabilities in the third-party SaaS platform remain unaddressed due to the absence
-        of independent penetration test attestations, vendor testing refusals, or uncommitted remediation SLAs.
-      likelihood: urn:intuitem:risk:req_node:appsec:saas_penetration_testing_and_vulnerability_management
+        of contractually binding vulnerability remediation SLAs.
+      likelihood: urn:intuitem:risk:req_node:appsec:saas_vulnerability_remediation_sla
       impact: urn:intuitem:risk:req_node:appsec:data_classification
       threats:
         - urn:intuitem:risk:threat:appsec:unauthorized_access
@@ -1353,7 +1353,11 @@ objects:
       - urn: urn:intuitem:risk:ig:appsec:saas_app
         name: "SaaS Application Track"
         ref_id: "saas_app"
-        description: "Requirements and contractual governance for third-party SaaS applications where security controls are defined with a contract (e.g. MSA, DPA, SLA, SOC 2 / ISO 27001)"
+        description: "Core contractual, data protection, and tenant security requirements for third-party SaaS applications (Master SaaS Agreement, confidentiality & encryption, admin MFA, EU data residency, audit rights, PCI DSS, and non-conformity remedies)"
+      - urn: urn:intuitem:risk:ig:appsec:saas_uncertified
+        name: "Uncertified SaaS Vendor Track (Detailed Security Assessment)"
+        ref_id: "saas_uncertified"
+        description: "Detailed security and operational control requirements for SaaS applications whose vendor is not ISO/IEC 27001 or SOC 2 Type II certified (ISMS, security awareness, internal privileges, logging, workstation/mobile security, network/environment isolation, secure SDLC, web app security, penetration testing & SLAs, physical security, backup/BCP, and subcontractor management)"
       - urn: urn:intuitem:risk:ig:appsec:baseline
         name: "Application Security Baseline"
         ref_id: "baseline"
@@ -1518,24 +1522,25 @@ objects:
                 color: "#dc3545"
 
 
-      # Requirement: Determine hosting model & network exposure
+      # Requirement: Determine hosting model, network exposure & SaaS vendor certification
       - urn: urn:intuitem:risk:req_node:appsec:hosting
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:info
         ref_id: hosting
         name: Application Delivery & Network Exposure
-        description: "Determine the application delivery and hosting model (Custom software, Bought COTS, or third-party SaaS) and its network exposure (Internal restricted network or Internet-facing)."
+        description: "Determine the application delivery and hosting model (Custom software, Bought COTS, or third-party SaaS), its network exposure (for self-hosted apps), and SaaS vendor ISO/IEC 27001 or SOC 2 Type II certification status."
         annotation: >
-          Application delivery, hosting model, and network exposure classification:
+          Application delivery, hosting model, network exposure, and SaaS vendor certification classification:
           - Custom software created and deployed by my teams: In-house developed software where source code is written and maintained internally. Subject to internal DevSecOps (SAST, DAST, SCA/SBOM, peer code review) and self-hosted network exposure discrimination.
           - Bought software deployed by my teams: Commercial Off-The-Shelf (COTS) or vendor software package deployed on internal infrastructure. Subject to vendor security patch management, CVE tracking, deployment configuration hardening, and self-hosted network exposure discrimination.
-          - SaaS: Third-party software hosted and operated by a vendor. SaaS applications are inherently hosted on external cloud infrastructure and governed via Chapter 10 (saas_app). Edge perimeter protections and rate limiting (api_security_and_rate_limiting) are bypassed as they are implicitly maintained by the provider to protect their own infrastructure.
+          - SaaS: Third-party software hosted and operated by a vendor. SaaS applications are inherently hosted on external cloud infrastructure and governed via Chapter 10 (saas_app). If the SaaS vendor is not ISO/IEC 27001 or SOC 2 Type II certified, the detailed Uncertified SaaS Vendor Track (saas_uncertified) is triggered.
           - Network exposure tier for self-hosted apps: Internal / Restricted (accessible only within corporate networks/VPN) vs Internet-facing (accessible over the public Internet, activating the internet_facing track).
         typical_evidence: >
           - Architecture design document (ADD) / System topology diagram
           - Software procurement contract, vendor license, or Git repository metadata
           - Network zoning diagram showing DMZ, perimeter firewalls, and reverse proxies
+          - SaaS vendor ISO/IEC 27001 certificate or SOC 2 Type II attestation report
         implementation_groups: ["baseline"]
         questions:
           urn:intuitem:risk:req_node:appsec:hosting:q1:
@@ -1574,6 +1579,26 @@ objects:
                 add_score: 100
                 compute_result: true
                 select_implementation_groups: ["internet_facing"]
+                color: "#fd7e14"
+          urn:intuitem:risk:req_node:appsec:hosting:q3:
+            type: unique_choice
+            text: "Is the SaaS vendor ISO/IEC 27001 or SOC 2 Type II certified?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec:hosting:q1
+              answers:
+                - urn:intuitem:risk:req_node:appsec:hosting:q1:c3
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:hosting:q3:c1
+                value: "Yes - The SaaS vendor holds an active ISO/IEC 27001 certification or SOC 2 Type II report"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:hosting:q3:c2
+                value: "No - The SaaS vendor is not ISO/IEC 27001 or SOC 2 Type II certified"
+                add_score: 100
+                compute_result: true
+                select_implementation_groups: ["saas_uncertified"]
                 color: "#fd7e14"
 
       # === SPLASH SCREEN: TECHNICAL SECURITY ASSESSMENT TRANSITION ===
@@ -2246,10 +2271,10 @@ objects:
         parent_urn: urn:intuitem:risk:req_node:appsec:data_lifecycle_chapter
         ref_id: data_exchange
         name: Control of Data Exchange & Encryption in Transit
-        description: "Govern external data exchanges, API integrations, webhooks, and third-party data flows via encryption in transit (TLS 1.2+, mTLS) and formal agreements (DPA/DTA) for self-hosted applications."
+        description: "Govern external B2B data exchanges, API integrations, webhooks, and third-party data flows via encryption in transit (TLS 1.2+, mTLS) and formal agreements (DPA/DTA) for self-hosted applications (excluding B2C interactions, as customers do not receive data the same way B2B partners do)."
         annotation: >
-          Cross-organizational data sharing, API integrations, and external transmission governance for self-hosted delivery models (Custom and COTS):
-          - Verification of external data exchange boundaries.
+          Cross-organizational B2B data sharing, API integrations, and external transmission governance for self-hosted delivery models (Custom and COTS):
+          - Verification of external B2B data exchange boundaries (excluding B2C interactions, as individual customers do not receive data the same way B2B partners or third-party organizations do).
           - Cryptographic protection during network transmission across external boundaries enforcing modern protocols (TLS 1.2+, TLS 1.3, HTTPS with HSTS, mTLS).
           - Outbound and inbound data exchanges governed by formal information sharing agreements (DTA / DPA / NDA).
           - Note for SaaS: Third-party SaaS applications inherently and unconditionally exchange data with the SaaS provider outside the corporate perimeter. Data transfer governance, DPAs, and confidentiality protections are governed directly via Chapter 10 (saas_contract_compliance).
@@ -2269,7 +2294,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec:data_exchange:q1:
             type: unique_choice
-            text: "Does the application exchange data externally? (e.g., transfers, automated API integrations, webhooks, or network communications with external partners, third-party vendors, or public services)"
+            text: "Does the application exchange data externally? (e.g., B2B transfers, automated API integrations, webhooks, or network communications with external partners, third-party vendors, or external services; Note: this excludes B2C interactions, as customers do not receive data the same way B2B partners do)"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:data_exchange:q1:c1
                 value: "No"
@@ -2721,7 +2746,7 @@ objects:
           These operational requirements are consequently transferred into binding contractual commitments: the provider commits to maintaining
           these protections (edge WAF/anti-DDoS, annual independent pentests and third-party audit reports, internal privilege governance,
           continuous monitoring, 48-hour breach notification SLAs, and SIEM audit log export APIs).
-        implementation_groups: ["saas_app"]
+        implementation_groups: ["saas_app", "saas_uncertified"]
 
       # Requirement 0: Master SaaS Agreement Execution
       - urn: urn:intuitem:risk:req_node:appsec:saas_contract
@@ -2779,7 +2804,7 @@ objects:
           - Annual risk assessment executive summary report and risk treatment plan
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:unverified_saas_security
-        implementation_groups: ["saas_app"]
+        implementation_groups: ["saas_uncertified"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:saas_third_party_assurance
         questions:
@@ -2882,7 +2907,7 @@ objects:
           - Internal security incident reporting procedure documentation
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:unverified_saas_security
-        implementation_groups: ["saas_app"]
+        implementation_groups: ["saas_uncertified"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:saas_contract
         questions:
@@ -2969,7 +2994,7 @@ objects:
           - Periodic provider access review (UAR) sign-offs and audit reports
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:broken_authorization_rbac
-        implementation_groups: ["saas_app"]
+        implementation_groups: ["saas_uncertified"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:enforce_least_privilege_rbac
           - urn:intuitem:risk:control:appsec:saas_vendor_access_governance
@@ -3026,7 +3051,7 @@ objects:
           - Streaming audit telemetry / webhook integration configuration into enterprise SIEM (Splunk, Microsoft Sentinel)
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:insufficient_security_logging
-        implementation_groups: ["saas_app"]
+        implementation_groups: ["saas_uncertified"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:centralized_security_logging
           - urn:intuitem:risk:control:appsec:saas_telemetry_and_audit_export
@@ -3084,7 +3109,7 @@ objects:
           - Disk encryption enforcement report (BitLocker / FileVault) and lost equipment SOP
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:unverified_saas_security
-        implementation_groups: ["saas_app"]
+        implementation_groups: ["saas_uncertified"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:saas_contract
         questions:
@@ -3137,7 +3162,7 @@ objects:
           - Remote wipe test procedure and verification records
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:unverified_saas_security
-        implementation_groups: ["saas_app"]
+        implementation_groups: ["saas_uncertified"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:saas_contract
         questions:
@@ -3177,7 +3202,7 @@ objects:
           - Secure remote access (VPN / ZTNA with MFA) and WPA3 enterprise Wi-Fi configuration
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:weak_tenant_isolation
-        implementation_groups: ["saas_app"]
+        implementation_groups: ["saas_uncertified"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:api_security_and_rate_limiting
         questions:
@@ -3215,7 +3240,7 @@ objects:
           - CloudTrail / audit trails recording administrative activities
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:weak_tenant_isolation
-        implementation_groups: ["saas_app"]
+        implementation_groups: ["saas_uncertified"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:saas_tenant_isolation_and_residency
         questions:
@@ -3254,7 +3279,7 @@ objects:
           - Developer OWASP training completion records and CI/CD security scanning policies
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:untested_application_security
-        implementation_groups: ["saas_app"]
+        implementation_groups: ["saas_uncertified"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:automated_devsecops_testing
         questions:
@@ -3306,7 +3331,7 @@ objects:
           - Administrative interface access control policies and IP allowlist configuration
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:untested_application_security
-        implementation_groups: ["saas_app"]
+        implementation_groups: ["saas_uncertified"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:encrypt_data_in_transit
         questions:
@@ -3325,55 +3350,37 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 12b: SaaS Penetration Testing & Vulnerability Remediation
-      - urn: urn:intuitem:risk:req_node:appsec:saas_penetration_testing_and_vulnerability_management
+      # Section 12b: SaaS Contractual Vulnerability Remediation SLAs
+      - urn: urn:intuitem:risk:req_node:appsec:saas_vulnerability_remediation_sla
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
-        ref_id: saas_penetration_testing_and_vulnerability_management
-        name: "SaaS Penetration Testing & Vulnerability Remediation"
-        description: "Verify SaaS contractual authorization for penetration testing (or vendor annual third-party pentest audit reports) and contractual commitment to vulnerability remediation SLAs."
+        ref_id: saas_vulnerability_remediation_sla
+        name: "SaaS Contractual Vulnerability Remediation SLAs"
+        description: "Enforce contractually binding vulnerability remediation SLAs for security flaws discovered in the SaaS platform."
         annotation: >
-          Section 12b (SaaS Penetration Testing & Vulnerability Remediation). Contractual governance within the security exhibit verifying whether the contract authorizes customer-led penetration testing, mandates that the provider undergoes annual independent penetration tests and provides audit reports/attestations, or if intrusive testing is refused, along with contractually binding vulnerability remediation SLAs.
+          Section 12b (SaaS Vulnerability Remediation SLAs). Contractual governance within the security schedule committing the provider to legally binding remediation timelines (e.g. Critical within 7 days, High within 30 days) for all identified vulnerabilities.
         typical_evidence: >
-          - SaaS contractual security exhibit / schedule authorizing customer penetration testing
-          - Annual third-party penetration test executive summary attestation letter from provider
-          - Provider vulnerability remediation SLA commitments and tracking reports
+          - SaaS contractual security exhibit / schedule committing vendor to vulnerability remediation SLAs
+          - Vendor SLA performance and vulnerability remediation tracking reports
         vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec:contractual_gap
           - urn:intuitem:risk:vulnerability:appsec:untested_application_security
-        implementation_groups: ["saas_app"]
+        implementation_groups: ["saas_uncertified"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:regular_penetration_testing
+          - urn:intuitem:risk:control:appsec:saas_contract
         questions:
-          urn:intuitem:risk:req_node:appsec:saas_penetration_testing_and_vulnerability_management:q1:
-            type: unique_choice
-            text: "How is independent penetration testing governed and performed on the SaaS platform?"
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec:saas_penetration_testing_and_vulnerability_management:q1:c1
-                value: "We are allowed to pentest (SaaS contract authorizes customer-led penetration testing)"
-                add_score: 50
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:saas_penetration_testing_and_vulnerability_management:q1:c2
-                value: "The SaaS vendor does the pentest (contract mandates that the vendor undergoes annual independent penetration tests and provides audit reports/attestations)"
-                add_score: 50
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:saas_penetration_testing_and_vulnerability_management:q1:c3
-                value: "They refuse (the SaaS vendor refuses penetration testing and provides no reports)"
-                add_score: 0
-                compute_result: false
-                color: "#dc3545"
-          urn:intuitem:risk:req_node:appsec:saas_penetration_testing_and_vulnerability_management:q2:
+          urn:intuitem:risk:req_node:appsec:saas_vulnerability_remediation_sla:q1:
             type: unique_choice
             text: "Does the SaaS contract commit the provider to formal vulnerability remediation SLAs (e.g. Critical within 7 days, High within 30 days)?"
             choices:
-              - urn: urn:intuitem:risk:req_node:appsec:saas_penetration_testing_and_vulnerability_management:q2:c1
+              - urn: urn:intuitem:risk:req_node:appsec:saas_vulnerability_remediation_sla:q1:c1
                 value: "Yes"
-                add_score: 50
+                add_score: 100
                 compute_result: true
                 color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:saas_penetration_testing_and_vulnerability_management:q2:c2
+              - urn: urn:intuitem:risk:req_node:appsec:saas_vulnerability_remediation_sla:q1:c2
                 value: "No"
                 add_score: 0
                 compute_result: false
@@ -3436,7 +3443,7 @@ objects:
           - Periodic physical access authorization review records
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:unverified_saas_security
-        implementation_groups: ["saas_app"]
+        implementation_groups: ["saas_uncertified"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:saas_third_party_assurance
         questions:
@@ -3475,7 +3482,7 @@ objects:
           - Immutable backup storage configuration (WORM / S3 Object Lock) and encryption report
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:inadequate_resilience_backup
-        implementation_groups: ["saas_app"]
+        implementation_groups: ["saas_uncertified"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:backup_and_disaster_recovery
           - urn:intuitem:risk:control:appsec:saas_resilience_and_data_portability
@@ -3528,7 +3535,7 @@ objects:
           - Back-to-back Data Processing Agreements (DPAs) with subcontractors
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:uncontrolled_vendor_access
-        implementation_groups: ["saas_app"]
+        implementation_groups: ["saas_uncertified"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:saas_subprocessor_and_supply_chain
         questions:
@@ -3547,39 +3554,60 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 19: Audit Rights & Compliance Verification
+      # Section 19: Audit Rights, Penetration Testing & Compliance Verification
       - urn: urn:intuitem:risk:req_node:appsec:saas_audit_and_compliance
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_audit_and_compliance
-        name: "Audit Rights & Compliance Verification"
-        description: "Perform annual compliance checks, provide compliance evidence, maintain gap remediation plans, and grant client/third-party audit rights."
+        name: "Audit Rights, Penetration Testing & Compliance Verification"
+        description: "Contractually grant the client (or an independent auditor mandated by the client) the right to audit the provider, obtain compliance evidence verifying adherence to contractual security obligations, and govern independent penetration testing of the SaaS platform."
         annotation: >
           Contractual requirements:
-          - Annual third-party compliance assurance (SOC 2 Type II reports, ISO 27001 certifications).
-          - Audit evidence provided to the client with formal corrective action plans for any findings.
-          - Contractual client right to audit.
+          - Contractual client right to audit (exercisable by the client or an authorized independent third-party auditor) and obligation for the provider to supply compliance evidence and audit documentation upon request.
+          - Independent penetration testing governance: verify whether the SaaS contract authorizes customer-led penetration testing, mandates that the provider undergoes annual independent penetration tests and provides audit reports/attestations, or if intrusive testing is refused.
         typical_evidence: >
-          - Executed SaaS agreement containing explicit Right to Audit clause
-          - Annual compliance evidence pack (SOC 2 Type II, ISO 27001 certificate, pentest executive letter)
+          - Executed SaaS agreement containing an explicit Right to Audit and compliance verification clause
+          - Provider compliance evidence pack or audit documentation provided under contractual audit rights
+          - SaaS contractual security exhibit / schedule authorizing customer penetration testing or annual third-party penetration test executive summary attestation letter from provider
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:contractual_gap
+          - urn:intuitem:risk:vulnerability:appsec:untested_application_security
         implementation_groups: ["saas_app"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:saas_third_party_assurance
+          - urn:intuitem:risk:control:appsec:regular_penetration_testing
         questions:
           urn:intuitem:risk:req_node:appsec:saas_audit_and_compliance:q1:
             type: unique_choice
-            text: "Does the contract legally grant the client (or an authorized third party) the right to audit (e.g., review independent annual SOC 2 Type II or ISO 27001 reports), and does the provider perform annual compliance checks and actively provide audit evidence and remediation plans?"
+            text: "Does the contract legally grant the client (or an authorized independent third party) the right to audit the provider and obtain compliance evidence to verify adherence to contractual security obligations?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:saas_audit_and_compliance:q1:c1
                 value: "Yes"
-                add_score: 100
+                add_score: 50
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec:saas_audit_and_compliance:q1:c2
                 value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:saas_audit_and_compliance:q2:
+            type: unique_choice
+            text: "How is independent penetration testing governed and performed on the SaaS platform?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_audit_and_compliance:q2:c1
+                value: "We are allowed to pentest (SaaS contract authorizes customer-led penetration testing)"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_audit_and_compliance:q2:c2
+                value: "The SaaS vendor does the pentest (contract mandates that the vendor undergoes annual independent penetration tests and provides audit reports/attestations)"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_audit_and_compliance:q2:c3
+                value: "They refuse (the SaaS vendor refuses penetration testing and provides no reports)"
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
@@ -3622,7 +3650,7 @@ objects:
                 color: "#fd7e14"
           urn:intuitem:risk:req_node:appsec:saas_pci_dss:q2:
             type: unique_choice
-            text: "If in scope for PCI DSS, does the contract require and does the provider maintain active PCI DSS certification, provide an annual AOC, and enforce dedicated payment incident procedures with immediate notification?"
+            text: "If in scope for PCI DSS, is the SaaS vendor PCI DSS certified (with a valid annual Attestation of Compliance / AOC covering the service)?"
             depends_on:
               question: urn:intuitem:risk:req_node:appsec:saas_pci_dss:q1
               answers: ["urn:intuitem:risk:req_node:appsec:saas_pci_dss:q1:c2"]
@@ -3630,10 +3658,28 @@ objects:
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:saas_pci_dss:q2:c1
                 value: "Yes"
-                add_score: 100
+                add_score: 50
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec:saas_pci_dss:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:saas_pci_dss:q3:
+            type: unique_choice
+            text: "If in scope for PCI DSS, does the contract require the provider to maintain active PCI DSS certification, provide an annual AOC, and enforce dedicated payment incident procedures with immediate notification?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec:saas_pci_dss:q1
+              answers: ["urn:intuitem:risk:req_node:appsec:saas_pci_dss:q1:c2"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:saas_pci_dss:q3:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:saas_pci_dss:q3:c2
                 value: "No"
                 add_score: 0
                 compute_result: false
@@ -3696,7 +3742,7 @@ objects:
           > **Note:** If your application architecture, hosting model, or exposure profile changes in the future, please re-evaluate this assessment.
         annotation: >
           Concluding splash screen expressing gratitude to the respondent and detailing subsequent compliance verification, risk assessment, and remediation workflows.
-        implementation_groups: ["info", "baseline", "custom_app", "cots_app", "saas_app", "internet_facing"]
+        implementation_groups: ["info", "baseline", "custom_app", "cots_app", "saas_app", "saas_uncertified", "internet_facing"]
 
 # ============================================================================
 # AUDIT CONFIGURATION

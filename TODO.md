@@ -599,6 +599,24 @@ Merged requirement node `network_exposure` into `hosting` across both `YML/appse
   - Verified `classes/` remains completely clean (`git diff classes/` is empty).
   - All automated test suites pass.
 
+---
+
+## 34. SaaS Vendor ISO 27001 / SOC 2 Certification Question, `saas_uncertified` IG, and PCI DSS Vendor Certification Question
+
+Added a conditional question in `hosting` asking whether the SaaS vendor is ISO/IEC 27001 or SOC 2 Type II certified, introduced the `saas_uncertified` implementation group for detailed vendor security assessment when the vendor is not certified, and added a dedicated PCI DSS vendor certification question in `saas_pci_dss`:
+- **SaaS Vendor ISO 27001 / SOC 2 Certification Profiling (`hosting:q3`)**:
+  - Added `hosting:q3` (*"Is the SaaS vendor ISO/IEC 27001 or SOC 2 Type II certified?"*) with intra-node `depends_on` on `hosting:q1:c3` (SaaS).
+  - `c1`: *"Yes - The SaaS vendor holds an active ISO/IEC 27001 certification or SOC 2 Type II report"* (100 pts, `compute_result: true`).
+  - `c2`: *"No - The SaaS vendor is not ISO/IEC 27001 or SOC 2 Type II certified"* (100 pts, `compute_result: true`), dynamically triggering `saas_uncertified` via `select_implementation_groups` in [`YML/appsec.yml`](file:///home/romain/ciso-assistant/YML/appsec.yml) and `implementation_groups_dependencies` in [`YML/appsec_manual.yml`](file:///home/romain/ciso-assistant/YML/appsec_manual.yml).
+- **New Implementation Group (`saas_uncertified`)**:
+  - Defined `urn:intuitem:risk:ig:appsec:saas_uncertified` and `urn:intuitem:risk:ig:appsec_manual:saas_uncertified` (*"Uncertified SaaS Vendor Track (Detailed Security Assessment)"*).
+  - Kept core contractual & tenant requirements in `["saas_app"]` (`saas_contract`, `saas_confidentiality_and_data_protection`, `saas_iam`, `saas_data_hosting_and_residency`, `saas_audit_and_compliance`, `saas_pci_dss`, `saas_non_conformity_remediation`).
+  - Scoped detailed vendor operational/security nodes in Chapter 10 to `["saas_uncertified"]` (`saas_governance_and_policy`, `saas_security_awareness`, `saas_entitlements_and_privileges`, `saas_logging_and_incidents`, `saas_workstation_security`, `saas_mobile_security`, `saas_network_security`, `saas_environment_isolation`, `saas_secure_development`, `saas_web_app_security`, `saas_penetration_testing_and_vulnerability_management` / `saas_penetration_testing` + `saas_vulnerability_remediation_sla`, `saas_physical_security`, `saas_backup_and_business_continuity`, `saas_subcontractor_management`).
+- **SaaS Vendor PCI DSS Certification Question (`saas_pci_dss:q2` & `q3`)**:
+  - When `saas_pci_dss:q1` is *"Yes - In scope for PCI DSS"* (`c2`), `q2` asks whether the SaaS vendor is PCI DSS certified with a valid annual AOC (50 pts) and `q3` verifies contractual PCI DSS obligations and incident notification procedures (50 pts).
+- **Framework Versions**: Incremented `YML/appsec.yml` to `version: 26` and `YML/appsec_manual.yml` to `version: 9`.
+- **Automated Validation**: Updated unit tests in [`tests/test_yaml_integrity.py`](file:///home/romain/ciso-assistant/tests/test_yaml_integrity.py) and [`tests/test_implementation_groups.py`](file:///home/romain/ciso-assistant/tests/test_implementation_groups.py), and updated SaaS test profiles in `test_data/`. All tests pass.
+
 
 
 

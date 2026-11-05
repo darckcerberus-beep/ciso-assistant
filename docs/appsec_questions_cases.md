@@ -107,14 +107,14 @@ Define or customize your operational situations/cases here for reference:
 | 64 | SaaS Requirements & Vendor Security Exhibit | `saas_secure_development` | `q1` | Does the contract require and is source code stored in secure repositories with ma... | `saas_app` |  |
 | 65 | SaaS Requirements & Vendor Security Exhibit | `saas_secure_development` | `q2` | Does the contract mandate that the provider adheres to formal secure SDLC standard... | `saas_app` |  |
 | 66 | SaaS Requirements & Vendor Security Exhibit | `saas_web_app_security` | `q1` | Does the contract require and are web services protected with TLS 1.2+ minimum, ne... | `saas_app` |  |
-| 67 | SaaS Requirements & Vendor Security Exhibit | `saas_penetration_testing_and_vulnerability_management` | `q1` | How is independent penetration testing governed and performed on the SaaS platform? | `saas_app` |  |
-| 68 | SaaS Requirements & Vendor Security Exhibit | `saas_penetration_testing_and_vulnerability_management` | `q2` | Does the SaaS contract commit the provider to formal vulnerability remediation SLA... | `saas_app` |  |
+| 68 | SaaS Requirements & Vendor Security Exhibit | `saas_vulnerability_remediation_sla` | `q1` | Does the SaaS contract commit the provider to formal vulnerability remediation SLA... | `saas_uncertified` |  |
 | 69 | SaaS Requirements & Vendor Security Exhibit | `saas_data_hosting_and_residency` | `q1` | Does the contract mandate and is all customer data (including primary databases, p... | `saas_app` |  |
-| 70 | SaaS Requirements & Vendor Security Exhibit | `saas_physical_security` | `q1` | Does the contract require and are provider facilities and datacenters secured with... | `saas_app` |  |
-| 71 | SaaS Requirements & Vendor Security Exhibit | `saas_backup_and_business_continuity` | `q1` | Does the contract require and are automated backups encrypted, immutable, and veri... | `saas_app` |  |
-| 72 | SaaS Requirements & Vendor Security Exhibit | `saas_backup_and_business_continuity` | `q2` | Does the contract mandate and does the provider maintain documented BCP/DRP plans ... | `saas_app` |  |
-| 73 | SaaS Requirements & Vendor Security Exhibit | `saas_subcontractor_management` | `q1` | Does the contract mandate and does the vendor maintain a formal subcontractor vett... | `saas_app` |  |
-| 74 | SaaS Requirements & Vendor Security Exhibit | `saas_audit_and_compliance` | `q1` | Does the contract legally grant the client (or an authorized third party) the righ... | `saas_app` |  |
+| 70 | SaaS Requirements & Vendor Security Exhibit | `saas_physical_security` | `q1` | Does the contract require and are provider facilities and datacenters secured with... | `saas_uncertified` |  |
+| 71 | SaaS Requirements & Vendor Security Exhibit | `saas_backup_and_business_continuity` | `q1` | Does the contract require and are automated backups encrypted, immutable, and veri... | `saas_uncertified` |  |
+| 72 | SaaS Requirements & Vendor Security Exhibit | `saas_backup_and_business_continuity` | `q2` | Does the contract mandate and does the provider maintain documented BCP/DRP plans ... | `saas_uncertified` |  |
+| 73 | SaaS Requirements & Vendor Security Exhibit | `saas_subcontractor_management` | `q1` | Does the contract mandate and does the vendor maintain a formal subcontractor vett... | `saas_uncertified` |  |
+| 74 | SaaS Requirements & Vendor Security Exhibit | `saas_audit_and_compliance` | `q1` | Does the contract legally grant the client (or an authorized independent third pa... | `saas_app` |  |
+| 74b | SaaS Requirements & Vendor Security Exhibit | `saas_audit_and_compliance` | `q2` | How is independent penetration testing governed and performed on the SaaS platform? | `saas_app` |  |
 | 75 | SaaS Requirements & Vendor Security Exhibit | `saas_pci_dss` | `q1` | Does the application process, store, or transmit payment card data? | `saas_app` |  |
 | 76 | SaaS Requirements & Vendor Security Exhibit | `saas_pci_dss` | `q2` | If payment card data is processed, does the contract require and does the provider... | `saas_app` |  |
 | 77 | SaaS Requirements & Vendor Security Exhibit | `saas_non_conformity_remediation` | `q1` | Does the contract mandate formal remediation plans and compensatory measures for i... | `saas_app` |  |
@@ -546,11 +546,11 @@ Action - For COTS, ask if vendor follows secure coding guidelines without going 
 
 #### Node: Control of Data Exchange & Encryption in Transit (`data_exchange`)
 - **Implementation Groups**: `custom_app`, `cots_app`
-- **Description**: Govern external data exchanges, API integrations, webhooks, and third-party data flows via encryption in transit (TLS 1.2+, mTLS) and formal agreements (DPA/DTA) for self-hosted applications.
+- **Description**: Govern external B2B data exchanges, API integrations, webhooks, and third-party data flows via encryption in transit (TLS 1.2+, mTLS) and formal agreements (DPA/DTA) for self-hosted applications (excluding B2C interactions, as customers do not receive data the same way B2B partners do).
 
 ##### Q31. `data_exchange:q1`
 - **URN**: `urn:intuitem:risk:req_node:appsec:data_exchange:q1`
-- **Question**: Does the application exchange data externally? (e.g., transfers, automated API integrations, webhooks, or network communications with external partners, third-party vendors, or public services)
+- **Question**: Does the application exchange data externally? (e.g., B2B transfers, automated API integrations, webhooks, or network communications with external partners, third-party vendors, or external services; Note: this excludes B2C interactions, as customers do not receive data the same way B2B partners do)
 - **Type**: `unique_choice`
 - **Choices & Scoring**:
   - `No` (100 pts, compute_result: true)
@@ -1026,27 +1026,16 @@ Action - Simplify, RBAC and periodic reviews are enough
 - **Applicable Cases / Situations**:
   - [ ] 
 
-#### Node: SaaS Penetration Testing & Vulnerability Remediation (`saas_penetration_testing_and_vulnerability_management`)
-- **Implementation Groups**: `saas_app`
-- **Description**: Verify SaaS contractual authorization for penetration testing (or vendor annual third-party pentest audit reports) and contractual commitment to vulnerability remediation SLAs.
+#### Node: SaaS Contractual Vulnerability Remediation SLAs (`saas_vulnerability_remediation_sla`)
+- **Implementation Groups**: `saas_uncertified`
+- **Description**: Enforce contractually binding vulnerability remediation SLAs for security flaws discovered in the SaaS platform.
 
-##### Q67. `saas_penetration_testing_and_vulnerability_management:q1`
-- **URN**: `urn:intuitem:risk:req_node:appsec:saas_penetration_testing_and_vulnerability_management:q1`
-- **Question**: How is independent penetration testing governed and performed on the SaaS platform?
-- **Type**: `unique_choice`
-- **Choices & Scoring**:
-  - `We are allowed to pentest (SaaS contract authorizes customer-led penetration testing)` (50 pts, compute_result: true)
-  - `The SaaS vendor does the pentest (contract mandates that the vendor undergoes annual independent penetration tests and provides audit reports/attestations)` (50 pts, compute_result: true)
-  - `They refuse (the SaaS vendor refuses penetration testing and provides no reports)` (0 pts)
-- **Applicable Cases / Situations**:
-  - [ ] 
-
-##### Q68. `saas_penetration_testing_and_vulnerability_management:q2`
-- **URN**: `urn:intuitem:risk:req_node:appsec:saas_penetration_testing_and_vulnerability_management:q2`
+##### Q68. `saas_vulnerability_remediation_sla:q1`
+- **URN**: `urn:intuitem:risk:req_node:appsec:saas_vulnerability_remediation_sla:q1`
 - **Question**: Does the SaaS contract commit the provider to formal vulnerability remediation SLAs (e.g. Critical within 7 days, High within 30 days)?
 - **Type**: `unique_choice`
 - **Choices & Scoring**:
-  - `Yes` (50 pts, compute_result: true)
+  - `Yes` (100 pts, compute_result: true)
   - `No` (0 pts)
 - **Applicable Cases / Situations**:
   - [ ] 
@@ -1117,17 +1106,28 @@ Action - Simplify, RBAC and periodic reviews are enough
 - **Applicable Cases / Situations**:
   - [ ] 
 
-#### Node: Audit Rights & Compliance Verification (`saas_audit_and_compliance`)
+#### Node: Audit Rights, Penetration Testing & Compliance Verification (`saas_audit_and_compliance`)
 - **Implementation Groups**: `saas_app`
-- **Description**: Perform annual compliance checks, provide compliance evidence, maintain gap remediation plans, and grant client/third-party audit rights.
+- **Description**: Contractually grant the client (or an independent auditor mandated by the client) the right to audit the provider, obtain compliance evidence verifying adherence to contractual security obligations, and govern independent penetration testing of the SaaS platform.
 
 ##### Q74. `saas_audit_and_compliance:q1`
 - **URN**: `urn:intuitem:risk:req_node:appsec:saas_audit_and_compliance:q1`
-- **Question**: Does the contract legally grant the client (or an authorized third party) the right to audit (e.g., review independent annual SOC 2 Type II or ISO 27001 reports), and does the provider perform annual compliance checks and actively provide audit evidence and remediation plans?
+- **Question**: Does the contract legally grant the client (or an authorized independent third party) the right to audit the provider and obtain compliance evidence to verify adherence to contractual security obligations?
 - **Type**: `unique_choice`
 - **Choices & Scoring**:
-  - `Yes` (100 pts, compute_result: true)
+  - `Yes` (50 pts, compute_result: true)
   - `No` (0 pts)
+- **Applicable Cases / Situations**:
+  - [ ] 
+
+##### Q74b. `saas_audit_and_compliance:q2`
+- **URN**: `urn:intuitem:risk:req_node:appsec:saas_audit_and_compliance:q2`
+- **Question**: How is independent penetration testing governed and performed on the SaaS platform?
+- **Type**: `unique_choice`
+- **Choices & Scoring**:
+  - `We are allowed to pentest (SaaS contract authorizes customer-led penetration testing)` (50 pts, compute_result: true)
+  - `The SaaS vendor does the pentest (contract mandates that the vendor undergoes annual independent penetration tests and provides audit reports/attestations)` (50 pts, compute_result: true)
+  - `They refuse (the SaaS vendor refuses penetration testing and provides no reports)` (0 pts)
 - **Applicable Cases / Situations**:
   - [ ] 
 

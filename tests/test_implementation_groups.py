@@ -597,6 +597,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         self.assertIn("custom_app", hidden)
         self.assertIn("cots_app", hidden)
         self.assertIn("saas_app", hidden)
+        self.assertIn("saas_uncertified", hidden)
         self.assertIn("internet_facing", hidden)
 
     def test_appsec_manual_triggered_implementation_groups_orchestration(self):
@@ -617,6 +618,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         self.assertIn("cots_app", hidden)
         self.assertIn("infra", hidden)
         self.assertIn("saas_app", hidden)
+        self.assertIn("saas_uncertified", hidden)
         self.assertIn("baseline", hidden)
         self.assertIn("internet_facing", hidden)
 
@@ -627,6 +629,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         self.assertIn("cots_app", trig_map)
         self.assertIn("infra", trig_map)
         self.assertIn("saas_app", trig_map)
+        self.assertIn("saas_uncertified", trig_map)
         self.assertIn("internet_facing", trig_map)
 
         # 2. Answers Provided: Custom Software + Internet-Facing
@@ -679,10 +682,11 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         self.assertIn("saas_app", hidden_cots)
         self.assertIn("internet_facing", hidden_cots)
 
-        # 4. Answers Provided: SaaS Software -> Triggers saas_app and baseline; internet_facing remains hidden
+        # 4. Answers Provided: Certified SaaS Software -> Triggers saas_app and baseline; saas_uncertified & internet_facing remain hidden
         saas_answers = {
             "hosting": {
                 "q1": "SaaS (Third-party software hosted and operated by a vendor)",
+                "q3": "Yes - The SaaS vendor holds an active ISO/IEC 27001 certification or SOC 2 Type II report",
             },
         }
         res_saas = determine_implementation_groups_triggered_by_others("appsec_manual", answers=saas_answers)
@@ -696,38 +700,38 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         self.assertIn("baseline", visible_saas)
         self.assertIn("info", visible_saas)
 
-        # Non-relevant tracks (Custom, COTS, Infra, Internet-Facing) remain hidden
+        # Non-relevant tracks (Custom, COTS, Infra, Internet-Facing, Uncertified SaaS) remain hidden
         self.assertIn("custom_app", hidden_saas)
         self.assertIn("cots_app", hidden_saas)
         self.assertIn("infra", hidden_saas)
         self.assertIn("internet_facing", hidden_saas)
+        self.assertIn("saas_uncertified", hidden_saas)
         self.assertNotIn("internet_facing", visible_saas)
         self.assertNotIn("internet_facing", triggered_saas)
+        self.assertNotIn("saas_uncertified", visible_saas)
+        self.assertNotIn("saas_uncertified", triggered_saas)
 
-        # 4. Answers Provided: SaaS Software -> Triggers saas_app and baseline; internet_facing remains hidden
-        saas_answers = {
+        # 5. Answers Provided: Uncertified SaaS Software -> Triggers saas_app, saas_uncertified, and baseline
+        saas_uncert_answers = {
             "hosting": {
                 "q1": "SaaS (Third-party software hosted and operated by a vendor)",
+                "q3": "No - The SaaS vendor is not ISO/IEC 27001 or SOC 2 Type II certified",
             },
         }
-        res_saas = determine_implementation_groups_triggered_by_others("appsec_manual", answers=saas_answers)
-        triggered_saas = [g["ref_id"] for g in res_saas["triggered_groups"]]
-        hidden_saas = [g["ref_id"] for g in res_saas["hidden_groups"]]
-        visible_saas = [g["ref_id"] for g in res_saas["visible_groups"]]
+        res_saas_uncert = determine_implementation_groups_triggered_by_others("appsec_manual", answers=saas_uncert_answers)
+        triggered_saas_uncert = [g["ref_id"] for g in res_saas_uncert["triggered_groups"]]
+        hidden_saas_uncert = [g["ref_id"] for g in res_saas_uncert["hidden_groups"]]
+        visible_saas_uncert = [g["ref_id"] for g in res_saas_uncert["visible_groups"]]
 
-        self.assertIn("saas_app", triggered_saas)
-        self.assertIn("baseline", triggered_saas)
-        self.assertIn("saas_app", visible_saas)
-        self.assertIn("baseline", visible_saas)
-        self.assertIn("info", visible_saas)
-
-        # Non-relevant tracks (Custom, COTS, Infra, Internet-Facing) remain hidden
-        self.assertIn("custom_app", hidden_saas)
-        self.assertIn("cots_app", hidden_saas)
-        self.assertIn("infra", hidden_saas)
-        self.assertIn("internet_facing", hidden_saas)
-        self.assertNotIn("internet_facing", visible_saas)
-        self.assertNotIn("internet_facing", triggered_saas)
+        self.assertIn("saas_app", triggered_saas_uncert)
+        self.assertIn("saas_uncertified", triggered_saas_uncert)
+        self.assertIn("baseline", triggered_saas_uncert)
+        self.assertIn("saas_app", visible_saas_uncert)
+        self.assertIn("saas_uncertified", visible_saas_uncert)
+        self.assertIn("custom_app", hidden_saas_uncert)
+        self.assertIn("cots_app", hidden_saas_uncert)
+        self.assertIn("infra", hidden_saas_uncert)
+        self.assertIn("internet_facing", hidden_saas_uncert)
 
 if __name__ == "__main__":
     unittest.main()

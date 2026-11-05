@@ -54,7 +54,8 @@ Requirement nodes are assigned to native CISO Assistant Implementation Groups, e
 - `baseline`: Application security baseline applicable to all applications (Governance, Profiling, Authentication & Access Control; active by default).
 - `custom_app`: Custom software track (in-house development: session management, Chapter 3 code hygiene, Chapter 5 DevSecOps).
 - `cots_app`: Bought software track (COTS / vendor package deployment).
-- `saas_app`: SaaS application track (Chapter 10 contractual governance).
+- `saas_app`: SaaS application track (core Chapter 10 contractual & tenant governance).
+- `saas_uncertified`: Uncertified SaaS vendor track (detailed Chapter 10 security controls triggered when the SaaS vendor is not ISO/IEC 27001 or SOC 2 Type II certified).
 - `internet_facing`: Triggered when Network Exposure is **Internet-Facing** for self-hosted applications.
 
 > [!NOTE]
@@ -64,6 +65,7 @@ Profiling triggers in `hosting:q1` dynamically activate the tracks:
 - **Custom Software**: Activates `custom_app` and `baseline`.
 - **Bought Software (COTS)**: Activates `cots_app` and `baseline`.
 - **SaaS**: Activates `saas_app` and `baseline`.
+- **Uncertified SaaS Vendor**: Activates `saas_uncertified` (triggered by `hosting:q3:c2` when the SaaS vendor is not ISO 27001 or SOC 2 certified).
 - **Internet-Facing**: Activates `internet_facing` (triggered by `hosting:q2:c2`).
 
 ### B. Dynamic Dependencies (`depends_on`) — Question-Level Scoping
@@ -79,9 +81,10 @@ Within active requirement nodes, questions are dynamically conditioned using int
 - **`instructions_splash`**: Guidance splash screen detailing assessment expectations.
 - **`stakeholder_identification`**: Mandatory documentation of Business Owner, Technical Owner, and Information Security Officer (CISO/SecOps delegate).
 - **`data_classification`**: Formally categorizes data assets into Public, Internal, Confidential, or Secret (Confidentiality impact governing all risk scenario ratings).
-- **`hosting`**: Application Delivery, Hosting Model & Network Exposure:
+- **`hosting`**: Application Delivery, Hosting Model, Network Exposure & SaaS Vendor Certification:
   - `q1`: Discriminates between Custom (In-house), Bought (COTS), and SaaS. Selecting SaaS automatically triggers `saas_app` and `baseline` (bypassing the self-hosted `internet_facing` track).
   - `q2`: For self-hosted applications (`depends_on: q1 in [Custom, COTS]`), identifies whether the app is restricted to internal corporate networks or exposed to the public Internet (triggers `internet_facing` track for self-hosted apps; hidden for SaaS).
+  - `q3`: For SaaS applications (`depends_on: q1 == SaaS`), asks whether the SaaS vendor holds an active ISO/IEC 27001 certification or SOC 2 Type II report; answering `No` triggers the `saas_uncertified` track for detailed vendor security assessment.
 - **`baseline_splash`**: Generic transition splash screen concluding baseline profiling and introducing technical security questions across dynamically triggered implementation groups.
 
 ### Chapter 2: Identity, Authentication & Access Control (IAM)
@@ -136,7 +139,7 @@ Within active requirement nodes, questions are dynamically conditioned using int
 ### Chapter 7: Data Lifecycle & Sanitization
 - **`data_exchange`** (`baseline`, `custom_app`, `cots_app`):
   - Applicable to self-hosted delivery models (Custom and COTS).
-  - `q1`: Formally controls external data exchanges, API integrations, and webhooks beyond the enterprise perimeter.
+  - `q1`: Formally controls external B2B data exchanges, API integrations, and webhooks beyond the enterprise perimeter (excluding B2C interactions, as customers do not receive data the same way B2B partners do).
   - `q2`: Enforces formal data transfer agreements (DPA/DTA/NDA) and integration security when external exchange is active.
   - *SaaS Policy*: Third-party SaaS applications inherently and unconditionally exchange data with the external SaaS provider. Chapter 7 data exchange profiling questions are bypassed; SaaS vendor data transfer terms, confidentiality obligations, and DPAs are governed directly in Chapter 10 (`saas_contract_compliance`).
 - **`non_prod_data`** (`baseline`, `custom_app`, `cots_app`):
@@ -183,12 +186,12 @@ Within active requirement nodes, questions are dynamically conditioned using int
 - **`saas_environment_isolation`**: Multi-tenant data isolation, logical segregation, and network traffic filtering.
 - **`saas_secure_development`**: Vendor DevSecOps and secure software development lifecycle guarantees.
 - **`saas_web_app_security`**: Perimeter transport encryption (TLS 1.2+), port filtering, and admin interface access control.
-- **`saas_penetration_testing_and_vulnerability_management`**: SaaS penetration testing governance (authorized client pentest, annual vendor pentest with audit reports/attestations, or refusal) and contractual vulnerability remediation SLAs (Critical <= 7d, High <= 30d).
+- **`saas_vulnerability_remediation_sla`**: Contractual vulnerability remediation SLAs (Critical <= 7d, High <= 30d).
 - **`saas_data_hosting_and_residency`**: Documented cloud hosting regions and European data residency compliance.
 - **`saas_physical_security`**: Tier III+ datacenter physical security and environmental protections.
 - **`saas_backup_and_business_continuity`**: Daily immutable vendor backups and tested Disaster Recovery plans.
 - **`saas_subcontractor_management`**: Sub-Processor auditing, security flow-down clauses, and prior notification of changes.
-- **`saas_audit_and_compliance`**: Annual SOC 2 Type II / ISO 27001 third-party audit reports provided to customer.
+- **`saas_audit_and_compliance`**: Contractual right to audit and supply compliance evidence (`q1`), and independent penetration testing governance (authorized client pentest, annual vendor pentest with audit reports/attestations, or refusal) (`q2`).
 - **`saas_pci_dss`**: Valid PCI DSS Attestation of Compliance (AOC) if payment card data is processed.
 - **`saas_non_conformity_remediation`**: Contractual remediation timeframes and termination rights for security non-compliance.
 
@@ -249,12 +252,12 @@ The table below defines the exact applicability criteria for every requirement a
 | **10. SaaS** | `saas_environment_isolation` | Multi-Tenant Data Isolation | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_secure_development` | Vendor DevSecOps & SDLC Guarantees | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_web_app_security` | Web App & Transport Security (TLS/Ports) | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
-| **10. SaaS** | `saas_penetration_testing_and_vulnerability_management` (q1-q2) | SaaS Pentest Governance & Remediation SLAs | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
+| **10. SaaS** | `saas_vulnerability_remediation_sla` (q1) | SaaS Contractual Vulnerability Remediation SLAs | `saas_uncertified` | **Uncertified SaaS** | All | All | Active if `saas_uncertified` is selected |
 | **10. SaaS** | `saas_data_hosting_and_residency` | EU Residency & Cloud Boundaries | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
-| **10. SaaS** | `saas_physical_security` | Datacenter Physical Security | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
-| **10. SaaS** | `saas_backup_and_business_continuity` | Daily Backups & Tested DR | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
-| **10. SaaS** | `saas_subcontractor_management` | Sub-Processor Auditing & Notice | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
-| **10. SaaS** | `saas_audit_and_compliance` | SOC 2 Type II / ISO 27001 Audit Reports| `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
+| **10. SaaS** | `saas_physical_security` | Datacenter Physical Security | `saas_uncertified` | **Uncertified SaaS** | All | All | Active if `saas_uncertified` is selected |
+| **10. SaaS** | `saas_backup_and_business_continuity` | Daily Backups & Tested DR | `saas_uncertified` | **Uncertified SaaS** | All | All | Active if `saas_uncertified` is selected |
+| **10. SaaS** | `saas_subcontractor_management` | Sub-Processor Auditing & Notice | `saas_uncertified` | **Uncertified SaaS** | All | All | Active if `saas_uncertified` is selected |
+| **10. SaaS** | `saas_audit_and_compliance` (q1-q2) | Contractual Right to Audit & Penetration Testing Governance | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_pci_dss` (q1-q2) | PCI DSS AOC (if payment cards) | `saas_app` | **SaaS Only** | All | All | `saas_pci_dss:q1 == Card data processed` |
 | **10. SaaS** | `saas_non_conformity_remediation` | Contractual Remedies & SLAs | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **End** | `thank_you_splash` | Assessment Completion Splash | `info`, `baseline` | All | All | All | None (Always visible) |
