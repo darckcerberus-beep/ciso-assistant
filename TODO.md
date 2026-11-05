@@ -394,6 +394,217 @@ Reinstated the network exposure question (`network_exposure`) into the general p
   - Updated [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py) to include `network_exposure` among Chapter 1 `info`-scoped nodes.
   - Verified tests pass in both [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py) and [`tests/test_implementation_groups.py`](file:///home/python/ciso-assistant/tests/test_implementation_groups.py) (50/50 passed).
 
+---
+
+## 24. Unified Infrastructure & Hosting Security Track and OS Patching with No-Downtime Architecture in `appsec_manual.yml` (Version 4)
+
+Consolidated all infrastructure questions across COTS and custom software together under a dedicated `infra` implementation group, and added requirements for host-level OS patching and zero-downtime architecture:
+- **Dedicated Implementation Group Track (`infra`)**: Added `urn:intuitem:risk:ig:appsec_manual:infra` (*"Infrastructure & Hosting Security Track"*) under `implementation_groups_definition` in [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml).
+- **Core Infrastructure Scope**: Grouped all self-hosted infrastructure requirements under the `infra` track so auditors can assign them directly to the IT / Infrastructure / SysAdmin lead for both Custom and COTS software:
+  - `crypto_chapter`: `secrets_management`, `data_in_transit`, `data_at_rest`.
+  - `logging_chapter`: `security_event_logging`, `centralized_monitoring_and_alerting`.
+  - `resilience_chapter`: `backup_and_disaster_recovery`, `cots_deployment_hardening` (generalized to *"Deployment Hardening & Patch SLAs"* for both Custom and COTS).
+- **New Requirement Node: `os_patching` (*"Operating System Patching & High Availability"*)**:
+  - **Node Metadata**: Added [`os_patching`](file:///home/python/ciso-assistant/YML/appsec_manual.yml) under `resilience_chapter` with `implementation_groups: ["infra"]`.
+  - **Question 1 (`q1`)**: *"Are operating system (OS) security patches, kernel updates, and host/container security updates systematically applied within formal SLAs? (e.g. Critical <= 14 days, High <= 30 days)"* (50 pts).
+  - **Question 2 (`q2`)**: *"Does the application and infrastructure architecture allow no-downtime patching from a business perspective? (e.g., high-availability clusters, rolling updates, or blue-green deployments preventing business downtime during maintenance)"* (50 pts).
+- **Orchestrator-Driven Dynamic Triggering**:
+  - Configured `implementation_groups_dependencies` so selecting either Custom software (`hosting:q1:c1`) or COTS software (`hosting:q1:c2`) dynamically triggers the `infra` track alongside the developer/vendor tracks (`custom_app` or `cots_app`).
+  - Hides `infra` for SaaS applications, preserving third-party cloud boundary isolation.
+- **Framework Version & Test Metadata**: Incremented to `version: 4` with `expected_requirement_nodes_count: 63`.
+- **Automated Validation**:
+  - Updated [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py) to assert `infra` definition, 63 requirement nodes, and verify core infra nodes are scoped to `["infra"]`.
+  - Updated [`tests/test_implementation_groups.py`](file:///home/python/ciso-assistant/tests/test_implementation_groups.py) to verify `infra` dynamic triggering for Custom and COTS models and proper hiding for SaaS.
+  - All test suites pass.
+
+---
+
+## 25. Merge COTS Vendor Support & COTS Deployment Hardening into Unified Requirement in `appsec_manual.yml`
+
+Merged `cots_vendor_support` (contractual vendor maintenance/support check) and `cots_deployment_hardening` (operational deployment hardening and patch SLAs) into a single consolidated COTS requirement node:
+- **Consolidated Requirement Node**: Preserved canonical URN `urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening` with ref_id `cots_deployment_hardening` (*"COTS Deployment Hardening, Vendor Support & Patch SLAs"*):
+  - **Question 1 (`q1`)**: *"Are default vendor credentials changed, sample modules removed, and configuration hardened against vendor or CIS benchmarks?"* (40 pts).
+  - **Question 2 (`q2`)**: *"Does the COTS software actively receive security patches and vulnerability updates from the vendor (under an active maintenance/support contract, not End-of-Life / EOL or End-of-Support / EOS)?"* (30 pts).
+  - **Question 3 (`q3`)**: *"Are published vendor security patches, hotfixes, and critical vulnerability updates deployed within formal SLAs (Critical <= 14 days)?"* (30 pts).
+  - **Scoring**: $40 + 30 + 30 = 100$ total points.
+  - **Implementation Groups**: Scoped strictly to `["cots_app"]`, aligning COTS vendor requirements under the Bought Software Track while keeping the Infrastructure (`infra`) track focused on host-level OS patching (`os_patching`), backups, logging, and encryption.
+- **Removed Redundant Node**: Completely eliminated `urn:intuitem:risk:req_node:appsec_manual:cots_vendor_support`.
+- **Framework Metadata**: Updated `expected_requirement_nodes_count: 62` in [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml).
+- **Automated Validation**:
+  - Updated [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py) to assert 62 requirement nodes, verify `cots_deployment_hardening` belongs to `["cots_app"]` with 3 questions, and verify `infra` track contains 7 pure infrastructure nodes.
+  - All test suites pass.
+
+---
+
+## 26. Streamline `penetration_testing_and_vulnerability_management` to Eliminate Duplicate SLA Questions in `appsec_manual.yml`
+
+Eliminated question overlap between `penetration_testing_and_vulnerability_management` and the specialized SLA requirements (`os_patching`, `cots_deployment_hardening`):
+- **Streamlined Requirement Node**: Refocused `penetration_testing_and_vulnerability_management` in [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml) purely on conducting independent annual penetration testing:
+  - **Question 1 (`q1`)**: *"Is independent penetration testing conducted on the application and underlying infrastructure at least annually by qualified internal or external penetration testers?"* Updated to full 100 points (`add_score: 100`).
+  - **Removed Duplicate Question 2 (`q2`)**: Removed generic vulnerability remediation SLA question (`"Are identified vulnerabilities remediated within defined SLAs..."`) which duplicated the dedicated patch SLA checks in `os_patching` (OS/container updates) and `cots_deployment_hardening` (vendor patch SLAs).
+  - **Implementation Groups**: Retained `["internet_facing"]`.
+- **Automated Validation**:
+  - Updated [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py) to assert `penetration_testing_and_vulnerability_management` has exactly 1 question with 100 points.
+  - All unit tests pass.
+
+---
+
+## 27. Remove `ssrf_and_cloud_metadata_defense` from `appsec.yml` and `appsec_manual.yml`
+
+Removed `ssrf_and_cloud_metadata_defense` requirement node across both standard and manual AppSec frameworks due to organizational maturity scoping:
+- **Removed Requirement Node**:
+  - Deleted `urn:intuitem:risk:req_node:appsec:ssrf_and_cloud_metadata_defense` from [`YML/appsec.yml`](file:///home/python/ciso-assistant/YML/appsec.yml).
+  - Deleted `urn:intuitem:risk:req_node:appsec_manual:ssrf_and_cloud_metadata_defense` from [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml).
+- **Test Data Synchronization**:
+  - Cleaned up answers for `ssrf_and_cloud_metadata_defense` from example application profiles:
+    - [`test_data/app_appsec_hybrid_saas.yml`](file:///home/python/ciso-assistant/test_data/app_appsec_hybrid_saas.yml)
+    - [`test_data/app_appsec_secure_api.yml`](file:///home/python/ciso-assistant/test_data/app_appsec_secure_api.yml)
+    - [`test_data/app_appsec_vulnerable_legacy.yml`](file:///home/python/ciso-assistant/test_data/app_appsec_vulnerable_legacy.yml)
+- **Framework Versioning & Metadata**:
+  - [`YML/appsec.yml`](file:///home/python/ciso-assistant/YML/appsec.yml): Incremented to `version: 22`, updated `publication_date: 2026-11-05`, updated `expected_requirement_nodes_count: 59`.
+  - [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml): Incremented to `version: 5`, updated `expected_requirement_nodes_count: 61`.
+- **Automated Validation**:
+  - Updated [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py) to remove SSRF checks and assert new node counts (59 for `appsec`, 61 for `appsec_manual`).
+  - Verified tests pass across `test_yaml_integrity.py`, `test_implementation_groups.py`, and `test_application_scenarios.py`.
+
+---
+
+## 28. Remove API Payload Schema Validation Question from `api_security_and_rate_limiting`
+
+Removed question `q2` (*"Are API payloads strictly validated against documented API specifications (e.g. OpenAPI / JSON schema)?"*) from requirement node `api_security_and_rate_limiting`:
+- **Framework Updates**:
+  - [`YML/appsec.yml`](file:///home/python/ciso-assistant/YML/appsec.yml) and [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml):
+    - Deleted question `q2` (`api_security_and_rate_limiting:q2`).
+    - Allocated full 100 points (`add_score: 100`) to question `q1` (*"Are exposed web and API endpoints protected against abusive traffic via an edge Web Application Firewall (WAF, e.g., Cloudflare, AWS WAF), bot protection, and automated rate limiting / throttling controls?"*).
+    - Refined node descriptions and typical evidence removing schema validation references.
+- **Test Data Synchronization**:
+  - Removed answer for `api_security_and_rate_limiting:q2` from [`test_data/app_appsec_vulnerable_legacy.yml`](file:///home/python/ciso-assistant/test_data/app_appsec_vulnerable_legacy.yml).
+- **Automated Validation**:
+  - Verified tests pass across `test_yaml_integrity.py`, `test_implementation_groups.py`, and `test_application_scenarios.py`.
+
+---
+
+## 30. Merge `data_in_transit` (Encryption in Transit) into `data_exchange` (Control of Data Exchange)
+
+Merged `data_in_transit` into `data_exchange` across `appsec.yml` and `appsec_manual.yml`, structuring the unified requirement with an initial gating question asking if the application exchanges data externally:
+- **Consolidated Requirement Node**: Preserved canonical URN `data_exchange` (`Control of Data Exchange & Encryption in Transit`) under Chapter 7 (`data_lifecycle_chapter`):
+  - **Question 1 (`q1`, Gating)**: *"Does the application exchange data externally? (e.g., transfers, automated API integrations, webhooks, or network communications with external partners, third-party vendors, or public services)"*
+    - `No`: 100 points (`compute_result: true`, `#33a745`) - satisfies requirement with no external risk.
+    - `Yes`: 0 points (`compute_result: false`, `#fd7e14`) - conditionally triggers transit encryption and contract checks.
+  - **Question 2 (`q2`, In-Transit Encryption)**: *"Is data encrypted during transit? (Specify protocols, algorithms and methods: e.g., TLS 1.2 / TLS 1.3 with AES-GCM or ChaCha20, HTTPS with HSTS, mTLS for service APIs, SSHv2, or IPsec across external and internal boundaries)"*
+    - `depends_on`: `data_exchange:q1` (`Yes`)
+    - `Yes`: 50 points (`compute_result: true`, `#33a745`)
+    - `No`: 0 points (`compute_result: false`, `#dc3545`)
+  - **Question 3 (`q3`, Formal Data Exchange Contract)**: *"Is there a data exchange contract with the appropriate confidentiality clauses? (e.g., formal Data Processing Agreement / DPA, Data Transfer Agreement / DTA, or NDA)"*
+    - `depends_on`: `data_exchange:q1` (`Yes`)
+    - `Contract!`: 50 points (`compute_result: true`, `#33a745`)
+    - `No contract`: 0 points (`compute_result: false`, `#dc3545`)
+  - **Scoring**: $50 + 50 = 100$ total points when external data exchange is active; 100 points when no external exchange occurs.
+  - **Associated Controls & Vulnerabilities**: Linked both `information_exchange_contract` and `encrypt_data_in_transit` reference controls, and associated both `contractual_gap` and `lack_of_encryption` vulnerabilities.
+  - **Implementation Groups**: Retained `["custom_app", "cots_app"]`.
+- **Eliminated Redundant Node**: Completely removed `data_in_transit` from Chapter 4 (`crypto_chapter`) across both `appsec.yml` and `appsec_manual.yml`.
+- **Scenario Likelihood Mapping**:
+  - Pointed scenario `unencrypted_data_in_transit` (`Exposure of unencrypted data in transit`) likelihood to `data_exchange`.
+- **Framework Metadata**:
+  - `YML/appsec.yml`: Incremented to `version: 23`, updated `expected_requirement_nodes_count: 58`.
+  - `YML/appsec_manual.yml`: Incremented to `version: 6`, updated `expected_requirement_nodes_count: 60`.
+- **Test Data Synchronization**:
+  - [`test_data/app_appsec_vulnerable_legacy.yml`](file:///home/python/ciso-assistant/test_data/app_appsec_vulnerable_legacy.yml): Updated answers to answer all 3 questions of `data_exchange` (Yes to q1, No to q2, No contract to q3); updated `Exposure of unencrypted data in transit` likelihood requirement to `data_exchange`.
+  - [`test_data/app_appsec_secure_api.yml`](file:///home/python/ciso-assistant/test_data/app_appsec_secure_api.yml) and [`test_data/app_appsec_hybrid_saas.yml`](file:///home/python/ciso-assistant/test_data/app_appsec_hybrid_saas.yml): Removed `data_in_transit` answers, excluded `Exposure of unencrypted data in transit` scenario for SaaS delivery model (`scenario_count: 10`).
+- **Automated Validation**:
+  - Updated [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py) to assert new requirement node counts (58 for `appsec`, 60 for `appsec_manual`), verified 3-question structure for `data_exchange`, and removed `data_in_transit` from infra nodes.
+  - Updated [`tests/test_application_scenarios.py`](file:///home/python/ciso-assistant/tests/test_application_scenarios.py) SaaS scenario count assertion to 10.
+  - All test suites pass.
+
+---
+
+## 31. Gating Question for `file_upload_security` (File Upload Security & Malware Hygiene)
+
+Restructured requirement node `file_upload_security` across both `appsec.yml` and `appsec_manual.yml` with an initial gating question to determine whether the application accepts file uploads before assessing magic byte validation and malware scanning:
+- **Requirement Node Structure**:
+  - **Question 1 (`q1`, Gating Question)**: *"Can files be uploaded to the application? (e.g., user attachments, documents, images, media, or data imports)"*
+    - `No`: 100 points (`compute_result: true`, `#33a745`) - satisfies requirement with full compliance when no file upload capabilities exist.
+    - `Yes`: 0 points (`compute_result: false`, `#fd7e14`) - conditionally activates downstream file validation and malware scanning checks.
+  - **Question 2 (`q2`, Magic Bytes & Path Traversal)**: *"Are uploaded files validated via server-side magic byte inspection, assigned randomized filenames (UUIDs), and stripped of path traversal characters?"*
+    - `depends_on`: `file_upload_security:q1` (`Yes`)
+    - `Yes`: 50 points (`compute_result: true`, `#33a745`)
+    - `No`: 0 points (`compute_result: false`, `#dc3545`)
+  - **Question 3 (`q3`, Malware Scanning & Segregated Storage)**: *"Are uploaded files scanned for malware and stored exclusively in dedicated, non-executable private object storage (e.g. private S3 with presigned URLs)?"*
+    - `depends_on`: `file_upload_security:q1` (`Yes`)
+    - `Yes`: 50 points (`compute_result: true`, `#33a745`)
+    - `No`: 0 points (`compute_result: false`, `#dc3545`)
+  - **Scoring**: $0 + 50 + 50 = 100$ total points on the `Yes` branch; 100 total points on the `No` branch.
+  - **Implementation Groups**: Retained strict scoping to `["custom_app"]` in both frameworks.
+- **Test Data Synchronization**:
+  - [`test_data/app_appsec_secure_api.yml`](file:///home/python/ciso-assistant/test_data/app_appsec_secure_api.yml): Added answer for `file_upload_security:q1` (`Yes`).
+  - [`test_data/app_appsec_hybrid_saas.yml`](file:///home/python/ciso-assistant/test_data/app_appsec_hybrid_saas.yml): Added answer for `file_upload_security:q1` (`Yes`).
+  - [`test_data/app_appsec_vulnerable_legacy.yml`](file:///home/python/ciso-assistant/test_data/app_appsec_vulnerable_legacy.yml): Added answer for `file_upload_security:q1` (`Yes`).
+- **Integrity Tests & Documentation**:
+  - Updated [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py):
+    - Adjusted `test_appsec_code_hygiene_and_hosting_defenses_scoping` to permit intra-node `depends_on` (asserting `dep_q.startswith(node["urn"])`).
+    - Updated `test_appsec_file_upload_controls` to assert 3 questions, gating choice scores, dependency conditionality on `q1:c2`, and branch score totals for both `appsec` and `appsec_manual`.
+  - Updated [`docs/appsec_questions_cases.md`](file:///home/python/ciso-assistant/docs/appsec_questions_cases.md): Updated summary table and node details for `file_upload_security`.
+- **Automated Validation**:
+  - All test suites pass.
+
+## 32. SaaS Scoping Optimization: Excluding `api_security_and_rate_limiting` and `penetration_testing_and_vulnerability_management`
+
+Addressed the architectural requirement that `api_security_and_rate_limiting` and `penetration_testing_and_vulnerability_management` must not be asked for SaaS applications (`saas_app`), purely via framework metadata and implementation group scoping without modifying Python source code:
+- **Rationale**:
+  - `api_security_and_rate_limiting`: Edge WAF, anti-DDoS, and rate limiting / throttling are managed implicitly by the SaaS vendor to protect their multi-tenant infrastructure. Contractual commitments are evaluated under `saas_network_security` (Chapter 10).
+  - `penetration_testing_and_vulnerability_management`: Independent technical penetration tests against third-party multi-tenant SaaS environments are under the operational choice and purview of the vendor. Contractual pentest governance and vulnerability remediation SLAs are evaluated under `saas_penetration_testing_and_vulnerability_management` (Chapter 10).
+- **Framework Implementation (Zero Python Code Modifications)**:
+  - In [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml):
+    - Adjusted requirement node `network_exposure` from `implementation_groups: ["info"]` to `implementation_groups: ["custom_app", "cots_app"]` (mirroring [`YML/appsec.yml`](file:///home/python/ciso-assistant/YML/appsec.yml)).
+    - Because SaaS applications only select `saas_app` (and `baseline`), `network_exposure` is never presented for SaaS applications, preventing choice `c2` ("Internet-facing") from ever triggering `internet_facing`.
+    - Clarified track description for `internet_facing` and requirement descriptions/annotations for `network_exposure`, `api_security_and_rate_limiting`, and `penetration_testing_and_vulnerability_management` across both YAML frameworks.
+    - Incremented framework versions (`appsec.yml` v24, `appsec_manual.yml` v7).
+- **Automated Tests & Integrity**:
+  - In [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py):
+    - Updated `test_appsec_manual_structure_and_scoping` to assert `network_exposure` is scoped to `{"custom_app", "cots_app"}` rather than `info`.
+    - Updated `test_appsec_code_hygiene_and_hosting_defenses_scoping` to assert `appsec_manual` perimeter requirements exclude `saas_app`.
+  - In [`tests/test_implementation_groups.py`](file:///home/python/ciso-assistant/tests/test_implementation_groups.py):
+    - Added verification in `test_appsec_manual_triggered_implementation_groups_orchestration` ensuring SaaS answers trigger `saas_app` while keeping `internet_facing`, `custom_app`, `cots_app`, and `infra` hidden.
+- **Verification**:
+  - Verified `classes/` remains completely clean (`git diff classes/` is empty).
+  - All automated test suites pass.
+
+## 33. Merge Hosting Model and Network Exposure into Single Node (`hosting`)
+
+Merged requirement node `network_exposure` into `hosting` across both `YML/appsec.yml` and `YML/appsec_manual.yml`, creating a single unified requirement node for delivery model and network accessibility in Chapter 1:
+- **Requirement Node Structure (`hosting`)**:
+  - **Question 1 (`hosting:q1`)**: *"What is the delivery and hosting model of the application?"*
+    - `c1`: Custom software created and deployed by my teams (In-house development)
+    - `c2`: Bought software deployed by my teams (COTS / Vendor package)
+    - `c3`: SaaS (Third-party software hosted and operated by a vendor)
+  - **Question 2 (`hosting:q2`, Network Exposure)**: *"What is the network exposure of the application?"*
+    - `depends_on`: `hosting:q1` in `[c1, c2]` (`condition: any`).
+    - `c1`: Internal / Restricted Network only (100 pts, compute_result: true)
+    - `c2`: Internet-facing (Public Web / Mobile API) (100 pts, compute_result: true)
+      - In `appsec.yml`: `select_implementation_groups: ["internet_facing"]`.
+      - In `appsec_manual.yml`: connected to `internet_facing` track via `implementation_groups_dependencies`.
+  - **SaaS Handling**: When SaaS (`hosting:q1:c3`) is selected, question 2 is dynamically hidden via `depends_on`, ensuring SaaS applications are never asked the network exposure question and cannot trigger `internet_facing`.
+- **Framework Synchronization**:
+  - Removed standalone requirement node `network_exposure`.
+  - Updated expected requirement nodes count: `appsec.yml` from 58 to 57; `appsec_manual.yml` from 60 to 59.
+  - Incremented versions: `appsec.yml` v25, `appsec_manual.yml` v8.
+  - Updated [`test_data/app_appsec_vulnerable_legacy.yml`](file:///home/python/ciso-assistant/test_data/app_appsec_vulnerable_legacy.yml) requirement mapping from `network_exposure` to `hosting`.
+- **Tests & Documentation**:
+  - Updated [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py):
+    - In `test_appsec_network_exposure_and_conditional_branching`, verified `hosting:q2` dependency on `hosting:q1` (`c1`, `c2`) and confirmed `network_exposure` is no longer a standalone node.
+    - In `test_appsec_manual_structure_and_scoping`, verified `hosting` node contains 2 questions with intra-node dependency and confirmed total requirement nodes count is 59.
+  - Updated [`tests/test_implementation_groups.py`](file:///home/python/ciso-assistant/tests/test_implementation_groups.py) to supply `q1` and `q2` under `hosting`.
+  - Updated [`docs/appsec_policy_applicability_matrix.md`](file:///home/python/ciso-assistant/docs/appsec_policy_applicability_matrix.md) and [`docs/appsec_questions_cases.md`](file:///home/python/ciso-assistant/docs/appsec_questions_cases.md).
+- **Automated Validation**:
+  - Verified `classes/` remains completely clean (`git diff classes/` is empty).
+  - All automated test suites pass.
+
+
+
+
+
+
+
 
 
 

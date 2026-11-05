@@ -129,17 +129,11 @@ answers:
     result: "compliant"
     observation: "Development teams adhere to OWASP Top 10 coding standards with automated framework-level input validation, output encoding, and disabled debug modes."
 
-  - requirement: "ssrf_and_cloud_metadata_defense"
-    question: "Are outbound HTTP requests initiated by the application strictly validated using destination allow-lists with connections to RFC 1918 private subnets and localhost blocked?"
+  - requirement: "file_upload_security"
+    question: "Can files be uploaded to the application?"
     answer: "Yes"
     result: "compliant"
-    observation: "Outbound integration webhooks validated against registered partner endpoints."
-
-  - requirement: "ssrf_and_cloud_metadata_defense"
-    question: "Are cloud instance metadata protections enforced"
-    answer: "Yes"
-    result: "compliant"
-    observation: "GCP metadata header (Metadata-Flavor: Google) enforced."
+    observation: "Application allows users to upload dataset files, CSVs, and Excel sheets for analytics processing."
 
   - requirement: "file_upload_security"
     question: "Are uploaded files validated via server-side magic byte inspection"
@@ -158,16 +152,6 @@ answers:
     answer: "Yes"
     result: "compliant"
     observation: "GCP Secret Manager stores database passwords and third-party API keys."
-
-  # ============================================================================
-  # CHAPTER 4: CRYPTOGRAPHY & DATA PROTECTION
-  # ============================================================================
-
-  - requirement: "data_in_transit"
-    question: "Is data encrypted during transit?"
-    answer: "Yes"
-    result: "compliant"
-    observation: "TLS 1.2+ enforced on all external endpoints and internal service mesh communication."
 
 
   # ============================================================================
@@ -274,24 +258,16 @@ expected_evaluation:
   confidentiality_impact: 3
   availability_impact: 3
   integrity_impact: 3
-  scenario_count: 11
+  scenario_count: 10
   excluded_scenarios:
     - "Third-party data leakage"
+    - "Exposure of unencrypted data in transit"
     - "Exposure of unencrypted data at rest"
     - "Disclosure of production data in non-production environments"
     - "Excessive retention of sensitive data"
     - "API abuse and denial of service"
 
 expected_risk_scenarios:
-  - scenario: "Exposure of unencrypted data in transit"
-    likelihood_requirement: "data_in_transit"
-    likelihood_score: 100
-    scaled_likelihood: 1
-    scaled_impact: 3
-    matrix_risk_id: 1
-    risk_level: 2
-    control_priority: 3
-
   - scenario: "SaaS provider data leakage"
     likelihood_requirement: "saas_contract_compliance"
     likelihood_score: 100

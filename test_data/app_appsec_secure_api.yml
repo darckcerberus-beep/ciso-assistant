@@ -128,17 +128,11 @@ answers:
     result: "compliant"
     observation: "Development teams strictly enforce secure coding guidelines adhering to OWASP Top 10 standards across all in-house services."
 
-  - requirement: "ssrf_and_cloud_metadata_defense"
-    question: "Are outbound HTTP requests initiated by the application strictly validated using destination allow-lists with connections to RFC 1918 private subnets and localhost blocked?"
+  - requirement: "file_upload_security"
+    question: "Can files be uploaded to the application?"
     answer: "Yes"
     result: "compliant"
-    observation: "Outbound API calls restricted via strict egress gateway allow-list; RFC 1918 and loopback blocked."
-
-  - requirement: "ssrf_and_cloud_metadata_defense"
-    question: "Are cloud instance metadata protections enforced"
-    answer: "Yes"
-    result: "compliant"
-    observation: "AWS IMDSv2 enforced with hop-limit=1 across all ECS tasks and EKS pods."
+    observation: "Application accepts receipt attachments and invoice documents from authorized clients."
 
   - requirement: "file_upload_security"
     question: "Are uploaded files validated via server-side magic byte inspection"
@@ -157,16 +151,6 @@ answers:
     answer: "Yes"
     result: "compliant"
     observation: "All secrets managed in HashiCorp Vault with automated 90-day key rotation and TruffleHog pre-commit blocking."
-
-  # ============================================================================
-  # CHAPTER 4: CRYPTOGRAPHY & DATA PROTECTION
-  # ============================================================================
-
-  - requirement: "data_in_transit"
-    question: "Is data encrypted during transit?"
-    answer: "Yes"
-    result: "compliant"
-    observation: "Enforced TLS 1.3 with forward secrecy for all external connections and internal Istio service-to-service mTLS."
 
 
   # ============================================================================
@@ -270,24 +254,16 @@ expected_evaluation:
   confidentiality_impact: 4
   availability_impact: 4
   integrity_impact: 4
-  scenario_count: 11
+  scenario_count: 10
   excluded_scenarios:
     - "Third-party data leakage"
+    - "Exposure of unencrypted data in transit"
     - "Exposure of unencrypted data at rest"
     - "Disclosure of production data in non-production environments"
     - "Excessive retention of sensitive data"
     - "API abuse and denial of service"
 
 expected_risk_scenarios:
-  - scenario: "Exposure of unencrypted data in transit"
-    likelihood_requirement: "data_in_transit"
-    likelihood_score: 100
-    scaled_likelihood: 1
-    scaled_impact: 4
-    matrix_risk_id: 1
-    risk_level: 2
-    control_priority: 3
-
   - scenario: "SaaS provider data leakage"
     likelihood_requirement: "saas_contract_compliance"
     likelihood_score: 100

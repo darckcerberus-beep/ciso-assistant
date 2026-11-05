@@ -615,6 +615,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         self.assertEqual(len(triggered), 0)
         self.assertIn("custom_app", hidden)
         self.assertIn("cots_app", hidden)
+        self.assertIn("infra", hidden)
         self.assertIn("saas_app", hidden)
         self.assertIn("baseline", hidden)
         self.assertIn("internet_facing", hidden)
@@ -624,6 +625,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         trig_map = get_framework_triggered_implementation_groups_map("appsec_manual")
         self.assertIn("custom_app", trig_map)
         self.assertIn("cots_app", trig_map)
+        self.assertIn("infra", trig_map)
         self.assertIn("saas_app", trig_map)
         self.assertIn("internet_facing", trig_map)
 
@@ -631,9 +633,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         custom_answers = {
             "hosting": {
                 "q1": "Custom software created and deployed by my teams (In-house development)",
-            },
-            "network_exposure": {
-                "q1": "Internet-facing (Public Web / Mobile API)",
+                "q2": "Internet-facing (Public Web / Mobile API)",
             },
         }
         res_custom = determine_implementation_groups_triggered_by_others("appsec_manual", answers=custom_answers)
@@ -643,14 +643,17 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         hidden_custom = [g["ref_id"] for g in res_custom["hidden_groups"]]
         pending_custom = [d["target_implementation_group"] for d in res_custom["pending_dependencies"]]
 
-        # Custom & Internet-Facing (and baseline) are now triggered & visible
+        # Custom, Infra & Internet-Facing (and baseline) are now triggered & visible
         self.assertIn("custom_app", triggered_custom)
+        self.assertIn("infra", triggered_custom)
         self.assertIn("internet_facing", triggered_custom)
         self.assertIn("baseline", triggered_custom)
         self.assertIn("info", visible_custom)
         self.assertIn("custom_app", visible_custom)
+        self.assertIn("infra", visible_custom)
         self.assertIn("internet_facing", visible_custom)
         self.assertIn("custom_app", pending_custom)
+        self.assertIn("infra", pending_custom)
         self.assertIn("internet_facing", pending_custom)
 
         # Non-relevant tracks (COTS, SaaS) remain hidden and non-selectable
@@ -663,9 +666,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         cots_answers = {
             "hosting": {
                 "q1": "Bought software deployed by my teams (COTS / Vendor package)",
-            },
-            "network_exposure": {
-                "q1": "Internal / Restricted Network only",
+                "q2": "Internal / Restricted Network only",
             },
         }
         res_cots = determine_implementation_groups_triggered_by_others("appsec_manual", answers=cots_answers)
@@ -673,9 +674,60 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         hidden_cots = [g["ref_id"] for g in res_cots["hidden_groups"]]
 
         self.assertIn("cots_app", triggered_cots)
+        self.assertIn("infra", triggered_cots)
         self.assertIn("custom_app", hidden_cots)
         self.assertIn("saas_app", hidden_cots)
         self.assertIn("internet_facing", hidden_cots)
+
+        # 4. Answers Provided: SaaS Software -> Triggers saas_app and baseline; internet_facing remains hidden
+        saas_answers = {
+            "hosting": {
+                "q1": "SaaS (Third-party software hosted and operated by a vendor)",
+            },
+        }
+        res_saas = determine_implementation_groups_triggered_by_others("appsec_manual", answers=saas_answers)
+        triggered_saas = [g["ref_id"] for g in res_saas["triggered_groups"]]
+        hidden_saas = [g["ref_id"] for g in res_saas["hidden_groups"]]
+        visible_saas = [g["ref_id"] for g in res_saas["visible_groups"]]
+
+        self.assertIn("saas_app", triggered_saas)
+        self.assertIn("baseline", triggered_saas)
+        self.assertIn("saas_app", visible_saas)
+        self.assertIn("baseline", visible_saas)
+        self.assertIn("info", visible_saas)
+
+        # Non-relevant tracks (Custom, COTS, Infra, Internet-Facing) remain hidden
+        self.assertIn("custom_app", hidden_saas)
+        self.assertIn("cots_app", hidden_saas)
+        self.assertIn("infra", hidden_saas)
+        self.assertIn("internet_facing", hidden_saas)
+        self.assertNotIn("internet_facing", visible_saas)
+        self.assertNotIn("internet_facing", triggered_saas)
+
+        # 4. Answers Provided: SaaS Software -> Triggers saas_app and baseline; internet_facing remains hidden
+        saas_answers = {
+            "hosting": {
+                "q1": "SaaS (Third-party software hosted and operated by a vendor)",
+            },
+        }
+        res_saas = determine_implementation_groups_triggered_by_others("appsec_manual", answers=saas_answers)
+        triggered_saas = [g["ref_id"] for g in res_saas["triggered_groups"]]
+        hidden_saas = [g["ref_id"] for g in res_saas["hidden_groups"]]
+        visible_saas = [g["ref_id"] for g in res_saas["visible_groups"]]
+
+        self.assertIn("saas_app", triggered_saas)
+        self.assertIn("baseline", triggered_saas)
+        self.assertIn("saas_app", visible_saas)
+        self.assertIn("baseline", visible_saas)
+        self.assertIn("info", visible_saas)
+
+        # Non-relevant tracks (Custom, COTS, Infra, Internet-Facing) remain hidden
+        self.assertIn("custom_app", hidden_saas)
+        self.assertIn("cots_app", hidden_saas)
+        self.assertIn("infra", hidden_saas)
+        self.assertIn("internet_facing", hidden_saas)
+        self.assertNotIn("internet_facing", visible_saas)
+        self.assertNotIn("internet_facing", triggered_saas)
 
 if __name__ == "__main__":
     unittest.main()

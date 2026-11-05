@@ -27,11 +27,11 @@ description: >
   Identity & Access Management, Secure SDLC, Input Validation, Cryptography & Secrets,
   API Security, Security Logging, Resilience, Vulnerability Management, and Third-Party Risk.
   Manual Implementation Group variant: profiling questions are completed under general info
-  before auditors manually assign relevant tracks (Custom, COTS, SaaS, Internet-Facing) without
+  before auditors manually assign relevant tracks (Custom, COTS, Infrastructure, SaaS, Internet-Facing) without
   dynamic choice triggering.
 copyright: DCME Corp
-version: 3
-publication_date: 2026-10-19
+version: 8
+publication_date: 2026-11-05
 provider: DCME Corp
 packager: DCME Corp
 
@@ -48,7 +48,7 @@ objects:
       description: >
         Sensitive information is exposed during network transmission due to
         missing or deprecated cryptographic transport protocols.
-      likelihood: urn:intuitem:risk:req_node:appsec_manual:data_in_transit
+      likelihood: urn:intuitem:risk:req_node:appsec_manual:data_exchange
       impact: urn:intuitem:risk:req_node:appsec_manual:data_classification
       threats:
         - urn:intuitem:risk:threat:appsec_manual:data_exfiltration
@@ -1346,11 +1346,15 @@ objects:
       - urn: urn:intuitem:risk:ig:appsec_manual:custom_app
         name: "Custom Software Track (In-house Development)"
         ref_id: "custom_app"
-        description: "Requirements for custom in-house software created and deployed by our teams (Dev & Hosting: code-level session management, input validation, output encoding, debug suppression, and CI/CD SAST/DAST/SCA/SBOM)"
+        description: "Requirements for custom in-house software created and deployed by our teams (Development track: code-level session management, input validation, output encoding, debug suppression, and CI/CD SAST/DAST/SCA/SBOM)"
       - urn: urn:intuitem:risk:ig:appsec_manual:cots_app
         name: "Bought Software Track (COTS / Vendor Package)"
         ref_id: "cots_app"
-        description: "Requirements for bought commercial off-the-shelf software deployed and hosted by our teams (Hosting only: deployment hardening baselines, vendor patch management SLA, reverse proxy & WAF protection, generic error pages)"
+        description: "Requirements for bought commercial off-the-shelf software deployed by our teams (COTS software deployment hardening, vendor support contract, and vendor patch SLAs)"
+      - urn: urn:intuitem:risk:ig:appsec_manual:infra
+        name: "Infrastructure & Hosting Security Track"
+        ref_id: "infra"
+        description: "Requirements for infrastructure, hosting, and platform security for self-hosted software (Infrastructure track: secrets management, encryption at rest/transit, SIEM logging, backup & DR, OS patching, and patch SLAs)"
       - urn: urn:intuitem:risk:ig:appsec_manual:saas_app
         name: "SaaS Application Track"
         ref_id: "saas_app"
@@ -1362,7 +1366,7 @@ objects:
       - urn: urn:intuitem:risk:ig:appsec_manual:internet_facing
         name: "Internet-Facing Application Track"
         ref_id: "internet_facing"
-        description: "Requirements for applications exposed to the Internet"
+        description: "Perimeter and edge defense requirements for self-hosted applications exposed to the public Internet (Edge WAF, anti-DDoS, rate limiting, external penetration testing). Excluded for SaaS apps where edge controls are maintained by the cloud provider."
 
     # Implementation groups dependencies define conditions under which tracks become relevant
     # without choice-level auto-triggering in respondent questionnaires, allowing orchestrator-driven assignment.
@@ -1385,6 +1389,24 @@ objects:
         choice_value: "Bought software deployed by my teams (COTS / Vendor package)"
         prompt: "Application is bought COTS software deployed internally. Trigger Bought Software Track?"
 
+      - target_implementation_group: "infra"
+        name: "Infrastructure & Hosting Security Track"
+        question_urn: "urn:intuitem:risk:req_node:appsec_manual:hosting:q1"
+        question_ref_id: "hosting:q1"
+        choice_urn: "urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c1"
+        choice_ref_id: "c1"
+        choice_value: "Custom software created and deployed by my teams (In-house development)"
+        prompt: "Application is hosted on self-managed infrastructure. Trigger Infrastructure & Hosting Security Track?"
+
+      - target_implementation_group: "infra"
+        name: "Infrastructure & Hosting Security Track"
+        question_urn: "urn:intuitem:risk:req_node:appsec_manual:hosting:q1"
+        question_ref_id: "hosting:q1"
+        choice_urn: "urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c2"
+        choice_ref_id: "c2"
+        choice_value: "Bought software deployed by my teams (COTS / Vendor package)"
+        prompt: "Application is hosted on self-managed infrastructure. Trigger Infrastructure & Hosting Security Track?"
+
       - target_implementation_group: "saas_app"
         name: "SaaS Application Track"
         question_urn: "urn:intuitem:risk:req_node:appsec_manual:hosting:q1"
@@ -1396,9 +1418,9 @@ objects:
 
       - target_implementation_group: "internet_facing"
         name: "Internet-Facing Application Track"
-        question_urn: "urn:intuitem:risk:req_node:appsec_manual:network_exposure:q1"
-        question_ref_id: "network_exposure:q1"
-        choice_urn: "urn:intuitem:risk:req_node:appsec_manual:network_exposure:q1:c2"
+        question_urn: "urn:intuitem:risk:req_node:appsec_manual:hosting:q2"
+        question_ref_id: "hosting:q2"
+        choice_urn: "urn:intuitem:risk:req_node:appsec_manual:hosting:q2:c2"
         choice_ref_id: "c2"
         choice_value: "Internet-facing (Public Web / Mobile API)"
         prompt: "Application is exposed to the public Internet. Trigger Internet-Facing Application Track?"
@@ -1583,22 +1605,24 @@ objects:
                 value: "Secret"
                 color: "#dc3545"
 
-      # Requirement: Determine hosting model
+      # Requirement: Determine hosting model & network exposure
       - urn: urn:intuitem:risk:req_node:appsec_manual:hosting
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec_manual:info
         ref_id: hosting
-        name: Application Delivery & Hosting Model
-        description: "Determine the application delivery and hosting model: Custom software created and deployed by internal teams, Bought software deployed by internal teams, or third-party SaaS."
+        name: Application Delivery & Network Exposure
+        description: "Determine the application delivery and hosting model (Custom software, Bought COTS, or third-party SaaS) and its network exposure (Internal restricted network or Internet-facing)."
         annotation: >
-          Application delivery and hosting model classification:
+          Application delivery, hosting model, and network exposure classification:
           - Custom software created and deployed by my teams: In-house developed software where source code is written and maintained internally. Subject to internal DevSecOps (SAST, DAST, SCA/SBOM, peer code review) and self-hosted network exposure discrimination.
           - Bought software deployed by my teams: Commercial Off-The-Shelf (COTS) or vendor software package deployed on internal infrastructure. Subject to vendor security patch management, CVE tracking, deployment configuration hardening, and self-hosted network exposure discrimination.
           - SaaS: Third-party software hosted and operated by a vendor. SaaS applications are inherently hosted on external cloud infrastructure and governed via Chapter 10 (saas_app). Edge perimeter protections and rate limiting (api_security_and_rate_limiting) are bypassed as they are implicitly maintained by the provider to protect their own infrastructure.
+          - Network exposure tier for self-hosted apps: Internal / Restricted (accessible only within corporate networks/VPN) vs Internet-facing (accessible over the public Internet, used to assign the internet_facing track).
         typical_evidence: >
           - Architecture design document (ADD) / System topology diagram
           - Software procurement contract, vendor license, or Git repository metadata
+          - Network zoning diagram showing DMZ, perimeter firewalls, and reverse proxies
         implementation_groups: ["info"]
         questions:
           urn:intuitem:risk:req_node:appsec_manual:hosting:q1:
@@ -1614,34 +1638,22 @@ objects:
               - urn: urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c3
                 value: "SaaS (Third-party software hosted and operated by a vendor)"
                 color: "#17a2b8"
-
-      # Requirement: Determine network exposure
-      - urn: urn:intuitem:risk:req_node:appsec_manual:network_exposure
-        assessable: true
-        depth: 2
-        parent_urn: urn:intuitem:risk:req_node:appsec_manual:info
-        ref_id: network_exposure
-        name: Application Network Exposure
-        description: "Determine whether the application is accessible from the public Internet or restricted to private internal networks."
-        annotation: >
-          Network accessibility tier:
-          - Internal / Restricted: Accessible exclusively from internal corporate networks, private VPC endpoints, or via VPN with zero public Internet reachability.
-          - Internet-facing: Accessible directly over the public Internet (customer portals, public web apps, mobile backends). Used to assign the Internet-Facing track (internet_facing) for perimeter controls.
-        typical_evidence: >
-          - Network zoning diagram showing DMZ, perimeter firewalls, and reverse proxies
-          - DNS configuration and IP address allocation records
-        implementation_groups: ["info"]
-        questions:
-          urn:intuitem:risk:req_node:appsec_manual:network_exposure:q1:
+          urn:intuitem:risk:req_node:appsec_manual:hosting:q2:
             type: unique_choice
             text: "What is the network exposure of the application?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec_manual:hosting:q1
+              answers:
+                - urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c1
+                - urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c2
+              condition: any
             choices:
-              - urn: urn:intuitem:risk:req_node:appsec_manual:network_exposure:q1:c1
+              - urn: urn:intuitem:risk:req_node:appsec_manual:hosting:q2:c1
                 value: "Internal / Restricted Network only"
                 add_score: 100
                 compute_result: true
                 color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec_manual:network_exposure:q1:c2
+              - urn: urn:intuitem:risk:req_node:appsec_manual:hosting:q2:c2
                 value: "Internet-facing (Public Web / Mobile API)"
                 add_score: 100
                 compute_result: true
@@ -1913,56 +1925,6 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Requirement: Server-Side Request Forgery (SSRF) & Cloud Metadata Defense
-      - urn: urn:intuitem:risk:req_node:appsec_manual:ssrf_and_cloud_metadata_defense
-        assessable: true
-        depth: 2
-        parent_urn: urn:intuitem:risk:req_node:appsec_manual:app_defenses_chapter
-        ref_id: ssrf_and_cloud_metadata_defense
-        name: SSRF & Cloud Metadata Defense
-        description: "Prevent Server-Side Request Forgery (SSRF) by validating outbound HTTP requests and enforcing cloud instance metadata protections (IMDSv2)."
-        annotation: >
-          SSRF and cloud workload isolation defenses for custom software:
-          - Outbound request destination validation: strict protocol allow-listing (http/https only) and blocking connections to private RFC 1918 subnets, loopback (127.0.0.1), and link-local (169.254.0.0/16) addresses.
-          - Cloud metadata service protection: mandatory IMDSv2 (session-token-backed, hop limit=1) on AWS EC2/ECS/EKS instances and equivalent metadata protection on Azure/GCP, preventing credential extraction.
-        typical_evidence: >
-          - Outbound HTTP client wrapper / egress firewall allow-list configuration
-          - Cloud infrastructure audit verifying IMDSv2 enforcement (`HttpTokens=required`, `HttpPutResponseHopLimit=1`)
-        vulnerabilities:
-          - urn:intuitem:risk:vulnerability:appsec_manual:flawed_input_validation
-        implementation_groups: ["custom_app"]
-        reference_controls:
-          - urn:intuitem:risk:control:appsec_manual:secure_input_validation_and_encoding
-        questions:
-          urn:intuitem:risk:req_node:appsec_manual:ssrf_and_cloud_metadata_defense:q1:
-            type: unique_choice
-            text: "Are outbound HTTP requests initiated by the application strictly validated using destination allow-lists with connections to RFC 1918 private subnets and localhost blocked?"
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec_manual:ssrf_and_cloud_metadata_defense:q1:c1
-                value: "Yes"
-                add_score: 50
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec_manual:ssrf_and_cloud_metadata_defense:q1:c2
-                value: "No"
-                add_score: 0
-                compute_result: false
-                color: "#dc3545"
-          urn:intuitem:risk:req_node:appsec_manual:ssrf_and_cloud_metadata_defense:q2:
-            type: unique_choice
-            text: "Are cloud instance metadata protections enforced (e.g. IMDSv2 token-backed metadata with hop-limit=1 on AWS, or Azure/GCP metadata header requirements) to prevent credential theft via SSRF?"
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec_manual:ssrf_and_cloud_metadata_defense:q2:c1
-                value: "Yes"
-                add_score: 50
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec_manual:ssrf_and_cloud_metadata_defense:q2:c2
-                value: "No"
-                add_score: 0
-                compute_result: false
-                color: "#dc3545"
-
       # Requirement: Secure File Upload Pipeline & Malware Hygiene
       - urn: urn:intuitem:risk:req_node:appsec_manual:file_upload_security
         assessable: true
@@ -1973,6 +1935,7 @@ objects:
         description: "Enforce strict file upload validation (magic bytes, path isolation, randomized filenames) and segregated storage with automated malware scanning."
         annotation: >
           File upload pipeline protections for custom software:
+          - Gating check: Determine if file upload capabilities exist in the application.
           - Server-side magic-byte inspection (verifying true MIME type irrespective of user-supplied Content-Type headers or file extensions).
           - Path isolation and randomized UUID storage filenames preventing directory traversal (Zip Slip) and webshell execution.
           - Automated anti-malware / antivirus scanning before ingestion and storage in dedicated non-executable object stores (e.g. private S3 buckets served via presigned URLs).
@@ -1988,21 +1951,25 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec_manual:file_upload_security:q1:
             type: unique_choice
-            text: "Are uploaded files validated via server-side magic byte inspection, assigned randomized filenames (UUIDs), and stripped of path traversal characters?"
+            text: "Can files be uploaded to the application? (e.g., user attachments, documents, images, media, or data imports)"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:file_upload_security:q1:c1
-                value: "Yes"
-                add_score: 50
+                value: "No"
+                add_score: 100
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec_manual:file_upload_security:q1:c2
-                value: "No"
+                value: "Yes"
                 add_score: 0
                 compute_result: false
-                color: "#dc3545"
+                color: "#fd7e14"
           urn:intuitem:risk:req_node:appsec_manual:file_upload_security:q2:
             type: unique_choice
-            text: "Are uploaded files scanned for malware and stored exclusively in dedicated, non-executable private object storage (e.g. private S3 with presigned URLs)?"
+            text: "Are uploaded files validated via server-side magic byte inspection, assigned randomized filenames (UUIDs), and stripped of path traversal characters?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec_manual:file_upload_security:q1
+              answers: ["urn:intuitem:risk:req_node:appsec_manual:file_upload_security:q1:c2"]
+              condition: any
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:file_upload_security:q2:c1
                 value: "Yes"
@@ -2010,6 +1977,24 @@ objects:
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec_manual:file_upload_security:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec_manual:file_upload_security:q3:
+            type: unique_choice
+            text: "Are uploaded files scanned for malware and stored exclusively in dedicated, non-executable private object storage (e.g. private S3 with presigned URLs)?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec_manual:file_upload_security:q1
+              answers: ["urn:intuitem:risk:req_node:appsec_manual:file_upload_security:q1:c2"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec_manual:file_upload_security:q3:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec_manual:file_upload_security:q3:c2
                 value: "No"
                 add_score: 0
                 compute_result: false
@@ -2024,7 +2009,7 @@ objects:
         description: "Enforce cryptographic protection for data in transit and at rest, and maintain centralized secrets management."
         annotation: >
           Comprehensive cryptographic controls incorporating newDPP data protection and centralized secrets vaults.
-        implementation_groups: ["custom_app", "cots_app"]
+        implementation_groups: ["infra"]
 
       # Requirement: Secrets management
       - urn: urn:intuitem:risk:req_node:appsec_manual:secrets_management
@@ -2041,7 +2026,7 @@ objects:
           - Pre-commit secret scanning pipeline report (e.g. Gitleaks / TruffleHog)
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec_manual:hardcoded_secrets
-        implementation_groups: ["custom_app", "cots_app"]
+        implementation_groups: ["infra"]
         reference_controls:
           - urn:intuitem:risk:control:appsec_manual:centralized_secrets_management
         questions:
@@ -2055,41 +2040,6 @@ objects:
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec_manual:secrets_management:q1:c2
-                value: "No"
-                add_score: 0
-                compute_result: false
-                color: "#dc3545"
-
-      # Requirement: Encrypt data during transmission (from newDPP)
-      - urn: urn:intuitem:risk:req_node:appsec_manual:data_in_transit
-        assessable: true
-        depth: 2
-        parent_urn: urn:intuitem:risk:req_node:appsec_manual:crypto_chapter
-        ref_id: data_in_transit
-        name: Encryption in Transit
-        description: "Encrypt data in transit across internal and external network boundaries."
-        annotation: >
-          Cryptographic protection of data during network transmission across internal, external, and cloud boundaries.
-          Mandates modern secure communication protocols (e.g., TLS 1.3 / TLS 1.2 with strong cipher suites, SSHv2, IPsec, mutual TLS / mTLS for API services).
-        typical_evidence: >
-          - TLS / SSL configuration inspection report (e.g., Qualys SSL Labs report, testssl.sh output)
-          - API gateway / Load balancer TLS cipher suite and protocol enforcement configuration
-        vulnerabilities:
-          - urn:intuitem:risk:vulnerability:appsec_manual:lack_of_encryption
-        implementation_groups: ["custom_app", "cots_app"]
-        reference_controls:
-          - urn:intuitem:risk:control:appsec_manual:encrypt_data_in_transit
-        questions:
-          urn:intuitem:risk:req_node:appsec_manual:data_in_transit:q1:
-            type: unique_choice
-            text: "Is data encrypted during transit? (Specify protocols, algorithms and methods: e.g., TLS 1.2 / TLS 1.3 with AES-GCM or ChaCha20, HTTPS with HSTS, mTLS for service APIs, SSHv2, or IPsec across external and internal boundaries)"
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec_manual:data_in_transit:q1:c1
-                value: "Yes"
-                add_score: 100
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec_manual:data_in_transit:q1:c2
                 value: "No"
                 add_score: 0
                 compute_result: false
@@ -2111,7 +2061,7 @@ objects:
           - Cloud storage bucket / disk volume encryption configuration (e.g., AWS KMS / Azure Key Vault / GCP KMS)
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec_manual:lack_of_encryption
-        implementation_groups: ["custom_app", "cots_app"]
+        implementation_groups: ["infra"]
         reference_controls:
           - urn:intuitem:risk:control:appsec_manual:encrypt_data_at_rest
         questions:
@@ -2339,7 +2289,6 @@ objects:
         typical_evidence: >
           - Edge WAF, anti-DDoS, and bot protection rule configuration (e.g. Cloudflare, AWS WAF & Shield, Google Cloud Armor, Azure WAF)
           - API gateway rate limiting and throttling policy definition
-          - OpenAPI / Swagger schema validation configuration
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec_manual:unmitigated_api_abuse
         implementation_groups: ["internet_facing"]
@@ -2352,24 +2301,10 @@ objects:
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:api_security_and_rate_limiting:q1:c1
                 value: "Yes"
-                add_score: 50
+                add_score: 100
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec_manual:api_security_and_rate_limiting:q1:c2
-                value: "No"
-                add_score: 0
-                compute_result: false
-                color: "#dc3545"
-          urn:intuitem:risk:req_node:appsec_manual:api_security_and_rate_limiting:q2:
-            type: unique_choice
-            text: "Are API payloads strictly validated against documented API specifications (e.g. OpenAPI / JSON schema)?"
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec_manual:api_security_and_rate_limiting:q2:c1
-                value: "Yes"
-                add_score: 50
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec_manual:api_security_and_rate_limiting:q2:c2
                 value: "No"
                 add_score: 0
                 compute_result: false
@@ -2393,19 +2328,23 @@ objects:
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec_manual:data_lifecycle_chapter
         ref_id: data_exchange
-        name: Control of Data Exchange
-        description: "Govern external data exchanges, API integrations, webhooks, and third-party data flows via formal agreements (DPA/DTA) and secure transmission for self-hosted applications."
+        name: Control of Data Exchange & Encryption in Transit
+        description: "Govern external data exchanges, API integrations, webhooks, and third-party data flows via encryption in transit (TLS 1.2+, mTLS) and formal agreements (DPA/DTA) for self-hosted applications."
         annotation: >
           Cross-organizational data sharing, API integrations, and external transmission governance for self-hosted delivery models (Custom and COTS):
+          - Verification of external data exchange boundaries.
+          - Cryptographic protection during network transmission across external boundaries enforcing modern protocols (TLS 1.2+, TLS 1.3, HTTPS with HSTS, mTLS).
           - Outbound and inbound data exchanges governed by formal information sharing agreements (DTA / DPA / NDA).
-          - Secure automated data flows, webhooks, and bulk egress protected via encryption in transit (TLS 1.2+, mTLS) and restricted scopes.
           - Note for SaaS: Third-party SaaS applications inherently and unconditionally exchange data with the SaaS provider outside the corporate perimeter. Data transfer governance, DPAs, and confidentiality protections are governed directly via Chapter 10 (saas_contract_compliance).
         typical_evidence: >
           - Signed Data Transfer Agreement (DTA) / Data Processing Addendum (DPA)
           - Non-Disclosure Agreement (NDA) with external recipients
           - API / webhook integration security specification (mTLS / HMAC signatures / IP allow-lists)
+          - TLS / SSL configuration inspection report (e.g., Qualys SSL Labs report, testssl.sh output)
+          - API gateway / Load balancer TLS cipher suite and protocol enforcement configuration
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec_manual:contractual_gap
+          - urn:intuitem:risk:vulnerability:appsec_manual:lack_of_encryption
         reference_controls:
           - urn:intuitem:risk:control:appsec_manual:information_exchange_contract
           - urn:intuitem:risk:control:appsec_manual:encrypt_data_in_transit
@@ -2413,7 +2352,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec_manual:data_exchange:q1:
             type: unique_choice
-            text: "Are there data exchanges beyond the group? (e.g., transfers, automated API integrations, or webhooks with external partners, third-party vendors, or public services)"
+            text: "Does the application exchange data externally? (e.g., transfers, automated API integrations, webhooks, or network communications with external partners, third-party vendors, or public services)"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:data_exchange:q1:c1
                 value: "No"
@@ -2427,20 +2366,38 @@ objects:
                 color: "#fd7e14"
           urn:intuitem:risk:req_node:appsec_manual:data_exchange:q2:
             type: unique_choice
-            text: "Is there a data exchange contract with the appropriate confidentiality clauses? (e.g., formal Data Processing Agreement / DPA, Data Transfer Agreement / DTA, or NDA)"
+            text: "Is data encrypted during transit? (Specify protocols, algorithms and methods: e.g., TLS 1.2 / TLS 1.3 with AES-GCM or ChaCha20, HTTPS with HSTS, mTLS for service APIs, SSHv2, or IPsec across external and internal boundaries)"
             depends_on:
               question: urn:intuitem:risk:req_node:appsec_manual:data_exchange:q1
               answers: ["urn:intuitem:risk:req_node:appsec_manual:data_exchange:q1:c2"]
               condition: any
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:data_exchange:q2:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec_manual:data_exchange:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec_manual:data_exchange:q3:
+            type: unique_choice
+            text: "Is there a data exchange contract with the appropriate confidentiality clauses? (e.g., formal Data Processing Agreement / DPA, Data Transfer Agreement / DTA, or NDA)"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec_manual:data_exchange:q1
+              answers: ["urn:intuitem:risk:req_node:appsec_manual:data_exchange:q1:c2"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec_manual:data_exchange:q3:c1
                 value: "No contract"
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
-              - urn: urn:intuitem:risk:req_node:appsec_manual:data_exchange:q2:c2
+              - urn: urn:intuitem:risk:req_node:appsec_manual:data_exchange:q3:c2
                 value: "Contract! (Formal Data Transfer Agreement / DPA in place)"
-                add_score: 100
+                add_score: 50
                 compute_result: true
                 color: "#33a745"
 
@@ -2591,7 +2548,7 @@ objects:
         description: "Log security-relevant events, mask sensitive fields, and forward telemetry to a central SIEM."
         annotation: >
           Aligned with OWASP ASVS V7 (Error Handling and Logging) and ISO/IEC 27001 A.8.15 / A.8.16.
-        implementation_groups: ["custom_app", "cots_app"]
+        implementation_groups: ["infra"]
 
       # Requirement: Security event logging & masking
       - urn: urn:intuitem:risk:req_node:appsec_manual:security_event_logging
@@ -2608,7 +2565,7 @@ objects:
           - Log masking / sanitization filter rule definitions
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec_manual:insufficient_security_logging
-        implementation_groups: ["custom_app", "cots_app"]
+        implementation_groups: ["infra"]
         reference_controls:
           - urn:intuitem:risk:control:appsec_manual:centralized_security_logging
         questions:
@@ -2658,7 +2615,7 @@ objects:
           - Active SOC alerting rule documentation for anomalous application behavior
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec_manual:insufficient_security_logging
-        implementation_groups: ["custom_app", "cots_app"]
+        implementation_groups: ["infra"]
         reference_controls:
           - urn:intuitem:risk:control:appsec_manual:centralized_security_logging
         questions:
@@ -2686,7 +2643,7 @@ objects:
         description: "Perform independent penetration testing, enforce patch remediation SLAs, and maintain disaster recovery readiness."
         annotation: >
           Validates operational defense-in-depth and business continuity across internally hosted applications (Custom and COTS).
-        implementation_groups: ["custom_app", "cots_app"]
+        implementation_groups: ["infra", "cots_app", "internet_facing"]
 
       # Requirement: Penetration testing & vulnerability remediation (Hosted)
       - urn: urn:intuitem:risk:req_node:appsec_manual:penetration_testing_and_vulnerability_management
@@ -2695,15 +2652,16 @@ objects:
         parent_urn: urn:intuitem:risk:req_node:appsec_manual:resilience_chapter
         ref_id: penetration_testing_and_vulnerability_management
         name: Penetration Testing & Vulnerability Remediation
-        description: "Conduct independent penetration tests at least annually on self-hosted applications and infrastructure, and remediate identified vulnerabilities within defined SLAs."
+        description: "Conduct independent penetration tests at least annually or maintain an active bug bounty program on self-hosted applications and infrastructure. (Applicable to self-hosted apps; excluded for SaaS where penetration testing is under the choice and operational purview of the vendor)."
         annotation: >
-          Penetration testing and vulnerability remediation assessment framework for internally hosted applications (Custom or COTS):
-          - Annual independent penetration testing conducted by certified internal or third-party penetration testers.
-          - Strict remediation SLAs based on vulnerability severity (Critical <= 7 days, High <= 30 days).
+          Independent penetration testing and continuous bug bounty assessment for internally hosted applications (Custom or COTS):
+          - Annual independent penetration testing conducted by certified internal or third-party penetration testers, OR
+          - Continuous vulnerability discovery through an active bug bounty or coordinated vulnerability disclosure program (VDP, e.g. HackerOne, Bugcrowd, YesWeHack, Intigriti).
+          - Scope covers application logic, APIs, and underlying hosting infrastructure.
+          - Excluded for SaaS applications where independent penetration testing is under the operational choice and purview of the vendor (governed contractually via SOC 2 / ISO 27001 certifications in Chapter 10).
         typical_evidence: >
-          - Penetration test executive summary report and attestation certificate
-          - Vulnerability remediation tracker or defect management tickets demonstrating SLA compliance
-          - Patch verification and retest records
+          - Penetration test executive summary report and attestation certificate, OR active bug bounty platform program summary
+          - Vulnerability disclosure policy (security.txt / VDP) and finding triage / remediation tracking records
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec_manual:untested_application_security
         implementation_groups: ["internet_facing"]
@@ -2712,28 +2670,14 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec_manual:penetration_testing_and_vulnerability_management:q1:
             type: unique_choice
-            text: "Is independent penetration testing conducted on the application and underlying infrastructure at least annually by qualified internal or external penetration testers?"
+            text: "Is independent penetration testing conducted on the application and underlying infrastructure at least annually by qualified internal or external penetration testers, or is the application covered by an active bug bounty / vulnerability disclosure program (VDP)?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:penetration_testing_and_vulnerability_management:q1:c1
                 value: "Yes"
-                add_score: 50
+                add_score: 100
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec_manual:penetration_testing_and_vulnerability_management:q1:c2
-                value: "No"
-                add_score: 0
-                compute_result: false
-                color: "#dc3545"
-          urn:intuitem:risk:req_node:appsec_manual:penetration_testing_and_vulnerability_management:q2:
-            type: unique_choice
-            text: "Are identified vulnerabilities remediated within defined SLAs (e.g. Critical within 7 days, High within 30 days)?"
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec_manual:penetration_testing_and_vulnerability_management:q2:c1
-                value: "Yes"
-                add_score: 50
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec_manual:penetration_testing_and_vulnerability_management:q2:c2
                 value: "No"
                 add_score: 0
                 compute_result: false
@@ -2754,7 +2698,7 @@ objects:
           - Annual disaster recovery drill report showing measured restoration times
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec_manual:inadequate_resilience_backup
-        implementation_groups: ["custom_app", "cots_app"]
+        implementation_groups: ["infra"]
         reference_controls:
           - urn:intuitem:risk:control:appsec_manual:backup_and_disaster_recovery
         questions:
@@ -2773,24 +2717,101 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Requirement: COTS Software Hardening & Patch SLAs ("is effectively done" check)
+      # Requirement: Operating System Patching & High Availability Architecture
+      - urn: urn:intuitem:risk:req_node:appsec_manual:os_patching
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec_manual:resilience_chapter
+        ref_id: os_patching
+        name: "Operating System Patching & High Availability"
+        description: "Maintain operating system and platform patch hygiene within defined SLAs, and ensure system architecture allows no-downtime patching from a business perspective."
+        annotation: >
+          Evaluates host-level operating system (OS) patch management, compliant scheduling, and zero-downtime architectural resilience:
+          - Automated vs. Scheduled OS Patching: Systematic deployment of operating system security updates, kernel patches, and platform fixes.
+            When automated patching is not implemented, an established patching schedule compliant with organizational remediation SLAs
+            (e.g., Critical <= 14 days, High <= 30 days) must be enforced via documented maintenance procedures.
+          - No-Downtime Patching Architecture: System architecture designed to allow maintenance, patching, and node reboots without impacting business operations or inducing service outages (e.g., redundant multi-node clusters behind load balancers, rolling updates, active-active high availability, blue-green deployment pipelines, or serverless infrastructure with built-in platform maintenance).
+        typical_evidence: >
+          - OS patch management policy and SLA adherence tracking reports
+          - Approved recurring patch maintenance schedule and calendar
+          - High Availability (HA) / deployment architecture diagram demonstrating multi-node redundancy and rolling update capabilities
+          - Maintenance records or post-patch reports confirming zero business downtime during host update cycles
+        vulnerabilities:
+          - urn:intuitem:risk:vulnerability:appsec_manual:untested_application_security
+          - urn:intuitem:risk:vulnerability:appsec_manual:inadequate_resilience_backup
+        implementation_groups: ["infra"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec_manual:regular_penetration_testing
+          - urn:intuitem:risk:control:appsec_manual:backup_and_disaster_recovery
+        questions:
+          urn:intuitem:risk:req_node:appsec_manual:os_patching:q1:
+            type: unique_choice
+            text: "Are operating system (OS) security patches, kernel updates, and host/container security updates applied automatically within formal SLAs? (e.g. Critical <= 14 days, High <= 30 days)"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec_manual:os_patching:q1:c1
+                value: "Yes - OS patching is automatic"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec_manual:os_patching:q1:c2
+                value: "No - OS patching is not automatic"
+                add_score: 0
+                compute_result: false
+                color: "#fd7e14"
+          urn:intuitem:risk:req_node:appsec_manual:os_patching:q2:
+            type: unique_choice
+            text: "If OS patching is not automatic, is there a formal patching schedule compliant with requirements? (e.g. documented recurring maintenance windows adhering to Critical <= 14 days, High <= 30 days)"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec_manual:os_patching:q1
+              answers: ["urn:intuitem:risk:req_node:appsec_manual:os_patching:q1:c2"]
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec_manual:os_patching:q2:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec_manual:os_patching:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec_manual:os_patching:q3:
+            type: unique_choice
+            text: "Does the application and infrastructure architecture allow no-downtime patching from a business perspective? (e.g., high-availability clusters, rolling updates, or blue-green deployments preventing business downtime during maintenance)"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec_manual:os_patching:q3:c1
+                value: "Yes"
+                add_score: 50
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec_manual:os_patching:q3:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # Requirement: COTS Software Hardening, Vendor Support & Patch SLAs
       - urn: urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec_manual:resilience_chapter
         ref_id: cots_deployment_hardening
-        name: "COTS Deployment Hardening & Patch SLAs"
-        description: "Enforce vendor hardening benchmarks, reset default credentials, and deploy published vendor security patches within formal patch SLAs."
+        name: "COTS Deployment Hardening, Vendor Support & Patch SLAs"
+        description: "Enforce vendor hardening benchmarks, verify that COTS software actively receives vendor security patches (not End-of-Life / EOL), and deploy updates within strict patch SLAs."
         annotation: >
           Commercial off-the-shelf (COTS) software package deployment controls:
           - Default vendor credentials (usernames, passwords, encryption keys) removed or reset before production deployment.
           - Host and application deployment hardened against vendor security guides or CIS benchmarks (disabling sample code, unneeded modules, admin web consoles).
+          - Active Vendor Support Lifecycle: The software must be under an active vendor maintenance/subscription agreement and supported release version (not End-of-Life / EOL or End-of-Support / EOS) to continuously receive security patches and CVE fixes.
           - Strict SLA enforcement for deploying critical vendor patches within 14 days of release.
         typical_evidence: >
           - Hardening baseline checklist and configuration audit extract
+          - Active vendor software maintenance / support contract confirmation and vendor EOL lifecycle matrix
           - Vendor patch management SLA tracking records and vulnerability remediation tickets
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec_manual:untested_application_security
+          - urn:intuitem:risk:vulnerability:appsec_manual:contractual_gap
         implementation_groups: ["cots_app"]
         reference_controls:
           - urn:intuitem:risk:control:appsec_manual:regular_penetration_testing
@@ -2801,7 +2822,7 @@ objects:
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening:q1:c1
                 value: "Yes"
-                add_score: 50
+                add_score: 40
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening:q1:c2
@@ -2811,11 +2832,11 @@ objects:
                 color: "#dc3545"
           urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening:q2:
             type: unique_choice
-            text: "Are published vendor security patches, hotfixes, and critical vulnerability updates deployed within formal SLAs (Critical <= 14 days)?"
+            text: "Does the COTS software actively receive security patches and vulnerability updates from the vendor (under an active maintenance/support contract, not End-of-Life / EOL or End-of-Support / EOS)?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening:q2:c1
                 value: "Yes"
-                add_score: 50
+                add_score: 30
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening:q2:c2
@@ -2823,37 +2844,16 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
-
-      # Requirement: COTS Active Vendor Support Contract (contractual check)
-      - urn: urn:intuitem:risk:req_node:appsec_manual:cots_vendor_support
-        assessable: true
-        depth: 2
-        parent_urn: urn:intuitem:risk:req_node:appsec_manual:resilience_chapter
-        ref_id: cots_vendor_support
-        name: "COTS Vendor Maintenance & Support Contract"
-        description: "Verify that COTS software is covered by an active vendor maintenance/support contract and receives regular security updates (not End-of-Life / EOL or End-of-Support / EOS)."
-        annotation: >
-          Commercial off-the-shelf (COTS) active vendor support lifecycle:
-          - Active Vendor Support Lifecycle: The software must be under an active vendor maintenance/subscription agreement and supported release version (not End-of-Life / EOL or End-of-Support / EOS) to continuously receive security patches and CVE fixes.
-        typical_evidence: >
-          - Active vendor software maintenance / support contract confirmation and vendor EOL lifecycle matrix
-        vulnerabilities:
-          - urn:intuitem:risk:vulnerability:appsec_manual:contractual_gap
-          - urn:intuitem:risk:vulnerability:appsec_manual:untested_application_security
-        implementation_groups: ["cots_app"]
-        reference_controls:
-          - urn:intuitem:risk:control:appsec_manual:regular_penetration_testing
-        questions:
-          urn:intuitem:risk:req_node:appsec_manual:cots_vendor_support:q1:
+          urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening:q3:
             type: unique_choice
-            text: "Does the COTS software actively receive security patches and vulnerability updates from the vendor (under an active maintenance/support contract, not End-of-Life / EOL or End-of-Support / EOS)?"
+            text: "Are published vendor security patches, hotfixes, and critical vulnerability updates deployed within formal SLAs (Critical <= 14 days)?"
             choices:
-              - urn: urn:intuitem:risk:req_node:appsec_manual:cots_vendor_support:q1:c1
+              - urn: urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening:q3:c1
                 value: "Yes"
-                add_score: 100
+                add_score: 30
                 compute_result: true
                 color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec_manual:cots_vendor_support:q1:c2
+              - urn: urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening:q3:c2
                 value: "No"
                 add_score: 0
                 compute_result: false
@@ -3875,7 +3875,7 @@ objects:
           > **Note:** If your application architecture, hosting model, or exposure profile changes in the future, please re-evaluate this assessment.
         annotation: >
           Concluding splash screen expressing gratitude to the respondent and detailing subsequent compliance verification, risk assessment, and remediation workflows.
-        implementation_groups: ["info", "baseline", "custom_app", "cots_app", "saas_app", "internet_facing"]
+        implementation_groups: ["info", "baseline", "custom_app", "cots_app", "saas_app", "internet_facing", "infra"]
 
 # ============================================================================
 # AUDIT CONFIGURATION
@@ -3921,7 +3921,7 @@ test_metadata:
   expected_threats_count: 9
   expected_vulnerabilities_count: 18
   expected_reference_controls_count: 26
-  expected_requirement_nodes_count: 62
+  expected_requirement_nodes_count: 59
   matrix_dimensions:
     likelihood_levels: 4
     impact_levels: 4

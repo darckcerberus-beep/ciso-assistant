@@ -64,7 +64,7 @@ Profiling triggers in `hosting:q1` dynamically activate the tracks:
 - **Custom Software**: Activates `custom_app` and `baseline`.
 - **Bought Software (COTS)**: Activates `cots_app` and `baseline`.
 - **SaaS**: Activates `saas_app` and `baseline`.
-- **Internet-Facing**: Activates `internet_facing` (triggered by `network_exposure:q1:c2`).
+- **Internet-Facing**: Activates `internet_facing` (triggered by `hosting:q2:c2`).
 
 ### B. Dynamic Dependencies (`depends_on`) — Question-Level Scoping
 Within active requirement nodes, questions are dynamically conditioned using intra-node dependencies:
@@ -79,8 +79,9 @@ Within active requirement nodes, questions are dynamically conditioned using int
 - **`instructions_splash`**: Guidance splash screen detailing assessment expectations.
 - **`stakeholder_identification`**: Mandatory documentation of Business Owner, Technical Owner, and Information Security Officer (CISO/SecOps delegate).
 - **`data_classification`**: Formally categorizes data assets into Public, Internal, Confidential, or Secret (Confidentiality impact governing all risk scenario ratings).
-- **`hosting`**: Discriminates between Custom (In-house), Bought (COTS), and SaaS. Selecting SaaS automatically triggers `saas_app` and `baseline` (SaaS edge protections and rate limiting are implicitly managed by the provider to protect their infrastructure, bypassing `internet_facing`).
-- **`network_exposure`** (`custom_app`, `cots_app`): Identifies whether self-hosted applications are restricted to internal corporate networks or exposed to the public Internet (triggers `internet_facing` track for self-hosted apps; bypassed for SaaS).
+- **`hosting`**: Application Delivery, Hosting Model & Network Exposure:
+  - `q1`: Discriminates between Custom (In-house), Bought (COTS), and SaaS. Selecting SaaS automatically triggers `saas_app` and `baseline` (bypassing the self-hosted `internet_facing` track).
+  - `q2`: For self-hosted applications (`depends_on: q1 in [Custom, COTS]`), identifies whether the app is restricted to internal corporate networks or exposed to the public Internet (triggers `internet_facing` track for self-hosted apps; hidden for SaaS).
 - **`baseline_splash`**: Generic transition splash screen concluding baseline profiling and introducing technical security questions across dynamically triggered implementation groups.
 
 ### Chapter 2: Identity, Authentication & Access Control (IAM)
@@ -161,6 +162,7 @@ Within active requirement nodes, questions are dynamically conditioned using int
 - **`penetration_testing_and_vulnerability_management`** (`internet_facing`):
   - `q1`: Independent annual penetration testing conducted by qualified internal or third-party penetration testers on self-hosted applications and infrastructure.
   - `q2`: Strict vulnerability remediation SLAs based on severity (Critical <= 7d, High <= 30d).
+  - *SaaS Policy*: Excluded from the SaaS questionnaire; independent penetration testing is under the choice and operational purview of the SaaS provider. Contractual governance is managed under Chapter 10 (`saas_penetration_testing_and_vulnerability_management`).
 - **`cots_deployment_hardening`** (`cots_app`):
   - `q1`: Default vendor credentials reset, sample modules removed, and host/application hardened against CIS or vendor benchmarks.
   - `q2`: Strict SLA enforcement for deploying critical vendor security patches and hotfixes (Critical <= 14d).
@@ -201,8 +203,8 @@ The table below defines the exact applicability criteria for every requirement a
 | **0. Splash** | `instructions_splash` | Instructions & Guidance | `info`, `baseline` | All | All | All | None (Always visible) |
 | **1. Profile** | `stakeholder_identification` | Stakeholder Identification | `baseline` | All | All | All | None |
 | **1. Profile** | `data_classification` | Application Data Classification | `baseline` | All | All | All | None |
-| **1. Profile** | `hosting` | Delivery & Hosting Model | `baseline` | All | All | All | None (SaaS activates `saas_app`, `baseline`) |
-| **1. Profile** | `network_exposure` | Application Network Exposure | `custom_app`, `cots_app` | Custom, COTS | All | All | Triggers `internet_facing` track for self-hosted apps; bypassed for SaaS |
+| **1. Profile** | `hosting` (q1) | Delivery & Hosting Model | `baseline` / `info` | All | All | All | SaaS activates `saas_app`, `baseline` |
+| **1. Profile** | `hosting` (q2) | Application Network Exposure | `baseline` / `info` | Custom, COTS | All | All | `q1 in [Custom, COTS]`; Triggers `internet_facing` track for self-hosted apps; hidden for SaaS |
 | **1. Splash** | `baseline_splash` | Technical Assessment Transition | `baseline` | All | All | All | Generic transition introducing technical questions |
 | **2. IAM** | `authentication_and_mfa` (q1) | Authentication Mode (SSO vs Direct) | `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | None |
 | **2. IAM** | `authentication_and_mfa` (q2) | Password Policy & Lockout | `custom_app`, `cots_app`, `saas_app` | **All (Custom, COTS, SaaS)** | All | All | `q1 == Direct Authentication` |

@@ -665,32 +665,31 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertEqual(saas_choice.get("select_implementation_groups", []), ["saas_app", "baseline"])
         self.assertNotIn("internet_facing", saas_choice.get("select_implementation_groups", []))
 
-        # 2. Validate network_exposure is scoped to self-hosted delivery models (custom_app, cots_app)
-        net_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:network_exposure")
-        self.assertIsNotNone(net_node, "network_exposure node missing in AppSec")
-        self.assertEqual(
-            set(net_node.get("implementation_groups", [])),
-            {"custom_app", "cots_app"},
-            "network_exposure should be scoped to self-hosted apps since SaaS is assumed externally exposed",
-        )
-        net_questions = net_node.get("questions", {})
-        self.assertEqual(len(net_questions), 1, "network_exposure should define 1 profiling question (q1: exposure discriminator)")
+        # 2. Validate hosting question q2 (network exposure) is intra-node and depends on custom or cots hosting choices
+        q2_hosting = hosting_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:hosting:q2")
+        self.assertIsNotNone(q2_hosting, "hosting:q2 (network exposure) missing in AppSec hosting node")
+        dep = q2_hosting.get("depends_on", {})
+        self.assertEqual(dep.get("question"), "urn:intuitem:risk:req_node:appsec:hosting:q1")
+        self.assertIn("urn:intuitem:risk:req_node:appsec:hosting:q1:c1", dep.get("answers", []))
+        self.assertIn("urn:intuitem:risk:req_node:appsec:hosting:q1:c2", dep.get("answers", []))
+        self.assertNotIn("urn:intuitem:risk:req_node:appsec:hosting:q1:c3", dep.get("answers", []))
 
-        q1 = net_questions.get("urn:intuitem:risk:req_node:appsec:network_exposure:q1")
-        self.assertIsNotNone(q1)
-        q1_choices = {c["urn"]: c for c in q1.get("choices", [])}
-        self.assertEqual(len(q1_choices), 2, "network_exposure should only have Internal and Internet-facing choices for self-hosted apps")
-        internal_choice_urn = "urn:intuitem:risk:req_node:appsec:network_exposure:q1:c1"
-        external_choice_urn = "urn:intuitem:risk:req_node:appsec:network_exposure:q1:c2"
-        self.assertIn(internal_choice_urn, q1_choices)
-        self.assertIn(external_choice_urn, q1_choices)
+        # network_exposure is no longer a standalone node
+        self.assertNotIn("urn:intuitem:risk:req_node:appsec:network_exposure", appsec_fw["req_nodes"])
+
+        q2_choices = {c["urn"]: c for c in q2_hosting.get("choices", [])}
+        self.assertEqual(len(q2_choices), 2, "hosting:q2 should only have Internal and Internet-facing choices for self-hosted apps")
+        internal_choice_urn = "urn:intuitem:risk:req_node:appsec:hosting:q2:c1"
+        external_choice_urn = "urn:intuitem:risk:req_node:appsec:hosting:q2:c2"
+        self.assertIn(internal_choice_urn, q2_choices)
+        self.assertIn(external_choice_urn, q2_choices)
 
         # Both Internal and Internet-facing choices receive full 100 points
-        self.assertEqual(q1_choices[internal_choice_urn]["add_score"], 100)
-        self.assertTrue(q1_choices[internal_choice_urn]["compute_result"])
-        self.assertEqual(q1_choices[external_choice_urn]["add_score"], 100)
-        self.assertTrue(q1_choices[external_choice_urn]["compute_result"])
-        self.assertIn("internet_facing", q1_choices[external_choice_urn].get("select_implementation_groups", []))
+        self.assertEqual(q2_choices[internal_choice_urn]["add_score"], 100)
+        self.assertTrue(q2_choices[internal_choice_urn]["compute_result"])
+        self.assertEqual(q2_choices[external_choice_urn]["add_score"], 100)
+        self.assertTrue(q2_choices[external_choice_urn]["compute_result"])
+        self.assertIn("internet_facing", q2_choices[external_choice_urn].get("select_implementation_groups", []))
 
         # 2. Validate the 4 transferred requirements in Chapter 10 (contractualization part):
         # A. Cloudflare / WAF & anti-DDoS (saas_network_security)
@@ -896,10 +895,12 @@ class TestYamlIntegrity(unittest.TestCase):
             for q_urn, q_def in questions.items():
                 choices = q_def.get("choices", [])
                 self.assertGreater(len(choices), 0, f"Question {q_urn} in {ref_id} has no choices")
-                self.assertIsNone(
-                    q_def.get("depends_on"),
-                    f"Question {q_urn} in {ref_id} must not have cross-node depends_on",
-                )
+                if q_def.get("depends_on"):
+                    dep_q = q_def["depends_on"].get("question", "")
+                    self.assertTrue(
+                        dep_q.startswith(node["urn"]),
+                        f"Question {q_urn} in {ref_id} must not have cross-node depends_on",
+                    )
 
         # Verify vendor secure development requirement is scoped to COTS only (SaaS is governed under Chapter 10)
         vendor_dev_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:vendor_secure_development")
@@ -924,7 +925,6 @@ class TestYamlIntegrity(unittest.TestCase):
         defenses_reqs = [
             "session_management",
             "owasp_top_10_defenses",
-            "ssrf_and_cloud_metadata_defense",
             "file_upload_security",
         ]
 
@@ -943,10 +943,12 @@ class TestYamlIntegrity(unittest.TestCase):
             for q_urn, q_def in questions.items():
                 choices = q_def.get("choices", [])
                 self.assertGreater(len(choices), 0, f"Question {q_urn} in {ref_id} has no choices")
-                self.assertIsNone(
-                    q_def.get("depends_on"),
-                    f"Question {q_urn} in {ref_id} must not have cross-node depends_on",
-                )
+                if q_def.get("depends_on"):
+                    dep_q = q_def["depends_on"].get("question", "")
+                    self.assertTrue(
+                        dep_q.startswith(node["urn"]),
+                        f"Question {q_urn} in {ref_id} must not have cross-node depends_on",
+                    )
 
         # Universal baseline requirements apply to all applications (Custom, COTS, and SaaS)
         universal_baseline_reqs = [
@@ -982,7 +984,6 @@ class TestYamlIntegrity(unittest.TestCase):
         # Self-hosted infrastructure requirements apply to custom_app and cots_app, but NOT to baseline or saas_app
         self_hosted_infra_reqs = [
             "secrets_management",
-            "data_in_transit",
             "security_event_logging",
             "centralized_monitoring_and_alerting",
             "backup_and_disaster_recovery",
@@ -1035,6 +1036,16 @@ class TestYamlIntegrity(unittest.TestCase):
             self.assertIn("internet_facing", groups, f"{ref_id} missing internet_facing group")
             self.assertNotIn("baseline", groups, f"{ref_id} must not include baseline group")
             self.assertNotIn("saas_app", groups, f"{ref_id} must not include saas_app group")
+
+        manual_fw = next((fw for fw in self.frameworks if fw["ref_id"] == "appsec_manual"), None)
+        if manual_fw:
+            for ref_id in perimeter_reqs:
+                node = manual_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec_manual:{ref_id}")
+                self.assertIsNotNone(node, f"Perimeter node {ref_id} missing in appsec_manual")
+                groups = node.get("implementation_groups", [])
+                self.assertIn("internet_facing", groups, f"{ref_id} missing internet_facing group in appsec_manual")
+                self.assertNotIn("baseline", groups, f"{ref_id} must not include baseline group in appsec_manual")
+                self.assertNotIn("saas_app", groups, f"{ref_id} must not include saas_app group in appsec_manual")
 
         # Verify parent crypto_chapter excludes saas_app and baseline
         crypto_chapter = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:crypto_chapter")
@@ -1125,9 +1136,11 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertEqual(de_node.get("parent_urn"), "urn:intuitem:risk:req_node:appsec:data_lifecycle_chapter")
         self.assertEqual(de_node.get("implementation_groups"), ["custom_app", "cots_app"])
 
-        # Self-hosted evaluates third_party_data_leakage, SaaS evaluates saas_provider_data_leakage
+        # Self-hosted evaluates third_party_data_leakage and unencrypted_data_in_transit via data_exchange
         self.assertIn("third_party_data_leakage", scenarios)
         self.assertEqual(scenarios["third_party_data_leakage"].get("likelihood"), "urn:intuitem:risk:req_node:appsec:data_exchange")
+        self.assertIn("unencrypted_data_in_transit", scenarios)
+        self.assertEqual(scenarios["unencrypted_data_in_transit"].get("likelihood"), "urn:intuitem:risk:req_node:appsec:data_exchange")
         self.assertIn("saas_provider_data_leakage", scenarios)
         self.assertEqual(scenarios["saas_provider_data_leakage"].get("likelihood"), "urn:intuitem:risk:req_node:appsec:saas_contract")
 
@@ -1145,16 +1158,13 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertIn("internet_facing", hosted_groups)
         self.assertNotIn("baseline", hosted_groups)
 
-        # Hosted q1 and q2 are simple Yes/No (50 points each)
+        # Hosted q1 is simple Yes/No (100 points) covering independent pentest or bug bounty
         h_q1 = hosted_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management:q1")
         self.assertIsNotNone(h_q1)
+        self.assertIn("bug bounty", h_q1.get("text", "").lower())
         h_q1_yes = next(c for c in h_q1.get("choices", []) if c.get("value") == "Yes")
-        self.assertEqual(h_q1_yes.get("add_score"), 50)
-
-        h_q2 = hosted_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management:q2")
-        self.assertIsNotNone(h_q2)
-        h_q2_yes = next(c for c in h_q2.get("choices", []) if c.get("value") == "Yes")
-        self.assertEqual(h_q2_yes.get("add_score"), 50)
+        self.assertEqual(h_q1_yes.get("add_score"), 100)
+        self.assertEqual(len(hosted_node.get("questions", {})), 1)
 
         # 2. Resilience chapter excludes saas_app
         resilience_chapter = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:resilience_chapter")
@@ -1280,24 +1290,53 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertEqual(len(conf_map), 4, "Expected 4 tiers in confidentiality criticality mapping")
         self.assertEqual(set(conf_map.values()), {0, 1, 2, 3})
 
-    def test_appsec_ssrf_and_file_upload_controls(self):
-        """Verify SSRF and file upload security controls under custom_app implementation group."""
-        appsec_fw = next((fw for fw in self.frameworks if fw["ref_id"] == "appsec"), None)
-        if not appsec_fw:
-            return
+    def test_appsec_file_upload_controls(self):
+        """Verify file upload security controls under custom_app implementation group with gating question."""
+        for fw_ref in ["appsec", "appsec_manual"]:
+            fw = next((f for f in self.frameworks if f["ref_id"] == fw_ref), None)
+            if not fw:
+                continue
 
-        for ref_id in ["ssrf_and_cloud_metadata_defense", "file_upload_security"]:
-            node = appsec_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec:{ref_id}")
-            self.assertIsNotNone(node, f"{ref_id} node missing in AppSec")
+            node = fw["req_nodes"].get(f"urn:intuitem:risk:req_node:{fw_ref}:file_upload_security")
+            self.assertIsNotNone(node, f"file_upload_security node missing in {fw_ref}")
             self.assertTrue(node.get("assessable"))
             self.assertEqual(node.get("implementation_groups"), ["custom_app"])
 
             questions = node.get("questions", {})
-            self.assertEqual(len(questions), 2, f"Expected 2 questions in {ref_id}")
-            total_max_score = sum(max(c.get("add_score", 0) for c in q.get("choices", [])) for q in questions.values())
-            self.assertEqual(total_max_score, 100, f"Expected max score 100 in {ref_id}")
+            self.assertEqual(len(questions), 3, f"Expected 3 questions in file_upload_security in {fw_ref}")
+
+            q1 = questions.get(f"urn:intuitem:risk:req_node:{fw_ref}:file_upload_security:q1")
+            q2 = questions.get(f"urn:intuitem:risk:req_node:{fw_ref}:file_upload_security:q2")
+            q3 = questions.get(f"urn:intuitem:risk:req_node:{fw_ref}:file_upload_security:q3")
+            self.assertIsNotNone(q1, f"q1 missing in {fw_ref}")
+            self.assertIsNotNone(q2, f"q2 missing in {fw_ref}")
+            self.assertIsNotNone(q3, f"q3 missing in {fw_ref}")
+
+            # Gating question: "No" = 100 pts (not applicable / full compliance), "Yes" = 0 pts (triggers q2, q3)
+            q1_no = q1["choices"][0]
+            q1_yes = q1["choices"][1]
+            self.assertEqual(q1_no.get("value"), "No")
+            self.assertEqual(q1_no.get("add_score"), 100)
+            self.assertTrue(q1_no.get("compute_result"))
+            self.assertEqual(q1_yes.get("value"), "Yes")
+            self.assertEqual(q1_yes.get("add_score"), 0)
+            self.assertFalse(q1_yes.get("compute_result"))
+
+            # Conditional checks: q2 and q3 depend on q1:c2 ("Yes")
+            for q in [q2, q3]:
+                dep = q.get("depends_on", {})
+                self.assertEqual(dep.get("question"), f"urn:intuitem:risk:req_node:{fw_ref}:file_upload_security:q1")
+                self.assertIn(f"urn:intuitem:risk:req_node:{fw_ref}:file_upload_security:q1:c2", dep.get("answers", []))
+
+            # Branch max scores:
+            # "No" branch = 100
+            # "Yes" branch = 0 + 50 (q2: Yes) + 50 (q3: Yes) = 100
+            q2_yes = q2["choices"][0]
+            q3_yes = q3["choices"][0]
+            self.assertEqual(q1_yes["add_score"] + q2_yes["add_score"] + q3_yes["add_score"], 100)
+
             for q_urn, q_def in questions.items():
-                self.assertTrue(":q1" in q_urn or ":q2" in q_urn, f"Question URN {q_urn} does not follow standard taxonomy")
+                self.assertTrue(":q1" in q_urn or ":q2" in q_urn or ":q3" in q_urn, f"Question URN {q_urn} does not follow standard taxonomy")
                 for choice in q_def.get("choices", []):
                     c_urn = choice.get("urn", "")
                     self.assertTrue(":c1" in c_urn or ":c2" in c_urn, f"Choice URN {c_urn} does not follow standard taxonomy")
@@ -1313,6 +1352,8 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertTrue(ig_defs["info"].get("default_selected", False))
         self.assertIn("baseline", ig_defs)
         self.assertFalse(ig_defs["baseline"].get("default_selected", False))
+        self.assertIn("infra", ig_defs)
+        self.assertFalse(ig_defs["infra"].get("default_selected", False))
 
         # 2. No choices have select_implementation_groups
         for n_urn, node in manual_fw["req_nodes"].items():
@@ -1331,7 +1372,6 @@ class TestYamlIntegrity(unittest.TestCase):
             "stakeholder_identification",
             "data_classification",
             "hosting",
-            "network_exposure",
         ]
         for ref_id in chapter1_nodes:
             node = manual_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec_manual:{ref_id}")
@@ -1342,27 +1382,61 @@ class TestYamlIntegrity(unittest.TestCase):
                 f"Node {ref_id} in appsec_manual must be scoped to ['info']",
             )
 
-        net_node = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:network_exposure")
-        self.assertIsNotNone(net_node, "Node network_exposure missing in appsec_manual")
-        self.assertEqual(len(net_node.get("questions", {})), 1)
+        # In appsec_manual, hosting node contains both hosting model (q1) and network exposure (q2)
+        hosting_node = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:hosting")
+        self.assertIsNotNone(hosting_node, "Node hosting missing in appsec_manual")
+        self.assertEqual(len(hosting_node.get("questions", {})), 2)
+        q2_manual = hosting_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec_manual:hosting:q2")
+        self.assertIsNotNone(q2_manual)
+        dep_manual = q2_manual.get("depends_on", {})
+        self.assertEqual(dep_manual.get("question"), "urn:intuitem:risk:req_node:appsec_manual:hosting:q1")
+        self.assertIn("urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c1", dep_manual.get("answers", []))
+        self.assertIn("urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c2", dep_manual.get("answers", []))
+        self.assertNotIn("urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c3", dep_manual.get("answers", []))
 
-        # 4. Total requirement nodes (62 after splitting contractual vs operational checks) and scenarios
-        self.assertEqual(len(manual_fw["req_nodes"]), 62)
+        # network_exposure is no longer a standalone node
+        self.assertNotIn("urn:intuitem:risk:req_node:appsec_manual:network_exposure", manual_fw["req_nodes"])
+
+        # 4. Total requirement nodes (59 after merging network_exposure into hosting) and scenarios
+        self.assertEqual(len(manual_fw["req_nodes"]), 59)
         self.assertEqual(len(manual_fw["scenarios"]), 20)
         self.assertEqual(len(manual_fw["threats"]), 9)
         self.assertEqual(len(manual_fw["vulns"]), 18)
         self.assertEqual(len(manual_fw["ref_ctrls"]), 26)
 
-        # 5. Split requirements: COTS & SaaS contractual vs "is effectively done" checks
-        cots_support = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:cots_vendor_support")
-        self.assertIsNotNone(cots_support, "cots_vendor_support missing in appsec_manual")
-        self.assertEqual(cots_support.get("implementation_groups"), ["cots_app"])
-        self.assertEqual(len(cots_support.get("questions", {})), 1)
-
+        # 5. COTS requirements & SaaS contractual vs "is effectively done" checks
         cots_hardening = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening")
         self.assertIsNotNone(cots_hardening, "cots_deployment_hardening missing in appsec_manual")
         self.assertEqual(cots_hardening.get("implementation_groups"), ["cots_app"])
-        self.assertEqual(len(cots_hardening.get("questions", {})), 2)
+        self.assertEqual(len(cots_hardening.get("questions", {})), 3)
+
+        os_patching = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:os_patching")
+        self.assertIsNotNone(os_patching, "os_patching missing in appsec_manual")
+        self.assertEqual(os_patching.get("implementation_groups"), ["infra"])
+        self.assertEqual(len(os_patching.get("questions", {})), 3)
+
+        # 6. Infrastructure requirements are grouped under the 'infra' track
+        infra_nodes = [
+            "secrets_management",
+            "data_at_rest",
+            "security_event_logging",
+            "centralized_monitoring_and_alerting",
+            "backup_and_disaster_recovery",
+            "os_patching",
+        ]
+        for ref_id in infra_nodes:
+            node = manual_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec_manual:{ref_id}")
+            self.assertIsNotNone(node, f"Node {ref_id} missing in appsec_manual")
+            self.assertEqual(
+                node.get("implementation_groups"),
+                ["infra"],
+                f"Node {ref_id} in appsec_manual must be scoped to ['infra']",
+            )
+
+        manual_de = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:data_exchange")
+        self.assertIsNotNone(manual_de, "data_exchange missing in appsec_manual")
+        self.assertEqual(manual_de.get("implementation_groups"), ["custom_app", "cots_app"])
+        self.assertEqual(len(manual_de.get("questions", {})), 3)
 
         saas_pentest = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:saas_penetration_testing")
         self.assertIsNotNone(saas_pentest, "saas_penetration_testing missing in appsec_manual")
@@ -1378,6 +1452,16 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertIsNotNone(saas_pci, "saas_pci_dss missing in appsec_manual")
         self.assertEqual(saas_pci.get("implementation_groups"), ["saas_app"])
         self.assertEqual(len(saas_pci.get("questions", {})), 2)
+
+        hosted_pentest = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:penetration_testing_and_vulnerability_management")
+        self.assertIsNotNone(hosted_pentest, "penetration_testing_and_vulnerability_management missing in appsec_manual")
+        self.assertEqual(hosted_pentest.get("implementation_groups"), ["internet_facing"])
+        self.assertEqual(len(hosted_pentest.get("questions", {})), 1)
+        q1_pentest = hosted_pentest.get("questions", {}).get("urn:intuitem:risk:req_node:appsec_manual:penetration_testing_and_vulnerability_management:q1")
+        self.assertIsNotNone(q1_pentest)
+        self.assertIn("bug bounty", q1_pentest.get("text", "").lower())
+        q1_yes = next(c for c in q1_pentest.get("choices", []) if c.get("value") == "Yes")
+        self.assertEqual(q1_yes.get("add_score"), 100)
 
 
 if __name__ == "__main__":

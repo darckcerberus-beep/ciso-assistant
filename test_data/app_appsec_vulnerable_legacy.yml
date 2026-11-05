@@ -72,7 +72,7 @@ answers:
     result: "compliant"
     observation: "Hosted on legacy VMware ESXi cluster in corporate on-premises datacenter."
 
-  - requirement: "network_exposure"
+  - requirement: "hosting"
     question: "What is the network exposure of the application?"
     answer: "Internal / Restricted Network only"
     result: "compliant"
@@ -134,17 +134,11 @@ answers:
     result: "not_compliant"
     observation: "No formal secure coding guidelines enforced; application suffers from dynamic SQL concatenation, unencoded template rendering, and verbose debug errors."
 
-  - requirement: "ssrf_and_cloud_metadata_defense"
-    question: "Are outbound HTTP requests initiated by the application strictly validated using destination allow-lists with connections to RFC 1918 private subnets and localhost blocked?"
-    answer: "No"
-    result: "not_compliant"
-    observation: "Arbitrary outbound HTTP requests permitted without egress filtering or private network blocklisting."
-
-  - requirement: "ssrf_and_cloud_metadata_defense"
-    question: "Are cloud instance metadata protections enforced"
-    answer: "No"
-    result: "not_compliant"
-    observation: "Legacy on-premise application with no metadata protection controls."
+  - requirement: "file_upload_security"
+    question: "Can files be uploaded to the application?"
+    answer: "Yes"
+    result: "compliant"
+    observation: "Legacy web form allows file attachments to be uploaded by internal users."
 
   - requirement: "file_upload_security"
     question: "Are uploaded files validated via server-side magic byte inspection"
@@ -167,12 +161,6 @@ answers:
   # ============================================================================
   # CHAPTER 4: CRYPTOGRAPHY & DATA PROTECTION
   # ============================================================================
-
-  - requirement: "data_in_transit"
-    question: "Is data encrypted during transit?"
-    answer: "No"
-    result: "not_compliant"
-    observation: "Plaintext HTTP 1.1 used across all internal user sessions and database connections."
 
   - requirement: "data_at_rest"
     question: "Is data encrypted at rest?"
@@ -224,21 +212,21 @@ answers:
     result: "not_compliant"
     observation: "No rate limiting or throttling; vulnerable to denial of service."
 
-  - requirement: "api_security_and_rate_limiting"
-    question: "Are API payloads strictly validated against documented API specifications (e.g. OpenAPI / JSON schema)?"
-    answer: "No"
-    result: "not_compliant"
-    observation: "Unchecked XML and JSON endpoints without specification schemas."
-
   # ============================================================================
   # CHAPTER 7: DATA EXCHANGE & NON-PRODUCTION DATA PROTECTION
   # ============================================================================
 
   - requirement: "data_exchange"
-    question: "Are there data exchanges beyond the group?"
+    question: "Does the application exchange data externally?"
     answer: "Yes"
     result: "compliant"
     observation: "Data exported to external maintenance contractors via unencrypted email attachments."
+
+  - requirement: "data_exchange"
+    question: "Is data encrypted during transit?"
+    answer: "No"
+    result: "not_compliant"
+    observation: "Plaintext HTTP 1.1 used across all internal user sessions and unencrypted email exports."
 
   - requirement: "data_exchange"
     question: "Is there a data exchange contract with the appropriate confidentiality clauses?"
@@ -303,16 +291,10 @@ answers:
   # ============================================================================
 
   - requirement: "penetration_testing_and_vulnerability_management"
-    question: "Is independent penetration testing conducted on the application and underlying infrastructure at least annually by qualified internal or external penetration testers?"
+    question: "Is independent penetration testing conducted on the application and underlying infrastructure at least annually by qualified internal or external penetration testers, or is the application covered by an active bug bounty / vulnerability disclosure program (VDP)?"
     answer: "No"
     result: "not_compliant"
-    observation: "No penetration test ever conducted on the application."
-
-  - requirement: "penetration_testing_and_vulnerability_management"
-    question: "Are identified vulnerabilities remediated within defined SLAs (e.g. Critical within 7 days, High within 30 days)?"
-    answer: "No"
-    result: "not_compliant"
-    observation: "Known legacy OS and web server vulnerabilities unpatched for over 5 years."
+    observation: "No penetration test ever conducted on the application and no bug bounty program maintained."
 
   - requirement: "backup_and_disaster_recovery"
     question: "Are automated and encrypted backups maintained for application state and databases, with restoration tests performed at least annually?"
@@ -338,7 +320,7 @@ expected_evaluation:
 
 expected_risk_scenarios:
   - scenario: "Exposure of unencrypted data in transit"
-    likelihood_requirement: "data_in_transit"
+    likelihood_requirement: "data_exchange"
     likelihood_score: 0
     scaled_likelihood: 4
     scaled_impact: 2

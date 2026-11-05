@@ -46,7 +46,7 @@ Define or customize your operational situations/cases here for reference:
 | 4 | Application Information & Governance | `stakeholder_identification` | `q4` | Is the information about stakeholders updated in LeanIX / CMDB? (Stakeholder assig... | `info` | All applications (Info profiling) |
 | 5 | Application Information & Governance | `data_classification` | `q1` | What is the maximum classification level handled? (Public, Internal, Confidential,... | `info` | All applications (Info profiling - Confidentiality) |
 | 6 | Application Information & Governance | `hosting` | `q1` | What is the delivery and hosting model of the application? | `info` | All applications (Info profiling - Hosting model) |
-| 7 | Application Information & Governance | `network_exposure` | `q1` | What is the network exposure of the application? | `custom_app, cots_app` | Self-Hosted only (Custom & COTS) |
+| 7 | Application Information & Governance | `hosting` | `q2` | What is the network exposure of the application? | `info` | Self-Hosted only (Custom & COTS - depends on `hosting:q1`) |
 | 8 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q1` | How do users authenticate to the application? | `custom_app, cots_app, saas_app` | **All applications** (Custom, COTS, SaaS) - Mandatory SSO |
 | 9 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q2` | If direct authentication is used, are strong password policies and brute-force loc... | `custom_app, cots_app, saas_app` | All applications (If direct auth used - Password policy) |
 | 10 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q3` | If direct authentication is used, is Multi-Factor Authentication (MFA) enforced fo... | `custom_app, cots_app, saas_app` | All applications (If direct auth used - Admin MFA) |
@@ -57,11 +57,11 @@ Define or customize your operational situations/cases here for reference:
 | 15 | Application Vulnerability Defense & Code Hygiene | `owasp_top_10_defenses` | `q1` | Do you apply coding guidelines against OWASP Top 10 vulnerabilities (including inpu... | `custom_app` |  |
 | 16 | Application Vulnerability Defense & Code Hygiene | `ssrf_and_cloud_metadata_defense` | `q1` | Are outbound HTTP requests initiated by the application strictly validated using d... | `custom_app` |  |
 | 17 | Application Vulnerability Defense & Code Hygiene | `ssrf_and_cloud_metadata_defense` | `q2` | Are cloud instance metadata protections enforced (e.g. IMDSv2 token-backed metadat... | `custom_app` |  |
-| 18 | Application Vulnerability Defense & Code Hygiene | `file_upload_security` | `q1` | Are uploaded files validated via server-side magic byte inspection, assigned rando... | `custom_app` |  |
-| 19 | Application Vulnerability Defense & Code Hygiene | `file_upload_security` | `q2` | Are uploaded files scanned for malware and stored exclusively in dedicated, non-ex... | `custom_app` |  |
+| 18 | Application Vulnerability Defense & Code Hygiene | `file_upload_security` | `q1` | Can files be uploaded to the application? (e.g., user attachments, documents, images, media, or data imports) | `custom_app` | Custom App only (Gating question) |
+| 19 | Application Vulnerability Defense & Code Hygiene | `file_upload_security` | `q2` | Are uploaded files validated via server-side magic byte inspection, assigned rando... | `custom_app` | Custom App only (if files uploaded - Magic bytes / UUIDs) |
+| 20 | Application Vulnerability Defense & Code Hygiene | `file_upload_security` | `q3` | Are uploaded files scanned for malware and stored exclusively in dedicated, non-ex... | `custom_app` | Custom App only (if files uploaded - Malware scanning & isolated storage) |
 | 20 | Cryptography & Secrets Management | `secrets_management` | `q1` | Are application credentials, API keys, and cryptographic secrets stored exclusivel... | `baseline, custom_app, cots_app` |  |
-| 21 | Cryptography & Secrets Management | `data_in_transit` | `q1` | Is data encrypted during transit? (Specify protocols, algorithms and methods: e.g.... | `baseline, custom_app, cots_app` |  |
-| 22 | Cryptography & Secrets Management | `data_at_rest` | `q1` | Is data encrypted at rest? (Specify algorithms and key management: e.g., AES-256 /... | `baseline, custom_app, cots_app` | Self-Hosted only (Custom & COTS) |
+| 21 | Cryptography & Secrets Management | `data_at_rest` | `q1` | Is data encrypted at rest? (Specify algorithms and key management: e.g., AES-256 /... | `baseline, custom_app, cots_app` | Self-Hosted only (Custom & COTS) |
 | 23 | Secure SDLC & DevSecOps Automation | `automated_security_testing` | `q1` | Is automated Static Application Security Testing (SAST) integrated into the CI/CD ... | `custom_app` |  |
 | 24 | Secure SDLC & DevSecOps Automation | `automated_security_testing` | `q2` | Is Dynamic Application Security Testing (DAST) or API security scanning performed ... | `custom_app` |  |
 | 25 | Secure SDLC & DevSecOps Automation | `supply_chain_and_dependencies` | `q1` | Is Software Composition Analysis (SCA) automated in the CI/CD pipeline to detect k... | `custom_app` |  |
@@ -70,8 +70,9 @@ Define or customize your operational situations/cases here for reference:
 | 28 | Secure SDLC & DevSecOps Automation | `vendor_secure_development` | `q1` | Does the third-party COTS software vendor adhere to recognized secure coding stand... | `cots_app` | **COTS Only** (Vendor secure coding guidelines) |
 | 29 | API Security & Edge Protections | `api_security_and_rate_limiting` | `q1` | Are exposed web and API endpoints protected against abusive traffic via an edge We... | `internet_facing` | **Self-Hosted Internet-Facing only** (Edge WAF & DDoS) |
 | 30 | API Security & Edge Protections | `api_security_and_rate_limiting` | `q2` | Are API payloads strictly validated against documented API specifications (e.g. Op... | `internet_facing` | **Self-Hosted Internet-Facing only** (API schema validation) |
-| 31 | Data Protection & Lifecycle Governance | `data_exchange` | `q1` | Are there data exchanges beyond the group? (e.g., transfers, automated API integra... | `baseline, custom_app, cots_app` |  |
-| 32 | Data Protection & Lifecycle Governance | `data_exchange` | `q2` | Is there a data exchange contract with the appropriate confidentiality clauses? (e... | `baseline, custom_app, cots_app` |  |
+| 30 | Data Protection & Lifecycle Governance | `data_exchange` | `q1` | Does the application exchange data externally? (e.g., transfers, automated API int... | `custom_app, cots_app` | Self-Hosted only (Custom & COTS) |
+| 31 | Data Protection & Lifecycle Governance | `data_exchange` | `q2` | Is data encrypted during transit? (Specify protocols, algorithms and methods: e.g.... | `custom_app, cots_app` | Self-Hosted only (Custom & COTS - if data exchanged) |
+| 32 | Data Protection & Lifecycle Governance | `data_exchange` | `q3` | Is there a data exchange contract with the appropriate confidentiality clauses? (e... | `custom_app, cots_app` | Self-Hosted only (Custom & COTS - if data exchanged) |
 | 33 | Data Protection & Lifecycle Governance | `non_prod_data` | `q1` | Are real production data records, live customer databases, or personal data utiliz... | `baseline, custom_app, cots_app` | Self-Hosted only (Custom & COTS) |
 | 34 | Data Protection & Lifecycle Governance | `non_prod_data` | `q2` | How do you protect them? (Which sanitization or protection method is applied: cryp... | `baseline, custom_app, cots_app` | Self-Hosted only (Custom & COTS - if non-prod data used) |
 | 35 | Data Protection & Lifecycle Governance | `non_prod_data` | `q3` | Do you clean the prod data after use in non-prod? (e.g., securely purging, sanitiz... | `baseline, custom_app, cots_app` | Self-Hosted only (Custom & COTS - if non-prod data used) |
@@ -190,10 +191,10 @@ Action - None
 - **Applicable Cases / Situations**:
   - [x] All applications (Info profiling - Confidentiality)
 
-#### Node: Application Delivery & Hosting Model (`hosting`)
+#### Node: Application Delivery & Network Exposure (`hosting`)
 Action - None
 - **Implementation Groups**: `info`, `baseline`
-- **Description**: Determine the application delivery and hosting model: Custom software created and deployed by internal teams, Bought software deployed by internal teams, or third-party SaaS.
+- **Description**: Determine the application delivery and hosting model (Custom software, Bought COTS, or third-party SaaS) and its network exposure (Internal restricted network or Internet-facing).
 
 ##### Q6. `hosting:q1`
 - **URN**: `urn:intuitem:risk:req_node:appsec:hosting:q1`
@@ -206,19 +207,16 @@ Action - None
 - **Applicable Cases / Situations**:
   - [x] All applications (Info profiling - Hosting model)
 
-#### Node: Application Network Exposure (`network_exposure`)
-- **Implementation Groups**: `custom_app, cots_app`
-- **Description**: Determine whether applications are accessible from the public Internet or restricted to private internal networks.
-
-##### Q7. `network_exposure:q1`
-- **URN**: `urn:intuitem:risk:req_node:appsec:network_exposure:q1`
+##### Q7. `hosting:q2`
+- **URN**: `urn:intuitem:risk:req_node:appsec:hosting:q2`
 - **Question**: What is the network exposure of the application?
+- **Depends on**: `hosting:q1` in `[Custom software, Bought software]`
 - **Type**: `unique_choice`
 - **Choices & Scoring**:
   - `Internal / Restricted Network only` (100 pts, compute_result: true)
   - `Internet-facing (Public Web / Mobile API)` (100 pts, compute_result: true)
 - **Applicable Cases / Situations**:
-  - [x] All applications (Network exposure profiling)
+  - [x] Self-Hosted only (Custom & COTS; hidden for SaaS)
 
 
 <a id="iam_chapter"></a>
@@ -362,18 +360,31 @@ Action - All apps must use RBAC and IGA for my employees, ask for all apps (Put 
 
 ##### Q18. `file_upload_security:q1`
 - **URN**: `urn:intuitem:risk:req_node:appsec:file_upload_security:q1`
+- **Question**: Can files be uploaded to the application? (e.g., user attachments, documents, images, media, or data imports)
+- **Type**: `unique_choice`
+- **Choices & Scoring**:
+  - `No` (100 pts, compute_result: true)
+  - `Yes` (0 pts)
+- **Applicable Cases / Situations**:
+  - Custom applications that do not allow file uploads receive 100 points immediately.
+  - If `Yes`, conditionally activates `q2` and `q3`.
+
+##### Q19. `file_upload_security:q2`
+- **URN**: `urn:intuitem:risk:req_node:appsec:file_upload_security:q2`
 - **Question**: Are uploaded files validated via server-side magic byte inspection, assigned randomized filenames (UUIDs), and stripped of path traversal characters?
 - **Type**: `unique_choice`
+- **Depends On**: `file_upload_security:q1` (`Yes`)
 - **Choices & Scoring**:
   - `Yes` (50 pts, compute_result: true)
   - `No` (0 pts)
 - **Applicable Cases / Situations**:
   - [ ] 
 
-##### Q19. `file_upload_security:q2`
-- **URN**: `urn:intuitem:risk:req_node:appsec:file_upload_security:q2`
+##### Q20. `file_upload_security:q3`
+- **URN**: `urn:intuitem:risk:req_node:appsec:file_upload_security:q3`
 - **Question**: Are uploaded files scanned for malware and stored exclusively in dedicated, non-executable private object storage (e.g. private S3 with presigned URLs)?
 - **Type**: `unique_choice`
+- **Depends On**: `file_upload_security:q1` (`Yes`)
 - **Choices & Scoring**:
   - `Yes` (50 pts, compute_result: true)
   - `No` (0 pts)
@@ -393,20 +404,6 @@ Action - All apps must use RBAC and IGA for my employees, ask for all apps (Put 
 ##### Q20. `secrets_management:q1`
 - **URN**: `urn:intuitem:risk:req_node:appsec:secrets_management:q1`
 - **Question**: Are application credentials, API keys, and cryptographic secrets stored exclusively in a dedicated secrets manager rather than in code or configuration files?
-- **Type**: `unique_choice`
-- **Choices & Scoring**:
-  - `Yes` (100 pts, compute_result: true)
-  - `No` (0 pts)
-- **Applicable Cases / Situations**:
-  - [ ] 
-
-#### Node: Encryption in Transit (`data_in_transit`)
-- **Implementation Groups**: `custom_app`, `cots_app`
-- **Description**: Encrypt data in transit across internal and external network boundaries.
-
-##### Q21. `data_in_transit:q1`
-- **URN**: `urn:intuitem:risk:req_node:appsec:data_in_transit:q1`
-- **Question**: Is data encrypted during transit? (Specify protocols, algorithms and methods: e.g., TLS 1.2 / TLS 1.3 with AES-GCM or ChaCha20, HTTPS with HSTS, mTLS for service APIs, SSHv2, or IPsec across external and internal boundaries)
 - **Type**: `unique_choice`
 - **Choices & Scoring**:
   - `Yes` (100 pts, compute_result: true)
@@ -547,13 +544,13 @@ Action - For COTS, ask if vendor follows secure coding guidelines without going 
 
 *Govern cross-organizational data transfers (DPAs), enforce non-production data protection, and mandate compliant data retention and destruction.*
 
-#### Node: Control of Data Exchange (`data_exchange`)
+#### Node: Control of Data Exchange & Encryption in Transit (`data_exchange`)
 - **Implementation Groups**: `custom_app`, `cots_app`
-- **Description**: Govern external data exchanges, API integrations, webhooks, and third-party data flows via formal agreements (DPA/DTA) and secure transmission for self-hosted applications.
+- **Description**: Govern external data exchanges, API integrations, webhooks, and third-party data flows via encryption in transit (TLS 1.2+, mTLS) and formal agreements (DPA/DTA) for self-hosted applications.
 
 ##### Q31. `data_exchange:q1`
 - **URN**: `urn:intuitem:risk:req_node:appsec:data_exchange:q1`
-- **Question**: Are there data exchanges beyond the group? (e.g., transfers, automated API integrations, or webhooks with external partners, third-party vendors, or public services)
+- **Question**: Does the application exchange data externally? (e.g., transfers, automated API integrations, webhooks, or network communications with external partners, third-party vendors, or public services)
 - **Type**: `unique_choice`
 - **Choices & Scoring**:
   - `No` (100 pts, compute_result: true)
@@ -563,12 +560,23 @@ Action - For COTS, ask if vendor follows secure coding guidelines without going 
 
 ##### Q32. `data_exchange:q2`
 - **URN**: `urn:intuitem:risk:req_node:appsec:data_exchange:q2`
+- **Question**: Is data encrypted during transit? (Specify protocols, algorithms and methods: e.g., TLS 1.2 / TLS 1.3 with AES-GCM or ChaCha20, HTTPS with HSTS, mTLS for service APIs, SSHv2, or IPsec across external and internal boundaries)
+- **Type**: `unique_choice`
+- **Conditional Dependency (`depends_on`)**: `{'question': 'urn:intuitem:risk:req_node:appsec:data_exchange:q1', 'answers': ['urn:intuitem:risk:req_node:appsec:data_exchange:q1:c2'], 'condition': 'any'}`
+- **Choices & Scoring**:
+  - `Yes` (50 pts, compute_result: true)
+  - `No` (0 pts)
+- **Applicable Cases / Situations**:
+  - [ ] 
+
+##### Q33. `data_exchange:q3`
+- **URN**: `urn:intuitem:risk:req_node:appsec:data_exchange:q3`
 - **Question**: Is there a data exchange contract with the appropriate confidentiality clauses? (e.g., formal Data Processing Agreement / DPA, Data Transfer Agreement / DTA, or NDA)
 - **Type**: `unique_choice`
 - **Conditional Dependency (`depends_on`)**: `{'question': 'urn:intuitem:risk:req_node:appsec:data_exchange:q1', 'answers': ['urn:intuitem:risk:req_node:appsec:data_exchange:q1:c2'], 'condition': 'any'}`
 - **Choices & Scoring**:
   - `No contract` (0 pts)
-  - `Contract! (Formal Data Transfer Agreement / DPA in place)` (100 pts, compute_result: true)
+  - `Contract! (Formal Data Transfer Agreement / DPA in place)` (50 pts, compute_result: true)
 - **Applicable Cases / Situations**:
   - [ ] 
 
