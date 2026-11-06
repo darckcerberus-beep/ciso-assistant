@@ -246,6 +246,58 @@ class TestTasks(unittest.TestCase):
         self.assertEqual(len(patch_calls), 1)
         self.assertEqual(patch_calls[0][1]["requirement_assessments"], ["ra-1", "ra-2"])
 
+    def test_reference_control_dict_get_control_from_id_and_enrichment(self):
+        """Verify ReferenceControlDict provides get_control_from_id and enriches recurrence from YAML."""
+        from unittest.mock import patch
+        from classes.controls.reference import ReferenceControlDict
+
+        mock_api_results = [
+            {
+                "id": "uuid-encrypt-transit",
+                "name": "Encrypt data in transit",
+                "urn": "urn:intuitem:risk:control:appsec:encrypt_data_in_transit",
+                "ref_id": "encrypt_data_in_transit",
+            },
+            {
+                "id": "uuid-custom-control",
+                "name": "Custom Untracked Control",
+                "urn": "urn:custom:control:1",
+                "ref_id": "custom_1",
+            },
+        ]
+
+        with patch("classes.utils.get_all_results", return_value=mock_api_results):
+            rc_dict = ReferenceControlDict()
+
+        # 1. Lookup by UUID ID
+        ctrl = rc_dict.get_control_from_id("uuid-encrypt-transit")
+        self.assertIsNotNone(ctrl)
+        self.assertEqual(ctrl.get_name(), "Encrypt data in transit")
+        self.assertTrue(ctrl.is_recurrent())
+        self.assertIsNotNone(ctrl.get_task())
+        self.assertEqual(ctrl.get_task().get("name"), "Quarterly TLS and Cipher Suite Audit")
+
+        # 2. Lookup by URN
+        ctrl_by_urn = rc_dict.get_control_from_id("urn:intuitem:risk:control:appsec:encrypt_data_in_transit")
+        self.assertEqual(ctrl_by_urn.get_id(), "uuid-encrypt-transit")
+
+        # 3. Lookup by ref_id
+        ctrl_by_ref = rc_dict.get_control_from_id("encrypt_data_in_transit")
+        self.assertEqual(ctrl_by_ref.get_id(), "uuid-encrypt-transit")
+
+        # 4. Lookup by name
+        ctrl_by_name = rc_dict.get_control_from_id("Encrypt data in transit")
+        self.assertEqual(ctrl_by_name.get_id(), "uuid-encrypt-transit")
+
+        # 5. Lookup control not in API but defined in YAML
+        ctrl_yaml = rc_dict.get_control_from_id("saas_contract")
+        self.assertIsNotNone(ctrl_yaml)
+        self.assertTrue(ctrl_yaml.is_recurrent())
+        self.assertIsNotNone(ctrl_yaml.get_task())
+
+        # 6. Lookup non-existent
+        self.assertIsNone(rc_dict.get_control_from_id("non_existent_control_xyz"))
+
 
 if __name__ == "__main__":
     unittest.main()

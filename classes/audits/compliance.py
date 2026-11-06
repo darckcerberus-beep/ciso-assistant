@@ -18,6 +18,8 @@ from .requirement_assignment import RequirementAssignmentDict
 _library_path = Path(__file__).parent.parent.parent / "YML" / "newDPP.yml"
 _library = utils.load_yaml_file(str(_library_path))
 AUDITOR_SCORE_VISIBILITY = _library.get("audit", {}).get("field_visibility") or _library.get("audit", {}).get("score_visibility", {})
+if isinstance(AUDITOR_SCORE_VISIBILITY, dict) and "applied_controls" not in AUDITOR_SCORE_VISIBILITY:
+    AUDITOR_SCORE_VISIBILITY["applied_controls"] = {"auditor": "edit", "respondent": "hidden"}
 AUDITOR_FIELD_VISIBILITY = AUDITOR_SCORE_VISIBILITY
 AUDITOR_SCORE_METHOD = _library.get("audit", {}).get("score_method", "sum")
 
@@ -532,9 +534,12 @@ class ComplianceAssessmentDict:
                 for requirement_assessment in requirement_assessments.values():
                     if requirement_assessment.get_compliance_assessment_id() != ca.get_id():
                         continue
-                    if requirement_assessment.get_urn() == risk_scenario.get('likelihood', ''):
+                    lh_target = risk_scenario.get('likelihood', '')
+                    imp_target = risk_scenario.get('impact', '')
+                    ra_ref = requirement_assessment.get_requirement_ref_id() if hasattr(requirement_assessment, 'get_requirement_ref_id') else ''
+                    if requirement_assessment.get_urn() == lh_target or (ra_ref and lh_target.endswith(f":{ra_ref}")):
                         likelihood_assessment = requirement_assessment
-                    if requirement_assessment.get_urn() == risk_scenario.get('impact', ''):
+                    if requirement_assessment.get_urn() == imp_target or (ra_ref and imp_target.endswith(f":{ra_ref}")):
                         impact_assessment = requirement_assessment
                         # Check if any answer matches configured impact mappings
                         for answer in requirement_assessment.get_requirement_json().get('answers', {}).values():

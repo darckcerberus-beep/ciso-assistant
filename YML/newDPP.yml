@@ -628,16 +628,33 @@ objects:
         ref_id: data_classification
         name: Data classification
         description: "Classify data handled by the application according to organizational policy."
-        annotation: >
-          Data categorization according to the enterprise information security classification policy:
-          - Public: Information intended for public distribution with zero confidentiality impact.
-          - Internal: Operational data for internal use only; disclosure would cause minor organizational friction.
-          - Confidential: Sensitive business, customer, or employee data requiring restricted access controls and encryption.
-          - Secret: Highly sensitive intellectual property, cryptographic keys, or critical strategic assets requiring stringent isolation and executive authorization.
-        typical_evidence: >
-          - Data classification assessment form or registry
-          - Information asset register entry
-          - Data flow diagram identifying sensitivity tags on data stores and APIs
+        annotation: |
+          ### Enterprise Data Classification & Governance Guidance
+
+          > **Governance Principles**:
+          > - **Data Ownership**: Data owners must confirm the appropriate level and review it as operational risks change.
+          > - **Public Release**: Requires explicit formal approval prior to publication.
+          > - **Dataset Aggregation**: Combining lower-tier datasets (e.g. customer identities + detailed purchase histories) may escalate the overall classification.
+
+          #### Classification Reference Matrix
+
+          | Level | Classification | Core Enterprise Examples | Online-Retail Proposed Starting Points |
+          | :---: | :--- | :--- | :--- |
+          | **0** | **PUBLIC** | • Marketing materials<br>• Press releases<br>• Public internet information | • Published product descriptions, images & size guides<br>• Published retail prices & promotional offers<br>• Published delivery, returns & refund policies |
+          | **1** | **INTERNAL** | • Sales figures<br>• Organisational charts | • Routine warehouse SOPs (without security details)<br>• Internal staff training materials<br>• Routine aggregated order-volume dashboards |
+          | **2** | **CONFIDENTIAL** | • Supplier contracts<br>• Employee appraisals | • Customer names, emails, phones & delivery addresses<br>• Customer order histories, return & refund records<br>• Customer-service conversations & complaints<br>• Supplier purchase prices, discounts & margins<br>• Unreleased campaign plans & pricing strategies<br>• Detailed inventory levels & demand forecasts |
+          | **3** | **SENSITIVE - SECRET** | • Payment data<br>• Social Security numbers (SSN / national IDs) | • Customer payment-card data & refund bank accounts<br>• Production admin credentials, API secrets & keys<br>• Bulk customer identity + purchase history exports<br>• Detailed fraud-detection evasion rules & thresholds |
+
+          #### Classification Details & Handling Rules
+          - **PUBLIC (Level 0)**: Information intended for public distribution with zero confidentiality impact.
+          - **INTERNAL (Level 1)**: Operational data for internal workforce use; disclosure would cause minor organizational friction.
+          - **CONFIDENTIAL (Level 2)**: Sensitive business, customer, or employee data requiring restricted access controls and encryption.
+          - **SENSITIVE - SECRET (Level 3)**: Critical enterprise assets, cryptographic keys, root credentials, payment cardholder data, or national identifiers requiring stringent isolation and executive authorization.
+        typical_evidence: |
+          - **Data Classification Registry / Form**: Formally validated and signed off by the Data Owner
+          - **Information Asset Register (CMDB)**: Entry reflecting confirmed sensitivity tiers across application data stores
+          - **Data Flow Diagram (DFD)**: Tagged with sensitivity markers on datastores, message queues, and external interfaces
+          - **DPIA / PCI-DSS AoC**: Formal impact assessments or compliance attestations (for cardholder or secret personal data)
         reference_controls: ["urn:intuitem:risk:control:mls:identify_data_classification"]
         implementation_groups: ["info"]
         questions:
@@ -1131,6 +1148,9 @@ audit:
       auditor: "edit"
       respondent: "hidden"
     extended_result:
+      auditor: "edit"
+      respondent: "hidden"
+    applied_controls:
       auditor: "edit"
       respondent: "hidden"
 

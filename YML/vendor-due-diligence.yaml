@@ -3401,6 +3401,9 @@ audit:
     extended_result:
       auditor: edit
       respondent: hidden
+    applied_controls:
+      auditor: edit
+      respondent: hidden
 criticality_mapping:
   confidentiality:
     urn:intuitem:risk:req_node:vendor-due-diligence:vendor_classification:q1:c1: 0

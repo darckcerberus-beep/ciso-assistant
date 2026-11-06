@@ -13,17 +13,121 @@ Tests cover:
 
 import io
 import json
+import threading
 import time
 import unittest
 from unittest.mock import MagicMock, patch
 
 try:
-    from web.app import TASK_MANAGER, create_app
-    HAS_FLASK = True
+    from web.app import HAS_FLASK, TASK_MANAGER, BackgroundTaskManager, create_app
 except ImportError:
     HAS_FLASK = False
     TASK_MANAGER = None
+    BackgroundTaskManager = None
     create_app = None
+
+
+class TestBackgroundTaskManager(unittest.TestCase):
+    """Unit tests for BackgroundTaskManager FIFO queue, sequential execution, and state tracking."""
+
+    def setUp(self):
+        self.manager = BackgroundTaskManager(max_history=10, max_workers=1)
+
+    def tearDown(self):
+        self.manager.clear_queue()
+        self.manager.stop()
+
+    def test_queue_sequential_execution(self):
+        """Verify that tasks in the FIFO queue execute strictly sequentially in order."""
+        execution_order = []
+
+        def job_one():
+            execution_order.append("start_1")
+            time.sleep(0.06)
+            execution_order.append("end_1")
+            return {"job": 1}
+
+        def job_two():
+            execution_order.append("start_2")
+            time.sleep(0.03)
+            execution_order.append("end_2")
+            return {"job": 2}
+
+        task_id_1 = self.manager.create_task("Seq Job 1", job_one)
+        task_id_2 = self.manager.create_task("Seq Job 2", job_two)
+
+        # Immediate queue status verification
+        q_status = self.manager.get_queue_status()
+        self.assertIn("active_task", q_status)
+        self.assertIn("queue_length", q_status)
+        self.assertEqual(q_status["max_workers"], 1)
+
+        # Wait for both tasks to complete
+        for _ in range(100):
+            time.sleep(0.02)
+            t1 = self.manager.get_task(task_id_1)
+            t2 = self.manager.get_task(task_id_2)
+            if t1 and t1["status"] in ("completed", "failed") and t2 and t2["status"] in ("completed", "failed"):
+                break
+
+        t1 = self.manager.get_task(task_id_1)
+        t2 = self.manager.get_task(task_id_2)
+        self.assertEqual(t1["status"], "completed")
+        self.assertEqual(t2["status"], "completed")
+        self.assertEqual(t1["result"], {"job": 1})
+        self.assertEqual(t2["result"], {"job": 2})
+
+        # Ensure Job 1 completed before Job 2 started
+        self.assertEqual(execution_order, ["start_1", "end_1", "start_2", "end_2"])
+
+    def test_queue_position_and_clear(self):
+        """Verify queue position calculation and queue clearing."""
+        blocker_started = threading.Event()
+        release_blocker = threading.Event()
+
+        def blocking_job():
+            blocker_started.set()
+            release_blocker.wait(timeout=2.0)
+            return "blocker_done"
+
+        def queued_job_a():
+            return "a_done"
+
+        def queued_job_b():
+            return "b_done"
+
+        # Start blocking task
+        t_block = self.manager.create_task("Blocking Job", blocking_job)
+        self.assertTrue(blocker_started.wait(timeout=1.0))
+
+        # Enqueue two more tasks while blocker is executing
+        t_a = self.manager.create_task("Queued Job A", queued_job_a)
+        t_b = self.manager.create_task("Queued Job B", queued_job_b)
+
+        # Check queue positions
+        self.assertEqual(self.manager.get_queue_position(t_block), 0)
+        self.assertEqual(self.manager.get_queue_position(t_a), 1)
+        self.assertEqual(self.manager.get_queue_position(t_b), 2)
+
+        # Check queue length
+        status = self.manager.get_queue_status()
+        self.assertEqual(status["queue_length"], 2)
+        self.assertEqual(len(status["queued_tasks"]), 2)
+
+        # Clear remaining queued tasks
+        cleared_count = self.manager.clear_queue()
+        self.assertEqual(cleared_count, 2)
+
+        task_a_info = self.manager.get_task(t_a)
+        self.assertEqual(task_a_info["status"], "cancelled")
+
+        # Release the blocking job so it finishes cleanly
+        release_blocker.set()
+        for _ in range(50):
+            time.sleep(0.02)
+            if self.manager.get_task(t_block)["status"] == "completed":
+                break
+        self.assertEqual(self.manager.get_task(t_block)["status"], "completed")
 
 
 @unittest.skipUnless(HAS_FLASK, "Flask is not installed in the test environment")
@@ -165,6 +269,66 @@ class TestWebUI(unittest.TestCase):
         t_data = resp.get_json()
         self.assertEqual(t_data["id"], task_id)
         self.assertEqual(t_data["status"], "completed")
+
+    def test_task_manager_queue_sequential_execution(self):
+        """Test BackgroundTaskManager FIFO queue ensures sequential task execution."""
+        execution_order = []
+
+        def job_one():
+            execution_order.append("start_1")
+            time.sleep(0.08)
+            execution_order.append("end_1")
+            return {"job": 1}
+
+        def job_two():
+            execution_order.append("start_2")
+            time.sleep(0.04)
+            execution_order.append("end_2")
+            return {"job": 2}
+
+        task_id_1 = TASK_MANAGER.create_task("Sequential Job 1", job_one)
+        task_id_2 = TASK_MANAGER.create_task("Sequential Job 2", job_two)
+
+        # Check queue status immediately after queuing both
+        q_status = TASK_MANAGER.get_queue_status()
+        self.assertIn("active_task", q_status)
+        self.assertIn("queue_length", q_status)
+
+        # Wait for both tasks to complete
+        for _ in range(100):
+            time.sleep(0.02)
+            t1 = TASK_MANAGER.get_task(task_id_1)
+            t2 = TASK_MANAGER.get_task(task_id_2)
+            if t1 and t1["status"] in ("completed", "failed") and t2 and t2["status"] in ("completed", "failed"):
+                break
+
+        t1 = TASK_MANAGER.get_task(task_id_1)
+        t2 = TASK_MANAGER.get_task(task_id_2)
+        self.assertEqual(t1["status"], "completed")
+        self.assertEqual(t2["status"], "completed")
+        self.assertEqual(t1["result"], {"job": 1})
+        self.assertEqual(t2["result"], {"job": 2})
+
+        # Verify sequential ordering: job 1 must finish before job 2 starts
+        self.assertEqual(execution_order, ["start_1", "end_1", "start_2", "end_2"])
+
+    def test_api_queue_endpoint_and_clear(self):
+        """Test GET /api/queue and POST /api/queue/clear endpoints."""
+        # GET queue status
+        resp = self.client.get("/api/queue")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.get_json()
+        self.assertIn("queue_length", data)
+        self.assertIn("queued_tasks", data)
+        self.assertIn("max_workers", data)
+        self.assertEqual(data["max_workers"], 1)
+
+        # POST clear queue
+        clear_resp = self.client.post("/api/queue/clear")
+        self.assertEqual(clear_resp.status_code, 200)
+        clear_data = clear_resp.get_json()
+        self.assertIn("cleared", clear_data)
+        self.assertIn("message", clear_data)
 
     @patch("classes.examples_manager.ExamplesManager.find_target_framework")
     @patch("classes.examples_manager.ExamplesManager.create_example_application")

@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 import yaml
 
+from classes import utils
 from classes.core.framework import LibraryFile
 from classes.examples_manager import FRAMEWORK_CATALOG
 
@@ -37,8 +38,7 @@ class TestYamlIntegrity(unittest.TestCase):
             if not yaml_path.exists():
                 continue
 
-            with open(yaml_path, "r", encoding="utf-8") as f:
-                yaml_data = yaml.safe_load(f)
+            yaml_data = utils.load_yaml_file(yaml_path)
 
             objects = yaml_data.get("objects", {})
             framework = objects.get("framework", {})
@@ -349,7 +349,7 @@ class TestYamlIntegrity(unittest.TestCase):
                         )
 
     def test_audit_configuration(self):
-        """Ensure audit score and status visibility are configured to be hidden for respondents."""
+        """Ensure audit score, status, and applied controls visibility are configured to be hidden for respondents."""
         for fw in self.frameworks:
             with self.subTest(framework=fw["ref_id"]):
                 audit_conf = fw["yaml_data"].get("audit")
@@ -367,7 +367,7 @@ class TestYamlIntegrity(unittest.TestCase):
                     f"Audit configuration must specify score_visibility in {fw['ref_id']}",
                 )
 
-                for field in ["score", "status"]:
+                for field in ["score", "status", "applied_controls"]:
                     self.assertIn(field, score_vis, f"Missing '{field}' visibility in {fw['ref_id']}")
                     self.assertEqual(
                         score_vis[field].get("respondent"),
@@ -1581,6 +1581,32 @@ class TestYamlIntegrity(unittest.TestCase):
                     [f"urn:intuitem:risk:req_node:{fw_ref}:saas_pci_dss:q1:c2"],
                 )
             self.assertEqual(q2["choices"][0]["add_score"] + q3["choices"][0]["add_score"], 100)
+
+    def test_appsec_common_objects_externalization(self):
+        """Verify that non-framework objects are externalized into appsec_objects.yml."""
+        common_objects_path = Path("YML/appsec_objects.yml")
+        self.assertTrue(common_objects_path.exists(), "YML/appsec_objects.yml does not exist")
+        common_doc = utils.load_yaml_file(common_objects_path)
+        self.assertEqual(common_doc.get("ref_id"), "appsec_objects")
+        common_objs = common_doc.get("objects", {})
+        for key in ["risk_matrix", "threats", "vulnerabilities", "reference_controls", "risk_scenarios"]:
+            self.assertIn(key, common_objs, f"Missing {key} in common objects file")
+            self.assertGreater(len(common_objs[key]), 0, f"Common objects {key} cannot be empty")
+
+        for fw_ref in ["appsec", "appsec_manual"]:
+            fw = next((f for f in self.frameworks if f["ref_id"] == fw_ref), None)
+            self.assertIsNotNone(fw, f"{fw_ref} framework missing")
+            # Verify raw YAML does NOT define non-framework objects directly under objects
+            raw_path = Path(fw["yaml_path"])
+            with open(raw_path, "r", encoding="utf-8") as f:
+                raw_data = yaml.safe_load(f)
+            self.assertIn("common_objects_file", raw_data, f"{fw_ref} must declare common_objects_file")
+            self.assertEqual(raw_data["common_objects_file"], "YML/appsec_objects.yml")
+            self.assertEqual(list(raw_data.get("objects", {}).keys()), ["framework"], f"{fw_ref} raw objects should only contain framework")
+
+            # Verify loaded objects contain all merged objects
+            for key in ["risk_matrix", "threats", "vulnerabilities", "reference_controls", "risk_scenarios"]:
+                self.assertIn(key, fw["objects"], f"{key} missing in merged objects of {fw_ref}")
 
 
 if __name__ == "__main__":

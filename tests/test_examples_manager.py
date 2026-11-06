@@ -612,6 +612,83 @@ class TestExamplesManager(unittest.TestCase):
                 ca_post_call[1]["payload"]["selected_implementation_groups"],
                 ["Application information", "Custom applications"],
             )
+            field_vis = ca_post_call[1]["payload"].get("field_visibility", {})
+            self.assertIn("applied_controls", field_vis)
+            self.assertEqual(field_vis["applied_controls"].get("respondent"), "hidden")
+
+    def test_get_framework_field_visibility_applied_controls_hidden(self):
+        """Verify get_framework_field_visibility ensures applied_controls is hidden for respondent."""
+        for ref in ["mls", "vendor-due-diligence", "appsec", "appsec_manual", None]:
+            vis = self.manager.get_framework_field_visibility(ref)
+            self.assertIn("applied_controls", vis, f"applied_controls must be in field_visibility for {ref}")
+            self.assertEqual(vis["applied_controls"].get("respondent"), "hidden", f"applied_controls respondent visibility must be hidden for {ref}")
+            self.assertEqual(vis["applied_controls"].get("auditor"), "edit", f"applied_controls auditor visibility must be edit for {ref}")
+
+    @patch("classes.utils.get_return")
+    def test_create_application_for_audit_hides_applied_controls_for_respondent(self, mock_get_return):
+        """Verify that when creating an audit, applied controls are hidden for respondents."""
+        mock_data = {
+            "perimeter_dict": MagicMock(),
+            "asset_dict": MagicMock(),
+            "compliance_assessment_dict": MagicMock(),
+            "entity_dict": MagicMock(),
+            "entity_representative_dict": MagicMock(),
+            "entity_assessment_dict": MagicMock(),
+            "user_dict": MagicMock(),
+            "domain_dict": MagicMock(),
+        }
+        mock_data["user_dict"].get_id_from_email.return_value = "auditor-uuid"
+        mock_data["entity_dict"].create_entity.return_value = {"id": "entity-uuid-demo"}
+        mock_data["entity_dict"].get_id_from_name.return_value = "entity-uuid-demo"
+        mock_data["perimeter_dict"].create_perimeter.return_value = {"id": "perm-uuid-demo"}
+        mock_data["perimeter_dict"].get_id_from_name.return_value = "perm-uuid-demo"
+        mock_data["asset_dict"].create_asset.return_value = {"id": "asset-uuid-demo"}
+        mock_data["asset_dict"].get_asset_id_from_perimeter_name.return_value = "asset-uuid-demo"
+        mock_data["asset_dict"].get_assets.return_value = []
+
+        mock_fw = MagicMock()
+        mock_fw.get_id.return_value = "fw-uuid-appsec"
+        mock_fw.get_name.return_value = "Application Security Assessment Framework (AppSec - Manual IG)"
+        mock_fw.json_object = {"ref_id": "appsec_manual"}
+
+        mock_ca = MagicMock()
+        mock_ca.get_id.return_value = "ca-uuid-demo"
+        mock_ca.get_name.return_value = "Assessment of AppSec in App-Demo"
+        mock_ca.get_status.return_value = "in_progress"
+        mock_data["compliance_assessment_dict"].get_compliance_assessments.side_effect = [
+            {},
+            {"ca-uuid-demo": mock_ca},
+            {"ca-uuid-demo": mock_ca},
+        ]
+        mock_data["compliance_assessment_dict"].requirement_assessments.get_requirement_assessment_id_list_from_compliance_assessment_id.return_value = ["ra-1"]
+        mock_data["compliance_assessment_dict"].requirement_assignments.get_requirement_assignment_id_list_from_compliance_assessment_id.return_value = ["assign-1"]
+        mock_data["entity_assessment_dict"].create_entity_assessment.return_value = {"id": "ea-uuid-demo"}
+
+        mock_get_return.return_value = {
+            "id": "ca-uuid-demo",
+            "name": "Assessment of AppSec in App-Demo",
+        }
+
+        with patch.object(self.manager, "_init_data", return_value=mock_data), \
+             patch.object(self.manager, "get_or_create_folder", return_value="folder-uuid-1"), \
+             patch.object(self.manager, "get_default_assignee_id", return_value="assignee-uuid-1"), \
+             patch.object(self.manager, "find_target_framework", return_value=mock_fw), \
+             patch("time.sleep"):
+
+            res = self.manager.create_application_for_audit(
+                app_name="App-Demo",
+                user_email="respondent@example.com",
+                framework_ref_or_name="appsec_manual",
+            )
+
+            ca_post_call = mock_get_return.call_args
+            self.assertEqual(ca_post_call[0][0], "/api/compliance-assessments/")
+            payload = ca_post_call[1]["payload"]
+            self.assertIn("field_visibility", payload)
+            field_vis = payload["field_visibility"]
+            self.assertIn("applied_controls", field_vis)
+            self.assertEqual(field_vis["applied_controls"]["respondent"], "hidden")
+            self.assertEqual(field_vis["applied_controls"]["auditor"], "edit")
 
     @patch("classes.utils.get_return")
     def test_create_application_for_audit_existing_user(self, mock_get_return):

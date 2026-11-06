@@ -617,6 +617,30 @@ Added a conditional question in `hosting` asking whether the SaaS vendor is ISO/
 - **Framework Versions**: Incremented `YML/appsec.yml` to `version: 26` and `YML/appsec_manual.yml` to `version: 9`.
 - **Automated Validation**: Updated unit tests in [`tests/test_yaml_integrity.py`](file:///home/romain/ciso-assistant/tests/test_yaml_integrity.py) and [`tests/test_implementation_groups.py`](file:///home/romain/ciso-assistant/tests/test_implementation_groups.py), and updated SaaS test profiles in `test_data/`. All tests pass.
 
+---
+
+## 35. Externalization of Non-Framework Objects to Shared Library (`appsec_objects.yml`)
+
+Externalized all common, non-framework objects out of `YML/appsec.yml` and `YML/appsec_manual.yml` into a dedicated shared library file `YML/appsec_objects.yml`, enabling both frameworks (one fully automated via choice-triggered implementation groups, and one manually triggered) to share common risk scenarios, risk matrix, threats, vulnerabilities, and reference controls:
+- **Shared Library File (`YML/appsec_objects.yml`)**:
+  - Registered under `urn:intuitem:risk:library:appsec_objects`.
+  - Defines the 4x4 risk matrix (`urn:intuitem:risk:matrix:appsec`).
+  - Defines the 9 core threats (`urn:intuitem:risk:threat:appsec:...`).
+  - Defines the 18 core vulnerabilities (`urn:intuitem:risk:vulnerability:appsec:...`).
+  - Defines the 26 core reference controls (`urn:intuitem:risk:control:appsec:...`).
+  - Defines all 25 risk scenarios (`urn:intuitem:risk:scenario:appsec:...`). Scenarios 1 to 20 are tagged for both `appsec` and `appsec_manual`; scenarios 21 to 25 are tagged for `appsec_manual`.
+- **Framework YAML Simplification**:
+  - In [`YML/appsec.yml`](file:///home/python/ciso-assistant/YML/appsec.yml) and [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml), removed all non-framework object definitions under `objects:` (retaining only `framework:`).
+  - Added root declaration `common_objects_file: "YML/appsec_objects.yml"`.
+  - In `YML/appsec_manual.yml`, updated requirement nodes' `reference_controls` and `vulnerabilities` to reference the canonical shared URNs `urn:intuitem:risk:control:appsec:...` and `urn:intuitem:risk:vulnerability:appsec:...`.
+- **Python Loading & Simulation Architecture**:
+  - Updated [`classes/utils.py`](file:///home/python/ciso-assistant/classes/utils.py) (`load_yaml_file`): Automatically resolves and merges `common_objects_file` into `objects`, adapting risk scenario namespaces and requirement node links for target frameworks.
+  - Updated [`classes/core/framework.py`](file:///home/python/ciso-assistant/classes/core/framework.py): `LibraryFile` leverages `load_yaml_file` to access all common risk scenarios, threats, and vulnerabilities.
+  - Updated [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py) and [`tests/test_application_scenarios.py`](file:///home/python/ciso-assistant/tests/test_application_scenarios.py): Uses `load_yaml_file` to seamlessly test merged frameworks, and added `test_appsec_common_objects_externalization`.
+  - Updated [`classes/examples_manager.py`](file:///home/python/ciso-assistant/classes/examples_manager.py) and [`classes/audits/compliance.py`](file:///home/python/ciso-assistant/classes/audits/compliance.py): Enhanced requirement assessment resolution to match across namespaces by requirement ref_id.
+- **Automated Validation**: All automated unit test suites pass cleanly.
+
+
 
 
 

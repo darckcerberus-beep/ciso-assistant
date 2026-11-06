@@ -1,3 +1,4 @@
+import copy
 import logging
 import json
 import os
@@ -40,8 +41,8 @@ def set_log_level(level: int | str) -> None:
 
 
 
-def load_yaml_file(yaml_file: str) -> dict[str, Any]:
-    """Load and parse a YAML file from disk.
+def load_yaml_file(yaml_file: str | Path) -> dict[str, Any]:
+    """Load and parse a YAML file from disk, automatically resolving common objects if declared.
     
     Args:
         yaml_file: Path to the YAML file to load
@@ -53,10 +54,68 @@ def load_yaml_file(yaml_file: str) -> dict[str, Any]:
         config = load_yaml_file("config.yml")
     """
     LOGGER.debug(f"Loading YAML file: {yaml_file}")
+    filepath = Path(yaml_file)
     try:
-        with open(yaml_file, "r", encoding="utf-8") as file:
+        with open(filepath, "r", encoding="utf-8") as file:
             result = pyml.safe_load(file) or {}
         LOGGER.debug(f"Successfully loaded YAML file: {yaml_file}")
+
+        if isinstance(result, dict) and "common_objects_file" in result:
+            common_rel = result["common_objects_file"]
+            candidate_paths = [
+                filepath.parent / common_rel,
+                Path(common_rel),
+                Path(__file__).resolve().parent.parent / common_rel,
+                Path.cwd() / common_rel,
+            ]
+            common_path = next((p for p in candidate_paths if p.exists() and p.is_file()), None)
+            if common_path:
+                with open(common_path, "r", encoding="utf-8") as cf:
+                    common_data = pyml.safe_load(cf) or {}
+                common_objects = common_data.get("objects", {})
+                target_objects = result.setdefault("objects", {})
+                framework_ref = result.get("ref_id", "")
+
+                for key in ["risk_matrix", "threats", "vulnerabilities", "reference_controls"]:
+                    if key in common_objects and key not in target_objects:
+                        target_objects[key] = copy.deepcopy(common_objects[key])
+
+                if "risk_scenarios" in common_objects and "risk_scenarios" not in target_objects:
+                    scenarios = copy.deepcopy(common_objects["risk_scenarios"])
+                    framework_obj = target_objects.get("framework", {})
+                    req_nodes_list = framework_obj.get("requirement_nodes", [])
+                    req_nodes_by_urn = {rn.get("urn"): rn for rn in req_nodes_list if rn.get("urn")}
+                    req_nodes_by_ref = {rn.get("ref_id"): rn for rn in req_nodes_list if rn.get("ref_id")}
+
+                    filtered_scenarios = []
+                    for sc in scenarios:
+                        allowed_fw = sc.pop("frameworks", None)
+                        if allowed_fw and framework_ref and framework_ref not in allowed_fw:
+                            continue
+
+                        if framework_ref and framework_ref != "appsec":
+                            if "urn" in sc and ":appsec:" in sc["urn"]:
+                                sc["urn"] = sc["urn"].replace(":appsec:", f":{framework_ref}:")
+                            for lh_key in ("likelihood", "impact"):
+                                if lh_key in sc and sc[lh_key]:
+                                    old_urn = sc[lh_key]
+                                    node_ref = old_urn.rsplit(":", 1)[-1]
+                                    adapted_urn = f"urn:intuitem:risk:req_node:{framework_ref}:{node_ref}"
+                                    if adapted_urn in req_nodes_by_urn:
+                                        sc[lh_key] = adapted_urn
+                                    elif node_ref in req_nodes_by_ref:
+                                        sc[lh_key] = req_nodes_by_ref[node_ref].get("urn", adapted_urn)
+                                    elif node_ref == "saas_contract" and "saas_contract_compliance" in req_nodes_by_ref:
+                                        sc[lh_key] = req_nodes_by_ref["saas_contract_compliance"].get("urn", adapted_urn)
+                                    elif old_urn in req_nodes_by_urn:
+                                        sc[lh_key] = old_urn
+                                    else:
+                                        sc[lh_key] = adapted_urn
+
+                        filtered_scenarios.append(sc)
+
+                    target_objects["risk_scenarios"] = filtered_scenarios
+
         return result
     except FileNotFoundError:
         LOGGER.error(f"YAML file not found: {yaml_file}")

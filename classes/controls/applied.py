@@ -653,9 +653,12 @@ class AppliedControlDict:
 
         for ctrl in self.controls.values():
             ref_id = ctrl.get_reference_control_id()
-            if not ref_id:
-                continue
-            ref_ctrl = reference_control_dict.get_control_from_id(ref_id)
+            ctrl_name = ctrl.get_name()
+            ctrl_prefix = ctrl_name.split(" on ", 1)[0] if " on " in ctrl_name else ctrl_name
+
+            ref_ctrl = reference_control_dict.get_control_from_id(ref_id) if ref_id else None
+            if not ref_ctrl and ctrl_prefix:
+                ref_ctrl = reference_control_dict.get_control_from_id(ctrl_prefix)
             if not ref_ctrl:
                 continue
             ref_json = ref_ctrl.get_json() if hasattr(ref_ctrl, "get_json") else ref_ctrl

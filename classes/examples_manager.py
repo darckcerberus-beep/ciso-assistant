@@ -403,6 +403,30 @@ class ExamplesManager:
         yaml_path = self.resolve_framework_yaml_path(target_framework)
         return FrameworkFile(str(yaml_path))
 
+    def get_framework_field_visibility(self, framework_ref_or_name: str | None = None) -> dict[str, Any]:
+        """Resolve field_visibility dictionary for a framework, ensuring applied_controls is hidden for respondents."""
+        if framework_ref_or_name:
+            fw_path = self.resolve_framework_yaml_path(framework_ref_or_name)
+            if fw_path.exists():
+                try:
+                    fw_data = utils.load_yaml_file(str(fw_path))
+                    audit_conf = fw_data.get("audit", {}) if isinstance(fw_data, dict) else {}
+                    score_vis = audit_conf.get("field_visibility") or audit_conf.get("score_visibility")
+                    if score_vis and isinstance(score_vis, dict):
+                        vis = {k: dict(v) if isinstance(v, dict) else v for k, v in score_vis.items()}
+                        if "applied_controls" not in vis:
+                            vis["applied_controls"] = {"auditor": "edit", "respondent": "hidden"}
+                        elif isinstance(vis["applied_controls"], dict) and "respondent" not in vis["applied_controls"]:
+                            vis["applied_controls"]["respondent"] = "hidden"
+                        return vis
+                except Exception as e:
+                    LOGGER.debug("Could not read field_visibility from %s: %s", fw_path, e)
+
+        vis = {k: dict(v) if isinstance(v, dict) else v for k, v in AUDITOR_SCORE_VISIBILITY.items()}
+        if "applied_controls" not in vis:
+            vis["applied_controls"] = {"auditor": "edit", "respondent": "hidden"}
+        return vis
+
     def get_installed_frameworks(self) -> list[dict[str, Any]]:
         """Return list of frameworks that are confirmed to be installed in CISO Assistant."""
         frameworks_list = []
@@ -1660,7 +1684,7 @@ class ExamplesManager:
                 "perimeter": perimeter_id,
                 "assets": [asset_id] if asset_id else [],
                 "score_calculation_method": AUDITOR_SCORE_METHOD,
-                "field_visibility": AUDITOR_SCORE_VISIBILITY,
+                "field_visibility": self.get_framework_field_visibility(framework_ref or framework_ref_or_name or framework_id),
             }
             add_default_implementation_groups(payload, framework_id)
             ca_response = utils.get_return("/api/compliance-assessments/", method="POST", payload=payload)
@@ -1695,7 +1719,7 @@ class ExamplesManager:
 
         # Step 5: Ensure requirement assessments are populated and loaded from API
         utils.log(f"Waiting for requirement assessments to populate for {ca_name}...", level=logging.INFO)
-        for _ in range(10):
+        for _ in range(20):
             compliance_dict.requirement_assessments.reload()
             req_ids = compliance_dict.requirement_assessments.get_requirement_assessment_id_list_from_compliance_assessment_id(ca_id)
             if req_ids:
@@ -1774,8 +1798,14 @@ class ExamplesManager:
             sim_sc = sim_results.get("scenarios", {}).get(sc_name)
 
             lh_urn = risk_scenario.get("likelihood", "")
+            lh_ref = lh_urn.rsplit(":", 1)[-1] if lh_urn else ""
             matching_ra = next(
-                (ra for ra in app_ras if ra.get_urn() == lh_urn or (ra.get_requirement_json().get("requirement", {}) or {}).get("urn") == lh_urn),
+                (
+                    ra for ra in app_ras
+                    if ra.get_urn() == lh_urn
+                    or (ra.get_requirement_json().get("requirement", {}) or {}).get("urn") == lh_urn
+                    or (lh_ref and getattr(ra, "get_requirement_ref_id", lambda: "")() == lh_ref)
+                ),
                 None,
             )
 
@@ -2062,7 +2092,7 @@ class ExamplesManager:
                 "perimeter": perimeter_id,
                 "assets": [asset_id] if asset_id else [],
                 "score_calculation_method": AUDITOR_SCORE_METHOD,
-                "field_visibility": AUDITOR_SCORE_VISIBILITY,
+                "field_visibility": self.get_framework_field_visibility(framework_ref or framework_ref_or_name or framework_id),
             }
             if implementation_groups is not None:
                 payload["selected_implementation_groups"] = resolve_implementation_groups(
@@ -2101,7 +2131,7 @@ class ExamplesManager:
         # Step 8: Ensure requirement assessments are populated and loaded from API
         utils.log(f"Waiting for requirement assessments to populate for {ca_name}...", level=logging.INFO)
         req_ids = []
-        for _ in range(10):
+        for _ in range(20):
             compliance_dict.requirement_assessments.reload()
             req_ids = compliance_dict.requirement_assessments.get_requirement_assessment_id_list_from_compliance_assessment_id(ca_id)
             if req_ids:
@@ -2885,8 +2915,14 @@ class ExamplesManager:
             sim_sc = sim_results.get("scenarios", {}).get(sc_name)
 
             lh_urn = risk_scenario.get("likelihood", "")
+            lh_ref = lh_urn.rsplit(":", 1)[-1] if lh_urn else ""
             matching_ra = next(
-                (ra for ra in app_ras if ra.get_urn() == lh_urn or (ra.get_requirement_json().get("requirement", {}) or {}).get("urn") == lh_urn),
+                (
+                    ra for ra in app_ras
+                    if ra.get_urn() == lh_urn
+                    or (ra.get_requirement_json().get("requirement", {}) or {}).get("urn") == lh_urn
+                    or (lh_ref and getattr(ra, "get_requirement_ref_id", lambda: "")() == lh_ref)
+                ),
                 None,
             )
 

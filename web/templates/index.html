@@ -2496,8 +2496,10 @@
     function subscribeToTask(taskId, onCompleteCallback) {
       APP_STATE.activeTaskId = taskId;
       document.getElementById("active-task-badge").classList.remove("hidden");
-      document.getElementById("term-status-badge").innerText = "Running";
-      document.getElementById("term-status-badge").className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 animate-pulse";
+      document.getElementById("active-task-badge").innerText = "Queued";
+      document.getElementById("active-task-badge").className = "px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-bold animate-pulse";
+      document.getElementById("term-status-badge").innerText = "Queued";
+      document.getElementById("term-status-badge").className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse";
 
       if (APP_STATE.activeEventSource) {
         APP_STATE.activeEventSource.close();
@@ -2509,6 +2511,21 @@
       evtSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+
+          // Update badges based on real-time task queue status
+          if (data.status === "queued") {
+            const posLabel = data.queue_position ? `Queued (#${data.queue_position})` : "Queued";
+            document.getElementById("term-status-badge").innerText = posLabel;
+            document.getElementById("term-status-badge").className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse";
+            document.getElementById("active-task-badge").innerText = posLabel;
+            document.getElementById("active-task-badge").className = "px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-bold animate-pulse";
+          } else if (data.status === "running") {
+            document.getElementById("term-status-badge").innerText = "Running";
+            document.getElementById("term-status-badge").className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 animate-pulse";
+            document.getElementById("active-task-badge").innerText = "Running";
+            document.getElementById("active-task-badge").className = "px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-400 text-[10px] font-bold animate-pulse";
+          }
+
           if (data.line) {
             appendTerminalLine(data.line);
           }
@@ -2516,7 +2533,7 @@
             evtSource.close();
             document.getElementById("active-task-badge").classList.add("hidden");
             const isOk = data.status === "completed";
-            document.getElementById("term-status-badge").innerText = isOk ? "Completed" : "Failed";
+            document.getElementById("term-status-badge").innerText = isOk ? "Completed" : (data.status === "cancelled" ? "Cancelled" : "Failed");
             document.getElementById("term-status-badge").className = isOk 
               ? "px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
               : "px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30";
@@ -2525,6 +2542,8 @@
               showToast("Operation completed successfully!", "success");
               if (onCompleteCallback) onCompleteCallback(data.result);
               refreshAll();
+            } else if (data.status === "cancelled") {
+              showToast("Task was cancelled in queue.", "info");
             } else {
               showToast(`Operation failed: ${data.error}`, "error");
             }

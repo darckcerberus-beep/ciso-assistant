@@ -19,6 +19,7 @@ import io
 import json
 import logging
 from pathlib import Path
+import queue
 import sys
 import threading
 import time
@@ -26,16 +27,28 @@ from typing import Any
 from collections.abc import Callable
 import uuid
 
-from flask import (
-    Flask,
-    Response,
-    abort,
-    jsonify,
-    render_template,
-    request,
-    send_from_directory,
-)
-from werkzeug.utils import secure_filename
+try:
+    from flask import (
+        Flask,
+        Response,
+        abort,
+        jsonify,
+        render_template,
+        request,
+        send_from_directory,
+    )
+    from werkzeug.utils import secure_filename
+    HAS_FLASK = True
+except ImportError:
+    Flask = None  # type: ignore
+    Response = None  # type: ignore
+    abort = None  # type: ignore
+    jsonify = None  # type: ignore
+    render_template = None  # type: ignore
+    request = None  # type: ignore
+    send_from_directory = None  # type: ignore
+    secure_filename = None  # type: ignore
+    HAS_FLASK = False
 
 from classes import utils
 from classes.examples_manager import (
@@ -100,22 +113,60 @@ class TaskStreamWriter(io.TextIOBase):
 
 
 class BackgroundTaskManager:
-    """Manages asynchronous tasks with real-time log capturing and event notifications."""
+    """Manages asynchronous tasks with a sequential FIFO queue, real-time log capturing, and event notifications."""
 
-    def __init__(self, max_history: int = 50):
+    def __init__(self, max_history: int = 50, max_workers: int = 1):
         self.max_history = max_history
+        self.max_workers = max_workers
         self.tasks: dict[str, dict[str, Any]] = {}
         self.events: dict[str, threading.Event] = {}
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
+        self._queue: queue.Queue = queue.Queue()
+        self._current_task_id: str | None = None
+        self._workers: list[threading.Thread] = []
+        self._stop_event = threading.Event()
+        self._ensure_workers()
+
+    def _ensure_workers(self) -> None:
+        """Ensure background worker threads are alive and running."""
+        with self._lock:
+            if self._stop_event.is_set():
+                return
+            self._workers = [w for w in self._workers if w.is_alive()]
+            while len(self._workers) < self.max_workers:
+                worker = threading.Thread(target=self._worker_loop, daemon=True)
+                worker.start()
+                self._workers.append(worker)
+
+    def _worker_loop(self) -> None:
+        """Continuously pull tasks from the FIFO queue and execute them sequentially."""
+        while not self._stop_event.is_set():
+            try:
+                item = self._queue.get(timeout=0.2)
+            except queue.Empty:
+                continue
+
+            if item is None:
+                self._queue.task_done()
+                break
+
+            task_id, func, args, kwargs = item
+            try:
+                self._run_task(task_id, func, *args, **kwargs)
+            finally:
+                self._queue.task_done()
 
     def create_task(self, name: str, func: Callable[..., Any], *args: Any, **kwargs: Any) -> str:
-        """Create and launch a background task."""
+        """Create, enqueue, and launch a background task via the sequential FIFO queue."""
+        self._ensure_workers()
         task_id = f"task_{int(time.time())}_{uuid.uuid4().hex[:6]}"
+        now_iso = datetime.now(timezone.utc).isoformat()
         task_info = {
             "id": task_id,
             "name": name,
-            "status": "pending",  # pending, running, completed, failed
-            "started_at": datetime.now(timezone.utc).isoformat(),
+            "status": "queued",  # queued, running, completed, failed, cancelled
+            "queued_at": now_iso,
+            "started_at": None,
             "finished_at": None,
             "logs": [],
             "result": None,
@@ -128,49 +179,142 @@ class BackgroundTaskManager:
             # Prune old tasks if exceeding history
             if len(self.tasks) > self.max_history:
                 oldest_id = next(iter(self.tasks))
-                if oldest_id != task_id and self.tasks[oldest_id]["status"] in ("completed", "failed"):
+                if oldest_id != task_id and self.tasks[oldest_id]["status"] in ("completed", "failed", "cancelled"):
                     del self.tasks[oldest_id]
 
-        def _runner():
-            task_info["status"] = "running"
-            log_queue: list[str] = task_info["logs"]
+            active = self._current_task_id is not None
+            pos = len(self._queue.queue) + (1 if active else 0)
 
-            def append_log(line: str):
-                ts = datetime.now(timezone.utc).strftime("%H:%M:%S")
-                entry = f"[{ts}] {line}"
-                with self._lock:
-                    log_queue.append(entry)
-                    for sub in list(task_info["log_subscribers"]):
-                        with contextlib.suppress(Exception):
-                            sub(entry)
+        if pos > 0:
+            ts = datetime.now(timezone.utc).strftime("%H:%M:%S")
+            task_info["logs"].append(
+                f"[{ts}] === Task enqueued in position #{pos}. Waiting for previous operations to complete... ==="
+            )
 
-            append_log(f"=== Started: {name} ===")
-
-            stream_writer = TaskStreamWriter(append_log, sys.stdout)
-            log_handler = TaskLogHandler(append_log)
-
-            root_logger = logging.getLogger()
-            root_logger.addHandler(log_handler)
-
-            try:
-                with contextlib.redirect_stdout(stream_writer), contextlib.redirect_stderr(stream_writer):
-                    res = func(*args, **kwargs)
-                task_info["result"] = res
-                task_info["status"] = "completed"
-                append_log(f"=== Successfully completed: {name} ===")
-            except Exception as e:
-                task_info["error"] = str(e)
-                task_info["status"] = "failed"
-                append_log(f"[ERROR] Task failed: {e}")
-                LOGGER.exception("Task %s failed", task_id)
-            finally:
-                stream_writer.flush()
-                root_logger.removeHandler(log_handler)
-                task_info["finished_at"] = datetime.now(timezone.utc).isoformat()
-
-        thread = threading.Thread(target=_runner, daemon=True)
-        thread.start()
+        self._queue.put((task_id, func, args, kwargs))
         return task_id
+
+    def _run_task(self, task_id: str, func: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
+        """Execute a task pulled from the FIFO queue."""
+        with self._lock:
+            task_info = self.tasks.get(task_id)
+            if not task_info or task_info.get("status") == "cancelled":
+                return
+            task_info["status"] = "running"
+            task_info["started_at"] = datetime.now(timezone.utc).isoformat()
+            self._current_task_id = task_id
+            name = task_info["name"]
+
+        log_queue: list[str] = task_info["logs"]
+
+        def append_log(line: str):
+            ts = datetime.now(timezone.utc).strftime("%H:%M:%S")
+            entry = f"[{ts}] {line}"
+            with self._lock:
+                log_queue.append(entry)
+                for sub in list(task_info["log_subscribers"]):
+                    with contextlib.suppress(Exception):
+                        sub(entry)
+
+        append_log(f"=== Started: {name} ===")
+
+        stream_writer = TaskStreamWriter(append_log, sys.stdout)
+        log_handler = TaskLogHandler(append_log)
+
+        root_logger = logging.getLogger()
+        root_logger.addHandler(log_handler)
+
+        try:
+            with contextlib.redirect_stdout(stream_writer), contextlib.redirect_stderr(stream_writer):
+                res = func(*args, **kwargs)
+            task_info["result"] = res
+            task_info["status"] = "completed"
+            append_log(f"=== Successfully completed: {name} ===")
+        except Exception as e:
+            task_info["error"] = str(e)
+            task_info["status"] = "failed"
+            append_log(f"[ERROR] Task failed: {e}")
+            LOGGER.exception("Task %s failed", task_id)
+        finally:
+            stream_writer.flush()
+            root_logger.removeHandler(log_handler)
+            task_info["finished_at"] = datetime.now(timezone.utc).isoformat()
+            with self._lock:
+                if self._current_task_id == task_id:
+                    self._current_task_id = None
+
+    def _get_queue_position_unlocked(self, task_id: str) -> int | None:
+        """Internal helper to calculate queue position when self._lock is already held."""
+        if self._current_task_id == task_id:
+            return 0
+        for idx, item in enumerate(list(self._queue.queue), start=1):
+            if item[0] == task_id:
+                return idx
+        return None
+
+    def get_queue_position(self, task_id: str) -> int | None:
+        """Return 1-based queue position if waiting in queue, 0 if currently running, or None if done/not found."""
+        with self._lock:
+            return self._get_queue_position_unlocked(task_id)
+
+    def get_queue_status(self) -> dict[str, Any]:
+        """Return a snapshot of current queue state."""
+        with self._lock:
+            queued_items = list(self._queue.queue)
+            active_info = None
+            if self._current_task_id and self._current_task_id in self.tasks:
+                t = self.tasks[self._current_task_id]
+                active_info = {
+                    "id": t["id"],
+                    "name": t["name"],
+                    "status": t["status"],
+                    "started_at": t.get("started_at"),
+                }
+            queued_list = []
+            for idx, item in enumerate(queued_items, start=1):
+                tid = item[0]
+                t = self.tasks.get(tid)
+                if t:
+                    queued_list.append({
+                        "id": t["id"],
+                        "name": t["name"],
+                        "status": t["status"],
+                        "queued_at": t.get("queued_at"),
+                        "position": idx,
+                    })
+            return {
+                "active_task": active_info,
+                "queue_length": len(queued_list),
+                "queued_tasks": queued_list,
+                "max_workers": self.max_workers,
+            }
+
+    def clear_queue(self) -> int:
+        """Clear all waiting tasks from the queue."""
+        with self._lock:
+            cleared_count = 0
+            while not self._queue.empty():
+                try:
+                    item = self._queue.get_nowait()
+                    task_id = item[0]
+                    if task_id in self.tasks and self.tasks[task_id]["status"] == "queued":
+                        self.tasks[task_id]["status"] = "cancelled"
+                        self.tasks[task_id]["finished_at"] = datetime.now(timezone.utc).isoformat()
+                        self.tasks[task_id]["logs"].append("[CANCELLED] Task cancelled while waiting in queue.")
+                    cleared_count += 1
+                except (queue.Empty, IndexError):
+                    break
+            return cleared_count
+
+    def stop(self, timeout: float = 2.0) -> None:
+        """Stop background worker threads."""
+        self._stop_event.set()
+        with self._lock:
+            for _ in range(self.max_workers):
+                self._queue.put(None)
+            for w in self._workers:
+                w.join(timeout=timeout)
+            self._workers.clear()
 
     def get_task(self, task_id: str) -> dict[str, Any] | None:
         """Retrieve task information dictionary."""
@@ -182,11 +326,13 @@ class BackgroundTaskManager:
                 "id": info["id"],
                 "name": info["name"],
                 "status": info["status"],
+                "queued_at": info.get("queued_at"),
                 "started_at": info["started_at"],
                 "finished_at": info["finished_at"],
                 "logs": list(info["logs"]),
                 "result": info["result"],
                 "error": info["error"],
+                "queue_position": self._get_queue_position_unlocked(task_id),
             }
 
     def list_tasks(self) -> list[dict[str, Any]]:
@@ -197,10 +343,12 @@ class BackgroundTaskManager:
                     "id": t["id"],
                     "name": t["name"],
                     "status": t["status"],
+                    "queued_at": t.get("queued_at"),
                     "started_at": t["started_at"],
                     "finished_at": t["finished_at"],
                     "error": t["error"],
                     "log_count": len(t["logs"]),
+                    "queue_position": self._get_queue_position_unlocked(t["id"]),
                 }
                 for t in reversed(list(self.tasks.values()))
             ]
@@ -213,8 +361,10 @@ TASK_MANAGER = BackgroundTaskManager()
 # App Factory & Routes
 # ---------------------------------------------------------------------------
 
-def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManager | None = None) -> Flask:
+def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManager | None = None) -> Any:
     """Create and configure the Flask Web Application."""
+    if not HAS_FLASK:
+        raise RuntimeError("Flask and Werkzeug are required to run the web application.")
     app = Flask(
         __name__,
         template_folder=str(Path(__file__).resolve().parent / "templates"),
@@ -433,12 +583,14 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
             "id": info["id"],
             "name": info["name"],
             "status": info["status"],
+            "queued_at": info.get("queued_at"),
             "started_at": info["started_at"],
             "finished_at": info["finished_at"],
             "logs": logs_slice,
             "total_logs": len(info["logs"]),
             "result": info["result"],
             "error": info["error"],
+            "queue_position": info.get("queue_position"),
         })
 
     @app.route("/api/tasks/<task_id>/stream")
@@ -456,19 +608,34 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
                     status = task_info["status"]
                     result = task_info["result"]
                     error = task_info["error"]
+                    q_pos = TASK_MANAGER.get_queue_position(task_id)
 
                 while sent_idx < len(logs):
                     line = logs[sent_idx]
-                    yield f"data: {json.dumps({'line': line, 'index': sent_idx})}\n\n"
+                    yield f"data: {json.dumps({'line': line, 'index': sent_idx, 'status': status, 'queue_position': q_pos})}\n\n"
                     sent_idx += 1
 
-                if status in ("completed", "failed"):
+                if status in ("completed", "failed", "cancelled"):
                     yield f"data: {json.dumps({'done': True, 'status': status, 'result': result, 'error': error})}\n\n"
                     break
+
+                if not logs:
+                    yield f"data: {json.dumps({'status': status, 'queue_position': q_pos})}\n\n"
 
                 time.sleep(0.2)
 
         return Response(event_generator(), mimetype="text/event-stream")
+
+    @app.route("/api/queue")
+    def api_queue():
+        """Retrieve current background task queue status and pending items."""
+        return jsonify(TASK_MANAGER.get_queue_status())
+
+    @app.route("/api/queue/clear", methods=["POST"])
+    def api_queue_clear():
+        """Clear all pending tasks from the queue."""
+        cleared = TASK_MANAGER.clear_queue()
+        return jsonify({"cleared": cleared, "message": f"Cleared {cleared} pending task(s) from queue."})
 
     # -----------------------------------------------------------------------
     # Provisioning Endpoints

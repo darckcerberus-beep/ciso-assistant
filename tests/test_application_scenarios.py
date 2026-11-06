@@ -15,6 +15,7 @@ from pathlib import Path
 import unittest
 import yaml
 
+from classes import utils
 from classes.audits.requirement_assessment import RequirementAssessment
 from classes.controls.applied import AppliedControlDict
 from classes.examples_manager import FRAMEWORK_CATALOG
@@ -26,8 +27,7 @@ class ApplicationRiskSimulator:
 
     def __init__(self, framework_yaml_path="YML/newDPP.yml"):
         self.framework_yaml_path = Path(framework_yaml_path)
-        with open(self.framework_yaml_path, "r", encoding="utf-8") as f:
-            self.framework_data = yaml.safe_load(f)
+        self.framework_data = utils.load_yaml_file(self.framework_yaml_path)
 
         self.req_nodes = {
             rn.get("ref_id"): rn
@@ -548,8 +548,7 @@ class TestFrameworkIntegrityAndConsistency(unittest.TestCase):
         yaml_file = Path(framework_yaml_path)
         test_case.assertTrue(yaml_file.exists(), f"Framework file {yaml_file} does not exist")
 
-        with open(yaml_file, "r", encoding="utf-8") as f:
-            fw_data = yaml.safe_load(f)
+        fw_data = utils.load_yaml_file(yaml_file)
 
         # 1. Required top-level fields
         for field in ["urn", "locale", "ref_id", "name", "objects"]:

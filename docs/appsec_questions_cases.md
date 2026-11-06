@@ -178,16 +178,17 @@ Action - None
 Action - None
 - **Implementation Groups**: `info`, `baseline`
 - **Description**: Classify data handled by the application according to organizational policy.
+- **Policy Reference**: See detailed classification standards and examples in [Data Classification Policy & Guidance](file:///home/python/ciso-assistant/docs/data_classification_policy_guide.md).
 
 ##### Q5. `data_classification:q1`
 - **URN**: `urn:intuitem:risk:req_node:appsec:data_classification:q1`
 - **Question**: What is the maximum classification level handled? (Public, Internal, Confidential, or Secret according to organizational data classification policy)
 - **Type**: `unique_choice`
 - **Choices & Scoring**:
-  - `Public`
-  - `Internal`
-  - `Confidential`
-  - `Secret`
+  - `Public` (Approved for public release; e.g. marketing collateral, press releases, published product descriptions, retail prices, delivery/refund policies)
+  - `Internal` (Workforce operational data; e.g. sales figures, org charts, routine warehouse SOPs, training docs, aggregated volume dashboards)
+  - `Confidential` (Sensitive business/customer data; e.g. customer PII & addresses, order/refund histories, support tickets, supplier purchase prices & margins, unreleased campaign strategies, inventory forecasts)
+  - `Secret` (Critical strategic/regulated assets; e.g. cardholder payment data, bank accounts for refunds, admin/API credentials, bulk PII + purchase history exports, fraud detection evasion rules)
 - **Applicable Cases / Situations**:
   - [x] All applications (Info profiling - Confidentiality)
 
