@@ -640,6 +640,61 @@ Externalized all common, non-framework objects out of `YML/appsec.yml` and `YML/
   - Updated [`classes/examples_manager.py`](file:///home/python/ciso-assistant/classes/examples_manager.py) and [`classes/audits/compliance.py`](file:///home/python/ciso-assistant/classes/audits/compliance.py): Enhanced requirement assessment resolution to match across namespaces by requirement ref_id.
 - **Automated Validation**: All automated unit test suites pass cleanly.
 
+---
+
+## 36. Intra-Node Question Prerequisites & Dependency Gating in AppSec Framework (`appsec_manual.yml` & `appsec.yml`) [COMPLETED]
+
+Implemented intra-node prerequisite gating (`depends_on`) across both `YML/appsec_manual.yml` and `YML/appsec.yml` where follow-up questions logically presuppose prior conditions:
+
+1. **`cots_deployment_hardening:q3` depends on `cots_deployment_hardening:q2 == c1` (Vendor Patch SLA Prerequisites)**:
+   - **Context**: `q2` asks if the COTS software actively receives security patches from the vendor under an active maintenance contract (not EOL/EOS). `q3` asks if published vendor security patches are deployed within formal SLAs (Critical <= 14 days).
+   - **Implementation**: Added `depends_on` in `q3` pointing to `q2:c1` (`urn:intuitem:risk:req_node:<fw_ref>:cots_deployment_hardening:q2:c1`).
+   - **Result**: When COTS software is unsupported or End-of-Life (`q2 == c2`), `q3` is safely hidden/bypassed.
+
+2. **`access_control_and_rbac:q3` depends on `access_control_and_rbac:q1 == c1` (Entitlement Recertification Prerequisites)**:
+   - **Context**: `q1` asks if granular roles and permissions (RBAC/ABAC) are defined. `q3` asks if user entitlements and privileged permissions are periodically reviewed and recertified via formal recertification campaigns.
+   - **Implementation**: Added `depends_on` in `q3` pointing to `q1:c1` (`urn:intuitem:risk:req_node:<fw_ref>:access_control_and_rbac:q1:c1`).
+   - **Result**: If no roles or permissions are defined for the application (`q1 == c2`), formal entitlement recertification campaigns (`q3`) are safely hidden/bypassed.
+
+3. **Multi-Question Nodes Retained Independent**:
+   - `security_event_logging:q2` (sensitive data masking): Retained as independent from `q1` so applications leaking secrets in error/debug logs are held accountable even without structured security event logging.
+   - `stakeholder_identification:q1-q4`: Retained as independent parallel inquiries for ownership and CMDB synchronization.
+   - SaaS contractual controls: Retained as independent parallel clauses per enterprise security schedules.
+
+4. **Test Profiles & Framework Synchronization**:
+   - Updated `test_data/app_appsec_vulnerable_legacy.yml` to omit `access_control_and_rbac:q3` when `q1` is `No` (`c2`).
+   - Added unit test `test_appsec_intra_node_prerequisites` in `tests/test_yaml_integrity.py` asserting `depends_on` presence, intra-node target, and exact choice URNs for both frameworks.
+   - Verified 100% pass across all 268 test cases in `python3 -m unittest discover tests`.
+
+---
+
+## 37. Automated AppSec Framework 6-Example Suite & Live UI Provisioning (`appsec`) [COMPLETED]
+
+Created and provisioned the comprehensive 6-case application example suite for the choice-automated framework [`YML/appsec.yml`](file:///home/romain/ciso-assistant/YML/appsec.yml) (`ref_id: "appsec"`) in fully answered states across CISO Assistant:
+
+1. **Framework Installation & Database Migration**:
+   - Replaced the outdated November 5th database instance of `appsec_manual` with the latest `appsec` framework (`urn:intuitem:risk:framework:appsec`, version 28) containing dynamic choice-level implementation group triggering (`select_implementation_groups`) and intra-node prerequisites.
+   - Successfully loaded into `LoadedLibrary` and `Framework` in CISO Assistant backend.
+
+2. **Created Application Example Profiles (`test_data/`)**:
+   - [`test_data/app_appsec_custom_internal.yml`](file:///home/romain/ciso-assistant/test_data/app_appsec_custom_internal.yml) (Order 22, Case 1: Custom + Internal, 4 IGs: `info`, `baseline`, `custom_app`, `infra`, 21 nodes, 15 scenarios).
+   - [`test_data/app_appsec_custom_internet.yml`](file:///home/romain/ciso-assistant/test_data/app_appsec_custom_internet.yml) (Order 23, Case 2: Custom + Internet-Facing, 5 IGs: `info`, `baseline`, `custom_app`, `infra`, `internet_facing`, 23 nodes, 17 scenarios).
+   - [`test_data/app_appsec_cots_internal.yml`](file:///home/romain/ciso-assistant/test_data/app_appsec_cots_internal.yml) (Order 24, Case 3: Bought COTS + Internal, 4 IGs: `info`, `baseline`, `cots_app`, `infra`, 17 nodes, 13 scenarios).
+   - [`test_data/app_appsec_cots_internet.yml`](file:///home/romain/ciso-assistant/test_data/app_appsec_cots_internet.yml) (Order 25, Case 4: Bought COTS + Internet-Facing, 5 IGs: `info`, `baseline`, `cots_app`, `infra`, `internet_facing`, 19 nodes, 15 scenarios).
+   - [`test_data/app_appsec_saas_certified.yml`](file:///home/romain/ciso-assistant/test_data/app_appsec_saas_certified.yml) (Order 26, Case 5: SaaS + Certified Vendor, 3 IGs: `info`, `baseline`, `saas_app`, 12 nodes, 7 scenarios).
+   - [`test_data/app_appsec_saas_uncertified.yml`](file:///home/romain/ciso-assistant/test_data/app_appsec_saas_uncertified.yml) (Order 27, Case 6: SaaS + Uncertified Vendor, 4 IGs: `info`, `baseline`, `saas_app`, `saas_uncertified`, 26 nodes, 10 scenarios).
+
+3. **Live Instance Provisioning**:
+   - All 6 applications were provisioned via `ExamplesManager.create_example_application()` into domain `Example Applications` at `https://localhost:8443`.
+   - Each application has its Perimeter, Compliance Assessment (with all responses, results, and observations imported), and Risk Assessment (with all risk scenarios, likelihood/impact ratings, and linked controls) completely populated.
+
+4. **Automated Test Validation**:
+   - Added `test_appsec_example_suite_all_6_combinations` in [`tests/test_implementation_groups.py`](file:///home/romain/ciso-assistant/tests/test_implementation_groups.py).
+   - Updated `test_example_applications_definitions` in [`tests/test_examples_manager.py`](file:///home/romain/ciso-assistant/tests/test_examples_manager.py) (27 application profiles).
+   - Dynamic testing in [`tests/test_application_scenarios.py`](file:///home/romain/ciso-assistant/tests/test_application_scenarios.py).
+   - All 275 tests pass cleanly (`Ran 275 tests in 53.360s, OK (skipped=22)`).
+
+
 
 
 

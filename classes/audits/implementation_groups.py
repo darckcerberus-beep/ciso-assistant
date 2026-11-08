@@ -78,22 +78,37 @@ def _check_dep_match(
     """Check if an answer to a question matches an implementation_groups_dependencies entry."""
     dep_q_urn = str(dep.get("question_urn", "")).strip().lower()
     dep_q_ref = str(dep.get("question_ref_id", "")).strip().lower()
+    dep_q_text = str(dep.get("question_text", "")).strip().lower()
 
     q_matched = False
     norm_q = str(q_ident or "").strip().lower()
     norm_req = str(req_ident or "").strip().lower()
 
-    if dep_q_urn and (norm_q == dep_q_urn or norm_q in dep_q_urn or dep_q_urn in norm_q):
-        q_matched = True
-    elif dep_q_ref and (
-        norm_q == dep_q_ref
-        or norm_q.endswith(f":{dep_q_ref}")
-        or norm_q.endswith(dep_q_ref)
-        or (norm_req and f"{norm_req}:{norm_q}".endswith(dep_q_ref))
-    ):
-        q_matched = True
-    elif not q_ident and dep_q_ref and norm_req and (norm_req in dep_q_ref or dep_q_ref in norm_req):
-        q_matched = True
+    if matched_choice:
+        mc_urn = str(matched_choice.get("urn", "")).strip().lower()
+        if dep_q_urn and (mc_urn == dep_q_urn or mc_urn.startswith(f"{dep_q_urn}:")):
+            q_matched = True
+        elif dep_q_ref and (
+            f":{dep_q_ref}:" in mc_urn
+            or mc_urn.endswith(f":{dep_q_ref}")
+            or mc_urn.startswith(f"{dep_q_ref}:")
+        ):
+            q_matched = True
+
+    if not q_matched:
+        if dep_q_urn and (norm_q == dep_q_urn or norm_q in dep_q_urn or dep_q_urn in norm_q):
+            q_matched = True
+        elif dep_q_ref and (
+            norm_q == dep_q_ref
+            or norm_q.endswith(f":{dep_q_ref}")
+            or norm_q.endswith(dep_q_ref)
+            or (norm_req and f"{norm_req}:{norm_q}".endswith(dep_q_ref))
+        ):
+            q_matched = True
+        elif dep_q_text and (norm_q == dep_q_text or norm_q in dep_q_text or dep_q_text in norm_q):
+            q_matched = True
+        elif not q_ident and dep_q_ref and norm_req and (norm_req in dep_q_ref or dep_q_ref in norm_req):
+            q_matched = True
 
     if not q_matched:
         return False
@@ -293,7 +308,17 @@ def determine_implementation_groups_triggered_by_others(
         ig_dependencies = framework_id.json_object.get("implementation_groups_dependencies", []) or []
     else:
         fw_str = str(framework_id).strip()
-        catalog_refs = {"mls", "vendor-due-diligence", "appsec"}
+        catalog_refs = {
+            ident.lower()
+            for cat in utils.discover_framework_catalog()
+            for ident in (
+                cat.get("ref_id", ""),
+                cat.get("name", ""),
+                Path(cat.get("yaml_path", "")).stem,
+                cat.get("yaml_path", ""),
+            )
+            if ident
+        }
         if fw_str.lower() not in catalog_refs and not fw_str.endswith((".yml", ".yaml")):
             framework = utils.get_return(f"/api/frameworks/{fw_str}/")
             if isinstance(framework, dict):
@@ -485,6 +510,7 @@ def determine_implementation_groups_triggered_by_others(
                    (q_ref and str(q.get("ref_id", "")).strip().lower() == str(q_ref).strip().lower()):
                     target_node = node
                     target_q_text = str(q.get("text", "")).strip()
+                    dep_entry["question_text"] = target_q_text
                     break
             if target_node:
                 break

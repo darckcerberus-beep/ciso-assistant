@@ -94,36 +94,10 @@ EXAMPLE_APPLICATIONS = load_example_applications()
 
 
 EXAMPLE_FOLDER_NAME = "Example Applications"
-DEFAULT_FRAMEWORK_NAME = "Multi-level DPP"
-DEFAULT_FRAMEWORK_REF = "mls"
-FRAMEWORK_YAML_PATH = "YML/newDPP.yml"
-
-FRAMEWORK_CATALOG = [
-    {
-        "ref_id": "mls",
-        "name": "Multi-level DPP",
-        "yaml_path": "YML/newDPP.yml",
-        "description": "Multi-level Digital Product Passport cybersecurity assessment",
-    },
-    {
-        "ref_id": "vendor-due-diligence",
-        "name": "Vendor Due Diligence (VDD) - simple",
-        "yaml_path": "YML/vendor-due-diligence.yaml",
-        "description": "Simple framework for rapid due diligence review of vendors",
-    },
-    {
-        "ref_id": "appsec",
-        "name": "Application Security Assessment Framework (AppSec)",
-        "yaml_path": "YML/appsec.yml",
-        "description": "Comprehensive application security evaluation framework based on Multi-level DPP, extending data protection with OWASP ASVS and DevSecOps controls",
-    },
-    {
-        "ref_id": "appsec_manual",
-        "name": "Application Security Assessment Framework (AppSec - Manual IG)",
-        "yaml_path": "YML/appsec_manual.yml",
-        "description": "Comprehensive application security evaluation framework with manual Implementation Group assignment without choice-level triggering",
-    },
-]
+FRAMEWORK_CATALOG = utils.discover_framework_catalog()
+DEFAULT_FRAMEWORK_NAME = FRAMEWORK_CATALOG[0]["name"] if FRAMEWORK_CATALOG else ""
+DEFAULT_FRAMEWORK_REF = FRAMEWORK_CATALOG[0]["ref_id"] if FRAMEWORK_CATALOG else ""
+FRAMEWORK_YAML_PATH = FRAMEWORK_CATALOG[0]["yaml_path"] if FRAMEWORK_CATALOG else ""
 
 
 class ExamplesManager:
@@ -784,7 +758,13 @@ class ExamplesManager:
             pass
 
         # 5. Fallback to default framework YAML file only if no specific non-default candidate was specified
-        if not candidate or candidate.lower() in ("mls", "newdpp", "default"):
+        default_aliases = {
+            "default",
+            DEFAULT_FRAMEWORK_REF.lower(),
+            DEFAULT_FRAMEWORK_NAME.lower(),
+            Path(FRAMEWORK_YAML_PATH).stem.lower() if FRAMEWORK_YAML_PATH else "",
+        } - {""}
+        if not candidate or candidate.lower() in default_aliases:
             default_path = Path(FRAMEWORK_YAML_PATH)
             if default_path.exists():
                 try:

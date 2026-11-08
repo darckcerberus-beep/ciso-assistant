@@ -12,11 +12,12 @@ def _get_yaml_reference_controls():
 
     yaml_controls = {}
     base_dir = Path(__file__).resolve().parent.parent.parent
-    candidate_files = [
-        base_dir / "YML/appsec_objects.yml",
-        base_dir / "YML/newDPP.yml",
-        base_dir / "YML/vendor-due-diligence.yaml",
-    ]
+    yml_dir = base_dir / "YML"
+    candidate_files = (
+        sorted(yml_dir.glob("*.yml")) + sorted(yml_dir.glob("*.yaml"))
+        if yml_dir.exists()
+        else []
+    )
     for yf in candidate_files:
         if not yf.exists():
             continue

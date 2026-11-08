@@ -1407,7 +1407,7 @@ def run_offline_simulation():
         print(f" Profile:     {app['description']}")
         print("=" * 80)
 
-        fw_yaml = app.get("framework_yaml", "YML/newDPP.yml")
+        fw_yaml = app.get("framework_yaml") or utils.get_default_framework_yaml_path()
         if fw_yaml not in simulators:
             simulators[fw_yaml] = ApplicationRiskSimulator(fw_yaml)
         sim = simulators[fw_yaml]
@@ -1735,7 +1735,7 @@ def main():
     parser.add_argument(
         "--framework",
         metavar="FRAMEWORK",
-        help="Framework reference ID or name to use ('mls', 'vendor-due-diligence', or custom).",
+        help="Framework reference ID or name to use (discovered dynamically from YML/ or installed in CISO Assistant).",
     )
     parser.add_argument(
         "--domain",

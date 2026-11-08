@@ -93,7 +93,11 @@ class TestYamlIntegrity(unittest.TestCase):
                 impact_mapping = lib.get_impact_mapping()
                 crit_map = fw["yaml_data"].get("criticality_mapping", {})
                 if crit_map:
-                    total_expected_mappings = sum(len(mappings) for mappings in crit_map.values())
+                    total_expected_mappings = sum(
+                        len(mappings)
+                        for k, mappings in crit_map.items()
+                        if k in ("confidentiality", "integrity", "availability")
+                    )
                     self.assertEqual(len(impact_mapping), total_expected_mappings)
                     for choice_urn in impact_mapping:
                         self.assertTrue(
@@ -318,6 +322,19 @@ class TestYamlIntegrity(unittest.TestCase):
                             all_choice_urns.add(c.get("urn"))
 
                 for dim, mappings in crit_map.items():
+                    if dim == "quantity_multiplier":
+                        for choice_urn, mult in mappings.items():
+                            self.assertIn(
+                                choice_urn,
+                                all_choice_urns,
+                                f"Quantity multiplier mapping references unknown choice URN {choice_urn} in {fw['ref_id']}",
+                            )
+                            self.assertGreater(
+                                mult,
+                                0.0,
+                                f"Quantity multiplier for {choice_urn} must be > 0 in {fw['ref_id']}",
+                            )
+                        continue
                     for choice_urn, level in mappings.items():
                         self.assertIn(
                             choice_urn,
@@ -887,18 +904,19 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertIsNotNone(saas_choice, "SaaS choice missing in hosting:q1")
 
         self.assertIn("custom_app", custom_choice.get("select_implementation_groups", []))
+        self.assertIn("infra", custom_choice.get("select_implementation_groups", []))
         self.assertIn("baseline", custom_choice.get("select_implementation_groups", []))
         self.assertIn("cots_app", bought_choice.get("select_implementation_groups", []))
+        self.assertIn("infra", bought_choice.get("select_implementation_groups", []))
         self.assertIn("baseline", bought_choice.get("select_implementation_groups", []))
         self.assertIn("saas_app", saas_choice.get("select_implementation_groups", []))
+        self.assertNotIn("infra", saas_choice.get("select_implementation_groups", []))
         self.assertNotIn("internet_facing", saas_choice.get("select_implementation_groups", []))
 
         # 2. In Chapter 5 (sdlc_chapter), DevSecOps automation scopes custom_app to CI/CD and COTS/SaaS to vendor guidelines
         sdlc_chapter = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:sdlc_chapter")
         self.assertIsNotNone(sdlc_chapter)
-        self.assertIn("custom_app", sdlc_chapter.get("implementation_groups", []))
-        self.assertIn("cots_app", sdlc_chapter.get("implementation_groups", []))
-        self.assertIn("saas_app", sdlc_chapter.get("implementation_groups", []))
+        self.assertEqual(sdlc_chapter.get("implementation_groups", []), ["custom_app", "cots_app"])
 
         sdlc_reqs = ["automated_security_testing", "supply_chain_and_dependencies", "code_review_and_ci_cd_integrity"]
         for ref_id in sdlc_reqs:
@@ -970,57 +988,62 @@ class TestYamlIntegrity(unittest.TestCase):
                         f"Question {q_urn} in {ref_id} must not have cross-node depends_on",
                     )
 
-        # Universal baseline requirements apply to all applications (Custom, COTS, and SaaS)
-        universal_baseline_reqs = [
+        # Chapter 1 profiling requirements are scoped to info
+        chapter1_reqs = [
             "instructions_splash",
             "info",
             "stakeholder_identification",
             "data_classification",
             "hosting",
-            "baseline_splash",
-            "thank_you_splash",
         ]
-        for ref_id in universal_baseline_reqs:
+        for ref_id in chapter1_reqs:
             node = appsec_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec:{ref_id}")
-            self.assertIsNotNone(node, f"Universal baseline node {ref_id} missing in appsec")
+            self.assertIsNotNone(node, f"Chapter 1 profiling node {ref_id} missing in appsec")
+            self.assertEqual(node.get("implementation_groups"), ["info"], f"{ref_id} must be scoped to ['info']")
+
+        for ref_id in ["baseline_splash", "thank_you_splash"]:
+            node = appsec_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec:{ref_id}")
+            self.assertIsNotNone(node, f"Splash node {ref_id} missing in appsec")
             groups = node.get("implementation_groups", [])
+            self.assertIn("info", groups, f"{ref_id} missing info group")
             self.assertIn("baseline", groups, f"{ref_id} missing baseline group")
 
-        # Universal IAM requirements apply across all three mutually exclusive delivery models (custom_app, cots_app, saas_app)
-        universal_iam_reqs = [
-            "iam_chapter",
-            "authentication_and_mfa",
-            "access_control_and_rbac",
-        ]
-        for ref_id in universal_iam_reqs:
+        # Universal IAM requirements are grouped under the baseline track
+        iam_ch = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:iam_chapter")
+        self.assertIsNotNone(iam_ch)
+        self.assertEqual(iam_ch.get("implementation_groups"), ["baseline", "custom_app"])
+
+        for ref_id in ["authentication_and_mfa", "access_control_and_rbac"]:
             node = appsec_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec:{ref_id}")
             self.assertIsNotNone(node, f"Universal IAM node {ref_id} missing in appsec")
-            groups = node.get("implementation_groups", [])
-            self.assertIn("custom_app", groups, f"{ref_id} missing custom_app group")
-            self.assertIn("cots_app", groups, f"{ref_id} missing cots_app group")
-            self.assertIn("saas_app", groups, f"{ref_id} missing saas_app group")
-            self.assertNotIn("baseline", groups, f"{ref_id} must not include baseline group")
+            self.assertEqual(node.get("implementation_groups"), ["baseline"], f"{ref_id} must be scoped to ['baseline']")
 
-        # Self-hosted infrastructure requirements apply to custom_app and cots_app, but NOT to baseline or saas_app
+        # Self-hosted infrastructure requirements apply strictly to infra
         self_hosted_infra_reqs = [
             "secrets_management",
+            "data_in_transit",
+            "data_at_rest",
             "security_event_logging",
             "centralized_monitoring_and_alerting",
             "backup_and_disaster_recovery",
+            "os_patching",
         ]
         for ref_id in self_hosted_infra_reqs:
             node = appsec_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec:{ref_id}")
             self.assertIsNotNone(node, f"Shared hosting node {ref_id} missing in appsec")
-            groups = node.get("implementation_groups", [])
-            self.assertIn("custom_app", groups, f"{ref_id} missing custom_app group")
-            self.assertIn("cots_app", groups, f"{ref_id} missing cots_app group")
-            self.assertNotIn("baseline", groups, f"{ref_id} must not include baseline group")
-            self.assertNotIn("saas_app", groups, f"{ref_id} must not include saas_app group")
+            self.assertEqual(node.get("implementation_groups"), ["infra"], f"{ref_id} must be scoped to ['infra']")
 
-        # Verify sensitive data requirements are scoped to self-hosted delivery models (custom_app, cots_app)
+        # Verify os_patching exists in appsec, is scoped strictly to infra, and has 3 questions
+        os_patch_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:os_patching")
+        self.assertIsNotNone(os_patch_node, "os_patching node missing in appsec")
+        self.assertEqual(os_patch_node.get("parent_urn"), "urn:intuitem:risk:req_node:appsec:resilience_chapter")
+        self.assertEqual(os_patch_node.get("implementation_groups"), ["infra"])
+        self.assertEqual(len(os_patch_node.get("questions", {})), 3, "os_patching must have 3 questions (q1, q2, q3)")
+        self.assertIn("urn:intuitem:risk:scenario:appsec:os_and_host_unpatched_vulnerability", appsec_fw["scenarios"])
+
+        # Verify sensitive data lifecycle requirements are scoped to self-hosted delivery models (custom_app, cots_app)
         # confidential_app and secret_app were removed to prevent duplicate questions for SaaS applications
         sensitive_data_reqs = [
-            "data_at_rest",
             "non_prod_data",
             "data_destruction",
         ]
@@ -1067,12 +1090,11 @@ class TestYamlIntegrity(unittest.TestCase):
                 self.assertNotIn("baseline", groups, f"{ref_id} must not include baseline group in appsec_manual")
                 self.assertNotIn("saas_app", groups, f"{ref_id} must not include saas_app group in appsec_manual")
 
-        # Verify parent crypto_chapter excludes saas_app and baseline
+        # Verify parent crypto_chapter is scoped to infra and excludes saas_app and baseline
         crypto_chapter = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:crypto_chapter")
         self.assertIsNotNone(crypto_chapter, "Chapter crypto_chapter missing in appsec")
         c_groups = crypto_chapter.get("implementation_groups", [])
-        self.assertIn("custom_app", c_groups)
-        self.assertIn("cots_app", c_groups)
+        self.assertEqual(c_groups, ["infra"])
         self.assertNotIn("baseline", c_groups)
         self.assertNotIn("saas_app", c_groups, "Chapter crypto_chapter must not include saas_app group")
 
@@ -1156,13 +1178,13 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertEqual(de_node.get("parent_urn"), "urn:intuitem:risk:req_node:appsec:data_lifecycle_chapter")
         self.assertEqual(de_node.get("implementation_groups"), ["custom_app", "cots_app"])
 
-        # Self-hosted evaluates third_party_data_leakage and unencrypted_data_in_transit via data_exchange
+        # Self-hosted evaluates third_party_data_leakage via data_exchange and unencrypted_data_in_transit via data_in_transit
         self.assertIn("third_party_data_leakage", scenarios)
         self.assertEqual(scenarios["third_party_data_leakage"].get("likelihood"), "urn:intuitem:risk:req_node:appsec:data_exchange")
         self.assertIn("unencrypted_data_in_transit", scenarios)
-        self.assertEqual(scenarios["unencrypted_data_in_transit"].get("likelihood"), "urn:intuitem:risk:req_node:appsec:data_exchange")
+        self.assertEqual(scenarios["unencrypted_data_in_transit"].get("likelihood"), "urn:intuitem:risk:req_node:appsec:data_in_transit")
         self.assertIn("saas_provider_data_leakage", scenarios)
-        self.assertEqual(scenarios["saas_provider_data_leakage"].get("likelihood"), "urn:intuitem:risk:req_node:appsec:saas_contract")
+        self.assertEqual(scenarios["saas_provider_data_leakage"].get("likelihood"), "urn:intuitem:risk:req_node:appsec:saas_contract_compliance")
 
     def test_appsec_penetration_testing_saas_contractual_management(self):
         """Verify that penetration testing is split between self-hosted and SaaS with contractual management."""
@@ -1277,9 +1299,9 @@ class TestYamlIntegrity(unittest.TestCase):
         avail_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:availability_classification")
         self.assertIsNone(avail_node, "availability_classification must be removed to focus on confidentiality only")
 
-        # All 20 risk scenarios route impact to data_classification
+        # All 25 risk scenarios route impact to data_classification
         scenarios = {s["ref_id"]: s for s in appsec_fw["scenarios"].values()}
-        self.assertEqual(len(scenarios), 20)
+        self.assertEqual(len(scenarios), 25)
         for sc_ref, sc in scenarios.items():
             self.assertEqual(
                 sc.get("impact"),
@@ -1314,7 +1336,7 @@ class TestYamlIntegrity(unittest.TestCase):
 
         crit_map = appsec_fw["yaml_data"].get("criticality_mapping", {})
         conf_map = crit_map.get("confidentiality", {})
-        self.assertEqual(len(conf_map), 4, "Expected 4 tiers in confidentiality criticality mapping")
+        self.assertEqual(len(conf_map), 8, "Expected 8 choices (q1 and q2) in confidentiality criticality mapping")
         self.assertEqual(set(conf_map.values()), {0, 1, 2, 3})
 
     def test_appsec_file_upload_controls(self):
@@ -1607,6 +1629,162 @@ class TestYamlIntegrity(unittest.TestCase):
             # Verify loaded objects contain all merged objects
             for key in ["risk_matrix", "threats", "vulnerabilities", "reference_controls", "risk_scenarios"]:
                 self.assertIn(key, fw["objects"], f"{key} missing in merged objects of {fw_ref}")
+
+    def test_appsec_intra_node_prerequisites(self):
+        """Verify intra-node question prerequisite dependencies in appsec and appsec_manual."""
+        for fw_ref in ["appsec", "appsec_manual"]:
+            fw = next((f for f in self.frameworks if f["ref_id"] == fw_ref), None)
+            self.assertIsNotNone(fw, f"{fw_ref} framework missing")
+
+            # 1. cots_deployment_hardening: q3 depends on q2 == c1 (active vendor patches / not EOL)
+            cots_node = fw["req_nodes"].get(f"urn:intuitem:risk:req_node:{fw_ref}:cots_deployment_hardening")
+            self.assertIsNotNone(cots_node, f"cots_deployment_hardening missing in {fw_ref}")
+            cots_qs = cots_node.get("questions", {})
+            q2_cots = cots_qs.get(f"urn:intuitem:risk:req_node:{fw_ref}:cots_deployment_hardening:q2")
+            q3_cots = cots_qs.get(f"urn:intuitem:risk:req_node:{fw_ref}:cots_deployment_hardening:q3")
+            self.assertIsNotNone(q2_cots, f"q2 missing in cots_deployment_hardening in {fw_ref}")
+            self.assertIsNotNone(q3_cots, f"q3 missing in cots_deployment_hardening in {fw_ref}")
+
+            dep_cots = q3_cots.get("depends_on")
+            self.assertIsNotNone(dep_cots, f"q3 in cots_deployment_hardening must have depends_on in {fw_ref}")
+            self.assertEqual(
+                dep_cots.get("question"),
+                f"urn:intuitem:risk:req_node:{fw_ref}:cots_deployment_hardening:q2",
+                f"cots_deployment_hardening:q3 must depend on q2 in {fw_ref}",
+            )
+            self.assertEqual(
+                dep_cots.get("answers"),
+                [f"urn:intuitem:risk:req_node:{fw_ref}:cots_deployment_hardening:q2:c1"],
+                f"cots_deployment_hardening:q3 must depend on choice c1 in {fw_ref}",
+            )
+
+            # 2. access_control_and_rbac: q3 depends on q1 == c1 (roles and permissions defined)
+            rbac_node = fw["req_nodes"].get(f"urn:intuitem:risk:req_node:{fw_ref}:access_control_and_rbac")
+            self.assertIsNotNone(rbac_node, f"access_control_and_rbac missing in {fw_ref}")
+            rbac_qs = rbac_node.get("questions", {})
+            q1_rbac = rbac_qs.get(f"urn:intuitem:risk:req_node:{fw_ref}:access_control_and_rbac:q1")
+            q3_rbac = rbac_qs.get(f"urn:intuitem:risk:req_node:{fw_ref}:access_control_and_rbac:q3")
+            self.assertIsNotNone(q1_rbac, f"q1 missing in access_control_and_rbac in {fw_ref}")
+            self.assertIsNotNone(q3_rbac, f"q3 missing in access_control_and_rbac in {fw_ref}")
+
+            dep_rbac = q3_rbac.get("depends_on")
+            self.assertIsNotNone(dep_rbac, f"q3 in access_control_and_rbac must have depends_on in {fw_ref}")
+            self.assertEqual(
+                dep_rbac.get("question"),
+                f"urn:intuitem:risk:req_node:{fw_ref}:access_control_and_rbac:q1",
+                f"access_control_and_rbac:q3 must depend on q1 in {fw_ref}",
+            )
+            self.assertEqual(
+                dep_rbac.get("answers"),
+                [f"urn:intuitem:risk:req_node:{fw_ref}:access_control_and_rbac:q1:c1"],
+                f"access_control_and_rbac:q3 must depend on choice c1 in {fw_ref}",
+            )
+
+    def test_appsec_gdpr_profiling_and_saas_questions(self):
+        """Verify GDPR data type and volume questions in info chapter and GDPR compliance question in saas_chapter."""
+        for fw_ref in ["appsec", "appsec_manual"]:
+            fw = next((f for f in self.frameworks if f["ref_id"] == fw_ref), None)
+            self.assertIsNotNone(fw, f"{fw_ref} framework missing")
+
+            # 1. Verify data_classification has q1 (classification), q2 (GDPR data category), q3 (GDPR data volume)
+            data_class_node = fw["req_nodes"].get(f"urn:intuitem:risk:req_node:{fw_ref}:data_classification")
+            self.assertIsNotNone(data_class_node, f"data_classification missing in {fw_ref}")
+            dc_questions = data_class_node.get("questions", {})
+            self.assertEqual(len(dc_questions), 3, f"data_classification must have 3 questions in {fw_ref}")
+
+            q1_dc = dc_questions.get(f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q1")
+            q2_dc = dc_questions.get(f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q2")
+            q3_dc = dc_questions.get(f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q3")
+            self.assertIsNotNone(q1_dc, f"q1 missing in data_classification in {fw_ref}")
+            self.assertIsNotNone(q2_dc, f"q2 missing in data_classification in {fw_ref}")
+            self.assertIsNotNone(q3_dc, f"q3 missing in data_classification in {fw_ref}")
+
+            self.assertIn("classification", q1_dc.get("text", "").lower())
+            self.assertIn("gdpr", q2_dc.get("text", "").lower())
+            self.assertIn("personal data", q2_dc.get("text", "").lower())
+            self.assertIn("volume", q3_dc.get("text", "").lower())
+
+            # Verify q2 choices: green (no personal data), yellow (contact data of employees), orange (contact and order details about customers), red (HR and financial details about employees and customer payment data)
+            q2_choices = {c["urn"]: c for c in q2_dc.get("choices", [])}
+            self.assertEqual(len(q2_choices), 4)
+            c1_q2 = q2_choices[f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q2:c1"]
+            c2_q2 = q2_choices[f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q2:c2"]
+            c3_q2 = q2_choices[f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q2:c3"]
+            c4_q2 = q2_choices[f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q2:c4"]
+
+            self.assertEqual(c1_q2["value"], "No personal data")
+            self.assertEqual(c1_q2["color"], "#33a745")
+            self.assertEqual(c2_q2["value"], "Contact data of employees")
+            self.assertEqual(c2_q2["color"], "#ffc107")
+            self.assertEqual(c3_q2["value"], "Contact and order details about customers")
+            self.assertEqual(c3_q2["color"], "#fd7e14")
+            self.assertEqual(c4_q2["value"], "HR and financial details about employees and customer payment data")
+            self.assertEqual(c4_q2["color"], "#dc3545")
+
+            # Verify q3 choices have impact multipliers (Low: 1.0, Medium: 1.0, High: 1.5)
+            q3_choices = {c["urn"]: c for c in q3_dc.get("choices", [])}
+            self.assertEqual(len(q3_choices), 3)
+            c1_q3 = q3_choices[f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q3:c1"]
+            c2_q3 = q3_choices[f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q3:c2"]
+            c3_q3 = q3_choices[f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q3:c3"]
+            self.assertEqual(c1_q3.get("multiplier"), 1.0)
+            self.assertEqual(c2_q3.get("multiplier"), 1.0)
+            self.assertEqual(c3_q3.get("multiplier"), 1.5)
+
+            # Verify criticality_mapping has quantity_multiplier
+            raw_fw = utils.load_yaml_file(f"YML/{fw_ref}.yml")
+            crit_map = raw_fw.get("criticality_mapping", {})
+            self.assertIn("quantity_multiplier", crit_map)
+            qty_map = crit_map["quantity_multiplier"]
+            self.assertEqual(qty_map.get(f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q3:c1"), 1.0)
+            self.assertEqual(qty_map.get(f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q3:c2"), 1.0)
+            self.assertEqual(qty_map.get(f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q3:c3"), 1.5)
+
+            # q3 depends on q2 being employees (c2), details about employees/customers (c3), or sensitive data (c4)
+            dep_q3 = q3_dc.get("depends_on")
+            self.assertIsNotNone(dep_q3, f"data_classification:q3 must depend on q2 in {fw_ref}")
+            self.assertEqual(dep_q3.get("question"), f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q2")
+            self.assertEqual(
+                sorted(dep_q3.get("answers", [])),
+                sorted([
+                    f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q2:c2",
+                    f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q2:c3",
+                    f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q2:c4",
+                ]),
+            )
+
+            # 2. Verify saas_data_hosting_and_residency has 5 detailed GDPR questions (EU hosting, DPA Art 28, sub-processors, breach SLA, DSR assistance)
+            saas_res_node = fw["req_nodes"].get(f"urn:intuitem:risk:req_node:{fw_ref}:saas_data_hosting_and_residency")
+            self.assertIsNotNone(saas_res_node, f"saas_data_hosting_and_residency missing in {fw_ref}")
+            saas_res_questions = saas_res_node.get("questions", {})
+            self.assertEqual(len(saas_res_questions), 5, f"saas_data_hosting_and_residency must have 5 questions in {fw_ref}")
+
+            q1_res = saas_res_questions.get(f"urn:intuitem:risk:req_node:{fw_ref}:saas_data_hosting_and_residency:q1")
+            q2_res = saas_res_questions.get(f"urn:intuitem:risk:req_node:{fw_ref}:saas_data_hosting_and_residency:q2")
+            q3_res = saas_res_questions.get(f"urn:intuitem:risk:req_node:{fw_ref}:saas_data_hosting_and_residency:q3")
+            q4_res = saas_res_questions.get(f"urn:intuitem:risk:req_node:{fw_ref}:saas_data_hosting_and_residency:q4")
+            q5_res = saas_res_questions.get(f"urn:intuitem:risk:req_node:{fw_ref}:saas_data_hosting_and_residency:q5")
+
+            self.assertIsNotNone(q1_res, f"q1 missing in saas_data_hosting_and_residency in {fw_ref}")
+            self.assertIsNotNone(q2_res, f"q2 missing in saas_data_hosting_and_residency in {fw_ref}")
+            self.assertIsNotNone(q3_res, f"q3 missing in saas_data_hosting_and_residency in {fw_ref}")
+            self.assertIsNotNone(q4_res, f"q4 missing in saas_data_hosting_and_residency in {fw_ref}")
+            self.assertIsNotNone(q5_res, f"q5 missing in saas_data_hosting_and_residency in {fw_ref}")
+
+            self.assertIn("european union", q1_res.get("text", "").lower())
+            self.assertIn("article 28", q2_res.get("text", "").lower())
+            self.assertIn("sub-processor", q3_res.get("text", "").lower())
+            self.assertIn("breach", q4_res.get("text", "").lower())
+            self.assertIn("data subject rights", q5_res.get("text", "").lower())
+
+            # Scoring: 20 pts each for Yes (total 100 pts), 0 for No
+            for idx, q_res in enumerate([q1_res, q2_res, q3_res, q4_res, q5_res], 1):
+                q_yes = next(c for c in q_res["choices"] if c["value"] == "Yes")
+                q_no = next(c for c in q_res["choices"] if c["value"] == "No")
+                self.assertEqual(q_yes.get("add_score"), 20, f"q{idx} Yes must award 20 pts")
+                self.assertTrue(q_yes.get("compute_result"))
+                self.assertEqual(q_no.get("add_score"), 0, f"q{idx} No must award 0 pts")
+                self.assertFalse(q_no.get("compute_result"))
 
 
 if __name__ == "__main__":

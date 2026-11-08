@@ -1,0 +1,413 @@
+application:
+  order: 25
+  id: app_appsec_cots_internet
+  name: App-AppSec-COTS-Internet
+  label: 'App-AppSec-COTS-Internet (Case 4: COTS + Internet-Facing / Confidential
+    / 100% Compliant)'
+  description: Internet-facing customer support portal built on COTS software package;
+    demonstrates Case 4 conditional IG scoping (info, baseline, cots_app, infra, internet_facing).
+  classification: Confidential
+  hosting: COTS Web
+  compliance_target: 100%
+  expected_risk: Low
+  framework_ref: appsec
+  framework_name: Application Security Assessment Framework (AppSec)
+  framework_yaml: YML/appsec.yml
+  user:
+    email: olivia.web@example-cots.public
+    first_name: Olivia
+    last_name: Support
+  tprm:
+    criticality: 3
+    maturity: 4
+    trust: 4
+    conclusion: ok
+  expected_implementation_groups:
+  - info
+  - baseline
+  - cots_app
+  - infra
+  - internet_facing
+answers:
+- requirement: stakeholder_identification
+  question: Is there a designated business contact? (Designated business owner or
+    product sponsor accountable for business processes, functionality, and risk acceptance)
+  answer: 'Yes'
+  result: compliant
+  observation: Customer Support Director designated as business application sponsor.
+- requirement: stakeholder_identification
+  question: Is there a designated IT contact? (Technical lead or engineer responsible
+    for maintenance, infrastructure, deployment, and operational support)
+  answer: 'Yes'
+  result: compliant
+  observation: Lead Infrastructure Architect designated as technical operational lead.
+- requirement: stakeholder_identification
+  question: Is there a designated data owner? (Data steward or governance officer
+    responsible for information classification, access authorization, and regulatory
+    compliance)
+  answer: 'Yes'
+  result: compliant
+  observation: Data Protection Officer designated as governance steward.
+- requirement: stakeholder_identification
+  question: Is the information about stakeholders updated in LeanIX / CMDB? (Stakeholder
+    assignments registered and kept current in the enterprise inventory or service
+    catalog)
+  answer: 'Yes'
+  result: compliant
+  observation: Documented in corporate service registry and CMDB.
+- requirement: data_classification
+  question: What is the maximum classification level handled? (Public, Internal, Confidential,
+    or Secret according to organizational data classification policy)
+  answer: Confidential
+  result: compliant
+  observation: Confidential customer support tickets, purchase records, and RMA requests.
+- requirement: data_classification
+  question: What category of personal data is processed by the application under GDPR?
+  answer: Contact and order details about customers
+  result: compliant
+  observation: Processes customer account profiles, contact records, and support ticket histories.
+- requirement: data_classification
+  question: What is the volume of data subjects (individuals) whose personal data is processed?
+  answer: Medium volume (1,000 to 100,000 individuals / data subjects)
+  result: compliant
+  observation: Customer portal servicing approximately 25,000 external corporate client data subjects.
+- requirement: hosting
+  question: What is the delivery and hosting model of the application?
+  answer: Bought software deployed by my teams (COTS / Vendor package)
+  result: compliant
+  observation: Bought COTS customer support portal deployed on company cloud infrastructure.
+- requirement: hosting
+  question: What is the network exposure of the application?
+  answer: Internet-facing (Public Web / Mobile API)
+  result: compliant
+  observation: Internet-facing web portal accessible by external corporate clients.
+- requirement: authentication_and_mfa
+  question: How do users authenticate to the application?
+  answer: Direct / Local application authentication (Username & Password)
+  result: compliant
+  observation: Direct customer portal authentication with strict password hashing.
+- requirement: authentication_and_mfa
+  question: If direct authentication is used, are strong password policies and brute-force
+    lockout protections implemented?
+  answer: 'Yes'
+  result: compliant
+  observation: Strong password policy, account lockout after 5 failed attempts.
+- requirement: authentication_and_mfa
+  question: If direct authentication is used, is Multi-Factor Authentication (MFA)
+    enforced for all administrative and privileged access?
+  answer: 'Yes'
+  result: compliant
+  observation: Mandatory MFA for customer portal administrators and privileged support
+    staff.
+- requirement: access_control_and_rbac
+  question: Have you defined roles and permissions for the application? (Is access
+    controlled via granular roles (RBAC/ABAC) enforcing least privilege across all
+    business functions and APIs?)
+  answer: 'Yes'
+  result: compliant
+  observation: Multi-tenant RBAC restricting customer access strictly to their own
+    tickets.
+- requirement: access_control_and_rbac
+  question: Is the application integrated with the enterprise Identity Governance
+    and Administration (IGA) solution (such as SailPoint) for centralized user lifecycle,
+    role management, and automated provisioning/deprovisioning?
+  answer: 'Yes'
+  result: compliant
+  observation: Staff support accounts provisioned via central IGA directory integration.
+- requirement: access_control_and_rbac
+  question: Are user entitlements and privileged permissions reviewed and recertified
+    on a periodic basis via formal recertification campaigns (e.g., SailPoint certification
+    campaigns at least annually for standard users, biannually for privileged accounts)?
+  answer: 'Yes'
+  result: compliant
+  observation: Quarterly recertification of internal support agent permissions.
+- requirement: vendor_secure_development
+  question: Does the third-party COTS software vendor adhere to recognized secure
+    coding standards and software development security guidelines (e.g., OWASP, ISO/IEC
+    27034, NIST SSDF)?
+  answer: 'Yes'
+  result: compliant
+  observation: COTS package vendor holds ISO 27001 and delivers patched maintenance
+    releases.
+- requirement: cots_deployment_hardening
+  question: Are default vendor credentials changed, sample modules removed, and configuration
+    hardened against vendor or CIS benchmarks?
+  answer: 'Yes'
+  result: compliant
+  observation: Hardened according to vendor security guidelines and CIS Apache/Linux
+    benchmarks.
+- requirement: cots_deployment_hardening
+  question: Does the COTS software actively receive security patches and vulnerability
+    updates from the vendor (under an active maintenance/support contract, not End-of-Life
+    / EOL or End-of-Support / EOS)?
+  answer: 'Yes'
+  result: compliant
+  observation: Supported tier under active vendor maintenance contract through 2028.
+- requirement: cots_deployment_hardening
+  question: Are published vendor security patches, hotfixes, and critical vulnerability
+    updates deployed within formal SLAs (Critical <= 14 days)?
+  answer: 'Yes'
+  result: compliant
+  observation: Vendor security rollups and emergency CVE hotfixes deployed <= 14 days.
+- requirement: data_exchange
+  question: 'Does the application exchange data externally? (e.g., B2B transfers,
+    automated API integrations, webhooks, or network communications with external
+    partners, third-party vendors, or external services; Note: this excludes B2C interactions,
+    as customers do not receive data the same way B2B partners do)'
+  answer: 'Yes'
+  result: compliant
+  observation: Exchanges ticket data with customer Jira systems via outbound webhooks.
+- requirement: data_exchange
+  question: Is there a data exchange contract with the appropriate confidentiality
+    clauses? (e.g., formal Data Processing Agreement / DPA, Data Transfer Agreement
+    / DTA, or NDA)
+  answer: 'Yes'
+  result: compliant
+  observation: Covered under Master Customer Agreements and standard DPAs.
+- requirement: non_prod_data
+  question: Are real production data records, live customer databases, or personal
+    data utilized in non-production environments? (e.g., development/staging environments
+    or QA databases)
+  answer: No - Synthetic, generated, or mock test data is used exclusively
+  result: compliant
+  observation: Staging environment populated exclusively with generated synthetic
+    tickets.
+- requirement: data_destruction
+  question: Is there a data destruction process for this application? (e.g., documented
+    data retention schedule and end-of-life purging procedures for self-hosted systems)
+  answer: 'Yes'
+  result: compliant
+  observation: Customer data purged 90 days following contract termination or GDPR
+    erasure request.
+- requirement: data_destruction
+  question: Is the process compliant with the policy (responsibilities, methods, reporting)?
+    (e.g., defined stakeholder roles, approved cryptographic erasure or disposal methods,
+    and verification certificates)
+  answer: 'Yes'
+  result: compliant
+  observation: Automated purging reports and cryptographic certificate of erasure
+    provided.
+- requirement: secrets_management
+  question: Are application credentials, API keys, and cryptographic secrets stored
+    exclusively in a dedicated secrets manager rather than in code or configuration
+    files?
+  answer: 'Yes'
+  result: compliant
+  observation: Credentials stored in Azure Key Vault and injected via managed identities.
+- requirement: data_in_transit
+  question: 'Is data encrypted during transit across external and internal network
+    boundaries? (Specify protocols, algorithms and methods: e.g., TLS 1.2 / TLS 1.3
+    with AES-GCM or ChaCha20, HTTPS with HSTS, mTLS for service APIs, SSHv2, or IPsec)'
+  answer: 'Yes'
+  result: compliant
+  observation: TLS 1.3 enforced by Azure Application Gateway with strict cipher suites.
+- requirement: data_at_rest
+  question: 'Is data encrypted at rest? (Specify algorithms and key management: e.g.,
+    AES-256 / AES-GCM across databases, object storage, file systems, disk volumes,
+    and backups with centralized KMS, HSM, or TDE)'
+  answer: 'Yes'
+  result: compliant
+  observation: Azure SQL TDE and Azure Storage SSE with customer-managed keys.
+- requirement: security_event_logging
+  question: Does the application log key security events (failed logins, privilege
+    escalation, administrative changes, access to sensitive assets)?
+  answer: 'Yes'
+  result: compliant
+  observation: Audit logging enabled for user sign-in, permission elevation, and ticket
+    exports.
+- requirement: security_event_logging
+  question: Are sensitive data fields (passwords, payment cards, tokens, PII) systematically
+    sanitized/masked from log outputs?
+  answer: 'Yes'
+  result: compliant
+  observation: Logging pipeline scrubs passwords and credit card patterns.
+- requirement: centralized_monitoring_and_alerting
+  question: Are application logs forwarded in near-real-time to a central SIEM/SOC
+    platform with alerting rules for suspicious activities?
+  answer: 'Yes'
+  result: compliant
+  observation: Azure Sentinel SIEM with automated incident trigger for anomalous login
+    bursts.
+- requirement: backup_and_disaster_recovery
+  question: Are automated and encrypted backups maintained for application state and
+    databases, with restoration tests performed at least annually?
+  answer: 'Yes'
+  result: compliant
+  observation: Automated geo-redundant backups with semi-annual restore verification
+    drills.
+- requirement: os_patching
+  question: Are operating system (OS) security patches, kernel updates, and host/container
+    security updates applied automatically within formal SLAs? (e.g. Critical <= 14
+    days, High <= 30 days)
+  answer: No - OS patching is not automatic
+  result: compliant
+  observation: Monthly scheduled patch cycles managed through Azure Update Manager.
+- requirement: os_patching
+  question: If OS patching is not automatic, is there a formal patching schedule compliant
+    with requirements? (e.g. documented recurring maintenance windows adhering to
+    Critical <= 14 days, High <= 30 days)
+  answer: 'Yes'
+  result: compliant
+  observation: Formal patching schedule complies with Critical <= 14 days and High
+    <= 30 days.
+- requirement: os_patching
+  question: Does the application and infrastructure architecture allow no-downtime
+    patching from a business perspective? (e.g., high-availability clusters, rolling
+    updates, or blue-green deployments preventing business downtime during maintenance)
+  answer: 'Yes'
+  result: compliant
+  observation: Load-balanced VM scaleset enables rolling updates without customer
+    impact.
+- requirement: api_security_and_rate_limiting
+  question: Are exposed web and API endpoints protected against abusive traffic via
+    an edge Web Application Firewall (WAF, e.g., Cloudflare, AWS WAF), bot protection,
+    and automated rate limiting / throttling controls?
+  answer: 'Yes'
+  result: compliant
+  observation: Azure Front Door WAF with OWASP CRS rule set and IP throttling.
+- requirement: penetration_testing_and_vulnerability_management
+  question: Is independent penetration testing conducted on the application and underlying
+    infrastructure at least annually by qualified internal or external penetration
+    testers, or is the application covered by an active bug bounty / vulnerability
+    disclosure program (VDP)?
+  answer: 'Yes'
+  result: compliant
+  observation: Annual third-party blackbox and greybox penetration test conducted.
+expected_evaluation:
+  impact_level: 3
+  confidentiality_impact: 3
+  availability_impact: 3
+  integrity_impact: 3
+  scenario_count: 15
+  excluded_scenarios:
+  - Application compromise via injection attack
+  - Application or storage compromise via unrestricted file upload
+  - Exploitation of unpatched SaaS vulnerability
+  - Reliance on unverified SaaS security posture
+  - SaaS customer data exposure due to missing encryption or NDA safeguards
+  - SaaS provider data leakage
+  - SaaS tenant isolation breach and cross-border leakage
+  - SaaS tenant takeover via unprotected administrative console
+  - SaaS vendor privilege abuse and sub-processor leakage
+  - Supply chain compromise via vulnerable dependency
+expected_risk_scenarios:
+- scenario: API abuse and denial of service
+  likelihood_requirement: api_security_and_rate_limiting
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Account takeover via weak authentication
+  likelihood_requirement: authentication_and_mfa
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Catastrophic data loss due to unverified backups
+  likelihood_requirement: backup_and_disaster_recovery
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Compromise via unhardened or End-of-Life (EOL) COTS deployment
+  likelihood_requirement: cots_deployment_hardening
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Credential leakage via hardcoded secrets
+  likelihood_requirement: secrets_management
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Disclosure of production data in non-production environments
+  likelihood_requirement: non_prod_data
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Excessive retention of sensitive data
+  likelihood_requirement: data_destruction
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Exploitation of unpatched vulnerability
+  likelihood_requirement: penetration_testing_and_vulnerability_management
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Exposure of unencrypted data at rest
+  likelihood_requirement: data_at_rest
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Exposure of unencrypted data in transit
+  likelihood_requirement: data_in_transit
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Host or OS compromise via unpatched system vulnerabilities
+  likelihood_requirement: os_patching
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Missing application stakeholders
+  likelihood_requirement: stakeholder_identification
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Third-party data leakage
+  likelihood_requirement: data_exchange
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Unauthorized data access via broken authorization
+  likelihood_requirement: access_control_and_rbac
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Undetected breach due to missing security logging
+  likelihood_requirement: centralized_monitoring_and_alerting
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3

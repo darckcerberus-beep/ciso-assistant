@@ -243,7 +243,7 @@ class AppliedControlDict:
             )
 
         if framework_file is None:
-            framework_file = FrameworkFile("YML/newDPP.yml")
+            framework_file = FrameworkFile(utils.get_default_framework_yaml_path())
 
         scenario_names = {
             scenario.get("name", "")
@@ -455,7 +455,7 @@ class AppliedControlDict:
         # Prefetch once to avoid repetitive API calls inside the loop
         risk_assessments = utils.get_all_results("/api/risk-assessments/", force_reload=True)
         risk_scenarios = utils.get_all_results("/api/risk-scenarios/", force_reload=True)
-        framework_file = FrameworkFile("YML/newDPP.yml")
+        framework_file = FrameworkFile(utils.get_default_framework_yaml_path())
 
         # Determine which compliance assessments have at least one answered requirement assessment
         answered_ca_ids = set()

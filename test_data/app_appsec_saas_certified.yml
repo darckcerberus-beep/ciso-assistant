@@ -1,0 +1,298 @@
+application:
+  order: 26
+  id: app_appsec_saas_certified
+  name: App-AppSec-SaaS-Certified
+  label: 'App-AppSec-SaaS-Certified (Case 5: Certified SaaS / Confidential / 100%
+    Compliant)'
+  description: Certified (ISO 27001 & SOC 2) enterprise HR SaaS platform; demonstrates
+    Case 5 conditional IG scoping (info, baseline, saas_app).
+  classification: Confidential
+  hosting: SaaS
+  compliance_target: 100%
+  expected_risk: Low
+  framework_ref: appsec
+  framework_name: Application Security Assessment Framework (AppSec)
+  framework_yaml: YML/appsec.yml
+  user:
+    email: claire.saas@example-saascert.cloud
+    first_name: Claire
+    last_name: Vendor
+  tprm:
+    criticality: 3
+    maturity: 4
+    trust: 4
+    conclusion: ok
+  expected_implementation_groups:
+  - info
+  - baseline
+  - saas_app
+answers:
+- requirement: stakeholder_identification
+  question: Is there a designated business contact? (Designated business owner or
+    product sponsor accountable for business processes, functionality, and risk acceptance)
+  answer: 'Yes'
+  result: compliant
+  observation: Head of People & Culture designated as business owner.
+- requirement: stakeholder_identification
+  question: Is there a designated IT contact? (Technical lead or engineer responsible
+    for maintenance, infrastructure, deployment, and operational support)
+  answer: 'Yes'
+  result: compliant
+  observation: IT SaaS Operations Manager designated as technical contact.
+- requirement: stakeholder_identification
+  question: Is there a designated data owner? (Data steward or governance officer
+    responsible for information classification, access authorization, and regulatory
+    compliance)
+  answer: 'Yes'
+  result: compliant
+  observation: Corporate Privacy Director designated as data steward.
+- requirement: stakeholder_identification
+  question: Is the information about stakeholders updated in LeanIX / CMDB? (Stakeholder
+    assignments registered and kept current in the enterprise inventory or service
+    catalog)
+  answer: 'Yes'
+  result: compliant
+  observation: Updated in enterprise LeanIX and vendor inventory catalog.
+- requirement: data_classification
+  question: What is the maximum classification level handled? (Public, Internal, Confidential,
+    or Secret according to organizational data classification policy)
+  answer: Confidential
+  result: compliant
+  observation: Confidential employee performance appraisals, career milestones, and
+    HR records.
+- requirement: data_classification
+  question: What category of personal data is processed by the application under GDPR?
+  answer: Contact and order details about customers
+  result: compliant
+  observation: Enterprise HR SaaS processing employee profiles, performance milestones, and career records.
+- requirement: data_classification
+  question: What is the volume of data subjects (individuals) whose personal data is processed?
+  answer: Medium volume (1,000 to 100,000 individuals / data subjects)
+  result: compliant
+  observation: Covers enterprise workforce of approximately 8,000 employee data subjects.
+- requirement: hosting
+  question: What is the delivery and hosting model of the application?
+  answer: SaaS (Third-party software hosted and operated by a vendor)
+  result: compliant
+  observation: Enterprise SaaS subscription operated entirely by third-party vendor.
+- requirement: hosting
+  question: Is the SaaS vendor ISO/IEC 27001 or SOC 2 Type II certified?
+  answer: Yes - The SaaS vendor holds an active ISO/IEC 27001 certification or SOC
+    2 Type II report
+  result: compliant
+  observation: SaaS vendor holds active ISO/IEC 27001 certification and annual SOC
+    2 Type II attestation.
+- requirement: authentication_and_mfa
+  question: How do users authenticate to the application?
+  answer: Enterprise SSO (SAML 2.0 / OIDC federated IdP)
+  result: compliant
+  observation: Corporate Okta SSO with SAML 2.0 and adaptive MFA enforced.
+- requirement: access_control_and_rbac
+  question: Have you defined roles and permissions for the application? (Is access
+    controlled via granular roles (RBAC/ABAC) enforcing least privilege across all
+    business functions and APIs?)
+  answer: 'Yes'
+  result: compliant
+  observation: Granular roles configured within SaaS tenant enforcing departmental
+    separation.
+- requirement: access_control_and_rbac
+  question: Is the application integrated with the enterprise Identity Governance
+    and Administration (IGA) solution (such as SailPoint) for centralized user lifecycle,
+    role management, and automated provisioning/deprovisioning?
+  answer: 'Yes'
+  result: compliant
+  observation: Automated user SCIM provisioning via enterprise IGA identity connector.
+- requirement: access_control_and_rbac
+  question: Are user entitlements and privileged permissions reviewed and recertified
+    on a periodic basis via formal recertification campaigns (e.g., SailPoint certification
+    campaigns at least annually for standard users, biannually for privileged accounts)?
+  answer: 'Yes'
+  result: compliant
+  observation: Annual entitlement recertification completed by HR leadership.
+- requirement: saas_contract_compliance
+  question: Is there a signed SaaS contract and binding Security Schedule? (e.g.,
+    legally executed Master Services Agreement / MSA and Security Exhibit with the
+    provider)
+  answer: 'Yes'
+  result: compliant
+  observation: Executed Master Subscription Agreement with legally binding Security
+    Schedule.
+- requirement: saas_confidentiality_and_data_protection
+  question: Does the contract require vendor personnel to sign confidentiality agreements
+    (NDAs) and restrict access to customer data (e.g. requiring client approval before
+    vendor support or engineering can access tenant data)?
+  answer: 'Yes'
+  result: compliant
+  observation: Vendor personnel bound by NDAs; customer approval required for support
+    access.
+- requirement: saas_confidentiality_and_data_protection
+  question: Does the contract mandate data encryption for all customer data, both
+    in transit (e.g. TLS/HTTPS) and at rest (e.g. AES-256)?
+  answer: 'Yes'
+  result: compliant
+  observation: Contract guarantees AES-256 data encryption at rest and TLS 1.3 in
+    transit.
+- requirement: saas_iam
+  question: Does root, administrative, and break-glass access to the SaaS tenant management
+    console strictly enforce Multi-Factor Authentication (MFA) independently of standard
+    user SSO?
+  answer: 'Yes'
+  result: compliant
+  observation: SaaS admin tenant portal enforces hardware token MFA independently
+    of user SSO.
+- requirement: saas_data_hosting_and_residency
+  question: Does the contract mandate that all customer data (including primary databases,
+    processing pipelines, and backups) be hosted primarily within the European Union
+    (EU) or European Economic Area (EEA)?
+  answer: 'Yes'
+  result: compliant
+  observation: Contract legally binds vendor to EU (Frankfurt / Dublin) primary and
+    backup hosting.
+- requirement: saas_data_hosting_and_residency
+  question: Is a formal Data Processing Agreement (DPA) executed with the vendor that incorporates all mandatory GDPR Article 28 clauses (processing only on documented instructions, personnel confidentiality commitments, and statutory security measures)?
+  answer: 'Yes'
+  result: compliant
+  observation: Executed Data Processing Addendum (DPA) incorporating all mandatory GDPR Article 28 requirements.
+- requirement: saas_data_hosting_and_residency
+  question: Does the contract mandate prior written authorization or advance notice before engaging or replacing sub-processors, granting the customer a legally enforceable right to object or terminate?
+  answer: 'Yes'
+  result: compliant
+  observation: Vendor is contractually obligated to provide 30-day advance notice for any sub-processor change with customer objection and contract termination rights.
+- requirement: saas_data_hosting_and_residency
+  question: Does the contract or DPA establish a binding obligation for the vendor to notify the customer without undue delay (within 24 to 48 hours maximum) following the discovery of a suspected or confirmed personal data breach?
+  answer: 'Yes'
+  result: compliant
+  observation: Binding contractual commitment to notify customer security operations within 24 to 48 hours of any suspected or confirmed breach.
+- requirement: saas_data_hosting_and_residency
+  question: Does the vendor provide technical mechanisms or contractual commitments to assist the customer in fulfilling Data Subject Rights (access, rectification, erasure, portability) and ensure complete data deletion or return upon contract termination?
+  answer: 'Yes'
+  result: compliant
+  observation: Platform includes self-service GDPR export and erasure tools, with contractual commitment to certify data deletion upon termination.
+- requirement: saas_audit_and_compliance
+  question: Does the contract legally grant the client (or an authorized independent
+    third party) the right to audit the provider and obtain compliance evidence to
+    verify adherence to contractual security obligations?
+  answer: 'Yes'
+  result: compliant
+  observation: Contract gives customer formal right to audit and receive annual SOC
+    2 Type II reports.
+- requirement: saas_audit_and_compliance
+  question: How is independent penetration testing governed and performed on the SaaS
+    platform?
+  answer: The SaaS vendor does the pentest (contract mandates that the vendor undergoes
+    annual independent penetration tests and provides audit reports/attestations)
+  result: compliant
+  observation: Vendor undergoes annual independent third-party penetration testing
+    and shares executive summaries.
+- requirement: saas_pci_dss
+  question: Is the application or service in scope for PCI DSS? (e.g., processes,
+    stores, or transmits cardholder data, connects to the Cardholder Data Environment,
+    or can impact the security of the CDE)
+  answer: Yes - In scope for PCI DSS
+  result: compliant
+  observation: Processes employee corporate travel payment cards (in scope for PCI
+    DSS).
+- requirement: saas_pci_dss
+  question: If in scope for PCI DSS, is the SaaS vendor PCI DSS certified (with a
+    valid annual Attestation of Compliance / AOC covering the service)?
+  answer: 'Yes'
+  result: compliant
+  observation: Vendor provides active annual PCI DSS Attestation of Compliance (AOC).
+- requirement: saas_pci_dss
+  question: If in scope for PCI DSS, does the contract require the provider to maintain
+    active PCI DSS certification, provide an annual AOC, and enforce dedicated payment
+    incident procedures with immediate notification?
+  answer: 'Yes'
+  result: compliant
+  observation: Contract mandates maintaining PCI DSS certification and immediate payment
+    breach notice.
+- requirement: saas_non_conformity_remediation
+  question: Does the contract mandate formal remediation plans and compensatory measures
+    for identified security gaps, with explicit rights to suspend access or terminate
+    for repeated breaches?
+  answer: 'Yes'
+  result: compliant
+  observation: Contract specifies binding remediation plans and right to terminate
+    for material breach.
+expected_evaluation:
+  impact_level: 3
+  confidentiality_impact: 3
+  availability_impact: 3
+  integrity_impact: 3
+  scenario_count: 7
+  excluded_scenarios:
+  - API abuse and denial of service
+  - Application compromise via injection attack
+  - Application or storage compromise via unrestricted file upload
+  - Catastrophic data loss due to unverified backups
+  - Compromise via unhardened or End-of-Life (EOL) COTS deployment
+  - Credential leakage via hardcoded secrets
+  - Disclosure of production data in non-production environments
+  - Excessive retention of sensitive data
+  - Exploitation of unpatched SaaS vulnerability
+  - Exploitation of unpatched vulnerability
+  - Exposure of unencrypted data at rest
+  - Exposure of unencrypted data in transit
+  - Host or OS compromise via unpatched system vulnerabilities
+  - SaaS tenant isolation breach and cross-border leakage
+  - SaaS vendor privilege abuse and sub-processor leakage
+  - Supply chain compromise via vulnerable dependency
+  - Third-party data leakage
+  - Undetected breach due to missing security logging
+expected_risk_scenarios:
+- scenario: Account takeover via weak authentication
+  likelihood_requirement: authentication_and_mfa
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Missing application stakeholders
+  likelihood_requirement: stakeholder_identification
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Reliance on unverified SaaS security posture
+  likelihood_requirement: saas_audit_and_compliance
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: SaaS customer data exposure due to missing encryption or NDA safeguards
+  likelihood_requirement: saas_confidentiality_and_data_protection
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: SaaS provider data leakage
+  likelihood_requirement: saas_contract_compliance
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: SaaS tenant takeover via unprotected administrative console
+  likelihood_requirement: saas_iam
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Unauthorized data access via broken authorization
+  likelihood_requirement: access_control_and_rbac
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3

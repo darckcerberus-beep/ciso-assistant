@@ -45,14 +45,17 @@ Define or customize your operational situations/cases here for reference:
 | 3 | Application Information & Governance | `stakeholder_identification` | `q3` | Is there a designated data owner? (Data steward or governance officer responsible ... | `info` | All applications (Info profiling) |
 | 4 | Application Information & Governance | `stakeholder_identification` | `q4` | Is the information about stakeholders updated in LeanIX / CMDB? (Stakeholder assig... | `info` | All applications (Info profiling) |
 | 5 | Application Information & Governance | `data_classification` | `q1` | What is the maximum classification level handled? (Public, Internal, Confidential,... | `info` | All applications (Info profiling - Confidentiality) |
+| 5b | Application Information & Governance | `data_classification` | `q2` | What category of personal data is processed by the application under GDPR? | `info` | All applications (GDPR profiling - Personal data type) |
+| 5c | Application Information & Governance | `data_classification` | `q3` | What is the volume of data subjects (individuals) whose personal data is processed? | `info` | Applications processing personal data (depends on `data_classification:q2`) |
 | 6 | Application Information & Governance | `hosting` | `q1` | What is the delivery and hosting model of the application? | `info` | All applications (Info profiling - Hosting model) |
 | 7 | Application Information & Governance | `hosting` | `q2` | What is the network exposure of the application? | `info` | Self-Hosted only (Custom & COTS - depends on `hosting:q1`) |
-| 8 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q1` | How do users authenticate to the application? | `custom_app, cots_app, saas_app` | **All applications** (Custom, COTS, SaaS) - Mandatory SSO |
-| 9 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q2` | If direct authentication is used, are strong password policies and brute-force loc... | `custom_app, cots_app, saas_app` | All applications (If direct auth used - Password policy) |
-| 10 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q3` | If direct authentication is used, is Multi-Factor Authentication (MFA) enforced fo... | `custom_app, cots_app, saas_app` | All applications (If direct auth used - Admin MFA) |
-| 11 | Identity, Authentication & Access Control | `access_control_and_rbac` | `q1` | Have you defined roles and permissions for the application? (Is access controlled ... | `custom_app, cots_app, saas_app` | **All applications** (Baseline - RBAC least privilege) |
-| 12 | Identity, Authentication & Access Control | `access_control_and_rbac` | `q2` | Is the application integrated with the enterprise Identity Governance and Administ... | `custom_app, cots_app, saas_app` | **All applications** (Baseline - SailPoint IGA integration) |
-| 13 | Identity, Authentication & Access Control | `access_control_and_rbac` | `q3` | Are user entitlements and privileged permissions reviewed and recertified on a per... | `custom_app, cots_app, saas_app` | **All applications** (Baseline - Periodic recertifications) |
+| 7b | Application Information & Governance | `hosting` | `q3` | Is the SaaS vendor certified under ISO/IEC 27001 or SOC 2 Type II? | `info` | SaaS only (depends on `hosting:q1 == SaaS`) |
+| 8 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q1` | How do users authenticate to the application? | `baseline` | **All applications** (Custom, COTS, SaaS) - Mandatory SSO |
+| 9 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q2` | If direct authentication is used, are strong password policies and brute-force loc... | `baseline` | All applications (If direct auth used - Password policy) |
+| 10 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q3` | If direct authentication is used, is Multi-Factor Authentication (MFA) enforced fo... | `baseline` | All applications (If direct auth used - Admin MFA) |
+| 11 | Identity, Authentication & Access Control | `access_control_and_rbac` | `q1` | Have you defined roles and permissions for the application? (Is access controlled ... | `baseline` | **All applications** (Baseline - RBAC least privilege) |
+| 12 | Identity, Authentication & Access Control | `access_control_and_rbac` | `q2` | Is the application integrated with the enterprise Identity Governance and Administ... | `baseline` | **All applications** (Baseline - SailPoint IGA integration) |
+| 13 | Identity, Authentication & Access Control | `access_control_and_rbac` | `q3` | Are user entitlements and privileged permissions reviewed and recertified on a per... | `baseline` | **All applications** (Baseline - Periodic recertifications) |
 | 14 | Identity, Authentication & Access Control | `session_management` | `q1` | Are session tokens cryptographically secure, transmitted with secure cookie flags ... | `custom_app` |  |
 | 15 | Application Vulnerability Defense & Code Hygiene | `owasp_top_10_defenses` | `q1` | Do you apply coding guidelines against OWASP Top 10 vulnerabilities (including inpu... | `custom_app` |  |
 | 16 | Application Vulnerability Defense & Code Hygiene | `ssrf_and_cloud_metadata_defense` | `q1` | Are outbound HTTP requests initiated by the application strictly validated using d... | `custom_app` |  |
@@ -60,8 +63,9 @@ Define or customize your operational situations/cases here for reference:
 | 18 | Application Vulnerability Defense & Code Hygiene | `file_upload_security` | `q1` | Can files be uploaded to the application? (e.g., user attachments, documents, images, media, or data imports) | `custom_app` | Custom App only (Gating question) |
 | 19 | Application Vulnerability Defense & Code Hygiene | `file_upload_security` | `q2` | Are uploaded files validated via server-side magic byte inspection, assigned rando... | `custom_app` | Custom App only (if files uploaded - Magic bytes / UUIDs) |
 | 20 | Application Vulnerability Defense & Code Hygiene | `file_upload_security` | `q3` | Are uploaded files scanned for malware and stored exclusively in dedicated, non-ex... | `custom_app` | Custom App only (if files uploaded - Malware scanning & isolated storage) |
-| 20 | Cryptography & Secrets Management | `secrets_management` | `q1` | Are application credentials, API keys, and cryptographic secrets stored exclusivel... | `baseline, custom_app, cots_app` |  |
-| 21 | Cryptography & Secrets Management | `data_at_rest` | `q1` | Is data encrypted at rest? (Specify algorithms and key management: e.g., AES-256 /... | `baseline, custom_app, cots_app` | Self-Hosted only (Custom & COTS) |
+| 21 | Cryptography & Secrets Management | `secrets_management` | `q1` | Are application credentials, API keys, and cryptographic secrets stored exclusivel... | `infra` | Self-Hosted only (Custom & COTS) |
+| 21b | Cryptography & Secrets Management | `data_in_transit` | `q1` | Is data encrypted during transit? (Specify protocols, algorithms and methods: e.g.... | `infra` | Self-Hosted only (Custom & COTS) |
+| 22 | Cryptography & Secrets Management | `data_at_rest` | `q1` | Is data encrypted at rest? (Specify algorithms and key management: e.g., AES-256 /... | `infra` | Self-Hosted only (Custom & COTS) |
 | 23 | Secure SDLC & DevSecOps Automation | `automated_security_testing` | `q1` | Is automated Static Application Security Testing (SAST) integrated into the CI/CD ... | `custom_app` |  |
 | 24 | Secure SDLC & DevSecOps Automation | `automated_security_testing` | `q2` | Is Dynamic Application Security Testing (DAST) or API security scanning performed ... | `custom_app` |  |
 | 25 | Secure SDLC & DevSecOps Automation | `supply_chain_and_dependencies` | `q1` | Is Software Composition Analysis (SCA) automated in the CI/CD pipeline to detect k... | `custom_app` |  |
@@ -70,20 +74,22 @@ Define or customize your operational situations/cases here for reference:
 | 28 | Secure SDLC & DevSecOps Automation | `vendor_secure_development` | `q1` | Does the third-party COTS software vendor adhere to recognized secure coding stand... | `cots_app` | **COTS Only** (Vendor secure coding guidelines) |
 | 29 | API Security & Edge Protections | `api_security_and_rate_limiting` | `q1` | Are exposed web and API endpoints protected against abusive traffic via an edge We... | `internet_facing` | **Self-Hosted Internet-Facing only** (Edge WAF & DDoS) |
 | 30 | API Security & Edge Protections | `api_security_and_rate_limiting` | `q2` | Are API payloads strictly validated against documented API specifications (e.g. Op... | `internet_facing` | **Self-Hosted Internet-Facing only** (API schema validation) |
-| 30 | Data Protection & Lifecycle Governance | `data_exchange` | `q1` | Does the application exchange data externally? (e.g., transfers, automated API int... | `custom_app, cots_app` | Self-Hosted only (Custom & COTS) |
-| 31 | Data Protection & Lifecycle Governance | `data_exchange` | `q2` | Is data encrypted during transit? (Specify protocols, algorithms and methods: e.g.... | `custom_app, cots_app` | Self-Hosted only (Custom & COTS - if data exchanged) |
-| 32 | Data Protection & Lifecycle Governance | `data_exchange` | `q3` | Is there a data exchange contract with the appropriate confidentiality clauses? (e... | `custom_app, cots_app` | Self-Hosted only (Custom & COTS - if data exchanged) |
-| 33 | Data Protection & Lifecycle Governance | `non_prod_data` | `q1` | Are real production data records, live customer databases, or personal data utiliz... | `baseline, custom_app, cots_app` | Self-Hosted only (Custom & COTS) |
-| 34 | Data Protection & Lifecycle Governance | `non_prod_data` | `q2` | How do you protect them? (Which sanitization or protection method is applied: cryp... | `baseline, custom_app, cots_app` | Self-Hosted only (Custom & COTS - if non-prod data used) |
-| 35 | Data Protection & Lifecycle Governance | `non_prod_data` | `q3` | Do you clean the prod data after use in non-prod? (e.g., securely purging, sanitiz... | `baseline, custom_app, cots_app` | Self-Hosted only (Custom & COTS - if non-prod data used) |
-| 36 | Data Protection & Lifecycle Governance | `data_destruction` | `q1` | Is there a data destruction process for this application? (e.g., documented data r... | `baseline, custom_app, cots_app` | Self-Hosted only (Custom & COTS) |
-| 37 | Data Protection & Lifecycle Governance | `data_destruction` | `q2` | Is the process compliant with the policy (responsibilities, methods, reporting)? (... | `baseline, custom_app, cots_app` | Self-Hosted only (Custom & COTS - if destruction process exists) |
-| 38 | Security Logging & Monitoring | `security_event_logging` | `q1` | Does the application log key security events (failed logins, privilege escalation,... | `baseline, custom_app, cots_app` |  |
-| 39 | Security Logging & Monitoring | `security_event_logging` | `q2` | Are sensitive data fields (passwords, payment cards, tokens, PII) systematically s... | `baseline, custom_app, cots_app` |  |
-| 40 | Security Logging & Monitoring | `centralized_monitoring_and_alerting` | `q1` | Are application logs forwarded in near-real-time to a central SIEM/SOC platform wi... | `baseline, custom_app, cots_app` |  |
+| 31 | Data Protection & Lifecycle Governance | `data_exchange` | `q1` | Does the application exchange data externally? (e.g., transfers, automated API int... | `custom_app, cots_app` | Self-Hosted only (Custom & COTS) |
+| 32 | Data Protection & Lifecycle Governance | `data_exchange` | `q2` | Is there a data exchange contract with the appropriate confidentiality clauses? (e... | `custom_app, cots_app` | Self-Hosted only (Custom & COTS - if data exchanged) |
+| 33 | Data Protection & Lifecycle Governance | `non_prod_data` | `q1` | Are real production data records, live customer databases, or personal data utiliz... | `custom_app, cots_app` | Self-Hosted only (Custom & COTS) |
+| 34 | Data Protection & Lifecycle Governance | `non_prod_data` | `q2` | How do you protect them? (Which sanitization or protection method is applied: cryp... | `custom_app, cots_app` | Self-Hosted only (Custom & COTS - if non-prod data used) |
+| 35 | Data Protection & Lifecycle Governance | `non_prod_data` | `q3` | Do you clean the prod data after use in non-prod? (e.g., securely purging, sanitiz... | `custom_app, cots_app` | Self-Hosted only (Custom & COTS - if non-prod data used) |
+| 36 | Data Protection & Lifecycle Governance | `data_destruction` | `q1` | Is there a data destruction process for this application? (e.g., documented data r... | `custom_app, cots_app` | Self-Hosted only (Custom & COTS) |
+| 37 | Data Protection & Lifecycle Governance | `data_destruction` | `q2` | Is the process compliant with the policy (responsibilities, methods, reporting)? (... | `custom_app, cots_app` | Self-Hosted only (Custom & COTS - if destruction process exists) |
+| 38 | Security Logging & Monitoring | `security_event_logging` | `q1` | Does the application log key security events (failed logins, privilege escalation,... | `infra` | Self-Hosted only (Custom & COTS) |
+| 39 | Security Logging & Monitoring | `security_event_logging` | `q2` | Are sensitive data fields (passwords, payment cards, tokens, PII) systematically s... | `infra` | Self-Hosted only (Custom & COTS) |
+| 40 | Security Logging & Monitoring | `centralized_monitoring_and_alerting` | `q1` | Are application logs forwarded in near-real-time to a central SIEM/SOC platform wi... | `infra` | Self-Hosted only (Custom & COTS) |
 | 41 | Penetration Testing & Resilience | `penetration_testing_and_vulnerability_management` | `q1` | Is independent penetration testing conducted on the application and underlying inf... | `internet_facing` | **Self-Hosted Internet-Facing only** (Annual pentesting) |
 | 42 | Penetration Testing & Resilience | `penetration_testing_and_vulnerability_management` | `q2` | Are identified vulnerabilities remediated within defined SLAs (e.g. Critical withi... | `internet_facing` | **Self-Hosted Internet-Facing only** (Remediation SLAs) |
-| 43 | Penetration Testing & Resilience | `backup_and_disaster_recovery` | `q1` | Are automated and encrypted backups maintained for application state and databases... | `baseline, custom_app, cots_app` |  |
+| 43 | Penetration Testing & Resilience | `backup_and_disaster_recovery` | `q1` | Are automated and encrypted backups maintained for application state and databases... | `infra` | Self-Hosted only (Custom & COTS) |
+| 43a | Penetration Testing & Resilience | `os_patching` | `q1` | Are operating system (OS) security patches, kernel updates, and host/container sec... | `infra` | Self-Hosted only (Custom & COTS - Automatic OS patching) |
+| 43b | Penetration Testing & Resilience | `os_patching` | `q2` | If OS patching is not automatic, is there a formal patching schedule compliant wit... | `infra` | Self-Hosted only (Custom & COTS - if `os_patching:q1 == No`) |
+| 43c | Penetration Testing & Resilience | `os_patching` | `q3` | Does the application and infrastructure architecture allow no-downtime patching fr... | `infra` | Self-Hosted only (Custom & COTS - High availability / no-downtime patching) |
 | 44 | Penetration Testing & Resilience | `cots_deployment_hardening` | `q1` | Are default vendor credentials changed, sample modules removed, and configuration ... | `cots_app` |  |
 | 45 | Penetration Testing & Resilience | `cots_deployment_hardening` | `q2` | Does the COTS software actively receive security patches and vulnerability updates... | `cots_app` |  |
 | 46 | Penetration Testing & Resilience | `cots_deployment_hardening` | `q3` | Are published vendor security patches, hotfixes, and critical vulnerability update... | `cots_app` |  |
@@ -108,7 +114,11 @@ Define or customize your operational situations/cases here for reference:
 | 65 | SaaS Requirements & Vendor Security Exhibit | `saas_secure_development` | `q2` | Does the contract mandate that the provider adheres to formal secure SDLC standard... | `saas_app` |  |
 | 66 | SaaS Requirements & Vendor Security Exhibit | `saas_web_app_security` | `q1` | Does the contract require and are web services protected with TLS 1.2+ minimum, ne... | `saas_app` |  |
 | 68 | SaaS Requirements & Vendor Security Exhibit | `saas_vulnerability_remediation_sla` | `q1` | Does the SaaS contract commit the provider to formal vulnerability remediation SLA... | `saas_uncertified` |  |
-| 69 | SaaS Requirements & Vendor Security Exhibit | `saas_data_hosting_and_residency` | `q1` | Does the contract mandate and is all customer data (including primary databases, p... | `saas_app` |  |
+| 69 | SaaS Requirements & Vendor Security Exhibit | `saas_data_hosting_and_residency` | `q1` | Does the contract mandate that all customer data be hosted primarily within the EU/EEA? | `saas_app` | SaaS applications (EU/EEA Data Hosting) |
+| 69b | SaaS Requirements & Vendor Security Exhibit | `saas_data_hosting_and_residency` | `q2` | Is a formal Data Processing Agreement (DPA) executed incorporating Article 28 clauses? | `saas_app` | SaaS applications (GDPR DPA Article 28) |
+| 69c | SaaS Requirements & Vendor Security Exhibit | `saas_data_hosting_and_residency` | `q3` | Does the contract mandate prior authorization/notice for sub-processors with objection rights? | `saas_app` | SaaS applications (Sub-processor Governance) |
+| 69d | SaaS Requirements & Vendor Security Exhibit | `saas_data_hosting_and_residency` | `q4` | Does the contract establish a strict personal data breach notification SLA (24-48h)? | `saas_app` | SaaS applications (Breach Notification SLA) |
+| 69e | SaaS Requirements & Vendor Security Exhibit | `saas_data_hosting_and_residency` | `q5` | Does the vendor provide Data Subject Rights (DSR) assistance and certified exit data deletion? | `saas_app` | SaaS applications (DSR & Exit Deletion) |
 | 70 | SaaS Requirements & Vendor Security Exhibit | `saas_physical_security` | `q1` | Does the contract require and are provider facilities and datacenters secured with... | `saas_uncertified` |  |
 | 71 | SaaS Requirements & Vendor Security Exhibit | `saas_backup_and_business_continuity` | `q1` | Does the contract require and are automated backups encrypted, immutable, and veri... | `saas_uncertified` |  |
 | 72 | SaaS Requirements & Vendor Security Exhibit | `saas_backup_and_business_continuity` | `q2` | Does the contract mandate and does the provider maintain documented BCP/DRP plans ... | `saas_uncertified` |  |
@@ -131,7 +141,7 @@ Define or customize your operational situations/cases here for reference:
 
 #### Node: Stakeholder identification (`stakeholder_identification`)
 Action - None
-- **Implementation Groups**: `info`, `baseline`
+- **Implementation Groups**: `info`
 - **Description**: Stakeholders have been identified for the application
 
 ##### Q1. `stakeholder_identification:q1`
@@ -176,8 +186,8 @@ Action - None
 
 #### Node: Data classification (`data_classification`)
 Action - None
-- **Implementation Groups**: `info`, `baseline`
-- **Description**: Classify data handled by the application according to organizational policy.
+- **Implementation Groups**: `info`
+- **Description**: Classify data handled by the application according to organizational policy, including GDPR personal data category and processing volume.
 - **Policy Reference**: See detailed classification standards and examples in [Data Classification Policy & Guidance](file:///home/python/ciso-assistant/docs/data_classification_policy_guide.md).
 
 ##### Q5. `data_classification:q1`
@@ -192,10 +202,34 @@ Action - None
 - **Applicable Cases / Situations**:
   - [x] All applications (Info profiling - Confidentiality)
 
+##### Q5b. `data_classification:q2`
+- **URN**: `urn:intuitem:risk:req_node:appsec:data_classification:q2`
+- **Question**: What category of personal data is processed by the application under GDPR?
+- **Type**: `unique_choice`
+- **Choices & Scoring**:
+  - `No personal data` (Green - `#33a745`)
+  - `Contact data of employees` (Yellow - `#ffc107`)
+  - `Contact and order details about customers` (Orange - `#fd7e14`)
+  - `HR and financial details about employees and customer payment data` (Red - `#dc3545`)
+- **Applicable Cases / Situations**:
+  - [x] All applications (GDPR profiling - Personal data type)
+
+##### Q5c. `data_classification:q3`
+- **URN**: `urn:intuitem:risk:req_node:appsec:data_classification:q3`
+- **Question**: What is the volume of data subjects (individuals) whose personal data is processed?
+- **Type**: `unique_choice`
+- **Depends On**: `data_classification:q2` (answers: employee contact data, customer contact/order details, or HR/financial/payment data)
+- **Choices & Scoring**:
+  - `Low volume (Fewer than 1,000 individuals / data subjects)` (Impact multiplier: `1.0`)
+  - `Medium volume (1,000 to 100,000 individuals / data subjects)` (Impact multiplier: `1.0`)
+  - `High volume / Large scale processing under GDPR (More than 100,000 individuals, or systemic nationwide monitoring)` (Impact multiplier: `1.5`)
+- **Applicable Cases / Situations**:
+  - [x] Applications processing personal data (GDPR profiling - Volume)
+
 #### Node: Application Delivery & Network Exposure (`hosting`)
 Action - None
-- **Implementation Groups**: `info`, `baseline`
-- **Description**: Determine the application delivery and hosting model (Custom software, Bought COTS, or third-party SaaS) and its network exposure (Internal restricted network or Internet-facing).
+- **Implementation Groups**: `info`
+- **Description**: Determine the application delivery and hosting model (Custom software, Bought COTS, or third-party SaaS), its network exposure (Internal restricted network or Internet-facing), and SaaS vendor certification status.
 
 ##### Q6. `hosting:q1`
 - **URN**: `urn:intuitem:risk:req_node:appsec:hosting:q1`
@@ -219,6 +253,17 @@ Action - None
 - **Applicable Cases / Situations**:
   - [x] Self-Hosted only (Custom & COTS; hidden for SaaS)
 
+##### Q7b. `hosting:q3`
+- **URN**: `urn:intuitem:risk:req_node:appsec:hosting:q3`
+- **Question**: Is the SaaS vendor certified under ISO/IEC 27001 or SOC 2 Type II?
+- **Depends on**: `hosting:q1` == `SaaS`
+- **Type**: `unique_choice`
+- **Choices & Scoring**:
+  - `Yes - Vendor holds an active ISO/IEC 27001 certification or SOC 2 Type II report` (100 pts, compute_result: true)
+  - `No - Vendor is not ISO/IEC 27001 or SOC 2 Type II certified` (100 pts, compute_result: true; activates `saas_uncertified`)
+- **Applicable Cases / Situations**:
+  - [x] SaaS only (triggers `saas_uncertified` when `No`)
+
 
 <a id="iam_chapter"></a>
 ### Identity, Authentication & Access Control (`iam_chapter`)
@@ -227,7 +272,7 @@ Action - None
 
 #### Node: Centralized Identity, Authentication & MFA (`authentication_and_mfa`)
 Action - All apps must use SSO so ask for all apps
-- **Implementation Groups**: `baseline`, `custom_app`, `cots_app`, `saas_app`
+- **Implementation Groups**: `baseline`
 - **Description**: Enforce centralized enterprise Identity Provider (SSO), strong credential hygiene, and Multi-Factor Authentication (MFA) for administrative and privileged access.
 
 ##### Q8. `authentication_and_mfa:q1`
@@ -264,7 +309,7 @@ Action - All apps must use SSO so ask for all apps
 
 #### Node: Authorization, RBAC, IGA & Access Recertifications (`access_control_and_rbac`)
 Action - All apps must use RBAC and IGA for my employees, ask for all apps (Put in baseline for all apps)
-- **Implementation Groups**: `baseline`, `custom_app`, `cots_app`, `saas_app`
+- **Implementation Groups**: `baseline`
 - **Description**: Enforce least privilege via granular RBAC/ABAC, integrate with enterprise Identity Governance & Administration (SailPoint), and perform periodic access recertifications.
 
 ##### Q11. `access_control_and_rbac:q1`
@@ -399,7 +444,7 @@ Action - All apps must use RBAC and IGA for my employees, ask for all apps (Put 
 *Enforce cryptographic protection for data in transit and at rest, and maintain centralized secrets management.*
 
 #### Node: Centralized Secrets Management (`secrets_management`)
-- **Implementation Groups**: `custom_app`, `cots_app`
+- **Implementation Groups**: `infra`
 - **Description**: Eliminate hardcoded credentials and store all API keys, database tokens, and certificates in dedicated secrets vaults.
 
 ##### Q20. `secrets_management:q1`
@@ -410,10 +455,24 @@ Action - All apps must use RBAC and IGA for my employees, ask for all apps (Put 
   - `Yes` (100 pts, compute_result: true)
   - `No` (0 pts)
 - **Applicable Cases / Situations**:
-  - [ ] 
+  - [x] Self-Hosted only (Custom & COTS)
+
+#### Node: Encryption in Transit (`data_in_transit`)
+- **Implementation Groups**: `infra`
+- **Description**: Enforce cryptographic protection (TLS 1.2+, HTTPS, mTLS) for all data in transit across external and internal boundaries.
+
+##### Q21. `data_in_transit:q1`
+- **URN**: `urn:intuitem:risk:req_node:appsec:data_in_transit:q1`
+- **Question**: Is data encrypted during transit? (Specify protocols, algorithms and methods: e.g., TLS 1.2 / TLS 1.3 with AES-GCM or ChaCha20, HTTPS with HSTS, mTLS for service APIs, SSHv2, or IPsec across external and internal boundaries)
+- **Type**: `unique_choice`
+- **Choices & Scoring**:
+  - `Yes` (100 pts, compute_result: true)
+  - `No` (0 pts)
+- **Applicable Cases / Situations**:
+  - [x] Self-Hosted only (Custom & COTS)
 
 #### Node: Encryption at Rest (`data_at_rest`)
-- **Implementation Groups**: `custom_app`, `cots_app`
+- **Implementation Groups**: `infra`
 - **Description**: Encrypt data at rest in databases, file systems, and backups.
 
 ##### Q22. `data_at_rest:q1`
@@ -424,7 +483,7 @@ Action - All apps must use RBAC and IGA for my employees, ask for all apps (Put 
   - `Yes` (100 pts, compute_result: true)
   - `No` (0 pts)
 - **Applicable Cases / Situations**:
-  - [ ] 
+  - [x] Self-Hosted only (Custom & COTS)
 
 
 <a id="sdlc_chapter"></a>
@@ -545,9 +604,9 @@ Action - For COTS, ask if vendor follows secure coding guidelines without going 
 
 *Govern cross-organizational data transfers (DPAs), enforce non-production data protection, and mandate compliant data retention and destruction.*
 
-#### Node: Control of Data Exchange & Encryption in Transit (`data_exchange`)
+#### Node: Control of External Data Exchange (`data_exchange`)
 - **Implementation Groups**: `custom_app`, `cots_app`
-- **Description**: Govern external B2B data exchanges, API integrations, webhooks, and third-party data flows via encryption in transit (TLS 1.2+, mTLS) and formal agreements (DPA/DTA) for self-hosted applications (excluding B2C interactions, as customers do not receive data the same way B2B partners do).
+- **Description**: Govern external B2B data exchanges, API integrations, webhooks, and third-party data flows via formal agreements (DPA/DTA) for self-hosted applications (excluding B2C interactions, as customers do not receive data the same way B2B partners do).
 
 ##### Q31. `data_exchange:q1`
 - **URN**: `urn:intuitem:risk:req_node:appsec:data_exchange:q1`
@@ -557,29 +616,18 @@ Action - For COTS, ask if vendor follows secure coding guidelines without going 
   - `No` (100 pts, compute_result: true)
   - `Yes` (0 pts)
 - **Applicable Cases / Situations**:
-  - [ ] 
+  - [x] Self-Hosted only (Custom & COTS)
 
 ##### Q32. `data_exchange:q2`
 - **URN**: `urn:intuitem:risk:req_node:appsec:data_exchange:q2`
-- **Question**: Is data encrypted during transit? (Specify protocols, algorithms and methods: e.g., TLS 1.2 / TLS 1.3 with AES-GCM or ChaCha20, HTTPS with HSTS, mTLS for service APIs, SSHv2, or IPsec across external and internal boundaries)
-- **Type**: `unique_choice`
-- **Conditional Dependency (`depends_on`)**: `{'question': 'urn:intuitem:risk:req_node:appsec:data_exchange:q1', 'answers': ['urn:intuitem:risk:req_node:appsec:data_exchange:q1:c2'], 'condition': 'any'}`
-- **Choices & Scoring**:
-  - `Yes` (50 pts, compute_result: true)
-  - `No` (0 pts)
-- **Applicable Cases / Situations**:
-  - [ ] 
-
-##### Q33. `data_exchange:q3`
-- **URN**: `urn:intuitem:risk:req_node:appsec:data_exchange:q3`
 - **Question**: Is there a data exchange contract with the appropriate confidentiality clauses? (e.g., formal Data Processing Agreement / DPA, Data Transfer Agreement / DTA, or NDA)
 - **Type**: `unique_choice`
 - **Conditional Dependency (`depends_on`)**: `{'question': 'urn:intuitem:risk:req_node:appsec:data_exchange:q1', 'answers': ['urn:intuitem:risk:req_node:appsec:data_exchange:q1:c2'], 'condition': 'any'}`
 - **Choices & Scoring**:
-  - `No contract` (0 pts)
-  - `Contract! (Formal Data Transfer Agreement / DPA in place)` (50 pts, compute_result: true)
+  - `No` (0 pts)
+  - `Yes` (100 pts, compute_result: true)
 - **Applicable Cases / Situations**:
-  - [ ] 
+  - [x] Self-Hosted only (Custom & COTS - if data exchanged)
 
 #### Node: Non-Production Data Protection (`non_prod_data`)
 Action - Ask if non prod environments (if used) are secure identically as prod. If yes, subsequent questions do not really matter 
@@ -640,8 +688,8 @@ Action - Ask if non prod environments (if used) are secure identically as prod. 
 - **Type**: `unique_choice`
 - **Conditional Dependency (`depends_on`)**: `{'question': 'urn:intuitem:risk:req_node:appsec:data_destruction:q1', 'answers': ['urn:intuitem:risk:req_node:appsec:data_destruction:q1:c2'], 'condition': 'any'}`
 - **Choices & Scoring**:
-  - `No, not compliant` (0 pts)
-  - `Yes, compliant! (Compliant data destruction schedule and procedures operational)` (50 pts, compute_result: true)
+  - `No` (0 pts)
+  - `Yes` (50 pts, compute_result: true)
 - **Applicable Cases / Situations**:
   - [ ] 
 
@@ -652,7 +700,7 @@ Action - Ask if non prod environments (if used) are secure identically as prod. 
 *Log security-relevant events, mask sensitive fields, and forward telemetry to a central SIEM.*
 
 #### Node: Security Event Logging & Data Masking (`security_event_logging`)
-- **Implementation Groups**: `custom_app`, `cots_app`
+- **Implementation Groups**: `infra`
 - **Description**: Log authentication, authorization, and administrative events while systematically masking sensitive fields.
 
 ##### Q38. `security_event_logging:q1`
@@ -676,7 +724,7 @@ Action - Ask if non prod environments (if used) are secure identically as prod. 
   - [ ] 
 
 #### Node: Centralized SIEM Forwarding & Security Alerting (`centralized_monitoring_and_alerting`)
-- **Implementation Groups**: `custom_app`, `cots_app`
+- **Implementation Groups**: `infra`
 - **Description**: Stream application logs in real-time to a centralized SIEM/SOC with anomaly detection and automated alerting.
 
 ##### Q40. `centralized_monitoring_and_alerting:q1`
@@ -720,7 +768,7 @@ Action - Ask if non prod environments (if used) are secure identically as prod. 
   - [x] **Self-Hosted Internet-Facing only** (Remediation SLAs) 
 
 #### Node: Backup Strategy & Disaster Recovery (`backup_and_disaster_recovery`)
-- **Implementation Groups**: `custom_app`, `cots_app`
+- **Implementation Groups**: `infra`
 - **Description**: Maintain automated encrypted backups and test restoration drills against documented RTO and RPO targets.
 
 ##### Q43. `backup_and_disaster_recovery:q1`
@@ -731,7 +779,42 @@ Action - Ask if non prod environments (if used) are secure identically as prod. 
   - `Yes` (100 pts, compute_result: true)
   - `No` (0 pts)
 - **Applicable Cases / Situations**:
-  - [ ] 
+  - [x] Self-Hosted only (Custom & COTS)
+
+#### Node: Operating System Patching & High Availability (`os_patching`)
+- **Implementation Groups**: `infra`
+- **Description**: Maintain operating system and platform patch hygiene within defined SLAs, and ensure system architecture allows no-downtime patching from a business perspective.
+
+##### Q43a. `os_patching:q1`
+- **URN**: `urn:intuitem:risk:req_node:appsec:os_patching:q1`
+- **Question**: Are operating system (OS) security patches, kernel updates, and host/container security updates applied automatically within formal SLAs? (e.g. Critical <= 14 days, High <= 30 days)
+- **Type**: `unique_choice`
+- **Choices & Scoring**:
+  - `Yes - OS patching is automatic` (50 pts, compute_result: true)
+  - `No - OS patching is not automatic` (0 pts)
+- **Applicable Cases / Situations**:
+  - [x] Self-Hosted only (Custom & COTS - `infra`)
+
+##### Q43b. `os_patching:q2`
+- **URN**: `urn:intuitem:risk:req_node:appsec:os_patching:q2`
+- **Question**: If OS patching is not automatic, is there a formal patching schedule compliant with requirements? (e.g. documented recurring maintenance windows adhering to Critical <= 14 days, High <= 30 days)
+- **Type**: `unique_choice`
+- **Depends On**: `os_patching:q1` == `No - OS patching is not automatic`
+- **Choices & Scoring**:
+  - `Yes` (50 pts, compute_result: true)
+  - `No` (0 pts)
+- **Applicable Cases / Situations**:
+  - [x] Self-Hosted only (Custom & COTS - `infra`, if OS patching is not automatic)
+
+##### Q43c. `os_patching:q3`
+- **URN**: `urn:intuitem:risk:req_node:appsec:os_patching:q3`
+- **Question**: Does the application and infrastructure architecture allow no-downtime patching from a business perspective? (e.g., high-availability clusters, rolling updates, or blue-green deployments preventing business downtime during maintenance)
+- **Type**: `unique_choice`
+- **Choices & Scoring**:
+  - `Yes` (50 pts, compute_result: true)
+  - `No` (0 pts)
+- **Applicable Cases / Situations**:
+  - [x] Self-Hosted only (Custom & COTS - `infra`)
 
 #### Node: COTS Deployment Hardening, Vendor Support & Patch SLAs (`cots_deployment_hardening`)
 - **Implementation Groups**: `cots_app`
@@ -1041,19 +1124,59 @@ Action - Simplify, RBAC and periodic reviews are enough
 - **Applicable Cases / Situations**:
   - [ ] 
 
-#### Node: Data Hosting & European Residency (`saas_data_hosting_and_residency`)
+#### Node: Data Hosting, European Residency & GDPR Compliance (`saas_data_hosting_and_residency`)
 - **Implementation Groups**: `saas_app`
-- **Description**: Host data primarily within the European Union (EU) or European Economic Area (EEA) when required by regulation.
+- **Description**: Host data primarily within the European Union (EU) or European Economic Area (EEA) and ensure comprehensive contractual GDPR compliance under Article 28.
 
 ##### Q69. `saas_data_hosting_and_residency:q1`
 - **URN**: `urn:intuitem:risk:req_node:appsec:saas_data_hosting_and_residency:q1`
-- **Question**: Does the contract mandate and is all customer data (including primary databases, processing pipelines, and backups) hosted primarily within the European Union (EU) or European Economic Area (EEA)?
+- **Question**: Does the contract mandate that all customer data (including primary databases, processing pipelines, and backups) be hosted primarily within the European Union (EU) or European Economic Area (EEA)?
 - **Type**: `unique_choice`
 - **Choices & Scoring**:
-  - `Yes` (100 pts, compute_result: true)
+  - `Yes` (20 pts, compute_result: true)
   - `No` (0 pts)
 - **Applicable Cases / Situations**:
-  - [ ] 
+  - [x] SaaS applications (EU/EEA Data Hosting)
+
+##### Q69b. `saas_data_hosting_and_residency:q2`
+- **URN**: `urn:intuitem:risk:req_node:appsec:saas_data_hosting_and_residency:q2`
+- **Question**: Is a formal Data Processing Agreement (DPA) executed with the vendor that incorporates all mandatory GDPR Article 28 clauses (processing only on documented instructions, personnel confidentiality commitments, and statutory security measures)?
+- **Type**: `unique_choice`
+- **Choices & Scoring**:
+  - `Yes` (20 pts, compute_result: true)
+  - `No` (0 pts)
+- **Applicable Cases / Situations**:
+  - [x] SaaS applications (GDPR DPA & Article 28 mandatory clauses)
+
+##### Q69c. `saas_data_hosting_and_residency:q3`
+- **URN**: `urn:intuitem:risk:req_node:appsec:saas_data_hosting_and_residency:q3`
+- **Question**: Does the contract mandate prior written authorization or advance notice before engaging or replacing sub-processors, granting the customer a legally enforceable right to object or terminate?
+- **Type**: `unique_choice`
+- **Choices & Scoring**:
+  - `Yes` (20 pts, compute_result: true)
+  - `No` (0 pts)
+- **Applicable Cases / Situations**:
+  - [x] SaaS applications (Sub-processor change notification & objection rights)
+
+##### Q69d. `saas_data_hosting_and_residency:q4`
+- **URN**: `urn:intuitem:risk:req_node:appsec:saas_data_hosting_and_residency:q4`
+- **Question**: Does the contract or DPA establish a binding obligation for the vendor to notify the customer without undue delay (within 24 to 48 hours maximum) following the discovery of a suspected or confirmed personal data breach?
+- **Type**: `unique_choice`
+- **Choices & Scoring**:
+  - `Yes` (20 pts, compute_result: true)
+  - `No` (0 pts)
+- **Applicable Cases / Situations**:
+  - [x] SaaS applications (Personal data breach notification SLA)
+
+##### Q69e. `saas_data_hosting_and_residency:q5`
+- **URN**: `urn:intuitem:risk:req_node:appsec:saas_data_hosting_and_residency:q5`
+- **Question**: Does the vendor provide technical mechanisms or contractual commitments to assist the customer in fulfilling Data Subject Rights (access, rectification, erasure, portability) and ensure complete data deletion or return upon contract termination?
+- **Type**: `unique_choice`
+- **Choices & Scoring**:
+  - `Yes` (20 pts, compute_result: true)
+  - `No` (0 pts)
+- **Applicable Cases / Situations**:
+  - [x] SaaS applications (Data subject rights assistance & post-termination data return/deletion) 
 
 #### Node: Physical & Environmental Security (`saas_physical_security`)
 - **Implementation Groups**: `saas_app`

@@ -1,0 +1,391 @@
+application:
+  order: 16
+  id: app_manual_custom_internal
+  name: App-Manual-Custom-Internal
+  label: 'App-Manual-Custom-Internal (Case 1: Custom + Internal / 100% Compliant /
+    Low Risk)'
+  description: In-house developed internal tool hosted on corporate infrastructure;
+    demonstrates Case 1 conditional IG scoping (info, baseline, custom_app, infra).
+  classification: Internal
+  hosting: Internal
+  compliance_target: 100%
+  expected_risk: Low
+  framework_ref: appsec_manual
+  framework_name: Application Security Assessment Framework (AppSec - Manual IG)
+  framework_yaml: YML/appsec_manual.yml
+  user:
+    email: sarah.dev@example-custom.internal
+    first_name: Sarah
+    last_name: Developer
+  tprm:
+    criticality: 2
+    maturity: 4
+    trust: 4
+    conclusion: ok
+  expected_implementation_groups:
+  - info
+  - baseline
+  - custom_app
+  - infra
+answers:
+- requirement: stakeholder_identification
+  question: Is there a designated business contact? (Designated business owner or
+    product sponsor accountable for business processes, functionality, and risk acceptance)
+  answer: 'Yes'
+  result: compliant
+  observation: Internal HR Operations Director designated as business owner.
+- requirement: stakeholder_identification
+  question: Is there a designated IT contact? (Technical lead or engineer responsible
+    for maintenance, infrastructure, deployment, and operational support)
+  answer: 'Yes'
+  result: compliant
+  observation: Lead Internal Tools Engineer designated as IT lead.
+- requirement: stakeholder_identification
+  question: Is there a designated data owner? (Data steward or governance officer
+    responsible for information classification, access authorization, and regulatory
+    compliance)
+  answer: 'Yes'
+  result: compliant
+  observation: HR Privacy Officer assigned as data steward.
+- requirement: stakeholder_identification
+  question: Is the information about stakeholders updated in LeanIX / CMDB? (Stakeholder
+    assignments registered and kept current in the enterprise inventory or service
+    catalog)
+  answer: 'Yes'
+  result: compliant
+  observation: Registered in LeanIX catalog under internal productivity services.
+- requirement: data_classification
+  question: What is the maximum classification level handled? (Public, Internal, Confidential,
+    or Secret according to organizational data classification policy)
+  answer: Internal
+  result: compliant
+  observation: Internal company records and departmental workflow state.
+- requirement: data_classification
+  question: What category of personal data is processed by the application under GDPR?
+  answer: Contact data of employees
+  result: compliant
+  observation: Application processes corporate directory contact details (name, corporate email, department) of internal employees.
+- requirement: data_classification
+  question: What is the volume of data subjects (individuals) whose personal data is processed?
+  answer: Low volume (Fewer than 1,000 individuals / data subjects)
+  result: compliant
+  observation: Scoped to internal enterprise workforce (< 1,000 employees).
+- requirement: hosting
+  question: What is the delivery and hosting model of the application?
+  answer: Custom software created and deployed by my teams (In-house development)
+  result: compliant
+  observation: Custom software developed in-house by internal productivity engineering
+    team.
+- requirement: hosting
+  question: What is the network exposure of the application?
+  answer: Internal / Restricted Network only
+  result: compliant
+  observation: Restricted internal corporate LAN / VPN access only.
+- requirement: authentication_and_mfa
+  question: How do users authenticate to the application?
+  answer: Enterprise SSO (SAML 2.0 / OIDC federated IdP)
+  result: compliant
+  observation: Enterprise Okta SSO with mandatory FIDO2 MFA enforced.
+- requirement: access_control_and_rbac
+  question: Have you defined roles and permissions for the application? (Is access
+    controlled via granular roles (RBAC/ABAC) enforcing least privilege across all
+    business functions and APIs?)
+  answer: 'Yes'
+  result: compliant
+  observation: Least privilege RBAC mapped to internal job profiles.
+- requirement: access_control_and_rbac
+  question: Is the application integrated with the enterprise Identity Governance
+    and Administration (IGA) solution (such as SailPoint) for centralized user lifecycle,
+    role management, and automated provisioning/deprovisioning?
+  answer: 'Yes'
+  result: compliant
+  observation: Integrated with enterprise SailPoint IGA for lifecycle provisioning.
+- requirement: access_control_and_rbac
+  question: Are user entitlements and privileged permissions reviewed and recertified
+    on a periodic basis via formal recertification campaigns (e.g., SailPoint certification
+    campaigns at least annually for standard users, biannually for privileged accounts)?
+  answer: 'Yes'
+  result: compliant
+  observation: Annual manager entitlement recertification campaigns executed in SailPoint.
+- requirement: session_management
+  question: Are session tokens cryptographically secure, transmitted with secure cookie
+    flags (HttpOnly, Secure, SameSite), and invalidated on logout or inactivity?
+  answer: 'Yes'
+  result: compliant
+  observation: Secure cookie flags (HttpOnly, Secure, SameSite=Strict) and 30-min
+    inactivity timeout.
+- requirement: owasp_top_10_defenses
+  question: Do you apply coding guidelines against OWASP Top 10 vulnerabilities (including
+    input validation, parameterized queries, output encoding, and secure error handling)?
+  answer: 'Yes'
+  result: compliant
+  observation: Parameterized ORM queries, output encoding, strict schema validation.
+- requirement: file_upload_security
+  question: Can files be uploaded to the application? (e.g., user attachments, documents,
+    images, media, or data imports)
+  answer: 'No'
+  result: compliant
+  observation: Application does not accept or process file uploads.
+- requirement: automated_security_testing
+  question: Is automated Static Application Security Testing (SAST) integrated into
+    the CI/CD pipeline with blocking quality gates?
+  answer: 'Yes'
+  result: compliant
+  observation: Semgrep SAST runs on pull requests with blocking quality gates.
+- requirement: automated_security_testing
+  question: Is Dynamic Application Security Testing (DAST) or API security scanning
+    performed automatically prior to release?
+  answer: 'Yes'
+  result: compliant
+  observation: Nightly automated OWASP ZAP API scans in pre-production environment.
+- requirement: supply_chain_and_dependencies
+  question: Is Software Composition Analysis (SCA) automated in the CI/CD pipeline
+    to detect known vulnerabilities in open-source dependencies?
+  answer: 'Yes'
+  result: compliant
+  observation: Snyk SCA integrated in CI/CD pipeline blocking High/Critical CVEs.
+- requirement: supply_chain_and_dependencies
+  question: Is an accurate Software Bill of Materials (SBOM) maintained and audited
+    for all released application artifacts?
+  answer: 'Yes'
+  result: compliant
+  observation: CycloneDX SBOM generated automatically with every container image build.
+- requirement: code_review_and_ci_cd_integrity
+  question: Are mandatory peer code reviews and branch protection rules enforced before
+    any merge into deployment branches?
+  answer: 'Yes'
+  result: compliant
+  observation: GitHub protected main branch with required 2 peer reviews and signed
+    commits.
+- requirement: data_exchange
+  question: 'Does the application exchange data externally? (e.g., B2B transfers,
+    automated API integrations, webhooks, or network communications with external
+    partners, third-party vendors, or external services; Note: this excludes B2C interactions,
+    as customers do not receive data the same way B2B partners do)'
+  answer: 'No'
+  result: compliant
+  observation: Internal self-contained service; no external B2B data exchanges.
+- requirement: non_prod_data
+  question: Are real production data records, live customer databases, or personal
+    data utilized in non-production environments? (e.g., development/staging environments
+    or QA databases)
+  answer: No - Synthetic, generated, or mock test data is used exclusively
+  result: compliant
+  observation: Mock and synthetic datasets generated exclusively for non-production
+    environments.
+- requirement: data_destruction
+  question: Is there a data destruction process for this application? (e.g., documented
+    data retention schedule and end-of-life purging procedures for self-hosted systems)
+  answer: 'Yes'
+  result: compliant
+  observation: Documented 3-year retention schedule and automated database record
+    purging jobs.
+- requirement: data_destruction
+  question: Is the process compliant with the policy (responsibilities, methods, reporting)?
+    (e.g., defined stakeholder roles, approved cryptographic erasure or disposal methods,
+    and verification certificates)
+  answer: 'Yes'
+  result: compliant
+  observation: Purging jobs produce cryptographic audit logs and automated disposal
+    verification.
+- requirement: secrets_management
+  question: Are application credentials, API keys, and cryptographic secrets stored
+    exclusively in a dedicated secrets manager rather than in code or configuration
+    files?
+  answer: 'Yes'
+  result: compliant
+  observation: HashiCorp Vault injects database credentials via Kubernetes CSI driver.
+- requirement: data_in_transit
+  question: 'Is data encrypted during transit across external and internal network
+    boundaries? (Specify protocols, algorithms and methods: e.g., TLS 1.2 / TLS 1.3
+    with AES-GCM or ChaCha20, HTTPS with HSTS, mTLS for service APIs, SSHv2, or IPsec)'
+  answer: 'Yes'
+  result: compliant
+  observation: TLS 1.3 enforced for internal ingress and Istio mTLS between mesh services.
+- requirement: data_at_rest
+  question: 'Is data encrypted at rest? (Specify algorithms and key management: e.g.,
+    AES-256 / AES-GCM across databases, object storage, file systems, disk volumes,
+    and backups with centralized KMS, HSM, or TDE)'
+  answer: 'Yes'
+  result: compliant
+  observation: AES-256 transparent data encryption (TDE) on PostgreSQL clusters.
+- requirement: security_event_logging
+  question: Does the application log key security events (failed logins, privilege
+    escalation, administrative changes, access to sensitive assets)?
+  answer: 'Yes'
+  result: compliant
+  observation: Structured JSON audit logs for authentication, RBAC changes, and admin
+    tasks.
+- requirement: security_event_logging
+  question: Are sensitive data fields (passwords, payment cards, tokens, PII) systematically
+    sanitized/masked from log outputs?
+  answer: 'Yes'
+  result: compliant
+  observation: Logback masking filters strip sensitive employee data and credentials.
+- requirement: centralized_monitoring_and_alerting
+  question: Are application logs forwarded in near-real-time to a central SIEM/SOC
+    platform with alerting rules for suspicious activities?
+  answer: 'Yes'
+  result: compliant
+  observation: Logs streamed via FluentBit to central Splunk SIEM with active detection
+    alerts.
+- requirement: backup_and_disaster_recovery
+  question: Are automated and encrypted backups maintained for application state and
+    databases, with restoration tests performed at least annually?
+  answer: 'Yes'
+  result: compliant
+  observation: Automated daily encrypted snapshots with quarterly automated restore
+    verification.
+- requirement: os_patching
+  question: Are operating system (OS) security patches, kernel updates, and host/container
+    security updates applied automatically within formal SLAs? (e.g. Critical <= 14
+    days, High <= 30 days)
+  answer: Yes - OS patching is automatic
+  result: compliant
+  observation: Base container images rebuilt automatically via nightly Renovate and
+    CI pipelines.
+- requirement: os_patching
+  question: Does the application and infrastructure architecture allow no-downtime
+    patching from a business perspective? (e.g., high-availability clusters, rolling
+    updates, or blue-green deployments preventing business downtime during maintenance)
+  answer: 'Yes'
+  result: compliant
+  observation: Kubernetes rolling updates provide zero-downtime continuous patching.
+expected_evaluation:
+  impact_level: 2
+  confidentiality_impact: 2
+  availability_impact: 2
+  integrity_impact: 2
+  scenario_count: 15
+  excluded_scenarios:
+  - API abuse and denial of service
+  - Compromise via unhardened or End-of-Life (EOL) COTS deployment
+  - Exploitation of unpatched SaaS vulnerability
+  - Exploitation of unpatched vulnerability
+  - Reliance on unverified SaaS security posture
+  - SaaS customer data exposure due to missing encryption or NDA safeguards
+  - SaaS provider data leakage
+  - SaaS tenant isolation breach and cross-border leakage
+  - SaaS tenant takeover via unprotected administrative console
+  - SaaS vendor privilege abuse and sub-processor leakage
+expected_risk_scenarios:
+- scenario: Account takeover via weak authentication
+  likelihood_requirement: authentication_and_mfa
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 2
+  matrix_risk_id: 0
+  risk_level: 1
+  control_priority: 4
+- scenario: Application compromise via injection attack
+  likelihood_requirement: owasp_top_10_defenses
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 2
+  matrix_risk_id: 0
+  risk_level: 1
+  control_priority: 4
+- scenario: Application or storage compromise via unrestricted file upload
+  likelihood_requirement: file_upload_security
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 2
+  matrix_risk_id: 0
+  risk_level: 1
+  control_priority: 4
+- scenario: Catastrophic data loss due to unverified backups
+  likelihood_requirement: backup_and_disaster_recovery
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 2
+  matrix_risk_id: 0
+  risk_level: 1
+  control_priority: 4
+- scenario: Credential leakage via hardcoded secrets
+  likelihood_requirement: secrets_management
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 2
+  matrix_risk_id: 0
+  risk_level: 1
+  control_priority: 4
+- scenario: Disclosure of production data in non-production environments
+  likelihood_requirement: non_prod_data
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 2
+  matrix_risk_id: 0
+  risk_level: 1
+  control_priority: 4
+- scenario: Excessive retention of sensitive data
+  likelihood_requirement: data_destruction
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 2
+  matrix_risk_id: 0
+  risk_level: 1
+  control_priority: 4
+- scenario: Exposure of unencrypted data at rest
+  likelihood_requirement: data_at_rest
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 2
+  matrix_risk_id: 0
+  risk_level: 1
+  control_priority: 4
+- scenario: Exposure of unencrypted data in transit
+  likelihood_requirement: data_in_transit
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 2
+  matrix_risk_id: 0
+  risk_level: 1
+  control_priority: 4
+- scenario: Host or OS compromise via unpatched system vulnerabilities
+  likelihood_requirement: os_patching
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 2
+  matrix_risk_id: 0
+  risk_level: 1
+  control_priority: 4
+- scenario: Missing application stakeholders
+  likelihood_requirement: stakeholder_identification
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 2
+  matrix_risk_id: 0
+  risk_level: 1
+  control_priority: 4
+- scenario: Supply chain compromise via vulnerable dependency
+  likelihood_requirement: supply_chain_and_dependencies
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 2
+  matrix_risk_id: 0
+  risk_level: 1
+  control_priority: 4
+- scenario: Third-party data leakage
+  likelihood_requirement: data_exchange
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 2
+  matrix_risk_id: 0
+  risk_level: 1
+  control_priority: 4
+- scenario: Unauthorized data access via broken authorization
+  likelihood_requirement: access_control_and_rbac
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 2
+  matrix_risk_id: 0
+  risk_level: 1
+  control_priority: 4
+- scenario: Undetected breach due to missing security logging
+  likelihood_requirement: centralized_monitoring_and_alerting
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 2
+  matrix_risk_id: 0
+  risk_level: 1
+  control_priority: 4

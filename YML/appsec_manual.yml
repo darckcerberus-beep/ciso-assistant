@@ -30,7 +30,7 @@ description: >
   before auditors manually assign relevant tracks (Custom, COTS, Infrastructure, SaaS, Internet-Facing) without
   dynamic choice triggering.
 copyright: DCME Corp
-version: 10
+version: 13
 publication_date: 2026-11-05
 provider: DCME Corp
 packager: DCME Corp
@@ -297,7 +297,7 @@ objects:
         parent_urn: urn:intuitem:risk:req_node:appsec_manual:info
         ref_id: data_classification
         name: Data classification
-        description: "Classify data handled by the application according to organizational policy."
+        description: "Classify data handled by the application according to organizational policy, including GDPR personal data category and processing volume."
         annotation: |
           ### Enterprise Data Classification & Governance Guidance
 
@@ -305,6 +305,7 @@ objects:
           > - **Data Ownership**: Data owners must confirm the appropriate level and review it as operational risks change.
           > - **Public Release**: Requires explicit formal approval prior to publication.
           > - **Dataset Aggregation**: Combining lower-tier datasets (e.g. customer identities + detailed purchase histories) may escalate the overall classification.
+          > - **GDPR Profiling**: Categorizing personal data types (standard vs. Art. 9/10 special categories) and processing volume determines statutory data protection mandates (e.g. mandatory DPIA, DPO appointment, enhanced transfer safeguards).
 
           #### Classification Reference Matrix
 
@@ -325,6 +326,7 @@ objects:
           - **Information Asset Register (CMDB)**: Entry reflecting confirmed sensitivity tiers across application data stores
           - **Data Flow Diagram (DFD)**: Tagged with sensitivity markers on datastores, message queues, and external interfaces
           - **DPIA / PCI-DSS AoC**: Formal impact assessments or compliance attestations (for cardholder or secret personal data)
+          - **Record of Processing Activities (ROPA)**: Documented GDPR Article 30 registry detailing personal data categories and data subject volumes
         reference_controls: ["urn:intuitem:risk:control:appsec:identify_data_classification"]
         vulnerabilities: ["urn:intuitem:risk:vulnerability:appsec:lack_of_data_classification"]
         implementation_groups: ["info"]
@@ -345,6 +347,45 @@ objects:
               - urn: urn:intuitem:risk:req_node:appsec_manual:data_classification:q1:c4
                 value: "Secret"
                 color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec_manual:data_classification:q2:
+            type: unique_choice
+            text: "What category of personal data is processed by the application under GDPR?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec_manual:data_classification:q2:c1
+                value: "No personal data"
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec_manual:data_classification:q2:c2
+                value: "Contact data of employees"
+                color: "#ffc107"
+              - urn: urn:intuitem:risk:req_node:appsec_manual:data_classification:q2:c3
+                value: "Contact and order details about customers"
+                color: "#fd7e14"
+              - urn: urn:intuitem:risk:req_node:appsec_manual:data_classification:q2:c4
+                value: "HR and financial details about employees and customer payment data"
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec_manual:data_classification:q3:
+            type: unique_choice
+            text: "What is the volume of data subjects (individuals) whose personal data is processed?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec_manual:data_classification:q2
+              answers:
+                - urn:intuitem:risk:req_node:appsec_manual:data_classification:q2:c2
+                - urn:intuitem:risk:req_node:appsec_manual:data_classification:q2:c3
+                - urn:intuitem:risk:req_node:appsec_manual:data_classification:q2:c4
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec_manual:data_classification:q3:c1
+                value: "Low volume (Fewer than 1,000 individuals / data subjects)"
+                color: "#33a745"
+                multiplier: 1.0
+              - urn: urn:intuitem:risk:req_node:appsec_manual:data_classification:q3:c2
+                value: "Medium volume (1,000 to 100,000 individuals / data subjects)"
+                color: "#fd7e14"
+                multiplier: 1.0
+              - urn: urn:intuitem:risk:req_node:appsec_manual:data_classification:q3:c3
+                value: "High volume / Large scale processing under GDPR (More than 100,000 individuals, or systemic nationwide monitoring)"
+                color: "#dc3545"
+                multiplier: 1.5
 
       # Requirement: Determine hosting model, network exposure & SaaS vendor certification
       - urn: urn:intuitem:risk:req_node:appsec_manual:hosting
@@ -583,6 +624,10 @@ objects:
           urn:intuitem:risk:req_node:appsec_manual:access_control_and_rbac:q3:
             type: unique_choice
             text: "Are user entitlements and privileged permissions reviewed and recertified on a periodic basis via formal recertification campaigns (e.g., SailPoint certification campaigns at least annually for standard users, biannually for privileged accounts)?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec_manual:access_control_and_rbac:q1
+              answers: ["urn:intuitem:risk:req_node:appsec_manual:access_control_and_rbac:q1:c1"]
+              condition: any
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:access_control_and_rbac:q3:c1
                 value: "Yes"
@@ -1627,6 +1672,10 @@ objects:
           urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening:q3:
             type: unique_choice
             text: "Are published vendor security patches, hotfixes, and critical vulnerability updates deployed within formal SLAs (Critical <= 14 days)?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening:q2
+              answers: ["urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening:q2:c1"]
+              condition: any
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening:q3:c1
                 value: "Yes"
@@ -2306,15 +2355,21 @@ objects:
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec_manual:saas_chapter
         ref_id: saas_data_hosting_and_residency
-        name: "Data Hosting & European Residency"
-        description: "Host data primarily within the European Union (EU) or European Economic Area (EEA) when required by regulation."
+        name: "Data Hosting, European Residency & GDPR Compliance"
+        description: "Host data primarily within the European Union (EU) or European Economic Area (EEA) and ensure comprehensive contractual GDPR compliance under Article 28."
         annotation: >
-          Contractual requirements:
+          Contractual and statutory GDPR compliance requirements:
           - Customer primary data, databases, and backup archives hosted primarily within the European Union (EU) or European Economic Area (EEA).
-          - Full compliance with cross-border transfer requirements (GDPR Chapter V / EU Standard Contractual Clauses).
+          - Executed Data Processing Agreement (DPA) incorporating all mandatory GDPR Article 28 obligations.
+          - Sub-processor governance: advance notification of any new sub-processors with legally binding objection and contract termination rights.
+          - Incident response SLA: mandatory notification of any confirmed or suspected personal data breach without undue delay (max 24 to 48 hours).
+          - Data Subject Rights (DSR) assistance (access, rectification, erasure, portability) and guaranteed data return/deletion upon termination.
         typical_evidence: >
-          - Contractual Data Processing Addendum (DPA) specifying primary and backup datacenter regions within EU/EEA
-          - Cloud hosting tenant configuration report confirming EU datacenter regions
+          - Executed Data Processing Agreement (DPA) signed by authorized representatives
+          - Sub-processor registry and formal 30-day change notification procedure
+          - Data Breach Notification SLA policy and 24-48h escalation workflow
+          - Data Subject Rights (DSR) fulfillment runbook and tenant data deletion/export certification
+          - Cloud hosting tenant configuration report confirming EU/EEA datacenter regions
         vulnerabilities:
           - urn:intuitem:risk:vulnerability:appsec:weak_tenant_isolation
         implementation_groups: ["saas_app"]
@@ -2327,10 +2382,66 @@ objects:
             choices:
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_data_hosting_and_residency:q1:c1
                 value: "Yes"
-                add_score: 100
+                add_score: 20
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec_manual:saas_data_hosting_and_residency:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec_manual:saas_data_hosting_and_residency:q2:
+            type: unique_choice
+            text: "Is a formal Data Processing Agreement (DPA) executed with the vendor that incorporates all mandatory GDPR Article 28 clauses (processing only on documented instructions, personnel confidentiality commitments, and statutory security measures)?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_data_hosting_and_residency:q2:c1
+                value: "Yes"
+                add_score: 20
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_data_hosting_and_residency:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec_manual:saas_data_hosting_and_residency:q3:
+            type: unique_choice
+            text: "Does the contract mandate prior written authorization or advance notice before engaging or replacing sub-processors, granting the customer a legally enforceable right to object or terminate?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_data_hosting_and_residency:q3:c1
+                value: "Yes"
+                add_score: 20
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_data_hosting_and_residency:q3:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec_manual:saas_data_hosting_and_residency:q4:
+            type: unique_choice
+            text: "Does the contract or DPA establish a binding obligation for the vendor to notify the customer without undue delay (within 24 to 48 hours maximum) following the discovery of a suspected or confirmed personal data breach?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_data_hosting_and_residency:q4:c1
+                value: "Yes"
+                add_score: 20
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_data_hosting_and_residency:q4:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec_manual:saas_data_hosting_and_residency:q5:
+            type: unique_choice
+            text: "Does the vendor provide technical mechanisms or contractual commitments to assist the customer in fulfilling Data Subject Rights (access, rectification, erasure, portability) and ensure complete data deletion or return upon contract termination?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_data_hosting_and_residency:q5:c1
+                value: "Yes"
+                add_score: 20
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_data_hosting_and_residency:q5:c2
                 value: "No"
                 add_score: 0
                 compute_result: false
@@ -2706,6 +2817,14 @@ criticality_mapping:
     urn:intuitem:risk:req_node:appsec_manual:data_classification:q1:c2: 1  # Internal
     urn:intuitem:risk:req_node:appsec_manual:data_classification:q1:c3: 2  # Confidential
     urn:intuitem:risk:req_node:appsec_manual:data_classification:q1:c4: 3  # Secret
+    urn:intuitem:risk:req_node:appsec_manual:data_classification:q2:c1: 0  # No personal data
+    urn:intuitem:risk:req_node:appsec_manual:data_classification:q2:c2: 1  # Contact data of employees
+    urn:intuitem:risk:req_node:appsec_manual:data_classification:q2:c3: 2  # Contact and order details about customers
+    urn:intuitem:risk:req_node:appsec_manual:data_classification:q2:c4: 3  # HR and financial details about employees and customer payment data
+  quantity_multiplier:
+    urn:intuitem:risk:req_node:appsec_manual:data_classification:q3:c1: 1.0  # Low volume (< 1k)
+    urn:intuitem:risk:req_node:appsec_manual:data_classification:q3:c2: 1.0  # Medium volume (1k - 100k)
+    urn:intuitem:risk:req_node:appsec_manual:data_classification:q3:c3: 1.5  # High volume (> 100k)
   integrity: {}
   availability: {}
 

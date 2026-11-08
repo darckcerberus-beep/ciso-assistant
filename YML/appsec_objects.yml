@@ -18,7 +18,7 @@ description: >
   Common risk matrix, threats, vulnerabilities, reference controls, and risk scenarios
   shared between Application Security Assessment Frameworks (AppSec and AppSec Manual).
 copyright: DCME Corp
-version: 1
+version: 2
 publication_date: 2026-11-06
 provider: DCME Corp
 packager: DCME Corp
@@ -35,7 +35,7 @@ objects:
       description: >
         Sensitive information is exposed during network transmission due to
         missing or deprecated cryptographic transport protocols.
-      likelihood: urn:intuitem:risk:req_node:appsec:data_exchange
+      likelihood: urn:intuitem:risk:req_node:appsec:data_in_transit
       impact: urn:intuitem:risk:req_node:appsec:data_classification
       threats:
         - urn:intuitem:risk:threat:appsec:data_exfiltration
@@ -44,9 +44,9 @@ objects:
         - urn:intuitem:risk:vulnerability:appsec:lack_of_encryption
       reference_controls:
         - urn:intuitem:risk:control:appsec:encrypt_data_in_transit
+      frameworks: ["appsec", "appsec_manual"]
 
     # 2. Unencrypted data at rest (from newDPP)
-      frameworks: ["appsec", "appsec_manual"]
     - urn: urn:intuitem:risk:scenario:appsec:unencrypted_data_at_rest
       ref_id: unencrypted_data_at_rest
       name: "Exposure of unencrypted data at rest"
@@ -100,14 +100,13 @@ objects:
         - urn:intuitem:risk:control:appsec:information_exchange_contract
 
     # 5. SaaS provider data leakage (from newDPP)
-      frameworks: ["appsec", "appsec_manual"]
     - urn: urn:intuitem:risk:scenario:appsec:saas_provider_data_leakage
       ref_id: saas_provider_data_leakage
       name: "SaaS provider data leakage"
       description: >
         Sensitive information is disclosed or misused by an external SaaS provider
         due to inadequate contractual safeguards, lack of audit rights, or missing DPAs.
-      likelihood: urn:intuitem:risk:req_node:appsec:saas_contract
+      likelihood: urn:intuitem:risk:req_node:appsec:saas_contract_compliance
       impact: urn:intuitem:risk:req_node:appsec:data_classification
       threats:
         - urn:intuitem:risk:threat:appsec:data_exfiltration
@@ -415,9 +414,9 @@ objects:
       reference_controls:
         - urn:intuitem:risk:control:appsec:regular_penetration_testing
         - urn:intuitem:risk:control:appsec:backup_and_disaster_recovery
+      frameworks: ["appsec", "appsec_manual"]
 
     # 22. Compromise via unhardened or End-of-Life (EOL) COTS deployment (COTS applications)
-      frameworks: ["appsec_manual"]
     - urn: urn:intuitem:risk:scenario:appsec:cots_misconfiguration_or_eol_exploitation
       ref_id: cots_misconfiguration_or_eol_exploitation
       name: "Compromise via unhardened or End-of-Life (EOL) COTS deployment"
@@ -434,9 +433,9 @@ objects:
         - urn:intuitem:risk:vulnerability:appsec:contractual_gap
       reference_controls:
         - urn:intuitem:risk:control:appsec:regular_penetration_testing
+      frameworks: ["appsec", "appsec_manual"]
 
     # 23. Application or storage compromise via unrestricted file upload (Custom applications)
-      frameworks: ["appsec_manual"]
     - urn: urn:intuitem:risk:scenario:appsec:malicious_file_upload_compromise
       ref_id: malicious_file_upload_compromise
       name: "Application or storage compromise via unrestricted file upload"
@@ -452,9 +451,9 @@ objects:
         - urn:intuitem:risk:vulnerability:appsec:flawed_input_validation
       reference_controls:
         - urn:intuitem:risk:control:appsec:secure_input_validation_and_encoding
+      frameworks: ["appsec", "appsec_manual"]
 
     # 24. SaaS tenant takeover via unprotected administrative console (SaaS applications)
-      frameworks: ["appsec_manual"]
     - urn: urn:intuitem:risk:scenario:appsec:saas_admin_console_takeover
       ref_id: saas_admin_console_takeover
       name: "SaaS tenant takeover via unprotected administrative console"
@@ -470,9 +469,9 @@ objects:
         - urn:intuitem:risk:vulnerability:appsec:weak_authentication_controls
       reference_controls:
         - urn:intuitem:risk:control:appsec:enforce_mfa_and_strong_auth
+      frameworks: ["appsec", "appsec_manual"]
 
     # 25. SaaS customer data exposure due to missing contractual encryption or NDA safeguards (SaaS applications)
-      frameworks: ["appsec_manual"]
     - urn: urn:intuitem:risk:scenario:appsec:saas_unencrypted_or_unauthorized_data_exposure
       ref_id: saas_unencrypted_or_unauthorized_data_exposure
       name: "SaaS customer data exposure due to missing encryption or NDA safeguards"
@@ -491,7 +490,7 @@ objects:
         - urn:intuitem:risk:control:appsec:saas_cryptographic_sovereignty
         - urn:intuitem:risk:control:appsec:encrypt_data_in_transit
         - urn:intuitem:risk:control:appsec:encrypt_data_at_rest
-      frameworks: ["appsec_manual"]
+      frameworks: ["appsec", "appsec_manual"]
 
   # ========================================================================
   # RISK MATRIX - 4x4 probability/impact matrix with risk levels

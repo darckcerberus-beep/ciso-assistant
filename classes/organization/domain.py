@@ -9,27 +9,22 @@ from pathlib import Path
 
 from .. import utils
 
-# Load settings from framework file
-_framework_path = Path(__file__).parent.parent.parent / "YML" / "newDPP.yml"
-_framework = utils.load_yaml_file(str(_framework_path))
-
 # Mapping for data classification criticality levels (Confidentiality, Integrity, Availability)
-criticality_mapping = _framework.get("criticality_mapping", {
+criticality_mapping: dict = {
     "confidentiality": {},
     "integrity": {},
-    "availability": {}
-})
+    "availability": {},
+    "quantity_multiplier": {},
+}
 
-# Merge mappings from other framework files in YML directory
+# Dynamically load and merge mappings from framework files in YML directory
 _yml_dir = Path(__file__).parent.parent.parent / "YML"
 if _yml_dir.exists():
-    for _cat_path in _yml_dir.glob("*.y*ml"):
-        if _cat_path == _framework_path:
-            continue
+    for _cat_path in sorted(_yml_dir.glob("*.y*ml")):
         try:
             _cat_fw = utils.load_yaml_file(str(_cat_path))
             _cm = _cat_fw.get("criticality_mapping", {}) if isinstance(_cat_fw, dict) else {}
-            for _k in ("confidentiality", "integrity", "availability"):
+            for _k in ("confidentiality", "integrity", "availability", "quantity_multiplier"):
                 if _k in _cm and isinstance(_cm[_k], dict):
                     criticality_mapping.setdefault(_k, {}).update(_cm[_k])
         except Exception:

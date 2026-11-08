@@ -23,7 +23,7 @@ application:
 answers:
 - requirement: PROF.00
   question: What is the primary service delivery model provided by the vendor?
-  answer: SaaS / Cloud Software Platform
+  answer: SaaS / Cloud Software Platform (e.g., marketplace engine, CRM, collaboration tool)
   result: compliant
   observation: 'Service model: SaaS / Cloud Software Platform'
 - requirement: PROF.00

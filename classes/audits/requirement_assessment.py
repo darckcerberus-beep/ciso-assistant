@@ -587,6 +587,8 @@ class RequirementAssessmentDict:
             if ra.has_selected_answer():
                 for question, answer in ra.get_requirement_json().get('answers', {}).items():
                     for criteria_question, criteria_mapping in criticality_mapping.items():
+                        if criteria_question == "quantity_multiplier":
+                            continue
                         if answer in criteria_mapping:
                             utils.log(
                                 f"Updating asset criticality for criteria question: {criteria_question} "

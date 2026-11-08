@@ -278,6 +278,13 @@ class LibraryFile:
         """Return the library's criticality mapping."""
         return self.json_object.get("criticality_mapping", {})
 
+    def get_quantity_multiplier_mapping(self):
+        """Return the data classification quantity multiplier mapping."""
+        criticality_mapping = self.get_criticality_mapping()
+        if not isinstance(criticality_mapping, dict):
+            return {}
+        return criticality_mapping.get("quantity_multiplier", {})
+
     def get_impact_mapping(self):
         """Return the data classification mapping used to derive impact levels."""
         criticality_mapping = self.get_criticality_mapping()

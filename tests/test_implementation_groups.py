@@ -592,13 +592,50 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         always_selectable = [g["ref_id"] for g in res["always_selectable_groups"]]
         hidden = [g["ref_id"] for g in res["hidden_groups"]]
 
-        self.assertIn("info", always_selectable)
-        self.assertIn("baseline", always_selectable)
+        self.assertEqual(always_selectable, ["info"])
+        self.assertIn("baseline", hidden)
         self.assertIn("custom_app", hidden)
         self.assertIn("cots_app", hidden)
+        self.assertIn("infra", hidden)
         self.assertIn("saas_app", hidden)
         self.assertIn("saas_uncertified", hidden)
         self.assertIn("internet_facing", hidden)
+
+        # 1. Custom software (hosting:q1:c1) triggers custom_app, infra, and baseline
+        res_custom = determine_implementation_groups_triggered_by_others(
+            "appsec",
+            answers={"hosting": {"q1": "Custom software created and deployed by my teams (In-house development)"}},
+        )
+        triggered_custom = [g["ref_id"] for g in res_custom["triggered_groups"]]
+        self.assertIn("custom_app", triggered_custom)
+        self.assertIn("infra", triggered_custom)
+        self.assertIn("baseline", triggered_custom)
+        self.assertNotIn("cots_app", triggered_custom)
+        self.assertNotIn("saas_app", triggered_custom)
+
+        # 2. COTS software (hosting:q1:c2) triggers cots_app, infra, and baseline
+        res_cots = determine_implementation_groups_triggered_by_others(
+            "appsec",
+            answers={"hosting": {"q1": "Bought software deployed by my teams (COTS / Vendor package)"}},
+        )
+        triggered_cots = [g["ref_id"] for g in res_cots["triggered_groups"]]
+        self.assertIn("cots_app", triggered_cots)
+        self.assertIn("infra", triggered_cots)
+        self.assertIn("baseline", triggered_cots)
+        self.assertNotIn("custom_app", triggered_cots)
+        self.assertNotIn("saas_app", triggered_cots)
+
+        # 3. SaaS software (hosting:q1:c3) triggers saas_app and baseline, and does NOT trigger infra
+        res_saas = determine_implementation_groups_triggered_by_others(
+            "appsec",
+            answers={"hosting": {"q1": "SaaS (Third-party software hosted and operated by a vendor)"}},
+        )
+        triggered_saas = [g["ref_id"] for g in res_saas["triggered_groups"]]
+        self.assertIn("saas_app", triggered_saas)
+        self.assertIn("baseline", triggered_saas)
+        self.assertNotIn("infra", triggered_saas)
+        self.assertNotIn("custom_app", triggered_saas)
+        self.assertNotIn("cots_app", triggered_saas)
 
     def test_appsec_manual_triggered_implementation_groups_orchestration(self):
         """Verify that the manual AppSec framework hides non-relevant tracks and enables orchestrator-driven dynamic triggering."""
@@ -732,6 +769,226 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         self.assertIn("cots_app", hidden_saas_uncert)
         self.assertIn("infra", hidden_saas_uncert)
         self.assertIn("internet_facing", hidden_saas_uncert)
+
+    def test_appsec_manual_example_suite_all_6_combinations(self):
+        """Verify the comprehensive application example suite testing all 6 conditional IG combinations."""
+        from pathlib import Path
+        import yaml
+        from tests.test_application_scenarios import ApplicationRiskSimulator
+
+        with open("YML/appsec_manual.yml", "r", encoding="utf-8") as f:
+            fw_doc = yaml.safe_load(f)
+        fw = fw_doc["objects"]["framework"]
+        nodes_by_ref = {n["ref_id"]: n for n in fw["requirement_nodes"] if n.get("assessable")}
+        simulator = ApplicationRiskSimulator("YML/appsec_manual.yml")
+
+        expected_cases = {
+            "test_data/app_manual_custom_internal.yml": {
+                "name": "App-Manual-Custom-Internal",
+                "visible_igs": {"info", "baseline", "custom_app", "infra"},
+                "hidden_igs": {"cots_app", "internet_facing", "saas_app", "saas_uncertified"},
+                "node_count": 21,
+                "scenario_count": 15,
+                "excluded_scenario_count": 10,
+            },
+            "test_data/app_manual_custom_internet.yml": {
+                "name": "App-Manual-Custom-Internet",
+                "visible_igs": {"info", "baseline", "custom_app", "infra", "internet_facing"},
+                "hidden_igs": {"cots_app", "saas_app", "saas_uncertified"},
+                "node_count": 23,
+                "scenario_count": 17,
+                "excluded_scenario_count": 8,
+            },
+            "test_data/app_manual_cots_internal.yml": {
+                "name": "App-Manual-COTS-Internal",
+                "visible_igs": {"info", "baseline", "cots_app", "infra"},
+                "hidden_igs": {"custom_app", "internet_facing", "saas_app", "saas_uncertified"},
+                "node_count": 17,
+                "scenario_count": 13,
+                "excluded_scenario_count": 12,
+            },
+            "test_data/app_manual_cots_internet.yml": {
+                "name": "App-Manual-COTS-Internet",
+                "visible_igs": {"info", "baseline", "cots_app", "infra", "internet_facing"},
+                "hidden_igs": {"custom_app", "saas_app", "saas_uncertified"},
+                "node_count": 19,
+                "scenario_count": 15,
+                "excluded_scenario_count": 10,
+            },
+            "test_data/app_manual_saas_certified.yml": {
+                "name": "App-Manual-SaaS-Certified",
+                "visible_igs": {"info", "baseline", "saas_app"},
+                "hidden_igs": {"custom_app", "cots_app", "infra", "internet_facing", "saas_uncertified"},
+                "node_count": 12,
+                "scenario_count": 7,
+                "excluded_scenario_count": 18,
+            },
+            "test_data/app_manual_saas_uncertified.yml": {
+                "name": "App-Manual-SaaS-Uncertified",
+                "visible_igs": {"info", "baseline", "saas_app", "saas_uncertified"},
+                "hidden_igs": {"custom_app", "cots_app", "infra", "internet_facing"},
+                "node_count": 26,
+                "scenario_count": 10,
+                "excluded_scenario_count": 15,
+            },
+        }
+
+        for file_path, exp in expected_cases.items():
+            with self.subTest(file=file_path, case=exp["name"]):
+                yaml_p = Path(file_path)
+                self.assertTrue(yaml_p.exists(), f"File {file_path} missing")
+                with open(yaml_p, "r", encoding="utf-8") as f:
+                    app_doc = yaml.safe_load(f)
+
+                # 1. Implementation Group Scoping
+                dep_info = determine_implementation_groups_triggered_by_others(
+                    "appsec_manual",
+                    yaml_path=file_path,
+                )
+                vis_refs = {g["ref_id"] for g in dep_info["visible_groups"]}
+                hid_refs = {g["ref_id"] for g in dep_info["hidden_groups"]}
+                self.assertEqual(vis_refs, exp["visible_igs"], f"Visible IG mismatch in {file_path}")
+                self.assertEqual(hid_refs, exp["hidden_igs"], f"Hidden IG mismatch in {file_path}")
+
+                # 2. Requirement Node Coverage & Absence of Out-of-Scope Requirements
+                answers = app_doc.get("answers", [])
+                answered_req_refs = {a["requirement"] for a in answers}
+                self.assertEqual(len(answered_req_refs), exp["node_count"], f"Node count mismatch in {file_path}")
+
+                for req_ref in answered_req_refs:
+                    node = nodes_by_ref.get(req_ref)
+                    self.assertIsNotNone(node, f"Unknown requirement '{req_ref}' in {file_path}")
+                    node_igs = set(node.get("implementation_groups", []))
+                    self.assertTrue(
+                        bool(node_igs & exp["visible_igs"]),
+                        f"Requirement '{req_ref}' belongs to {node_igs}, none of which are visible in {file_path}",
+                    )
+
+                # 3. Risk Scenarios Evaluation
+                eval_results = simulator.evaluate_application(file_path)
+                scenarios = eval_results["scenarios"]
+                self.assertEqual(len(scenarios), exp["scenario_count"], f"Scenario count mismatch in {file_path}")
+                excluded = app_doc.get("expected_evaluation", {}).get("excluded_scenarios", [])
+                self.assertEqual(len(excluded), exp["excluded_scenario_count"], f"Excluded scenario count mismatch in {file_path}")
+
+                # Every evaluated scenario belongs to in-scope requirements
+                for sc_name, sc_data in scenarios.items():
+                    sc_def = next(s for s in simulator.risk_scenarios if s["name"] == sc_name)
+                    lh_node_ref = sc_def["likelihood"].rsplit(":", 1)[-1]
+                    self.assertIn(
+                        lh_node_ref, answered_req_refs,
+                        f"Scenario '{sc_name}' evaluated but its likelihood requirement '{lh_node_ref}' is not answered in {file_path}",
+                    )
+
+    def test_appsec_example_suite_all_6_combinations(self):
+        """Verify the comprehensive application example suite testing all 6 conditional IG combinations for appsec."""
+        from pathlib import Path
+        import yaml
+        from tests.test_application_scenarios import ApplicationRiskSimulator
+
+        with open("YML/appsec.yml", "r", encoding="utf-8") as f:
+            fw_doc = yaml.safe_load(f)
+        fw = fw_doc["objects"]["framework"]
+        nodes_by_ref = {n["ref_id"]: n for n in fw["requirement_nodes"] if n.get("assessable")}
+        simulator = ApplicationRiskSimulator("YML/appsec.yml")
+
+        expected_cases = {
+            "test_data/app_appsec_custom_internal.yml": {
+                "name": "App-AppSec-Custom-Internal",
+                "visible_igs": {"info", "baseline", "custom_app", "infra"},
+                "hidden_igs": {"cots_app", "internet_facing", "saas_app", "saas_uncertified"},
+                "node_count": 21,
+                "scenario_count": 15,
+                "excluded_scenario_count": 10,
+            },
+            "test_data/app_appsec_custom_internet.yml": {
+                "name": "App-AppSec-Custom-Internet",
+                "visible_igs": {"info", "baseline", "custom_app", "infra", "internet_facing"},
+                "hidden_igs": {"cots_app", "saas_app", "saas_uncertified"},
+                "node_count": 23,
+                "scenario_count": 17,
+                "excluded_scenario_count": 8,
+            },
+            "test_data/app_appsec_cots_internal.yml": {
+                "name": "App-AppSec-COTS-Internal",
+                "visible_igs": {"info", "baseline", "cots_app", "infra"},
+                "hidden_igs": {"custom_app", "internet_facing", "saas_app", "saas_uncertified"},
+                "node_count": 17,
+                "scenario_count": 13,
+                "excluded_scenario_count": 12,
+            },
+            "test_data/app_appsec_cots_internet.yml": {
+                "name": "App-AppSec-COTS-Internet",
+                "visible_igs": {"info", "baseline", "cots_app", "infra", "internet_facing"},
+                "hidden_igs": {"custom_app", "saas_app", "saas_uncertified"},
+                "node_count": 19,
+                "scenario_count": 15,
+                "excluded_scenario_count": 10,
+            },
+            "test_data/app_appsec_saas_certified.yml": {
+                "name": "App-AppSec-SaaS-Certified",
+                "visible_igs": {"info", "baseline", "saas_app"},
+                "hidden_igs": {"custom_app", "cots_app", "infra", "internet_facing", "saas_uncertified"},
+                "node_count": 12,
+                "scenario_count": 7,
+                "excluded_scenario_count": 18,
+            },
+            "test_data/app_appsec_saas_uncertified.yml": {
+                "name": "App-AppSec-SaaS-Uncertified",
+                "visible_igs": {"info", "baseline", "saas_app", "saas_uncertified"},
+                "hidden_igs": {"custom_app", "cots_app", "infra", "internet_facing"},
+                "node_count": 26,
+                "scenario_count": 10,
+                "excluded_scenario_count": 15,
+            },
+        }
+
+        for file_path, exp in expected_cases.items():
+            with self.subTest(file=file_path, case=exp["name"]):
+                yaml_p = Path(file_path)
+                self.assertTrue(yaml_p.exists(), f"File {file_path} missing")
+                with open(yaml_p, "r", encoding="utf-8") as f:
+                    app_doc = yaml.safe_load(f)
+
+                # 1. Implementation Group Scoping
+                dep_info = determine_implementation_groups_triggered_by_others(
+                    "appsec",
+                    yaml_path=file_path,
+                )
+                vis_refs = {g["ref_id"] for g in dep_info["visible_groups"]}
+                hid_refs = {g["ref_id"] for g in dep_info["hidden_groups"]}
+                self.assertEqual(vis_refs, exp["visible_igs"], f"Visible IG mismatch in {file_path}")
+                self.assertEqual(hid_refs, exp["hidden_igs"], f"Hidden IG mismatch in {file_path}")
+
+                # 2. Requirement Node Coverage & Absence of Out-of-Scope Requirements
+                answers = app_doc.get("answers", [])
+                answered_req_refs = {a["requirement"] for a in answers}
+                self.assertEqual(len(answered_req_refs), exp["node_count"], f"Node count mismatch in {file_path}")
+
+                for req_ref in answered_req_refs:
+                    node = nodes_by_ref.get(req_ref)
+                    self.assertIsNotNone(node, f"Unknown requirement '{req_ref}' in {file_path}")
+                    node_igs = set(node.get("implementation_groups", []))
+                    self.assertTrue(
+                        bool(node_igs & exp["visible_igs"]),
+                        f"Requirement '{req_ref}' belongs to {node_igs}, none of which are visible in {file_path}",
+                    )
+
+                # 3. Risk Scenarios Evaluation
+                eval_results = simulator.evaluate_application(file_path)
+                scenarios = eval_results["scenarios"]
+                self.assertEqual(len(scenarios), exp["scenario_count"], f"Scenario count mismatch in {file_path}")
+                excluded = app_doc.get("expected_evaluation", {}).get("excluded_scenarios", [])
+                self.assertEqual(len(excluded), exp["excluded_scenario_count"], f"Excluded scenario count mismatch in {file_path}")
+
+                # Every evaluated scenario belongs to in-scope requirements
+                for sc_name, sc_data in scenarios.items():
+                    sc_def = next(s for s in simulator.risk_scenarios if s["name"] == sc_name)
+                    lh_node_ref = sc_def["likelihood"].rsplit(":", 1)[-1]
+                    self.assertIn(
+                        lh_node_ref, answered_req_refs,
+                        f"Scenario '{sc_name}' evaluated but its likelihood requirement '{lh_node_ref}' is not answered in {file_path}",
+                    )
 
 if __name__ == "__main__":
     unittest.main()

@@ -141,11 +141,17 @@ class ApplicationRiskSimulator:
         scores = {}
         answers_present_by_urn = set()
         answers_present_by_ref = set()
+        conf_node_ref = self.test_metadata.get("classification_node_ref")
+        avail_node_ref = self.test_metadata.get("availability_node_ref")
+        integ_node_ref = self.test_metadata.get("integrity_node_ref")
         data_class_choice_urn = None
+        data_personal_choice_urn = None
+        data_qty_choice_urn = None
         data_avail_choice_urn = None
         data_integ_choice_urn = None
 
         confidentiality_map = self.criticality_mapping.get("confidentiality", {})
+        quantity_multiplier_map = self.criticality_mapping.get("quantity_multiplier", {})
         availability_map = self.criticality_mapping.get("availability", {})
         integrity_map = self.criticality_mapping.get("integrity", {})
 
@@ -183,16 +189,21 @@ class ApplicationRiskSimulator:
                 answers_present_by_ref.add(rn_ref)
                 answers_present_by_ref.add(rn_ref.lower())
 
-            # Check for data / vendor classification (confidentiality)
+            # Check for data / vendor classification (confidentiality & GDPR)
             is_conf_node = (
                 rn_ref in (conf_node_ref, "data_classification", "PROF.01", "vendor_classification")
                 or (urn and any(k in urn.lower() for k in ["data_classification", "vendor_classification", "prof.01"]))
             )
             if is_conf_node and answers_dict:
-                for a_val in answers_dict.values():
-                    if a_val:
+                for q_key, a_val in answers_dict.items():
+                    q_str = str(q_key)
+                    a_str = str(a_val)
+                    if a_str in quantity_multiplier_map or ":q3" in a_str or ":q3" in q_str:
+                        data_qty_choice_urn = a_val
+                    elif ":q2" in a_str or ":q2" in q_str:
+                        data_personal_choice_urn = a_val
+                    elif a_str in confidentiality_map or ":q1" in a_str or ":q1" in q_str:
                         data_class_choice_urn = a_val
-                        break
 
             # Check for vendor availability
             is_avail_node = (
@@ -254,15 +265,41 @@ class ApplicationRiskSimulator:
                     scores[rn_ref.lower()] = total_score
 
         # Determine Impact Levels
-        conf_impact = 1
+        qty_multiplier = 1.0
+        if data_qty_choice_urn:
+            if data_qty_choice_urn in quantity_multiplier_map:
+                qty_multiplier = float(quantity_multiplier_map[data_qty_choice_urn])
+            else:
+                for k, v in quantity_multiplier_map.items():
+                    if k in str(data_qty_choice_urn) or str(data_qty_choice_urn).lower() in k.lower():
+                        qty_multiplier = float(v)
+                        break
+
+        q1_impact = 1
         if data_class_choice_urn:
             if data_class_choice_urn in confidentiality_map:
-                conf_impact = confidentiality_map[data_class_choice_urn] + 1
+                q1_impact = confidentiality_map[data_class_choice_urn] + 1
             else:
                 for k, v in confidentiality_map.items():
-                    if k in str(data_class_choice_urn) or str(data_class_choice_urn).lower() in k.lower():
-                        conf_impact = v + 1
+                    if ":q2" not in k and ":q3" not in k and (k in str(data_class_choice_urn) or str(data_class_choice_urn).lower() in k.lower()):
+                        q1_impact = v + 1
                         break
+
+        gdpr_impact = 0
+        if data_personal_choice_urn:
+            q2_val = None
+            if data_personal_choice_urn in confidentiality_map:
+                q2_val = confidentiality_map[data_personal_choice_urn]
+            else:
+                for k, v in confidentiality_map.items():
+                    if ":q2" in k and (k in str(data_personal_choice_urn) or str(data_personal_choice_urn).lower() in k.lower()):
+                        q2_val = v
+                        break
+            if q2_val is not None and q2_val > 0:
+                base_gdpr = q2_val + 1
+                gdpr_impact = min(4, max(1, round(base_gdpr * qty_multiplier)))
+
+        conf_impact = max(q1_impact, gdpr_impact)
 
         avail_impact = conf_impact
         if data_avail_choice_urn and availability_map:
@@ -362,9 +399,15 @@ class ApplicationRiskSimulator:
 
         scores = {}
         confidentiality_map = self.criticality_mapping.get("confidentiality", {})
+        quantity_multiplier_map = self.criticality_mapping.get("quantity_multiplier", {})
         availability_map = self.criticality_mapping.get("availability", {})
         integrity_map = self.criticality_mapping.get("integrity", {})
+        conf_node_ref = self.test_metadata.get("classification_node_ref")
+        avail_node_ref = self.test_metadata.get("availability_node_ref")
+        integ_node_ref = self.test_metadata.get("integrity_node_ref")
         data_class_choice_urn = None
+        data_personal_choice_urn = None
+        data_qty_choice_urn = None
         data_avail_choice_urn = None
         data_integ_choice_urn = None
 
@@ -384,6 +427,19 @@ class ApplicationRiskSimulator:
             if not rn:
                 continue
 
+            is_conf_node = (
+                req_id_clean in (conf_node_ref, "data_classification", "PROF.01", "vendor_classification")
+                or (rn and any(k in rn.get("urn", "").lower() for k in ["data_classification", "vendor_classification", "prof.01"]))
+            )
+            is_avail_node = (
+                req_id_clean in (avail_node_ref, "vendor_availability", "PROF.02")
+                or (rn and any(k in rn.get("urn", "").lower() for k in ["vendor_availability", "prof.02"]))
+            )
+            is_integ_node = (
+                req_id_clean in (integ_node_ref, "integrity_classification")
+                or (rn and "integrity_classification" in rn.get("urn", "").lower())
+            )
+
             questions_dict = rn.get("questions", {})
             total_score = 0
             for ans_item in answers:
@@ -401,12 +457,18 @@ class ApplicationRiskSimulator:
                             if add_score is not None:
                                 total_score += int(add_score)
 
-                            if choice.get("urn") in confidentiality_map:
-                                data_class_choice_urn = choice.get("urn")
-                            elif choice.get("urn") in availability_map:
-                                data_avail_choice_urn = choice.get("urn")
-                            elif choice.get("urn") in integrity_map:
-                                data_integ_choice_urn = choice.get("urn")
+                            c_real_urn = choice.get("urn", "")
+                            if is_conf_node:
+                                if c_real_urn in quantity_multiplier_map or ":q3" in c_real_urn or ":q3" in matched_urn:
+                                    data_qty_choice_urn = c_real_urn
+                                elif ":q2" in c_real_urn or ":q2" in matched_urn:
+                                    data_personal_choice_urn = c_real_urn
+                                elif c_real_urn in confidentiality_map or ":q1" in c_real_urn or ":q1" in matched_urn:
+                                    data_class_choice_urn = c_real_urn
+                            elif is_avail_node or c_real_urn in availability_map:
+                                data_avail_choice_urn = c_real_urn
+                            elif is_integ_node or c_real_urn in integrity_map:
+                                data_integ_choice_urn = c_real_urn
                             break
 
             node_ref = rn.get("ref_id")
@@ -419,19 +481,52 @@ class ApplicationRiskSimulator:
                 scores[node_urn.lower()] = total_score
 
         # Determine Impact Levels
-        conf_impact = 1
+        qty_multiplier = 1.0
+        if data_qty_choice_urn:
+            if data_qty_choice_urn in quantity_multiplier_map:
+                qty_multiplier = float(quantity_multiplier_map[data_qty_choice_urn])
+            else:
+                for k, v in quantity_multiplier_map.items():
+                    if k in str(data_qty_choice_urn) or str(data_qty_choice_urn).lower() in k.lower():
+                        qty_multiplier = float(v)
+                        break
+
+        q1_impact = 1
         if data_class_choice_urn and confidentiality_map:
-            conf_impact = confidentiality_map.get(data_class_choice_urn, 0) + 1
+            if data_class_choice_urn in confidentiality_map:
+                q1_impact = confidentiality_map[data_class_choice_urn] + 1
+            else:
+                for k, v in confidentiality_map.items():
+                    if ":q2" not in k and ":q3" not in k and (k in str(data_class_choice_urn) or str(data_class_choice_urn).lower() in k.lower()):
+                        q1_impact = v + 1
+                        break
         else:
             for k in ["data_classification", "PROF.01", "prof.01", "vendor_classification"]:
                 ans_list = answers_by_req.get(k)
                 if ans_list:
-                    chosen_text = ans_list[0]["answer"].strip().lower()
-                    for c_urn, c_idx in confidentiality_map.items():
-                        if chosen_text in c_urn.lower():
-                            conf_impact = c_idx + 1
-                            break
+                    for item in ans_list:
+                        chosen_text = item["answer"].strip().lower()
+                        for c_urn, c_idx in confidentiality_map.items():
+                            if ":q2" not in c_urn and ":q3" not in c_urn and chosen_text in c_urn.lower():
+                                q1_impact = c_idx + 1
+                                break
                     break
+
+        gdpr_impact = 0
+        if data_personal_choice_urn:
+            q2_val = None
+            if data_personal_choice_urn in confidentiality_map:
+                q2_val = confidentiality_map[data_personal_choice_urn]
+            else:
+                for k, v in confidentiality_map.items():
+                    if ":q2" in k and (k in str(data_personal_choice_urn) or str(data_personal_choice_urn).lower() in k.lower()):
+                        q2_val = v
+                        break
+            if q2_val is not None and q2_val > 0:
+                base_gdpr = q2_val + 1
+                gdpr_impact = min(4, max(1, round(base_gdpr * qty_multiplier)))
+
+        conf_impact = max(q1_impact, gdpr_impact)
 
         avail_node_ref = self.test_metadata.get("availability_node_ref")
         avail_impact = conf_impact
@@ -790,10 +885,66 @@ class TestApplicationProfileScenarioConsistency(unittest.TestCase):
         results = simulator.evaluate_from_requirement_assessments(mock_ras)
 
         self.assertEqual(results["confidentiality_impact"], 4)
-        self.assertEqual(len(results["scenarios"]), 10)
+        self.assertEqual(len(results["scenarios"]), 7)
         for name, sc in results["scenarios"].items():
             self.assertEqual(sc["scaled_likelihood"], 1, f"Expected min likelihood for {name}")
             self.assertEqual(sc["matrix_risk_id"], 1, f"Expected low risk for {name}")
+
+    def test_gdpr_quantity_multiplier_elevates_impact(self):
+        """Verify that GDPR personal data quantity acts as an impact multiplier."""
+        for fw_path in ["YML/appsec.yml", "YML/appsec_manual.yml"]:
+            with self.subTest(framework=fw_path):
+                sim = ApplicationRiskSimulator(fw_path)
+
+                # Case 1: Internal (q1=c2 -> impact 2) + Employee contact (q2=c2 -> impact 2) + High volume (q3=c3 -> 1.5)
+                # Evaluates to round(2 * 1.5) = 3 (Confidential)
+                profile_high_qty = {
+                    "answers": [
+                        {"requirement": "data_classification", "question": "What is the maximum classification level handled?", "answer": "Internal"},
+                        {"requirement": "data_classification", "question": "What category of personal data is processed by the application under GDPR?", "answer": "Contact data of employees"},
+                        {"requirement": "data_classification", "question": "What is the volume of data subjects (individuals) whose personal data is processed?", "answer": "High volume / Large scale processing under GDPR (More than 100,000 individuals, or systemic nationwide monitoring)"},
+                        {"requirement": "stakeholder_identification", "question": "Is there a designated business contact?", "answer": "Yes"},
+                    ]
+                }
+                res_high = sim.evaluate_application(sim.build_mock_requirement_assessments(profile_high_qty))
+                self.assertEqual(res_high["confidentiality_impact"], 3, f"High volume should elevate impact from 2 to 3 in {fw_path}")
+
+                # Case 2: Internal (q1=c2 -> impact 2) + Employee contact (q2=c2 -> impact 2) + Low/Med volume (q3=c2 -> 1.0)
+                # Evaluates to round(2 * 1.0) = 2 (Internal)
+                profile_med_qty = {
+                    "answers": [
+                        {"requirement": "data_classification", "question": "What is the maximum classification level handled?", "answer": "Internal"},
+                        {"requirement": "data_classification", "question": "What category of personal data is processed by the application under GDPR?", "answer": "Contact data of employees"},
+                        {"requirement": "data_classification", "question": "What is the volume of data subjects (individuals) whose personal data is processed?", "answer": "Medium volume (1,000 to 100,000 individuals / data subjects)"},
+                        {"requirement": "stakeholder_identification", "question": "Is there a designated business contact?", "answer": "Yes"},
+                    ]
+                }
+                res_med = sim.evaluate_application(sim.build_mock_requirement_assessments(profile_med_qty))
+                self.assertEqual(res_med["confidentiality_impact"], 2, f"Medium volume should keep impact at 2 in {fw_path}")
+
+                # Case 3: Confidential (q1=c3 -> impact 3) + Customer orders (q2=c3 -> impact 3) + High volume (q3=c3 -> 1.5)
+                # Evaluates to round(3 * 1.5) = 4 (Secret)
+                profile_customer_high = {
+                    "answers": [
+                        {"requirement": "data_classification", "question": "What is the maximum classification level handled?", "answer": "Confidential"},
+                        {"requirement": "data_classification", "question": "What category of personal data is processed by the application under GDPR?", "answer": "Contact and order details about customers"},
+                        {"requirement": "data_classification", "question": "What is the volume of data subjects (individuals) whose personal data is processed?", "answer": "High volume / Large scale processing under GDPR (More than 100,000 individuals, or systemic nationwide monitoring)"},
+                        {"requirement": "stakeholder_identification", "question": "Is there a designated business contact?", "answer": "Yes"},
+                    ]
+                }
+                res_cust_high = sim.evaluate_application(sim.build_mock_requirement_assessments(profile_customer_high))
+                self.assertEqual(res_cust_high["confidentiality_impact"], 4, f"High volume customer data should elevate impact from 3 to 4 in {fw_path}")
+
+                # Case 4: No personal data (q2=c1) with High volume should NOT elevate impact
+                profile_no_personal = {
+                    "answers": [
+                        {"requirement": "data_classification", "question": "What is the maximum classification level handled?", "answer": "Internal"},
+                        {"requirement": "data_classification", "question": "What category of personal data is processed by the application under GDPR?", "answer": "No personal data"},
+                        {"requirement": "stakeholder_identification", "question": "Is there a designated business contact?", "answer": "Yes"},
+                    ]
+                }
+                res_no_personal = sim.evaluate_application(sim.build_mock_requirement_assessments(profile_no_personal))
+                self.assertEqual(res_no_personal["confidentiality_impact"], 2, f"No personal data should keep base impact 2 in {fw_path}")
 
 
 # -----------------------------------------------------------------------------

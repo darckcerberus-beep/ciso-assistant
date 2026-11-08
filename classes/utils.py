@@ -93,9 +93,12 @@ def load_yaml_file(yaml_file: str | Path) -> dict[str, Any]:
                         if allowed_fw and framework_ref and framework_ref not in allowed_fw:
                             continue
 
-                        if framework_ref and framework_ref != "appsec":
-                            if "urn" in sc and ":appsec:" in sc["urn"]:
-                                sc["urn"] = sc["urn"].replace(":appsec:", f":{framework_ref}:")
+                        if framework_ref:
+                            if "urn" in sc and isinstance(sc["urn"], str):
+                                urn_parts = sc["urn"].split(":")
+                                if len(urn_parts) >= 5 and urn_parts[-2] != framework_ref:
+                                    urn_parts[-2] = framework_ref
+                                    sc["urn"] = ":".join(urn_parts)
                             for lh_key in ("likelihood", "impact"):
                                 if lh_key in sc and sc[lh_key]:
                                     old_urn = sc[lh_key]
@@ -105,8 +108,6 @@ def load_yaml_file(yaml_file: str | Path) -> dict[str, Any]:
                                         sc[lh_key] = adapted_urn
                                     elif node_ref in req_nodes_by_ref:
                                         sc[lh_key] = req_nodes_by_ref[node_ref].get("urn", adapted_urn)
-                                    elif node_ref == "saas_contract" and "saas_contract_compliance" in req_nodes_by_ref:
-                                        sc[lh_key] = req_nodes_by_ref["saas_contract_compliance"].get("urn", adapted_urn)
                                     elif old_urn in req_nodes_by_urn:
                                         sc[lh_key] = old_urn
                                     else:
@@ -441,6 +442,99 @@ def clear_get_all_results_cache() -> None:
     _get_all_results_cache.clear()
 
 
+_DISCOVERED_FRAMEWORKS_CACHE: list[dict[str, Any]] | None = None
+
+
+def discover_framework_catalog(yml_dir: str | Path | None = None) -> list[dict[str, Any]]:
+    """Dynamically discover assessment framework YAML files in the YML directory without hardcoding filenames."""
+    global _DISCOVERED_FRAMEWORKS_CACHE
+    if yml_dir is None and _DISCOVERED_FRAMEWORKS_CACHE is not None:
+        return list(_DISCOVERED_FRAMEWORKS_CACHE)
+
+    repo_root = Path(__file__).resolve().parent.parent
+    if yml_dir is None:
+        search_dir = Path("YML") if Path("YML").exists() else repo_root / "YML"
+    else:
+        search_dir = Path(yml_dir)
+
+    if not search_dir.exists():
+        return []
+
+    app_fw_order: list[str] = []
+    td_dir = Path("test_data") if Path("test_data").exists() else repo_root / "test_data"
+    if td_dir.exists():
+        app_entries = []
+        for td_file in sorted(td_dir.glob("*.yml")) + sorted(td_dir.glob("*.yaml")):
+            try:
+                with open(td_file, "r", encoding="utf-8") as f:
+                    td_data = pyml.safe_load(f)
+                if isinstance(td_data, dict) and isinstance(td_data.get("application"), dict):
+                    app_entries.append(td_data["application"])
+            except Exception:
+                pass
+        app_entries.sort(key=lambda a: (a.get("order", 999), a.get("name", "")))
+        for app in app_entries:
+            fw_r = str(app.get("framework_ref", "")).strip()
+            if fw_r and fw_r not in app_fw_order:
+                app_fw_order.append(fw_r)
+
+    catalog: list[dict[str, Any]] = []
+    yaml_files = sorted(search_dir.glob("*.yml")) + sorted(search_dir.glob("*.yaml"))
+    for yf in yaml_files:
+        try:
+            with open(yf, "r", encoding="utf-8") as f:
+                data = pyml.safe_load(f)
+            if not isinstance(data, dict):
+                continue
+            objects = data.get("objects")
+            if not isinstance(objects, dict) or not isinstance(objects.get("framework"), dict):
+                continue
+            if "audit" not in data and "criticality_mapping" not in data and "test_metadata" not in data:
+                continue
+
+            fw_obj = objects["framework"]
+            ref_id = str(data.get("ref_id") or fw_obj.get("ref_id") or yf.stem).strip()
+            name = str(data.get("name") or fw_obj.get("name") or ref_id).strip()
+            desc = str(fw_obj.get("description") or data.get("description") or "").strip()
+            try:
+                rel_path = str(yf.relative_to(Path.cwd()))
+            except ValueError:
+                try:
+                    rel_path = str(yf.relative_to(repo_root))
+                except ValueError:
+                    rel_path = f"YML/{yf.name}"
+
+            catalog.append({
+                "ref_id": ref_id,
+                "name": name,
+                "yaml_path": rel_path,
+                "description": desc,
+            })
+        except Exception:
+            pass
+
+    def _sort_key(item: dict[str, Any]) -> tuple[int, str]:
+        r = item.get("ref_id", "")
+        idx = app_fw_order.index(r) if r in app_fw_order else len(app_fw_order)
+        return (idx, r)
+
+    catalog.sort(key=_sort_key)
+    if yml_dir is None:
+        _DISCOVERED_FRAMEWORKS_CACHE = list(catalog)
+    return catalog
+
+
+def get_default_framework_yaml_path() -> str:
+    """Return the dynamically discovered default framework YAML path."""
+    catalog = discover_framework_catalog()
+    if catalog:
+        return str(catalog[0]["yaml_path"])
+    repo_root = Path(__file__).resolve().parent.parent
+    yml_dir = Path("YML") if Path("YML").exists() else repo_root / "YML"
+    candidates = sorted(yml_dir.glob("*.yml")) + sorted(yml_dir.glob("*.yaml")) if yml_dir.exists() else []
+    return str(candidates[0]) if candidates else ""
+
+
 def initialize_data_objects() -> dict[str, Any]:
     """Instantiate all required dictionaries and framework objects used in the workflow."""
     from classes.audits.compliance import ComplianceAssessmentDict
@@ -468,7 +562,7 @@ def initialize_data_objects() -> dict[str, Any]:
     risk_assessment_dict = RiskAssessmentDict()
     risk_scenario_dict = RiskScenarioDict()
     user_dict = UserDict()
-    library_file = LibraryFile("YML/newDPP.yml")
+    library_file = LibraryFile(get_default_framework_yaml_path())
     risk_matrix_dict = RiskMatrixDict()
     entity_dict = EntityDict()
     entity_assessment_dict = EntityAssessmentDict()

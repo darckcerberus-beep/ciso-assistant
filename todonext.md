@@ -245,3 +245,40 @@ flowchart TD
                 compute_result: false
                 color: "#dc3545"
 ```
+
+---
+
+## 4. Completed: Intra-Node Question Prerequisites & Dependency Gating
+
+Following the multi-question topic review in `YML/appsec_manual.yml` and `YML/appsec.yml`:
+
+1. **`cots_deployment_hardening:q3` depends on `cots_deployment_hardening:q2 == c1` (Vendor Patch SLA Prerequisites)**:
+   - Configured `q3` with `depends_on` targeting `q2:c1` in both `YML/appsec.yml` and `YML/appsec_manual.yml`.
+   - If EOL / unsupported (`q2 == c2`), `q3` is skipped.
+2. **`access_control_and_rbac:q3` depends on `access_control_and_rbac:q1 == c1` (Entitlement Recertification Prerequisites)**:
+   - Configured `q3` with `depends_on` targeting `q1:c1` in both `YML/appsec.yml` and `YML/appsec_manual.yml`.
+   - If no roles or permissions defined (`q1 == c2`), `q3` is skipped.
+3. **Multi-Question Controls Retained Independent**:
+   - `security_event_logging:q2` (log data masking) and `stakeholder_identification:q1-q4` (parallel ownership/CMDB checks) intentionally remain independent.
+4. **Test Data & Test Suites Updated**:
+   - `test_data/app_appsec_vulnerable_legacy.yml` updated to omit `q3` when `q1` is `No`.
+   - Added `test_appsec_intra_node_prerequisites` in `tests/test_yaml_integrity.py`. All 268 tests pass cleanly.
+
+---
+
+## 5. Completed: 6 Answered Examples for Automated AppSec (`appsec`)
+
+1. **Database Migration to Latest `appsec` Framework**:
+   - Replaced old Nov 5th database instance with latest `appsec` framework (`urn:intuitem:risk:framework:appsec`, v28) with dynamic choice-level implementation group triggering (`select_implementation_groups`).
+2. **Generated 6 Application Profiles**:
+   - `test_data/app_appsec_custom_internal.yml` (Case 1: Custom + Internal, 21 nodes, 15 scenarios)
+   - `test_data/app_appsec_custom_internet.yml` (Case 2: Custom + Internet, 23 nodes, 17 scenarios)
+   - `test_data/app_appsec_cots_internal.yml` (Case 3: COTS + Internal, 17 nodes, 13 scenarios)
+   - `test_data/app_appsec_cots_internet.yml` (Case 4: COTS + Internet, 19 nodes, 15 scenarios)
+   - `test_data/app_appsec_saas_certified.yml` (Case 5: SaaS + Certified, 12 nodes, 7 scenarios)
+   - `test_data/app_appsec_saas_uncertified.yml` (Case 6: SaaS + Uncertified, 26 nodes, 10 scenarios)
+3. **Live Instance Provisioning**:
+   - All 6 applications provisioned in domain `Example Applications` at `https://localhost:8443` in fully answered states with evaluated risk scenarios and linked controls.
+4. **Validation**:
+   - 275 unit tests passing (`python3 -m unittest discover tests`).
+
