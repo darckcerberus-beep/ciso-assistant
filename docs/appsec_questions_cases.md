@@ -40,6 +40,8 @@ Define or customize your operational situations/cases here for reference:
 
 | # | Chapter | Requirement Node | Q ID | Question Summary | Current IGs | Applicable Cases / Situations |
 | :-: | :--- | :--- | :-: | :--- | :--- | :--- |
+| 0a | Application Information & Governance | `application_description` | `q1` | What is the primary functional domain and business purpose of the application? | `info` | All applications (Functional & business domain profiling) |
+| 0b | Application Information & Governance | `application_description` | `q2` | Who are the primary intended users or consumers of the application? | `info` | All applications (User audience & consumer scope profiling) |
 | 1 | Application Information & Governance | `stakeholder_identification` | `q1` | Is there a designated business contact? (Designated business owner or product spon... | `info` | All applications (Info profiling) |
 | 2 | Application Information & Governance | `stakeholder_identification` | `q2` | Is there a designated IT contact? (Technical lead or engineer responsible for main... | `info` | All applications (Info profiling) |
 | 3 | Application Information & Governance | `stakeholder_identification` | `q3` | Is there a designated data owner? (Data steward or governance officer responsible ... | `info` | All applications (Info profiling) |
@@ -50,14 +52,15 @@ Define or customize your operational situations/cases here for reference:
 | 6 | Application Information & Governance | `hosting` | `q1` | What is the delivery and hosting model of the application? | `info` | All applications (Info profiling - Hosting model) |
 | 7 | Application Information & Governance | `hosting` | `q2` | What is the network exposure of the application? | `info` | Self-Hosted only (Custom & COTS - depends on `hosting:q1`) |
 | 7b | Application Information & Governance | `hosting` | `q3` | Is the SaaS vendor certified under ISO/IEC 27001 or SOC 2 Type II? | `info` | SaaS only (depends on `hosting:q1 == SaaS`) |
-| 8 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q1` | How do users authenticate to the application? | `baseline` | **All applications** (Custom, COTS, SaaS) - Mandatory SSO |
-| 9 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q2` | If direct authentication is used, are strong password policies and brute-force loc... | `baseline` | All applications (If direct auth used - Password policy) |
-| 10 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q3` | If direct authentication is used, is Multi-Factor Authentication (MFA) enforced fo... | `baseline` | All applications (If direct auth used - Admin MFA) |
+| 8 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q1` | How do users authenticate to the application? (Exclusive SSO [+100], Hybrid [+40], Direct [+0], M2M API [+100]) | `baseline` | **All applications** (Custom, COTS, SaaS) - Mandatory SSO / Hybrid |
+| 9 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q2` | If direct or hybrid authentication is used, are strong password policies and brute-force lockout protections implemented for local accounts? | `baseline` | All applications (If direct or hybrid auth used - Password policy, +30 pts) |
+| 10 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q3` | If direct or hybrid authentication is used, is Multi-Factor Authentication (MFA) enforced for all administrative, privileged, and break-glass access? | `baseline` | All applications (If direct or hybrid auth used - Admin MFA, +30 pts) |
 | 11 | Identity, Authentication & Access Control | `access_control_and_rbac` | `q1` | Have you defined roles and permissions for the application? (Is access controlled ... | `baseline` | **All applications** (Baseline - RBAC least privilege) |
 | 12 | Identity, Authentication & Access Control | `access_control_and_rbac` | `q2` | Is the application integrated with the enterprise Identity Governance and Administ... | `baseline` | **All applications** (Baseline - SailPoint IGA integration) |
 | 13 | Identity, Authentication & Access Control | `access_control_and_rbac` | `q3` | Are user entitlements and privileged permissions reviewed and recertified on a per... | `baseline` | **All applications** (Baseline - Periodic recertifications) |
-| 14 | Identity, Authentication & Access Control | `session_management` | `q1` | Are session tokens cryptographically secure, transmitted with secure cookie flags ... | `custom_app` |  |
-| 15 | Application Vulnerability Defense & Code Hygiene | `owasp_top_10_defenses` | `q1` | Do you apply coding guidelines against OWASP Top 10 vulnerabilities (including inpu... | `custom_app` |  |
+| 14 | Identity, Authentication & Access Control | `session_management` | `q1` | Are session identifiers and API bearer tokens cryptographically secure, protected in transit/storage, and invalidated upon logout, expiration, or inactivity? | `custom_app` | Custom applications and APIs (+100 pts) |
+| 15 | Application Vulnerability Defense & Code Hygiene | `owasp_top_10_defenses` | `q1` | Are server-side input validation and parameterized queries/ORMs enforced to prevent injection flaws (SQLi, command injection, SSRF)? | `custom_app` | Custom applications (+50 pts) |
+| 15b | Application Vulnerability Defense & Code Hygiene | `owasp_top_10_defenses` | `q2` | Are context-aware output encoding, security headers (CSP), and generic production error handlers enforced to prevent XSS and stack-trace leakage? | `custom_app` | Custom applications (+50 pts) |
 | 16 | Application Vulnerability Defense & Code Hygiene | `ssrf_and_cloud_metadata_defense` | `q1` | Are outbound HTTP requests initiated by the application strictly validated using d... | `custom_app` |  |
 | 17 | Application Vulnerability Defense & Code Hygiene | `ssrf_and_cloud_metadata_defense` | `q2` | Are cloud instance metadata protections enforced (e.g. IMDSv2 token-backed metadat... | `custom_app` |  |
 | 18 | Application Vulnerability Defense & Code Hygiene | `file_upload_security` | `q1` | Can files be uploaded to the application? (e.g., user attachments, documents, images, media, or data imports) | `custom_app` | Custom App only (Gating question) |
@@ -70,10 +73,11 @@ Define or customize your operational situations/cases here for reference:
 | 24 | Secure SDLC & DevSecOps Automation | `automated_security_testing` | `q2` | Is Dynamic Application Security Testing (DAST) or API security scanning performed ... | `custom_app` |  |
 | 25 | Secure SDLC & DevSecOps Automation | `supply_chain_and_dependencies` | `q1` | Is Software Composition Analysis (SCA) automated in the CI/CD pipeline to detect k... | `custom_app` |  |
 | 26 | Secure SDLC & DevSecOps Automation | `supply_chain_and_dependencies` | `q2` | Is an accurate Software Bill of Materials (SBOM) maintained and audited for all re... | `custom_app` |  |
-| 27 | Secure SDLC & DevSecOps Automation | `code_review_and_ci_cd_integrity` | `q1` | Are mandatory peer code reviews and branch protection rules enforced before any me... | `custom_app` |  |
+| 27 | Secure SDLC & DevSecOps Automation | `code_review_and_ci_cd_integrity` | `q1` | Are mandatory peer code reviews enforced prior to merging changes into deployment branches? | `custom_app` | Custom applications (+50 pts) |
+| 27b | Secure SDLC & DevSecOps Automation | `code_review_and_ci_cd_integrity` | `q2` | Do repository branch protection rules block direct commits, force-pushes, and failing CI status checks on deployment branches? | `custom_app` | Custom applications (+50 pts) |
 | 28 | Secure SDLC & DevSecOps Automation | `vendor_secure_development` | `q1` | Does the third-party COTS software vendor adhere to recognized secure coding stand... | `cots_app` | **COTS Only** (Vendor secure coding guidelines) |
-| 29 | API Security & Edge Protections | `api_security_and_rate_limiting` | `q1` | Are exposed web and API endpoints protected against abusive traffic via an edge We... | `internet_facing` | **Self-Hosted Internet-Facing only** (Edge WAF & DDoS) |
-| 30 | API Security & Edge Protections | `api_security_and_rate_limiting` | `q2` | Are API payloads strictly validated against documented API specifications (e.g. Op... | `internet_facing` | **Self-Hosted Internet-Facing only** (API schema validation) |
+| 29 | API Security & Edge Protections | `api_security_and_rate_limiting` | `q1` | Are internet-facing endpoints fronted by an Edge WAF and anti-DDoS / bot protection (e.g. Cloudflare, AWS WAF)? | `internet_facing` | **Self-Hosted Internet-Facing only** (Edge WAF & DDoS, +50 pts) |
+| 30 | API Security & Edge Protections | `api_security_and_rate_limiting` | `q2` | Are API rate limiting, throttling, and payload size quotas enforced to prevent scraping and resource exhaustion? | `internet_facing` | **Self-Hosted Internet-Facing only** (Rate limiting & quotas, +50 pts) |
 | 31 | Data Protection & Lifecycle Governance | `data_exchange` | `q1` | Does the application exchange data externally? (e.g., transfers, automated API int... | `custom_app, cots_app` | Self-Hosted only (Custom & COTS) |
 | 32 | Data Protection & Lifecycle Governance | `data_exchange` | `q2` | Is there a data exchange contract with the appropriate confidentiality clauses? (e... | `custom_app, cots_app` | Self-Hosted only (Custom & COTS - if data exchanged) |
 | 33 | Data Protection & Lifecycle Governance | `non_prod_data` | `q1` | Are real production data records, live customer databases, or personal data utiliz... | `custom_app, cots_app` | Self-Hosted only (Custom & COTS) |
@@ -86,10 +90,11 @@ Define or customize your operational situations/cases here for reference:
 | 40 | Security Logging & Monitoring | `centralized_monitoring_and_alerting` | `q1` | Are application logs forwarded in near-real-time to a central SIEM/SOC platform wi... | `infra` | Self-Hosted only (Custom & COTS) |
 | 41 | Penetration Testing & Resilience | `penetration_testing_and_vulnerability_management` | `q1` | Is independent penetration testing conducted on the application and underlying inf... | `internet_facing` | **Self-Hosted Internet-Facing only** (Annual pentesting) |
 | 42 | Penetration Testing & Resilience | `penetration_testing_and_vulnerability_management` | `q2` | Are identified vulnerabilities remediated within defined SLAs (e.g. Critical withi... | `internet_facing` | **Self-Hosted Internet-Facing only** (Remediation SLAs) |
-| 43 | Penetration Testing & Resilience | `backup_and_disaster_recovery` | `q1` | Are automated and encrypted backups maintained for application state and databases... | `infra` | Self-Hosted only (Custom & COTS) |
-| 43a | Penetration Testing & Resilience | `os_patching` | `q1` | Are operating system (OS) security patches, kernel updates, and host/container sec... | `infra` | Self-Hosted only (Custom & COTS - Automatic OS patching) |
-| 43b | Penetration Testing & Resilience | `os_patching` | `q2` | If OS patching is not automatic, is there a formal patching schedule compliant wit... | `infra` | Self-Hosted only (Custom & COTS - if `os_patching:q1 == No`) |
-| 43c | Penetration Testing & Resilience | `os_patching` | `q3` | Does the application and infrastructure architecture allow no-downtime patching fr... | `infra` | Self-Hosted only (Custom & COTS - High availability / no-downtime patching) |
+| 43 | Penetration Testing & Resilience | `backup_and_disaster_recovery` | `q1` | Are automated and encrypted backups maintained for application state and databases? | `infra` | Self-Hosted only (Custom & COTS, +50 pts) |
+| 43a | Penetration Testing & Resilience | `backup_and_disaster_recovery` | `q2` | Are backup restoration and disaster recovery drills tested at least annually against documented RTO/RPO targets? | `infra` | Self-Hosted only (Custom & COTS - depends on `backup_and_disaster_recovery:q1 == Yes`, +50 pts) |
+| 43b | Penetration Testing & Resilience | `os_patching` | `q1` | Are operating system (OS) security patches, kernel updates, and host/container sec... | `infra` | Self-Hosted only (Custom & COTS - Automatic OS patching) |
+| 43c | Penetration Testing & Resilience | `os_patching` | `q2` | If OS patching is not automatic, is there a formal patching schedule compliant wit... | `infra` | Self-Hosted only (Custom & COTS - if `os_patching:q1 == No`) |
+| 43d | Penetration Testing & Resilience | `os_patching` | `q3` | Does the application and infrastructure architecture allow no-downtime patching fr... | `infra` | Self-Hosted only (Custom & COTS - High availability / no-downtime patching) |
 | 44 | Penetration Testing & Resilience | `cots_deployment_hardening` | `q1` | Are default vendor credentials changed, sample modules removed, and configuration ... | `cots_app` |  |
 | 45 | Penetration Testing & Resilience | `cots_deployment_hardening` | `q2` | Does the COTS software actively receive security patches and vulnerability updates... | `cots_app` |  |
 | 46 | Penetration Testing & Resilience | `cots_deployment_hardening` | `q3` | Are published vendor security patches, hotfixes, and critical vulnerability update... | `cots_app` |  |
@@ -139,6 +144,36 @@ Define or customize your operational situations/cases here for reference:
 
 *Basic application profiling, ownership, hosting, exposure, and architecture context.*
 
+#### Node: Application Description & Business Purpose (`application_description`)
+- **Implementation Groups**: `info`
+- **Description**: Describe what the application is doing, including its primary functional domain, business capabilities, intended users, and operational scope.
+
+##### Q1. `application_description:q1`
+- **URN**: `urn:intuitem:risk:req_node:appsec:application_description:q1`
+- **Question**: What is the primary functional domain and business purpose of the application?
+- **Type**: `unique_choice`
+- **Choices**:
+  - `Customer-Facing & Digital Commerce (e-commerce, customer portals, public web services, mobile apps)`
+  - `Internal Operations & Enterprise Management (ERP, CRM, HR, finance, supply chain, intranet)`
+  - `Data Analytics, AI & Business Intelligence (data warehouse, ETL pipelines, reporting, ML models)`
+  - `Integration Middleware & Core APIs (API gateways, message brokers, microservices hub)`
+  - `Infrastructure, Platform & DevOps Management (CI/CD, monitoring, ITSM, security tooling)`
+  - `Other / Specialized Functional Purpose`
+- **Applicable Cases / Situations**:
+  - [x] All applications (Functional & business domain profiling)
+
+##### Q2. `application_description:q2`
+- **URN**: `urn:intuitem:risk:req_node:appsec:application_description:q2`
+- **Question**: Who are the primary intended users or consumers of the application?
+- **Type**: `unique_choice`
+- **Choices**:
+  - `Internal workforce (employees, internal contractors)`
+  - `Business partners and vendors (B2B suppliers, distributors, affiliates)`
+  - `External public consumers and customers (B2C)`
+  - `Automated systems / Machine-to-Machine clients only (APIs, daemons, backend services)`
+- **Applicable Cases / Situations**:
+  - [x] All applications (User audience & consumer scope profiling)
+
 #### Node: Stakeholder identification (`stakeholder_identification`)
 Action - None
 - **Implementation Groups**: `info`
@@ -149,7 +184,7 @@ Action - None
 - **Question**: Is there a designated business contact? (Designated business owner or product sponsor accountable for business processes, functionality, and risk acceptance)
 - **Type**: `unique_choice`
 - **Choices & Scoring**:
-  - `Yes` (25 pts, compute_result: true)
+  - `Yes` (30 pts, compute_result: true)
   - `No` (0 pts)
 - **Applicable Cases / Situations**:
   - [x] All applications (Info profiling)
@@ -159,7 +194,7 @@ Action - None
 - **Question**: Is there a designated IT contact? (Technical lead or engineer responsible for maintenance, infrastructure, deployment, and operational support)
 - **Type**: `unique_choice`
 - **Choices & Scoring**:
-  - `Yes` (25 pts, compute_result: true)
+  - `Yes` (30 pts, compute_result: true)
   - `No` (0 pts)
 - **Applicable Cases / Situations**:
   - [x] All applications (Info profiling)
@@ -179,7 +214,7 @@ Action - None
 - **Question**: Is the information about stakeholders updated in LeanIX / CMDB? (Stakeholder assignments registered and kept current in the enterprise inventory or service catalog)
 - **Type**: `unique_choice`
 - **Choices & Scoring**:
-  - `Yes` (25 pts, compute_result: true)
+  - `Yes` (15 pts, compute_result: true)
   - `No` (0 pts)
 - **Applicable Cases / Situations**:
   - [x] All applications (Info profiling)
@@ -280,32 +315,34 @@ Action - All apps must use SSO so ask for all apps
 - **Question**: How do users authenticate to the application?
 - **Type**: `unique_choice`
 - **Choices & Scoring**:
-  - `Enterprise SSO (SAML 2.0 / OIDC federated IdP)` (100 pts, compute_result: true)
-  - `Direct / Local application authentication (Username & Password)` (0 pts)
+  - `Enterprise SSO exclusively (SAML 2.0 / OIDC federated IdP, with no local accounts)` (100 pts, compute_result: true)
+  - `Hybrid: Enterprise SSO for users, with local admin / break-glass or external accounts` (40 pts, compute_result: true)
+  - `Direct / Local application authentication only (Username & Password)` (0 pts, compute_result: false)
+  - `Machine-to-Machine / API only (mTLS, OAuth2 Client Credentials, or signed tokens; no interactive user login)` (100 pts, compute_result: true)
 - **Applicable Cases / Situations**:
-  - [x] **All applications** (Custom, COTS, SaaS) - Mandatory SSO
+  - [x] **All applications** (Custom, COTS, SaaS) - Mandatory SSO / Hybrid Auth
 
 ##### Q9. `authentication_and_mfa:q2`
 - **URN**: `urn:intuitem:risk:req_node:appsec:authentication_and_mfa:q2`
-- **Question**: If direct authentication is used, are strong password policies and brute-force lockout protections implemented?
+- **Question**: If direct or hybrid authentication is used, are strong password policies and brute-force lockout protections implemented for local accounts?
 - **Type**: `unique_choice`
-- **Conditional Dependency (`depends_on`)**: `{'question': 'urn:intuitem:risk:req_node:appsec:authentication_and_mfa:q1', 'answers': ['urn:intuitem:risk:req_node:appsec:authentication_and_mfa:q1:c2'], 'condition': 'any'}`
+- **Conditional Dependency (`depends_on`)**: `{'question': 'urn:intuitem:risk:req_node:appsec:authentication_and_mfa:q1', 'answers': ['...:c2', '...:c3'], 'condition': 'any'}`
 - **Choices & Scoring**:
-  - `Yes` (50 pts, compute_result: true)
+  - `Yes` (30 pts, compute_result: true)
   - `No` (0 pts)
 - **Applicable Cases / Situations**:
-  - [x] All applications (If direct auth used - Password policy)
+  - [x] All applications (If direct or hybrid auth used - Password policy)
 
 ##### Q10. `authentication_and_mfa:q3`
 - **URN**: `urn:intuitem:risk:req_node:appsec:authentication_and_mfa:q3`
-- **Question**: If direct authentication is used, is Multi-Factor Authentication (MFA) enforced for all administrative and privileged access?
+- **Question**: If direct or hybrid authentication is used, is Multi-Factor Authentication (MFA) enforced for all administrative, privileged, and break-glass access?
 - **Type**: `unique_choice`
-- **Conditional Dependency (`depends_on`)**: `{'question': 'urn:intuitem:risk:req_node:appsec:authentication_and_mfa:q1', 'answers': ['urn:intuitem:risk:req_node:appsec:authentication_and_mfa:q1:c2'], 'condition': 'any'}`
+- **Conditional Dependency (`depends_on`)**: `{'question': 'urn:intuitem:risk:req_node:appsec:authentication_and_mfa:q1', 'answers': ['...:c2', '...:c3'], 'condition': 'any'}`
 - **Choices & Scoring**:
-  - `Yes` (50 pts, compute_result: true)
+  - `Yes` (30 pts, compute_result: true)
   - `No` (0 pts)
 - **Applicable Cases / Situations**:
-  - [x] All applications (If direct auth used - Admin MFA)
+  - [x] All applications (If direct or hybrid auth used - Admin & Break-Glass MFA)
 
 #### Node: Authorization, RBAC, IGA & Access Recertifications (`access_control_and_rbac`)
 Action - All apps must use RBAC and IGA for my employees, ask for all apps (Put in baseline for all apps)
@@ -344,17 +381,17 @@ Action - All apps must use RBAC and IGA for my employees, ask for all apps (Put 
 
 #### Node: Secure Session Management (`session_management`)
 - **Implementation Groups**: `custom_app`
-- **Description**: Enforce cryptographically secure session generation, idle timeouts, secure cookie flags (HttpOnly, Secure, SameSite), and server-side token invalidation on logout.
+- **Description**: Enforce cryptographically secure session identifiers and API bearer tokens, idle timeouts, secure cookie flags (HttpOnly, Secure, SameSite), and token invalidation on logout.
 
 ##### Q14. `session_management:q1`
 - **URN**: `urn:intuitem:risk:req_node:appsec:session_management:q1`
-- **Question**: Are session tokens cryptographically secure, transmitted with secure cookie flags (HttpOnly, Secure, SameSite), and invalidated on logout or inactivity?
+- **Question**: Are session identifiers and API bearer tokens cryptographically secure, protected in transit/storage (e.g. HttpOnly, Secure, SameSite cookie flags or secure token storage), and invalidated upon logout, expiration, or inactivity?
 - **Type**: `unique_choice`
 - **Choices & Scoring**:
   - `Yes` (100 pts, compute_result: true)
   - `No` (0 pts)
 - **Applicable Cases / Situations**:
-  - [ ] 
+  - [x] Custom applications and APIs (Secure cookie flags, Bearer token lifecycle, timeout invalidation)
 
 
 <a id="app_defenses_chapter"></a>
@@ -368,13 +405,23 @@ Action - All apps must use RBAC and IGA for my employees, ask for all apps (Put 
 
 ##### Q15. `owasp_top_10_defenses:q1`
 - **URN**: `urn:intuitem:risk:req_node:appsec:owasp_top_10_defenses:q1`
-- **Question**: Do you apply coding guidelines against OWASP Top 10 vulnerabilities (including input validation, parameterized queries, output encoding, and secure error handling)?
+- **Question**: Are server-side input validation and parameterized queries/ORMs enforced to prevent injection flaws (SQLi, command injection, SSRF)?
 - **Type**: `unique_choice`
 - **Choices & Scoring**:
-  - `Yes` (100 pts, compute_result: true)
+  - `Yes` (50 pts, compute_result: true)
   - `No` (0 pts)
 - **Applicable Cases / Situations**:
-  - [ ] 
+  - [x] Custom applications (Server-side input validation & parameterized queries/ORMs)
+
+##### Q15b. `owasp_top_10_defenses:q2`
+- **URN**: `urn:intuitem:risk:req_node:appsec:owasp_top_10_defenses:q2`
+- **Question**: Are context-aware output encoding, security headers (CSP), and generic production error handlers enforced to prevent XSS and stack-trace leakage?
+- **Type**: `unique_choice`
+- **Choices & Scoring**:
+  - `Yes` (50 pts, compute_result: true)
+  - `No` (0 pts)
+- **Applicable Cases / Situations**:
+  - [x] Custom applications (Context-aware output encoding, CSP & error masking) 
 
 #### Node: SSRF & Cloud Metadata Defense (`ssrf_and_cloud_metadata_defense`)
 - **Implementation Groups**: `custom_app`
@@ -545,13 +592,23 @@ Action - All apps must use RBAC and IGA for my employees, ask for all apps (Put 
 
 ##### Q27. `code_review_and_ci_cd_integrity:q1`
 - **URN**: `urn:intuitem:risk:req_node:appsec:code_review_and_ci_cd_integrity:q1`
-- **Question**: Are mandatory peer code reviews and branch protection rules enforced before any merge into deployment branches?
+- **Question**: Are mandatory peer code reviews enforced prior to merging changes into deployment branches?
 - **Type**: `unique_choice`
 - **Choices & Scoring**:
-  - `Yes` (100 pts, compute_result: true)
+  - `Yes` (50 pts, compute_result: true)
   - `No` (0 pts)
 - **Applicable Cases / Situations**:
-  - [ ] 
+  - [x] Custom applications (Mandatory peer code review prior to merge)
+
+##### Q27b. `code_review_and_ci_cd_integrity:q2`
+- **URN**: `urn:intuitem:risk:req_node:appsec:code_review_and_ci_cd_integrity:q2`
+- **Question**: Do repository branch protection rules block direct commits, force-pushes, and failing CI status checks on deployment branches?
+- **Type**: `unique_choice`
+- **Choices & Scoring**:
+  - `Yes` (50 pts, compute_result: true)
+  - `No` (0 pts)
+- **Applicable Cases / Situations**:
+  - [x] Custom applications (Branch protection rules & CI quality gate enforcement)
 
 #### Node: Vendor Secure Development & Coding Guidelines (`vendor_secure_development`)
 Action - For COTS, ask if vendor follows secure coding guidelines without going into specifics (SaaS is governed under Chapter 10)
@@ -576,27 +633,27 @@ Action - For COTS, ask if vendor follows secure coding guidelines without going 
 
 #### Node: API Gateway, Edge WAF, Rate Limiting & Bot Protection (`api_security_and_rate_limiting`)
 - **Implementation Groups**: `internet_facing`
-- **Description**: Protect exposed web and API endpoints against abusive traffic, automated bots, and volumetric attacks via an edge Web Application Firewall (WAF, e.g., Cloudflare), rate limiting, and schema validation. (Applicable strictly to self-hosted applications exposed to the public Internet; excluded from the SaaS questionnaire as provider implicitly manages edge protections and rate limiting; SaaS contractual network security is evaluated under Chapter 10 Section 9).
+- **Description**: Protect exposed web and API endpoints against abusive traffic, automated bots, and volumetric attacks via an edge Web Application Firewall (WAF, e.g., Cloudflare), and automated rate limiting / throttling controls. (Applicable strictly to self-hosted applications exposed to the public Internet; excluded from the SaaS questionnaire as provider implicitly manages edge protections and rate limiting; SaaS contractual network security is evaluated under Chapter 10 Section 9).
 
 ##### Q29. `api_security_and_rate_limiting:q1`
 - **URN**: `urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting:q1`
-- **Question**: Are exposed web and API endpoints protected against abusive traffic via an edge Web Application Firewall (WAF, e.g., Cloudflare, AWS WAF), bot protection, and automated rate limiting / throttling controls?
+- **Question**: Are internet-facing endpoints fronted by an Edge WAF and anti-DDoS / bot protection (e.g. Cloudflare, AWS WAF)?
 - **Type**: `unique_choice`
 - **Choices & Scoring**:
   - `Yes` (50 pts, compute_result: true)
   - `No` (0 pts)
 - **Applicable Cases / Situations**:
-  - [x] **Self-Hosted Internet-Facing only** (Edge WAF, bot protection & rate limiting)
+  - [x] **Self-Hosted Internet-Facing only** (Edge WAF, anti-DDoS & bot protection)
 
 ##### Q30. `api_security_and_rate_limiting:q2`
 - **URN**: `urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting:q2`
-- **Question**: Are API payloads strictly validated against documented API specifications (e.g. OpenAPI / JSON schema)?
+- **Question**: Are API rate limiting, throttling, and payload size quotas enforced to prevent scraping and resource exhaustion?
 - **Type**: `unique_choice`
 - **Choices & Scoring**:
   - `Yes` (50 pts, compute_result: true)
   - `No` (0 pts)
 - **Applicable Cases / Situations**:
-  - [x] **Self-Hosted Internet-Facing only** (OpenAPI / Schema validation) 
+  - [x] **Self-Hosted Internet-Facing only** (Rate limiting, throttling & payload quotas) 
 
 
 <a id="data_lifecycle_chapter"></a>
@@ -651,9 +708,10 @@ Action - Ask if non prod environments (if used) are secure identically as prod. 
 - **Conditional Dependency (`depends_on`)**: `{'question': 'urn:intuitem:risk:req_node:appsec:non_prod_data:q1', 'answers': ['urn:intuitem:risk:req_node:appsec:non_prod_data:q1:c2'], 'condition': 'any'}`
 - **Choices & Scoring**:
   - `No, no protection` (0 pts)
-  - `Hashing` (90 pts, compute_result: true)
-  - `Pseudonymisation` (90 pts, compute_result: true)
-  - `Encryption` (90 pts, compute_result: true)
+  - `Hashing` (60 pts, compute_result: true)
+  - `Pseudonymisation` (60 pts, compute_result: true)
+  - `Encryption` (60 pts, compute_result: true)
+  - `Masking / Anonymization` (60 pts, compute_result: true)
 - **Applicable Cases / Situations**:
   - [ ] 
 
@@ -663,8 +721,8 @@ Action - Ask if non prod environments (if used) are secure identically as prod. 
 - **Type**: `unique_choice`
 - **Conditional Dependency (`depends_on`)**: `{'question': 'urn:intuitem:risk:req_node:appsec:non_prod_data:q1', 'answers': ['urn:intuitem:risk:req_node:appsec:non_prod_data:q1:c2'], 'condition': 'any'}`
 - **Choices & Scoring**:
+  - `Yes` (40 pts, compute_result: true)
   - `No` (0 pts)
-  - `Yes` (10 pts, compute_result: true)
 - **Applicable Cases / Situations**:
   - [ ] 
 
@@ -677,8 +735,8 @@ Action - Ask if non prod environments (if used) are secure identically as prod. 
 - **Question**: Is there a data destruction process for this application? (e.g., documented data retention schedule and end-of-life purging procedures for self-hosted systems)
 - **Type**: `unique_choice`
 - **Choices & Scoring**:
-  - `No` (0 pts)
   - `Yes` (50 pts, compute_result: true)
+  - `No` (0 pts)
 - **Applicable Cases / Situations**:
   - [ ] 
 
@@ -686,10 +744,10 @@ Action - Ask if non prod environments (if used) are secure identically as prod. 
 - **URN**: `urn:intuitem:risk:req_node:appsec:data_destruction:q2`
 - **Question**: Is the process compliant with the policy (responsibilities, methods, reporting)? (e.g., defined stakeholder roles, approved cryptographic erasure or disposal methods, and verification certificates)
 - **Type**: `unique_choice`
-- **Conditional Dependency (`depends_on`)**: `{'question': 'urn:intuitem:risk:req_node:appsec:data_destruction:q1', 'answers': ['urn:intuitem:risk:req_node:appsec:data_destruction:q1:c2'], 'condition': 'any'}`
+- **Conditional Dependency (`depends_on`)**: `{'question': 'urn:intuitem:risk:req_node:appsec:data_destruction:q1', 'answers': ['urn:intuitem:risk:req_node:appsec:data_destruction:q1:c1'], 'condition': 'any'}`
 - **Choices & Scoring**:
-  - `No` (0 pts)
   - `Yes` (50 pts, compute_result: true)
+  - `No` (0 pts)
 - **Applicable Cases / Situations**:
   - [ ] 
 
@@ -715,7 +773,7 @@ Action - Ask if non prod environments (if used) are secure identically as prod. 
 
 ##### Q39. `security_event_logging:q2`
 - **URN**: `urn:intuitem:risk:req_node:appsec:security_event_logging:q2`
-- **Question**: Are sensitive data fields (passwords, payment cards, tokens, PII) systematically sanitized/masked from log outputs?
+- **Question**: Are sensitive data fields (passwords, payment cards, tokens, PII) systematically sanitized/masked from application, diagnostic, and error log outputs?
 - **Type**: `unique_choice`
 - **Choices & Scoring**:
   - `Yes` (50 pts, compute_result: true)
@@ -773,13 +831,24 @@ Action - Ask if non prod environments (if used) are secure identically as prod. 
 
 ##### Q43. `backup_and_disaster_recovery:q1`
 - **URN**: `urn:intuitem:risk:req_node:appsec:backup_and_disaster_recovery:q1`
-- **Question**: Are automated and encrypted backups maintained for application state and databases, with restoration tests performed at least annually?
+- **Question**: Are automated and encrypted backups maintained for application state and databases?
 - **Type**: `unique_choice`
 - **Choices & Scoring**:
-  - `Yes` (100 pts, compute_result: true)
+  - `Yes` (50 pts, compute_result: true)
   - `No` (0 pts)
 - **Applicable Cases / Situations**:
-  - [x] Self-Hosted only (Custom & COTS)
+  - [x] Self-Hosted only (Custom & COTS - Automated encrypted backups)
+
+##### Q43a. `backup_and_disaster_recovery:q2`
+- **URN**: `urn:intuitem:risk:req_node:appsec:backup_and_disaster_recovery:q2`
+- **Question**: Are backup restoration and disaster recovery drills tested at least annually against documented RTO/RPO targets?
+- **Type**: `unique_choice`
+- **Conditional Dependency (`depends_on`)**: `{'question': 'urn:intuitem:risk:req_node:appsec:backup_and_disaster_recovery:q1', 'answers': ['urn:intuitem:risk:req_node:appsec:backup_and_disaster_recovery:q1:c1'], 'condition': 'any'}`
+- **Choices & Scoring**:
+  - `Yes` (50 pts, compute_result: true)
+  - `No` (0 pts)
+- **Applicable Cases / Situations**:
+  - [x] Self-Hosted only (Custom & COTS - Annual DR drills & restoration testing)
 
 #### Node: Operating System Patching & High Availability (`os_patching`)
 - **Implementation Groups**: `infra`

@@ -135,8 +135,14 @@ class TestWebUI(unittest.TestCase):
     """Test suite for the Web UI and REST API."""
 
     def setUp(self):
+        if TASK_MANAGER:
+            TASK_MANAGER.clear_queue()
         self.app = create_app({"TESTING": True})
         self.client = self.app.test_client()
+
+    def tearDown(self):
+        if TASK_MANAGER:
+            TASK_MANAGER.clear_queue()
 
     def test_index_route(self):
         """Test GET / renders the main HTML interface."""
@@ -184,6 +190,19 @@ class TestWebUI(unittest.TestCase):
             self.assertEqual(ok_res.status_code, 200)
             ok_data = ok_res.get_json()
             self.assertIn("task_id", ok_data)
+            task_id = ok_data["task_id"]
+            for _ in range(100):
+                time.sleep(0.02)
+                task = TASK_MANAGER.get_task(task_id)
+                if task and task["status"] in ("completed", "failed"):
+                    break
+            self.assertEqual(task["status"], "completed")
+            mock_create.assert_called_once_with(
+                name="IT-Ops",
+                description="IT Domain",
+                parent_folder_id=None,
+                create_iam_groups=True,
+            )
 
     def test_catalog_endpoint(self):
         """Test GET /api/catalog returns pre-configured application profiles."""
@@ -435,17 +454,26 @@ class TestWebUI(unittest.TestCase):
 
     def test_framework_implementation_groups_endpoint(self):
         """Test GET /api/frameworks/<ref_id>/implementation-groups returns framework groups."""
-        with patch("classes.examples_manager.ExamplesManager.get_framework_implementation_groups") as mock_get_ig:
-            mock_get_ig.return_value = [
+        mock_dep_info = {
+            "all_groups": [
                 {"name": "Application information", "ref_id": "baseline", "default_selected": True},
                 {"name": "Custom applications", "ref_id": "custom_app", "default_selected": False},
-            ]
+            ],
+            "always_selectable_groups": ["baseline"],
+            "hidden_groups": [],
+            "triggered_groups": ["custom_app"],
+            "visible_groups": ["baseline", "custom_app"],
+            "dependency_map": {},
+            "summary": {"total_groups": 2, "visible_count": 2},
+        }
+        with patch("classes.examples_manager.ExamplesManager.determine_implementation_groups_triggered_by_others", return_value=mock_dep_info) as mock_dep:
             resp = self.client.get("/api/frameworks/mls/implementation-groups")
             self.assertEqual(resp.status_code, 200)
             data = resp.get_json()
             self.assertEqual(data["framework"], "mls")
             self.assertEqual(len(data["implementation_groups"]), 2)
             self.assertEqual(data["implementation_groups"][0]["ref_id"], "baseline")
+            mock_dep.assert_called_once_with("mls")
 
     @patch("classes.examples_manager.ExamplesManager.find_target_framework")
     @patch("classes.examples_manager.ExamplesManager.get_installed_frameworks")
@@ -679,6 +707,15 @@ class TestWebUI(unittest.TestCase):
         data = response.get_json()
         self.assertIn("task_id", data)
 
+        task_id = data["task_id"]
+        for _ in range(100):
+            time.sleep(0.02)
+            task = TASK_MANAGER.get_task(task_id)
+            if task and task["status"] in ("completed", "failed"):
+                break
+        self.assertEqual(task["status"], "completed")
+        mock_link.assert_called_once()
+
     @patch("classes.examples_manager.ExamplesManager.remove_example_application")
     def test_remove_endpoint(self, mock_remove):
         """Test POST /api/remove launches application removal task."""
@@ -692,6 +729,15 @@ class TestWebUI(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.get_json()
         self.assertIn("task_id", data)
+
+        task_id = data["task_id"]
+        for _ in range(100):
+            time.sleep(0.02)
+            task = TASK_MANAGER.get_task(task_id)
+            if task and task["status"] in ("completed", "failed"):
+                break
+        self.assertEqual(task["status"], "completed")
+        mock_remove.assert_called_once()
 
     def test_backups_list_and_actions(self):
         """Test backup listing, creation, and inspection."""
@@ -748,6 +794,15 @@ class TestWebUI(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.get_json()
         self.assertIn("task_id", data)
+
+        task_id = data["task_id"]
+        for _ in range(100):
+            time.sleep(0.02)
+            task = TASK_MANAGER.get_task(task_id)
+            if task and task["status"] in ("completed", "failed"):
+                break
+        self.assertEqual(task["status"], "completed")
+        mock_import.assert_called_once()
 
 
 if __name__ == "__main__":

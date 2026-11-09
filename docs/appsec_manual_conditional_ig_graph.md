@@ -117,13 +117,14 @@ In addition to framework-level IG dependencies, `appsec_manual.yml` contains **8
 flowchart LR
     subgraph IntraNode ["Intra-Node Conditional Question Branches (depends_on)"]
         direction TB
-        A["<b>authentication_and_mfa:q1</b><br/>c1 (Enterprise SSO) &#8594; skips q2, q3 <i>[Cases 1, 3, 5]</i><br/>c2 (Direct Auth) &#8594; unlocks q2, q3 <i>[Cases 2, 4, 6]</i>"]
+        A["<b>authentication_and_mfa:q1</b><br/>c1 (Exclusive SSO) / c4 (M2M API) &#8594; skips q2, q3 <i>[Cases 1, 3, 5]</i><br/>c2 (Hybrid SSO) / c3 (Direct Auth) &#8594; unlocks q2, q3 <i>[Cases 2, 4, 6]</i>"]
         B["<b>file_upload_security:q1</b><br/>c1 (No uploads) &#8594; skips q2, q3 <i>[Case 1]</i><br/>c2 (Yes uploads) &#8594; unlocks q2, q3 <i>[Case 2]</i>"]
         C["<b>data_exchange:q1</b><br/>c1 (No external exchange) &#8594; skips q2 <i>[Case 1]</i><br/>c2 (Yes external exchange) &#8594; unlocks q2 <i>[Cases 2, 3, 4]</i>"]
         D["<b>non_prod_data:q1</b><br/>c1 (Synthetic/mock only) &#8594; skips q2, q3 <i>[Cases 1, 4]</i><br/>c2 (Prod data in non-prod) &#8594; unlocks q2, q3 <i>[Cases 2, 3]</i>"]
-        E["<b>data_destruction:q1</b><br/>c1 (No destruction process) &#8594; skips q2 <i>[Case 2]</i><br/>c2 (Yes destruction process) &#8594; unlocks q2 <i>[Cases 1, 3, 4]</i>"]
+        E["<b>data_destruction:q1</b><br/>c1 (Yes destruction process) &#8594; unlocks q2 <i>[Cases 1, 3, 4]</i><br/>c2 (No destruction process) &#8594; skips q2 <i>[Case 2]</i>"]
         F["<b>os_patching:q1</b><br/>c1 (Automatic OS patching) &#8594; skips q2 <i>[Case 1]</i><br/>c2 (Manual OS patching) &#8594; unlocks q2 <i>[Cases 2, 3, 4]</i>"]
         G["<b>saas_pci_dss:q1</b><br/>c1 (Out of scope for PCI DSS) &#8594; skips q2, q3 <i>[Case 6]</i><br/>c2 (In scope for PCI DSS) &#8594; unlocks q2, q3 <i>[Case 5]</i>"]
+        H["<b>backup_and_disaster_recovery:q1</b><br/>c1 (Yes automated backups) &#8594; unlocks q2 (DR drills) <i>[Cases 1, 2, 3, 4]</i><br/>c2 (No automated backups) &#8594; skips q2"]
     end
 ```
 

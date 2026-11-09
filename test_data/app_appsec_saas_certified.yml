@@ -27,6 +27,16 @@ application:
   - baseline
   - saas_app
 answers:
+- requirement: application_description
+  question: What is the primary functional domain and business purpose of the application?
+  answer: Internal Operations & Enterprise Management (ERP, CRM, HR, finance, supply chain, intranet)
+  result: compliant
+  observation: Certified (ISO 27001 & SOC 2) enterprise HR SaaS platform managing employee records and human capital workflows.
+- requirement: application_description
+  question: Who are the primary intended users or consumers of the application?
+  answer: Internal workforce (employees, internal contractors)
+  result: compliant
+  observation: Used across the global enterprise by employees and HR department staff.
 - requirement: stakeholder_identification
   question: Is there a designated business contact? (Designated business owner or
     product sponsor accountable for business processes, functionality, and risk acceptance)
@@ -84,7 +94,7 @@ answers:
     2 Type II attestation.
 - requirement: authentication_and_mfa
   question: How do users authenticate to the application?
-  answer: Enterprise SSO (SAML 2.0 / OIDC federated IdP)
+  answer: Enterprise SSO exclusively (SAML 2.0 / OIDC federated IdP, with no local accounts)
   result: compliant
   observation: Corporate Okta SSO with SAML 2.0 and adaptive MFA enforced.
 - requirement: access_control_and_rbac
@@ -219,29 +229,53 @@ expected_evaluation:
   confidentiality_impact: 3
   availability_impact: 3
   integrity_impact: 3
-  scenario_count: 7
+  scenario_count: 10
   excluded_scenarios:
   - API abuse and denial of service
   - Application compromise via injection attack
   - Application or storage compromise via unrestricted file upload
   - Catastrophic data loss due to unverified backups
+  - Compromise of CI/CD pipeline integrity and unreviewed code deployment
+  - Compromise of customer data via unmanaged mobile devices
   - Compromise via unhardened or End-of-Life (EOL) COTS deployment
   - Credential leakage via hardcoded secrets
+  - Deployment of undetected code vulnerabilities due to missing security testing
+  - Deployment of vulnerable commercial software due to unverified vendor SDLC
   - Disclosure of production data in non-production environments
   - Excessive retention of sensitive data
   - Exploitation of unpatched SaaS vulnerability
   - Exploitation of unpatched vulnerability
   - Exposure of unencrypted data at rest
   - Exposure of unencrypted data in transit
+  - Fourth-party vendor and sub-processor supply chain breach
   - Host or OS compromise via unpatched system vulnerabilities
+  - Phishing and social engineering compromise of SaaS personnel
+  - Physical unauthorized access and datacenter hardware tampering
+  - SaaS application exploitation via unverified vendor SDLC
+  - SaaS endpoint compromise and administrative credential theft
+  - SaaS operational security compromise due to missing governance policies
+  - SaaS service disruption and catastrophic data loss
   - SaaS tenant isolation breach and cross-border leakage
+  - SaaS tenant network perimeter breach and unauthorized egress
   - SaaS vendor privilege abuse and sub-processor leakage
+  - SaaS web application transport and session exploitation
+  - Sensitive data exposure in logs or missing forensic audit trail
+  - Session hijacking and token replay
   - Supply chain compromise via vulnerable dependency
   - Third-party data leakage
   - Undetected breach due to missing security logging
+  - Unmonitored SaaS security incidents and delayed breach detection
 expected_risk_scenarios:
 - scenario: Account takeover via weak authentication
   likelihood_requirement: authentication_and_mfa
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Compromise of cardholder data environment in SaaS service
+  likelihood_requirement: saas_pci_dss
   likelihood_score: 100
   scaled_likelihood: 1
   scaled_impact: 3
@@ -290,6 +324,22 @@ expected_risk_scenarios:
   control_priority: 3
 - scenario: Unauthorized data access via broken authorization
   likelihood_requirement: access_control_and_rbac
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Unlawful cross-border data transfer and residency non-compliance
+  likelihood_requirement: saas_data_hosting_and_residency
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Unremediated SaaS security non-conformity and contractual remedy gap
+  likelihood_requirement: saas_non_conformity_remediation
   likelihood_score: 100
   scaled_likelihood: 1
   scaled_impact: 3

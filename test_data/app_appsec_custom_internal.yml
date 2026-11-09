@@ -28,6 +28,16 @@ application:
   - custom_app
   - infra
 answers:
+- requirement: application_description
+  question: What is the primary functional domain and business purpose of the application?
+  answer: Internal Operations & Enterprise Management (ERP, CRM, HR, finance, supply chain, intranet)
+  result: compliant
+  observation: In-house developed internal tool hosted on corporate infrastructure supporting internal employee operational workflows.
+- requirement: application_description
+  question: Who are the primary intended users or consumers of the application?
+  answer: Internal workforce (employees, internal contractors)
+  result: compliant
+  observation: Restricted to internal corporate employees via intranet and corporate VPN.
 - requirement: stakeholder_identification
   question: Is there a designated business contact? (Designated business owner or
     product sponsor accountable for business processes, functionality, and risk acceptance)
@@ -83,7 +93,7 @@ answers:
   observation: Restricted internal corporate LAN / VPN access only.
 - requirement: authentication_and_mfa
   question: How do users authenticate to the application?
-  answer: Enterprise SSO (SAML 2.0 / OIDC federated IdP)
+  answer: Enterprise SSO exclusively (SAML 2.0 / OIDC federated IdP, with no local accounts)
   result: compliant
   observation: Enterprise Okta SSO with mandatory FIDO2 MFA enforced.
 - requirement: access_control_and_rbac
@@ -108,18 +118,21 @@ answers:
   result: compliant
   observation: Annual manager entitlement recertification campaigns executed in SailPoint.
 - requirement: session_management
-  question: Are session tokens cryptographically secure, transmitted with secure cookie
-    flags (HttpOnly, Secure, SameSite), and invalidated on logout or inactivity?
+  question: "Are session identifiers and API bearer tokens cryptographically secure, protected in transit/storage (e.g. HttpOnly, Secure, SameSite cookie flags or secure token storage), and invalidated upon logout, expiration, or inactivity?"
   answer: 'Yes'
   result: compliant
   observation: Secure cookie flags (HttpOnly, Secure, SameSite=Strict) and 30-min
     inactivity timeout.
 - requirement: owasp_top_10_defenses
-  question: Do you apply coding guidelines against OWASP Top 10 vulnerabilities (including
-    input validation, parameterized queries, output encoding, and secure error handling)?
+  question: "Are server-side input validation and parameterized queries/ORMs enforced to prevent injection flaws (SQLi, command injection, SSRF)?"
   answer: 'Yes'
   result: compliant
-  observation: Parameterized ORM queries, output encoding, strict schema validation.
+  observation: Parameterized ORM queries and strict server-side schema validation.
+- requirement: owasp_top_10_defenses
+  question: "Are context-aware output encoding, security headers (CSP), and generic production error handlers enforced to prevent XSS and stack-trace leakage?"
+  answer: 'Yes'
+  result: compliant
+  observation: Context-aware output encoding, security headers (CSP), and generic error handlers.
 - requirement: file_upload_security
   question: Can files be uploaded to the application? (e.g., user attachments, documents,
     images, media, or data imports)
@@ -151,12 +164,15 @@ answers:
   result: compliant
   observation: CycloneDX SBOM generated automatically with every container image build.
 - requirement: code_review_and_ci_cd_integrity
-  question: Are mandatory peer code reviews and branch protection rules enforced before
-    any merge into deployment branches?
+  question: "Are mandatory peer code reviews enforced prior to merging changes into deployment branches?"
   answer: 'Yes'
   result: compliant
-  observation: GitHub protected main branch with required 2 peer reviews and signed
-    commits.
+  observation: GitHub mandatory peer code review with at least 2 required approvals.
+- requirement: code_review_and_ci_cd_integrity
+  question: "Do repository branch protection rules block direct commits, force-pushes, and failing CI status checks on deployment branches?"
+  answer: 'Yes'
+  result: compliant
+  observation: GitHub protected main branch blocking direct commits and force-pushes with signed commits.
 - requirement: data_exchange
   question: 'Does the application exchange data externally? (e.g., B2B transfers,
     automated API integrations, webhooks, or network communications with external
@@ -230,12 +246,15 @@ answers:
   observation: Logs streamed via FluentBit to central Splunk SIEM with active detection
     alerts.
 - requirement: backup_and_disaster_recovery
-  question: Are automated and encrypted backups maintained for application state and
-    databases, with restoration tests performed at least annually?
+  question: "Are automated and encrypted backups maintained for application state and databases?"
   answer: 'Yes'
   result: compliant
-  observation: Automated daily encrypted snapshots with quarterly automated restore
-    verification.
+  observation: Automated daily encrypted snapshots of application state and databases.
+- requirement: backup_and_disaster_recovery
+  question: "Are backup restoration and disaster recovery drills tested at least annually against documented RTO/RPO targets?"
+  answer: 'Yes'
+  result: compliant
+  observation: Quarterly automated restore verification drills tested against documented RTO and RPO targets.
 - requirement: os_patching
   question: Are operating system (OS) security patches, kernel updates, and host/container
     security updates applied automatically within formal SLAs? (e.g. Critical <= 14
@@ -256,18 +275,33 @@ expected_evaluation:
   confidentiality_impact: 2
   availability_impact: 2
   integrity_impact: 2
-  scenario_count: 15
+  scenario_count: 19
   excluded_scenarios:
   - API abuse and denial of service
+  - Compromise of cardholder data environment in SaaS service
+  - Compromise of customer data via unmanaged mobile devices
   - Compromise via unhardened or End-of-Life (EOL) COTS deployment
+  - Deployment of vulnerable commercial software due to unverified vendor SDLC
   - Exploitation of unpatched SaaS vulnerability
   - Exploitation of unpatched vulnerability
+  - Fourth-party vendor and sub-processor supply chain breach
+  - Phishing and social engineering compromise of SaaS personnel
+  - Physical unauthorized access and datacenter hardware tampering
   - Reliance on unverified SaaS security posture
+  - SaaS application exploitation via unverified vendor SDLC
   - SaaS customer data exposure due to missing encryption or NDA safeguards
+  - SaaS endpoint compromise and administrative credential theft
+  - SaaS operational security compromise due to missing governance policies
   - SaaS provider data leakage
+  - SaaS service disruption and catastrophic data loss
   - SaaS tenant isolation breach and cross-border leakage
+  - SaaS tenant network perimeter breach and unauthorized egress
   - SaaS tenant takeover via unprotected administrative console
   - SaaS vendor privilege abuse and sub-processor leakage
+  - SaaS web application transport and session exploitation
+  - Unlawful cross-border data transfer and residency non-compliance
+  - Unmonitored SaaS security incidents and delayed breach detection
+  - Unremediated SaaS security non-conformity and contractual remedy gap
 expected_risk_scenarios:
 - scenario: Account takeover via weak authentication
   likelihood_requirement: authentication_and_mfa
@@ -301,8 +335,24 @@ expected_risk_scenarios:
   matrix_risk_id: 0
   risk_level: 1
   control_priority: 4
+- scenario: Compromise of CI/CD pipeline integrity and unreviewed code deployment
+  likelihood_requirement: code_review_and_ci_cd_integrity
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 2
+  matrix_risk_id: 0
+  risk_level: 1
+  control_priority: 4
 - scenario: Credential leakage via hardcoded secrets
   likelihood_requirement: secrets_management
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 2
+  matrix_risk_id: 0
+  risk_level: 1
+  control_priority: 4
+- scenario: Deployment of undetected code vulnerabilities due to missing security testing
+  likelihood_requirement: automated_security_testing
   likelihood_score: 100
   scaled_likelihood: 1
   scaled_impact: 2
@@ -351,6 +401,22 @@ expected_risk_scenarios:
   control_priority: 4
 - scenario: Missing application stakeholders
   likelihood_requirement: stakeholder_identification
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 2
+  matrix_risk_id: 0
+  risk_level: 1
+  control_priority: 4
+- scenario: Sensitive data exposure in logs or missing forensic audit trail
+  likelihood_requirement: security_event_logging
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 2
+  matrix_risk_id: 0
+  risk_level: 1
+  control_priority: 4
+- scenario: Session hijacking and token replay
+  likelihood_requirement: session_management
   likelihood_score: 100
   scaled_likelihood: 1
   scaled_impact: 2

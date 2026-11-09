@@ -694,6 +694,277 @@ Created and provisioned the comprehensive 6-case application example suite for t
    - Dynamic testing in [`tests/test_application_scenarios.py`](file:///home/romain/ciso-assistant/tests/test_application_scenarios.py).
    - All 275 tests pass cleanly (`Ran 275 tests in 53.360s, OK (skipped=22)`).
 
+---
+
+## 38. Phase 1: Scoring Mathematics & Standardized Choice Ordering (`appsec.yml` & `appsec_manual.yml`) [COMPLETED]
+
+Implemented Phase 1 of the AppSec Framework Questions & Risk Evaluation Improvement Plan across both [`YML/appsec.yml`](file:///home/python/ciso-assistant/YML/appsec.yml) and [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml):
+
+1. **Rebalanced `non_prod_data` Scoring (Eliminating Dead-Weight Math Defect)**:
+   - **Context**: In `non_prod_data`, when production data is used in non-prod (`q1 = Yes`, +0), `q2` previously awarded `+90` and `q3` awarded `+10`. Under integer bucket division $\lfloor\frac{\text{score}-1}{25}\rfloor$, $q_3$ (`+10`) could never alter the computed likelihood (both 0 and 10 produced Likelihood 4; both 90 and 100 produced Likelihood 1).
+   - **Implementation**:
+     - `non_prod_data:q2`: protective choices (`c2`–`c5`: Hashing, Pseudonymisation, Encryption, Masking / Anonymization) rebalanced to **`add_score: 60`** (was 90).
+     - `non_prod_data:q3`: Choice `c1` ("Yes") rebalanced to **`add_score: 40`** (was 10), and Choice `c2` ("No") awards `0`.
+   - **Result**: Unlocks all 4 likelihood tiers dynamically:
+     - Sanitized + Purged ($60 + 40 = 100$) $\rightarrow$ **Likelihood 1** (*Unlikely*)
+     - Sanitized but Retained ($60 + 0 = 60$) $\rightarrow$ **Likelihood 2** (*Rather unlikely*)
+     - Unsanitized but Purged ($0 + 40 = 40$) $\rightarrow$ **Likelihood 3** (*Likely*)
+     - Unsanitized and Retained ($0 + 0 = 0$) $\rightarrow$ **Likelihood 4** (*Very likely*)
+
+2. **Fixed `stakeholder_identification` Score Buckets**:
+   - **Context**: Questions `q1`–`q4` each awarded 25 points. Because $25$ falls into the `0–25` bucket ($\lfloor\frac{25-1}{25}\rfloor = 0$), having 1 designated stakeholder scored identical to having 0 stakeholders (Likelihood 4).
+   - **Implementation**: Weighted core operational owners higher:
+     - `q1` (Business Contact): **`add_score: 30`**
+     - `q2` (IT Contact): **`add_score: 30`**
+     - `q3` (Data Owner): **`add_score: 25`**
+     - `q4` (LeanIX / CMDB): **`add_score: 15`**
+     - Total maximum score = $30 + 30 + 25 + 15 = 100$.
+   - **Result**:
+     - 1 designated owner ($30$ pts) $\rightarrow$ **Likelihood 3** (elevated from L4)
+     - 2 designated owners ($55–60$ pts) $\rightarrow$ **Likelihood 2**
+     - Full governance ($85–100$ pts) $\rightarrow$ **Likelihood 1**
+
+3. **Standardized `c1 = Yes` / `c2 = No` Choice Ordering**:
+   - Inverted non-standard `c1 = No` / `c2 = Yes` order in:
+     - `non_prod_data:q3`: `c1` = "Yes" (40 pts), `c2` = "No" (0 pts).
+     - `data_destruction:q1`: `c1` = "Yes" (50 pts), `c2` = "No" (0 pts).
+     - `data_destruction:q2`: `c1` = "Yes" (50 pts), `c2` = "No" (0 pts).
+   - Updated `data_destruction:q2` `depends_on` answers to `["urn:intuitem:risk:req_node:<fw>:data_destruction:q1:c1"]`.
+
+4. **Rephrased `security_event_logging:q2`**:
+   - Updated text to: *"Are sensitive data fields (passwords, payment cards, tokens, PII) systematically sanitized/masked from application, diagnostic, and error log outputs?"*.
+   - Retained independent assessment from `q1` so applications leaking secrets in error/diagnostic logs are held accountable even without structured security event logging.
+
+5. **Framework Version Increments**:
+   - [`YML/appsec.yml`](file:///home/python/ciso-assistant/YML/appsec.yml): Incremented to **`version: 32`** (`publication_date: 2026-11-09`).
+   - [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml): Incremented to **`version: 14`** (`publication_date: 2026-11-09`).
+
+6. **Synchronized Test Profiles & Documentation**:
+   - Updated [`test_data/app_appsec_vulnerable_legacy.yml`](file:///home/python/ciso-assistant/test_data/app_appsec_vulnerable_legacy.yml): `Missing application stakeholders` scenario updated to `likelihood_score: 30`, `scaled_likelihood: 3`, `matrix_risk_id: 1`, `risk_level: 2`, `control_priority: 3` (Low risk due to IT contact).
+   - Updated [`test_data/app_appsec_hybrid_saas.yml`](file:///home/python/ciso-assistant/test_data/app_appsec_hybrid_saas.yml): `Missing application stakeholders` scenario updated to `likelihood_score: 85`, `scaled_likelihood: 1` (3 designated owners achieve full governance Likelihood 1).
+   - Updated [`docs/appsec_questions_cases.md`](file:///home/python/ciso-assistant/docs/appsec_questions_cases.md), [`docs/appsec_manual_conditional_ig_graph.md`](file:///home/python/ciso-assistant/docs/appsec_manual_conditional_ig_graph.md), and checked Step 1 in [`docs/appsec_framework_improvement_plan.md`](file:///home/python/ciso-assistant/docs/appsec_framework_improvement_plan.md).
+
+7. **Automated Unit Tests**:
+   - Added `test_appsec_phase1_scoring_and_standardized_choices` in [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py).
+   - Ran full test suite: **278 passed, 0 failures, 0 errors, 22 skipped** (`python3 -m unittest discover tests`).
+
+### 39. Phase 2: Real-World Architecture & Question Granularity Implementation (Completed 2026-11-09)
+
+Implemented all Phase 2 requirements from [`docs/appsec_framework_improvement_plan.md`](file:///home/python/ciso-assistant/docs/appsec_framework_improvement_plan.md) across both [`YML/appsec.yml`](file:///home/python/ciso-assistant/YML/appsec.yml) and [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml), synchronized all 15 test profiles in [`test_data/`](file:///home/python/ciso-assistant/test_data/), updated documentation, and passed 100% of automated unit and integration tests:
+
+1. **Hybrid Authentication & Break-Glass Admin Accounts (`authentication_and_mfa`)**:
+   - Replaced binary choice in `authentication_and_mfa:q1` with 4 distinct architectural options:
+     - `c1`: `"Enterprise SSO exclusively (SAML 2.0 / OIDC federated IdP, with no local accounts)"` (`+100` pts, `compute_result: true`, `#33a745`)
+     - `c2`: `"Hybrid: Enterprise SSO for users, with local admin / break-glass or external accounts"` (`+40` pts, `compute_result: true`, `#ffc107`)
+     - `c3`: `"Direct / Local application authentication only (Username & Password)"` (`+0` pts, `compute_result: false`, `#dc3545`)
+     - `c4`: `"Machine-to-Machine / API only (mTLS, OAuth2 Client Credentials, or signed tokens; no interactive user login)"` (`+100` pts, `compute_result: true`, `#33a745`)
+   - Updated `q2` (local password policies & lockout) and `q3` (administrative MFA) `depends_on`:
+     - Triggers when `q1` answers either `c2` (Hybrid) or `c3` (Direct) with `condition: any`.
+     - Re-weighted `q2` and `q3` from $50 \rightarrow 30$ pts:
+       - Hybrid SSO + Passwords + Admin MFA: $40 + 30 + 30 = 100$ pts (Likelihood 1 / Compliant)
+       - Direct + Passwords + Admin MFA: $0 + 30 + 30 = 60$ pts (Likelihood 2 / Capped because Enterprise SSO is omitted)
+       - Exclusive SSO or M2M API: $100$ pts (Likelihood 1 / Fully compliant)
+
+2. **Stateless Token Architecture in `session_management`**:
+   - Rephrased `session_management:q1` to explicitly accommodate modern stateless token APIs (JWT, OAuth2 Bearer tokens) alongside cookie-based web applications:
+     *"Are session identifiers and API bearer tokens cryptographically secure, protected in transit/storage (e.g. HttpOnly, Secure, SameSite cookie flags or secure token storage), and invalidated upon logout, expiration, or inactivity?"* (`100` pts).
+
+3. **Split Compound 100-Point Questions into Granular 50 + 50 Point Controls**:
+   - **`backup_and_disaster_recovery`**:
+     - `q1` (`+50` pts): *"Are automated and encrypted backups maintained for application state and databases?"*
+     - `q2` (`+50` pts, `depends_on: q1:c1`): *"Are backup restoration and disaster recovery drills tested at least annually against documented RTO/RPO targets?"*
+   - **`owasp_top_10_defenses`**:
+     - `q1` (`+50` pts): *"Are server-side input validation and parameterized queries/ORMs enforced to prevent injection flaws (SQLi, command injection, SSRF)?"*
+     - `q2` (`+50` pts): *"Are context-aware output encoding, security headers (CSP), and generic production error handlers enforced to prevent XSS and stack-trace leakage?"*
+   - **`code_review_and_ci_cd_integrity`**:
+     - `q1` (`+50` pts): *"Are mandatory peer code reviews enforced prior to merging changes into deployment branches?"*
+     - `q2` (`+50` pts): *"Do repository branch protection rules block direct commits, force-pushes, and failing CI status checks on deployment branches?"*
+   - **`api_security_and_rate_limiting`**:
+     - `q1` (`+50` pts): *"Are internet-facing endpoints fronted by an Edge WAF and anti-DDoS / bot protection (e.g. Cloudflare, AWS WAF)?"*
+     - `q2` (`+50` pts): *"Are API rate limiting, throttling, and payload size quotas enforced to prevent scraping and resource exhaustion?"*
+
+4. **Framework Version Increments**:
+   - [`YML/appsec.yml`](file:///home/python/ciso-assistant/YML/appsec.yml): Incremented to **`version: 33`** (`publication_date: 2026-11-09`).
+   - [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml): Incremented to **`version: 15`** (`publication_date: 2026-11-09`).
+
+5. **Synchronized All 15 Test Profiles in [`test_data/`](file:///home/python/ciso-assistant/test_data/)**:
+   - Updated profiles answering the split nodes to provide answers for `q1` and `q2`:
+     - Compliant profiles (`custom_internal`, `custom_internet`, `cots_internal`, `cots_internet`, `manual_*`): answer `Yes` to both `q1` and `q2` (100 pts total).
+     - Non-compliant profiles (`vulnerable_legacy`): answer `No` to `q1` and `q2` (0 pts total).
+   - Updated compliant profiles utilizing local/break-glass administrative or customer accounts (`cots_internet`, `custom_internet`, `saas_uncertified`, and `manual_*`) to select the new Hybrid option (`c2`: 40 pts) with `q2 = Yes` (30 pts) and `q3 = Yes` (30 pts), maintaining their 100-point Likelihood 1 evaluation.
+   - Updated [`test_data/app_appsec_hybrid_saas.yml`](file:///home/python/ciso-assistant/test_data/app_appsec_hybrid_saas.yml): `Account takeover via weak authentication` likelihood score updated to $30$ pts ($0 + 0 + 30$, `scaled_likelihood: 3`, `risk_level: 3`).
+
+6. **Documentation & Verification**:
+   - Updated [`docs/appsec_questions_cases.md`](file:///home/python/ciso-assistant/docs/appsec_questions_cases.md) (summary table & detailed question blocks).
+   - Updated [`docs/appsec_manual_conditional_ig_graph.md`](file:///home/python/ciso-assistant/docs/appsec_manual_conditional_ig_graph.md) (flowchart & intra-node dependencies).
+   - Marked Step 2 as completed in [`docs/appsec_framework_improvement_plan.md`](file:///home/python/ciso-assistant/docs/appsec_framework_improvement_plan.md).
+   - Updated automated tests in [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py), including `test_appsec_iam_sso_and_credential_order`, `test_appsec_on_premise_iam_sso_conditional_authentication`, `test_appsec_software_delivery_models_and_sdlc_scoping`, and added dedicated `test_appsec_phase2_architecture_and_split_nodes`.
+   - Full test suite execution: **279 passed, 0 failures, 0 errors, 22 skipped** (`python3 -m unittest discover tests`).
+
+
+## 40. Phase 3 Point 2: Connect Unlinked Requirements to Risk Scenarios (Completed 2026-11-09)
+
+Implemented **Point 2 of Phase 3** from [`docs/appsec_framework_improvement_plan.md`](file:///home/python/ciso-assistant/docs/appsec_framework_improvement_plan.md) (*"Connect Unlinked Requirements to Risk Scenarios"*), achieving 100% bidirectional coverage between assessable security requirements and threat scenarios.
+
+### 1. Risk Scenario Expansion (`YML/appsec_objects.yml`)
+- Incremented [`YML/appsec_objects.yml`](file:///home/python/ciso-assistant/YML/appsec_objects.yml) to **`version: 3`** (`publication_date: 2026-11-09`).
+- Created **19 new dedicated risk scenarios** (scenarios 26 through 44), expanding the library from 25 to **44 risk scenarios**:
+  1. `session_hijacking_and_token_replay` (Scenario 26) $\rightarrow$ Likelihood: `session_management`
+  2. `ci_cd_pipeline_compromise_and_unreviewed_code` (Scenario 27) $\rightarrow$ Likelihood: `code_review_and_ci_cd_integrity`
+  3. `undetected_code_vulnerabilities_missing_testing` (Scenario 28) $\rightarrow$ Likelihood: `automated_security_testing`
+  4. `cots_vendor_insecure_development_practices` (Scenario 29) $\rightarrow$ Likelihood: `vendor_secure_development`
+  5. `sensitive_data_exposure_in_logs` (Scenario 30) $\rightarrow$ Likelihood: `security_event_logging`
+  6. `saas_cross_border_data_transfer_noncompliance` (Scenario 31) $\rightarrow$ Likelihood: `saas_data_hosting_and_residency`
+  7. `saas_cardholder_data_compromise` (Scenario 32) $\rightarrow$ Likelihood: `saas_pci_dss`
+  8. `saas_unremediated_nonconformity_and_remedy_gap` (Scenario 33) $\rightarrow$ Likelihood: `saas_non_conformity_remediation`
+  9. `saas_unmonitored_incidents` (Scenario 34) $\rightarrow$ Likelihood: `saas_logging_and_incidents`
+  10. `saas_service_disruption_and_data_loss` (Scenario 35) $\rightarrow$ Likelihood: `saas_backup_and_business_continuity`
+  11. `saas_subcontractor_supply_chain_breach` (Scenario 36) $\rightarrow$ Likelihood: `saas_subcontractor_management`
+  12. `saas_unverified_vendor_sdlc_exploitation` (Scenario 37) $\rightarrow$ Likelihood: `saas_secure_development`
+  13. `saas_web_transport_exploitation` (Scenario 38) $\rightarrow$ Likelihood: `saas_web_app_security`
+  14. `saas_network_perimeter_breach` (Scenario 39) $\rightarrow$ Likelihood: `saas_network_security`
+  15. `saas_endpoint_compromise_and_theft` (Scenario 40) $\rightarrow$ Likelihood: `saas_workstation_security`
+  16. `saas_mobile_device_compromise` (Scenario 41) $\rightarrow$ Likelihood: `saas_mobile_security`
+  17. `saas_missing_governance_and_policies` (Scenario 42) $\rightarrow$ Likelihood: `saas_governance_and_policy`
+  18. `saas_personnel_social_engineering` (Scenario 43) $\rightarrow$ Likelihood: `saas_security_awareness`
+  19. `saas_physical_datacenter_breach` (Scenario 44) $\rightarrow$ Likelihood: `saas_physical_security`
+
+### 2. Complete Coverage & Zero Orphans
+- Across all 46 assessable nodes in the framework:
+  - 2 profiling/discriminator nodes (`data_classification` for confidentiality impact, `hosting` for implementation group scoping).
+  - 44 security requirements mapped **1-to-1** as likelihood drivers for all 44 risk scenarios.
+  - **Zero unlinked assessable requirements** remain in the framework.
+  - **Zero orphaned entities**: every reference control (26) and vulnerability (18) is actively mapped to scenarios.
+
+### 3. Framework Version Increments & Test Metadata
+- [`YML/appsec.yml`](file:///home/python/ciso-assistant/YML/appsec.yml): Incremented to **`version: 34`** (`publication_date: 2026-11-09`), `expected_risk_scenarios_count: 44`.
+- [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml): Incremented to **`version: 16`** (`publication_date: 2026-11-09`), `expected_risk_scenarios_count: 44`.
+
+### 4. Application Profiles Synchronization in [`test_data/`](file:///home/python/ciso-assistant/test_data/)
+Synchronized all 15 application profiles in `test_data/` with exact scenario counts, excluded scenarios, and detailed risk scenario metrics:
+- **`app_appsec_cots_internal.yml`** & **`app_manual_cots_internal.yml`**: $13 \rightarrow 15$ scenarios (+2: SDLC, Logging)
+- **`app_appsec_cots_internet.yml`** & **`app_manual_cots_internet.yml`**: $15 \rightarrow 17$ scenarios (+2: SDLC, Logging)
+- **`app_appsec_custom_internal.yml`** & **`app_manual_custom_internal.yml`**: $15 \rightarrow 19$ scenarios (+4: CI/CD, SAST/DAST, Logging, Session)
+- **`app_appsec_custom_internet.yml`** & **`app_manual_custom_internet.yml`**: $17 \rightarrow 21$ scenarios (+4: CI/CD, SAST/DAST, Logging, Session)
+- **`app_appsec_vulnerable_legacy.yml`**: $15 \rightarrow 19$ scenarios (all 4 newly evaluated scenarios reflect score 0, L4 / High Risk)
+- **`app_appsec_saas_certified.yml`** & **`app_manual_saas_certified.yml`**: $7 \rightarrow 10$ scenarios (+3: Residency, PCI DSS, Non-Conformity)
+- **`app_appsec_secure_api.yml`**: $7 \rightarrow 10$ scenarios (+3: Residency, PCI DSS, Non-Conformity)
+- **`app_appsec_saas_uncertified.yml`** & **`app_manual_saas_uncertified.yml`**: $10 \rightarrow 24$ scenarios (+14: Residency, PCI, Non-Conformity, and all 11 uncertified operational nodes)
+- **`app_appsec_hybrid_saas.yml`**: $10 \rightarrow 24$ scenarios (+14, with elevated risks calculated for uncertified SDLC and subcontractor gaps)
+
+### 5. Automated Test Suite Verification
+- Added `test_appsec_phase3_unlinked_requirements_risk_scenario_coverage` in [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py).
+- Synchronized `test_appsec_availability_criticality_mapping_and_scenarios` and `test_appsec_manual_structure_and_scoping` to validate 44 scenarios.
+- Synchronized `test_appsec_saas_contract_defined_controls_evaluation` in [`tests/test_application_scenarios.py`](file:///home/python/ciso-assistant/tests/test_application_scenarios.py) (10 scenarios).
+- Synchronized `expected_cases` across both automated suite tests in [`tests/test_implementation_groups.py`](file:///home/python/ciso-assistant/tests/test_implementation_groups.py).
+- Ran full automated test suite: **280 tests ran, 280 passed, 0 failures, 0 errors, 22 skipped** (`python3 -m unittest discover tests`).
+
+---
+
+## 41. Added "Application Description & Business Purpose" Screen to Both AppSec Frameworks
+
+### 1. Functional Requirement & Placement
+- Added a dedicated assessment screen in **Chapter 1: Application Information & Governance** (`info` implementation group) where respondents can describe what the application is doing, including its primary functional domain, business capabilities, intended users, and operational scope:
+  - **Ref ID**: `application_description`
+  - **Frameworks**:
+    - [`YML/appsec.yml`](file:///home/python/ciso-assistant/YML/appsec.yml) (`urn:intuitem:risk:req_node:appsec:application_description`)
+    - [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml) (`urn:intuitem:risk:req_node:appsec_manual:application_description`)
+  - **Hierarchy**: `parent_urn: info`, `depth: 2`, `assessable: true`, `implementation_groups: ["info"]`.
+  - **Position**: Located directly under `info` (before `stakeholder_identification`, `data_classification`, and `hosting`), establishing the foundational functional context before stakeholder assignment and technical classification.
+
+### 2. Screen Questions & Architecture
+- **Question 1 (`q1`)**: Functional Domain & Business Purpose (`type: unique_choice`)
+  - Choices:
+    1. Customer-Facing & Digital Commerce (e-commerce, customer portals, public web services, mobile apps)
+    2. Internal Operations & Enterprise Management (ERP, CRM, HR, finance, supply chain, intranet)
+    3. Data Analytics, AI & Business Intelligence (data warehouse, ETL pipelines, reporting, ML models)
+    4. Integration Middleware & Core APIs (API gateways, message brokers, microservices hub)
+    5. Infrastructure, Platform & DevOps Management (CI/CD, monitoring, ITSM, security tooling)
+    6. Other / Specialized Functional Purpose
+- **Question 2 (`q2`)**: Target User Audience & Consumer Base (`type: unique_choice`)
+  - Choices:
+    1. Internal workforce (employees, internal contractors)
+    2. Business partners and vendors (B2B suppliers, distributors, affiliates)
+    3. External public consumers and customers (B2C)
+    4. Automated systems / Machine-to-Machine clients only (APIs, daemons, backend services)
+- **Rich Assessment Observation**: Explicitly prompts respondents in the annotation and guidance to record the narrative business purpose, solution architecture document (SAD) references, and functional capabilities.
+
+### 3. Framework Version Increments & Metadata
+- [`YML/appsec.yml`](file:///home/python/ciso-assistant/YML/appsec.yml): Incremented to **`version: 35`** (`publication_date: 2026-11-09`), `expected_requirement_nodes_count: 60`.
+- [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml): Incremented to **`version: 17`** (`publication_date: 2026-11-09`), `expected_requirement_nodes_count: 60`.
+
+### 4. Application Profiles Synchronization in [`test_data/`](file:///home/python/ciso-assistant/test_data/)
+Synchronized all 15 application profiles in `test_data/` with answers and observations for `application_description`:
+- In-house tools (`app_appsec_custom_internal.yml`, `app_manual_custom_internal.yml`) $\rightarrow$ Internal Operations, Internal workforce.
+- Public web/mobile portals (`app_appsec_custom_internet.yml`, `app_manual_custom_internet.yml`) $\rightarrow$ Digital Commerce, External customers.
+- Enterprise COTS packages (`app_appsec_cots_internal.yml`, `app_manual_cots_internal.yml`) $\rightarrow$ Internal Operations, Internal workforce.
+- Customer support COTS (`app_appsec_cots_internet.yml`, `app_manual_cots_internet.yml`) $\rightarrow$ Digital Commerce, External customers.
+- HR SaaS applications (`app_appsec_saas_certified.yml`, `app_manual_saas_certified.yml`) $\rightarrow$ Internal Operations, Internal workforce.
+- Data analytics SaaS (`app_appsec_saas_uncertified.yml`, `app_manual_saas_uncertified.yml`, `app_appsec_hybrid_saas.yml`) $\rightarrow$ Data Analytics & AI, Internal workforce / analysts.
+- Payment processing SaaS API (`app_appsec_secure_api.yml`) $\rightarrow$ Integration Middleware & Core APIs, Automated M2M clients.
+- Legacy monolith (`app_appsec_vulnerable_legacy.yml`) $\rightarrow$ Internal Operations, Internal workforce.
+
+### 5. Automated Test Suite Updates
+- [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py):
+  - Updated `manual_fw` requirement node count assertion from 59 to 60.
+  - Added `application_description` to profiling exclusions in `test_appsec_phase3_unlinked_requirements_risk_scenario_coverage`.
+  - Added dedicated test `test_appsec_application_description_screen` verifying node presence, hierarchy, questions, choices, and `info` scoping across both frameworks.
+- [`tests/test_implementation_groups.py`](file:///home/python/ciso-assistant/tests/test_implementation_groups.py):
+  - Incremented `node_count` by +1 across all 6 test cases for both `appsec` and `appsec_manual`.
+- [`docs/appsec_questions_cases.md`](file:///home/python/ciso-assistant/docs/appsec_questions_cases.md):
+  - Added `application_description:q1` and `q2` to Quick Reference Matrix and Chapter 1 detailed specifications.
+
+---
+
+## 42. Uploaded and Activated New Frameworks on Live CISO Assistant Instance
+
+### 1. Library Upload via CISO Assistant API
+- Uploaded library definitions to `/api/stored-libraries/upload/` using `Content-Disposition: attachment; filename="..."`:
+  - [`YML/appsec_objects.yml`](file:///home/python/ciso-assistant/YML/appsec_objects.yml): Uploaded Version 3 (44 risk scenarios, 1 risk matrix, 9 threats, 18 vulnerabilities, 26 reference controls).
+  - [`YML/appsec.yml`](file:///home/python/ciso-assistant/YML/appsec.yml): Uploaded Version 35 (60 requirement nodes, including `application_description`).
+  - [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml): Uploaded Version 17 (60 requirement nodes, including `application_description`).
+
+### 2. Resolution of ORM Model Compatibility
+- Discovered and resolved a schema constraint in CISO Assistant's Django `RequirementNode` model where direct `vulnerabilities` keyword arguments on requirement nodes triggered `TypeError("RequirementNode() got unexpected keyword arguments: 'vulnerabilities'")` during framework update.
+- Aligned framework YAMLs to standard CISO Assistant referential integrity: vulnerabilities are strictly declared in library `objects.vulnerabilities` and linked to `objects.risk_scenarios[...].vulnerabilities`. Removed redundant node-level `vulnerabilities` attributes while preserving all 44 scenario-level vulnerability mappings and reference controls.
+
+### 3. Activation & Live Verification
+- Activated updates across all three loaded libraries via `/api/loaded-libraries/{id}/update/`:
+  - `appsec_objects` (`3f48b564-a6cf-4588-8704-1482b69c5492`): Activated at **Version 3** (`has_update: False`).
+  - `appsec` (`0bd6e998-2440-437c-a2df-b9fd3d2643ca`): Activated at **Version 35** (`has_update: False`).
+  - `appsec_manual` (`a1146527-c24f-4bea-93ca-50761f3be76b`): Activated at **Version 17** (`has_update: False`).
+- Verified live framework state via `/api/frameworks/` and `/api/requirement-nodes/`:
+  - `Application Security Assessment Framework (AppSec)`: Exactly 60 requirement nodes, with `application_description` (`q1`, `q2`) active in Chapter 1.
+  - `Application Security Assessment Framework (AppSec - Manual IG)`: Exactly 60 requirement nodes, with `application_description` (`q1`, `q2`) active in Chapter 1.
+
+---
+
+## 43. Resolution of Web UI REST API & Test Suite Flakiness
+
+### 1. Root Cause Analysis
+- **Background Task Mock Expiration**: In [`tests/test_web_ui.py`](file:///home/python/ciso-assistant/tests/test_web_ui.py), several test cases (`test_domains_endpoint`, `test_link_controls_endpoint`, `test_remove_endpoint`, `test_model_import_endpoint`) submitted asynchronous tasks to `TASK_MANAGER` and exited immediately without awaiting completion. This caused the `unittest.mock.patch` contexts to unpatch before the background worker thread executed the job, resulting in the worker invoking unmocked methods against the live CISO Assistant instance.
+- **Queue Worker Contention**: Real network operations in background worker threads blocked the single queue worker thread (`max_workers=1`) for 20-30 seconds, causing subsequent tests (`test_task_manager_execution`, `test_task_manager_queue_sequential_execution`, `test_provision_app_endpoint`) to time out with `'queued' != 'completed'`.
+- **API Signature & Validation Mismatches**:
+  - In `api_audit_implementation_groups` ([`web/app.py`](file:///home/python/ciso-assistant/web/app.py)), `sync_existing_assignments=False` was passed unconditionally to `manager.select_audit_implementation_groups`, conflicting with callers expecting default keyword behavior.
+  - In `api_audit_assign_implementation_groups` ([`web/app.py`](file:///home/python/ciso-assistant/web/app.py)), non-list `groups` inputs were coerced to a list instead of returning 400 Bad Request, and missing `"success": True` in the JSON response broke test assertions.
+  - In `test_framework_implementation_groups_endpoint`, the test mocked `get_framework_implementation_groups` instead of `determine_implementation_groups_triggered_by_others` which is called by the route.
+
+### 2. Fixes Applied
+- **[`web/app.py`](file:///home/python/ciso-assistant/web/app.py)**:
+  - Validated that `groups` must be a list in `api_audit_assign_implementation_groups`, returning 400 if invalid.
+  - Passed `app_name` positionally and added `"success": True` to assignment API response payload.
+  - Only passed `sync_existing_assignments` keyword to `select_audit_implementation_groups` when explicitly provided in request body.
+- **[`tests/test_web_ui.py`](file:///home/python/ciso-assistant/tests/test_web_ui.py)**:
+  - Added `TASK_MANAGER.clear_queue()` to `setUp` and `tearDown` in `TestWebUI`.
+  - Awaited background task completion inside mock contexts for domain creation, control linking, application removal, and model import.
+  - Properly patched `determine_implementation_groups_triggered_by_others` for framework implementation group testing.
+
+### 3. Automated Test Suite Verification
+- `python3 -m unittest tests/test_web_ui.py`: **24/24 passed in 33.28s**.
+- Full test suite run (`python3 -m unittest discover tests`): **281 tests ran, 281 passed, 0 failures, 0 errors, 22 skipped in 114.36s**.
+
+
+
 
 
 

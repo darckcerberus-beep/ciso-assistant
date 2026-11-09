@@ -797,7 +797,7 @@ class TestYamlIntegrity(unittest.TestCase):
                 )
 
     def test_appsec_iam_sso_and_credential_order(self):
-        """Ensure IAM authentication is unified with SSO and credential branch conditionality (mirroring saas_iam)."""
+        """Ensure IAM authentication is unified with SSO, Hybrid, and credential branch conditionality (mirroring saas_iam)."""
         appsec_fw = next((fw for fw in self.frameworks if fw["ref_id"] == "appsec"), None)
         if not appsec_fw:
             return
@@ -808,28 +808,41 @@ class TestYamlIntegrity(unittest.TestCase):
         auth_questions = list(auth_node.get("questions", {}).values())
         self.assertEqual(len(auth_questions), 3)
 
-        # q1: auth mode (SSO vs direct)
+        # q1: auth mode (Exclusive SSO, Hybrid, Direct, M2M API)
         q1 = auth_questions[0]
-        self.assertIn("sso", q1.get("choices", [])[0].get("value", "").lower())
-        sso_choice = q1.get("choices", [])[0]
-        self.assertEqual(sso_choice.get("add_score"), 100)
-        direct_choice_urn = q1.get("choices", [])[1].get("urn")
+        choices = q1.get("choices", [])
+        self.assertEqual(len(choices), 4)
+        self.assertIn("sso exclusively", choices[0].get("value", "").lower())
+        self.assertEqual(choices[0].get("add_score"), 100)
+        self.assertIn("hybrid", choices[1].get("value", "").lower())
+        self.assertEqual(choices[1].get("add_score"), 40)
+        self.assertIn("direct", choices[2].get("value", "").lower())
+        self.assertEqual(choices[2].get("add_score"), 0)
+        self.assertIn("machine-to-machine", choices[3].get("value", "").lower())
+        self.assertEqual(choices[3].get("add_score"), 100)
 
-        # q2: Direct branch (password policy)
+        hybrid_choice_urn = choices[1].get("urn")
+        direct_choice_urn = choices[2].get("urn")
+
+        # q2: Local credential branch (password policy)
         q2 = auth_questions[1]
         self.assertIn("password", q2.get("text", "").lower())
         self.assertEqual(
             q2.get("depends_on", {}).get("answers"),
-            [direct_choice_urn],
+            [hybrid_choice_urn, direct_choice_urn],
         )
+        self.assertEqual(q2.get("depends_on", {}).get("condition"), "any")
+        self.assertEqual(q2.get("choices", [])[0].get("add_score"), 30)
 
-        # q3: Direct branch (MFA)
+        # q3: Local credential branch (MFA)
         q3 = auth_questions[2]
         self.assertIn("mfa", q3.get("text", "").lower())
         self.assertEqual(
             q3.get("depends_on", {}).get("answers"),
-            [direct_choice_urn],
+            [hybrid_choice_urn, direct_choice_urn],
         )
+        self.assertEqual(q3.get("depends_on", {}).get("condition"), "any")
+        self.assertEqual(q3.get("choices", [])[0].get("add_score"), 30)
 
         # 2. In Chapter 10 (saas_iam), verify admin access to SaaS strictly enforces MFA
         saas_iam_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:saas_iam")
@@ -840,7 +853,7 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertEqual(saas_questions[0].get("choices", [])[0].get("add_score"), 100)
 
     def test_appsec_on_premise_iam_sso_conditional_authentication(self):
-        """Ensure that in on-premise applications, both SSO and direct branches are non-empty and score up to 100."""
+        """Ensure that in on-premise applications, SSO, Hybrid, and Direct branches score correctly."""
         appsec_fw = next((fw for fw in self.frameworks if fw["ref_id"] == "appsec"), None)
         if not appsec_fw:
             return
@@ -855,15 +868,23 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertIsNotNone(q2)
         self.assertIsNotNone(q3)
 
-        # SSO branch max score: q1 (100) = 100 (direct full compliance since corporate IT manages IdP/MFA)
+        # SSO branch max score: q1 (100) = 100
         sso_choice = q1["choices"][0]
         self.assertEqual(sso_choice["add_score"], 100)
 
-        # Direct branch max score: q1 (0) + q2 (50) + q3 (50) = 100
-        direct_choice = q1["choices"][1]
+        # Hybrid branch max score: q1 (40) + q2 (30) + q3 (30) = 100
+        hybrid_choice = q1["choices"][1]
         q2_yes_choice = q2["choices"][0]
         q3_yes_choice = q3["choices"][0]
-        self.assertEqual(direct_choice["add_score"] + q2_yes_choice["add_score"] + q3_yes_choice["add_score"], 100)
+        self.assertEqual(hybrid_choice["add_score"] + q2_yes_choice["add_score"] + q3_yes_choice["add_score"], 100)
+
+        # Direct branch max score: q1 (0) + q2 (30) + q3 (30) = 60 (caps at 60 / L2 because enterprise SSO is omitted)
+        direct_choice = q1["choices"][2]
+        self.assertEqual(direct_choice["add_score"] + q2_yes_choice["add_score"] + q3_yes_choice["add_score"], 60)
+
+        # M2M API branch max score: q1 (100) = 100
+        m2m_choice = q1["choices"][3]
+        self.assertEqual(m2m_choice["add_score"], 100)
 
     def test_appsec_software_delivery_models_and_sdlc_scoping(self):
         """Verify clear distinction between SaaS, bought software, and custom software in AppSec framework using Implementation Groups."""
@@ -885,7 +906,11 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertIn("WAF", api_q1_text)
         self.assertIn("Cloudflare", api_q1_text)
         self.assertIn("bot protection", api_q1_text.lower())
-        self.assertIn("rate limiting", api_q1_text.lower())
+        api_q2 = api_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting:q2")
+        self.assertIsNotNone(api_q2, "q2 missing in api_security_and_rate_limiting")
+        api_q2_text = api_q2.get("text", "")
+        self.assertIn("rate limiting", api_q2_text.lower())
+        self.assertIn("throttling", api_q2_text.lower())
 
         # 1. Delivery & Hosting model discriminator in Chapter 1 (hosting:q1) selects implementation groups
         hosting_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:hosting")
@@ -1299,9 +1324,9 @@ class TestYamlIntegrity(unittest.TestCase):
         avail_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:availability_classification")
         self.assertIsNone(avail_node, "availability_classification must be removed to focus on confidentiality only")
 
-        # All 25 risk scenarios route impact to data_classification
+        # All 44 risk scenarios route impact to data_classification
         scenarios = {s["ref_id"]: s for s in appsec_fw["scenarios"].values()}
-        self.assertEqual(len(scenarios), 25)
+        self.assertEqual(len(scenarios), 44)
         for sc_ref, sc in scenarios.items():
             self.assertEqual(
                 sc.get("impact"),
@@ -1452,9 +1477,9 @@ class TestYamlIntegrity(unittest.TestCase):
         # network_exposure is no longer a standalone node
         self.assertNotIn("urn:intuitem:risk:req_node:appsec_manual:network_exposure", manual_fw["req_nodes"])
 
-        # 4. Total requirement nodes (59 after merging saas_penetration_testing into saas_audit_and_compliance) and scenarios (25)
-        self.assertEqual(len(manual_fw["req_nodes"]), 59)
-        self.assertEqual(len(manual_fw["scenarios"]), 25)
+        # 4. Total requirement nodes (60) and scenarios (44)
+        self.assertEqual(len(manual_fw["req_nodes"]), 60)
+        self.assertEqual(len(manual_fw["scenarios"]), 44)
         self.assertEqual(len(manual_fw["threats"]), 9)
         self.assertEqual(len(manual_fw["vulns"]), 18)
         self.assertEqual(len(manual_fw["ref_ctrls"]), 26)
@@ -1785,6 +1810,280 @@ class TestYamlIntegrity(unittest.TestCase):
                 self.assertTrue(q_yes.get("compute_result"))
                 self.assertEqual(q_no.get("add_score"), 0, f"q{idx} No must award 0 pts")
                 self.assertFalse(q_no.get("compute_result"))
+
+    def test_appsec_phase1_scoring_and_standardized_choices(self):
+        """Verify Phase 1 improvements: non_prod_data rebalanced, stakeholder_identification weights,
+        data_destruction Yes/No choice ordering, and security_event_logging:q2 rephrasing."""
+        for fw_ref in ["appsec", "appsec_manual"]:
+            fw = next((f for f in self.frameworks if f["ref_id"] == fw_ref), None)
+            self.assertIsNotNone(fw, f"{fw_ref} framework missing")
+
+            # 1. stakeholder_identification scoring weights (30, 30, 25, 15)
+            sh_node = fw["req_nodes"].get(f"urn:intuitem:risk:req_node:{fw_ref}:stakeholder_identification")
+            self.assertIsNotNone(sh_node, f"stakeholder_identification missing in {fw_ref}")
+            sh_qs = sh_node.get("questions", {})
+            self.assertEqual(len(sh_qs), 4, f"stakeholder_identification must have 4 questions in {fw_ref}")
+
+            expected_weights = {
+                f"urn:intuitem:risk:req_node:{fw_ref}:stakeholder_identification:q1": 30,
+                f"urn:intuitem:risk:req_node:{fw_ref}:stakeholder_identification:q2": 30,
+                f"urn:intuitem:risk:req_node:{fw_ref}:stakeholder_identification:q3": 25,
+                f"urn:intuitem:risk:req_node:{fw_ref}:stakeholder_identification:q4": 15,
+            }
+            total_sh = 0
+            for q_urn, exp_score in expected_weights.items():
+                q = sh_qs.get(q_urn)
+                self.assertIsNotNone(q, f"{q_urn} missing in {fw_ref}")
+                yes_choice = next(c for c in q["choices"] if c["value"] == "Yes")
+                self.assertEqual(yes_choice["add_score"], exp_score, f"{q_urn} score mismatch in {fw_ref}")
+                total_sh += yes_choice["add_score"]
+            self.assertEqual(total_sh, 100, f"stakeholder_identification total score must equal 100 in {fw_ref}")
+
+            # 2. non_prod_data: q2 protective choices award 60, q3 Yes awards 40, c1 is Yes, c2 is No
+            np_node = fw["req_nodes"].get(f"urn:intuitem:risk:req_node:{fw_ref}:non_prod_data")
+            self.assertIsNotNone(np_node, f"non_prod_data missing in {fw_ref}")
+            np_qs = np_node.get("questions", {})
+            q2_np = np_qs.get(f"urn:intuitem:risk:req_node:{fw_ref}:non_prod_data:q2")
+            q3_np = np_qs.get(f"urn:intuitem:risk:req_node:{fw_ref}:non_prod_data:q3")
+            self.assertIsNotNone(q2_np, f"non_prod_data:q2 missing in {fw_ref}")
+            self.assertIsNotNone(q3_np, f"non_prod_data:q3 missing in {fw_ref}")
+
+            # q2 protective choices (c2-c5: Hashing, Pseudonymisation, Encryption, Masking) award 60
+            for choice in q2_np["choices"][1:]:
+                self.assertEqual(choice["add_score"], 60, f"non_prod_data:q2 {choice['value']} must award 60 pts")
+                self.assertTrue(choice["compute_result"])
+            self.assertEqual(q2_np["choices"][0]["add_score"], 0)
+
+            # q3 choice order: c1=Yes (40), c2=No (0)
+            self.assertEqual(q3_np["choices"][0]["value"], "Yes")
+            self.assertEqual(q3_np["choices"][0]["add_score"], 40)
+            self.assertTrue(q3_np["choices"][0]["compute_result"])
+            self.assertEqual(q3_np["choices"][1]["value"], "No")
+            self.assertEqual(q3_np["choices"][1]["add_score"], 0)
+            self.assertFalse(q3_np["choices"][1]["compute_result"])
+
+            # 3. data_destruction: c1=Yes (50), c2=No (0), q2 depends on q1:c1
+            dd_node = fw["req_nodes"].get(f"urn:intuitem:risk:req_node:{fw_ref}:data_destruction")
+            self.assertIsNotNone(dd_node, f"data_destruction missing in {fw_ref}")
+            dd_qs = dd_node.get("questions", {})
+            q1_dd = dd_qs.get(f"urn:intuitem:risk:req_node:{fw_ref}:data_destruction:q1")
+            q2_dd = dd_qs.get(f"urn:intuitem:risk:req_node:{fw_ref}:data_destruction:q2")
+            self.assertIsNotNone(q1_dd, f"data_destruction:q1 missing in {fw_ref}")
+            self.assertIsNotNone(q2_dd, f"data_destruction:q2 missing in {fw_ref}")
+
+            self.assertEqual(q1_dd["choices"][0]["value"], "Yes")
+            self.assertEqual(q1_dd["choices"][0]["add_score"], 50)
+            self.assertTrue(q1_dd["choices"][0]["compute_result"])
+            self.assertEqual(q1_dd["choices"][1]["value"], "No")
+            self.assertEqual(q1_dd["choices"][1]["add_score"], 0)
+            self.assertFalse(q1_dd["choices"][1]["compute_result"])
+
+            self.assertEqual(q2_dd["choices"][0]["value"], "Yes")
+            self.assertEqual(q2_dd["choices"][0]["add_score"], 50)
+            self.assertTrue(q2_dd["choices"][0]["compute_result"])
+            self.assertEqual(q2_dd["choices"][1]["value"], "No")
+            self.assertEqual(q2_dd["choices"][1]["add_score"], 0)
+            self.assertFalse(q2_dd["choices"][1]["compute_result"])
+
+            dep_dd = q2_dd.get("depends_on", {})
+            self.assertEqual(
+                dep_dd.get("answers"),
+                [f"urn:intuitem:risk:req_node:{fw_ref}:data_destruction:q1:c1"],
+                f"data_destruction:q2 must depend on choice c1 in {fw_ref}",
+            )
+
+            # 4. security_event_logging:q2 wording covers application, diagnostic, and error logs
+            sel_node = fw["req_nodes"].get(f"urn:intuitem:risk:req_node:{fw_ref}:security_event_logging")
+            self.assertIsNotNone(sel_node, f"security_event_logging missing in {fw_ref}")
+            sel_qs = sel_node.get("questions", {})
+            q2_sel = sel_qs.get(f"urn:intuitem:risk:req_node:{fw_ref}:security_event_logging:q2")
+            self.assertIsNotNone(q2_sel, f"security_event_logging:q2 missing in {fw_ref}")
+            self.assertIn("diagnostic", q2_sel.get("text", "").lower())
+            self.assertIn("error log", q2_sel.get("text", "").lower())
+
+    def test_appsec_phase2_architecture_and_split_nodes(self):
+        """Verify Phase 2 improvements: Hybrid Auth (4 choices, 40+30+30=100), stateless token session management,
+        and 50+50 splits across backup_and_disaster_recovery, owasp_top_10_defenses, code_review_and_ci_cd_integrity,
+        and api_security_and_rate_limiting."""
+        for fw_ref in ["appsec", "appsec_manual"]:
+            fw = next((f for f in self.frameworks if f["ref_id"] == fw_ref), None)
+            self.assertIsNotNone(fw, f"{fw_ref} framework missing")
+
+            # 1. authentication_and_mfa: 4 choices in q1, q2 and q3 depend on [c2, c3]
+            auth_node = fw["req_nodes"].get(f"urn:intuitem:risk:req_node:{fw_ref}:authentication_and_mfa")
+            self.assertIsNotNone(auth_node, f"authentication_and_mfa missing in {fw_ref}")
+            auth_qs = auth_node.get("questions", {})
+            q1 = auth_qs.get(f"urn:intuitem:risk:req_node:{fw_ref}:authentication_and_mfa:q1")
+            q2 = auth_qs.get(f"urn:intuitem:risk:req_node:{fw_ref}:authentication_and_mfa:q2")
+            q3 = auth_qs.get(f"urn:intuitem:risk:req_node:{fw_ref}:authentication_and_mfa:q3")
+            self.assertIsNotNone(q1)
+            self.assertIsNotNone(q2)
+            self.assertIsNotNone(q3)
+
+            choices = q1.get("choices", [])
+            self.assertEqual(len(choices), 4)
+            self.assertIn("sso exclusively", choices[0]["value"].lower())
+            self.assertEqual(choices[0]["add_score"], 100)
+            self.assertIn("hybrid", choices[1]["value"].lower())
+            self.assertEqual(choices[1]["add_score"], 40)
+            self.assertIn("direct", choices[2]["value"].lower())
+            self.assertEqual(choices[2]["add_score"], 0)
+            self.assertIn("machine-to-machine", choices[3]["value"].lower())
+            self.assertEqual(choices[3]["add_score"], 100)
+
+            dep_answers = [choices[1]["urn"], choices[2]["urn"]]
+            self.assertEqual(q2.get("depends_on", {}).get("answers"), dep_answers)
+            self.assertEqual(q2.get("depends_on", {}).get("condition"), "any")
+            self.assertEqual(q2["choices"][0]["add_score"], 30)
+
+            self.assertEqual(q3.get("depends_on", {}).get("answers"), dep_answers)
+            self.assertEqual(q3.get("depends_on", {}).get("condition"), "any")
+            self.assertEqual(q3["choices"][0]["add_score"], 30)
+
+            # 2. session_management: 1 question covering session identifiers and API bearer tokens
+            sm_node = fw["req_nodes"].get(f"urn:intuitem:risk:req_node:{fw_ref}:session_management")
+            self.assertIsNotNone(sm_node, f"session_management missing in {fw_ref}")
+            sm_qs = sm_node.get("questions", {})
+            self.assertEqual(len(sm_qs), 1)
+            sm_q1 = sm_qs.get(f"urn:intuitem:risk:req_node:{fw_ref}:session_management:q1")
+            self.assertIsNotNone(sm_q1)
+            self.assertIn("bearer token", sm_q1.get("text", "").lower())
+            self.assertEqual(sm_q1["choices"][0]["add_score"], 100)
+
+            # 3. backup_and_disaster_recovery: 2 questions (50 + 50 pts, q2 depends on q1:c1)
+            bdr_node = fw["req_nodes"].get(f"urn:intuitem:risk:req_node:{fw_ref}:backup_and_disaster_recovery")
+            self.assertIsNotNone(bdr_node, f"backup_and_disaster_recovery missing in {fw_ref}")
+            bdr_qs = bdr_node.get("questions", {})
+            self.assertEqual(len(bdr_qs), 2, f"backup_and_disaster_recovery must have 2 questions in {fw_ref}")
+            bdr_q1 = bdr_qs.get(f"urn:intuitem:risk:req_node:{fw_ref}:backup_and_disaster_recovery:q1")
+            bdr_q2 = bdr_qs.get(f"urn:intuitem:risk:req_node:{fw_ref}:backup_and_disaster_recovery:q2")
+            self.assertIsNotNone(bdr_q1)
+            self.assertIsNotNone(bdr_q2)
+            self.assertEqual(bdr_q1["choices"][0]["add_score"], 50)
+            self.assertEqual(bdr_q2["choices"][0]["add_score"], 50)
+            self.assertEqual(
+                bdr_q2.get("depends_on", {}).get("answers"),
+                [f"urn:intuitem:risk:req_node:{fw_ref}:backup_and_disaster_recovery:q1:c1"],
+            )
+
+            # 4. owasp_top_10_defenses: 2 questions (50 + 50 pts)
+            owasp_node = fw["req_nodes"].get(f"urn:intuitem:risk:req_node:{fw_ref}:owasp_top_10_defenses")
+            self.assertIsNotNone(owasp_node, f"owasp_top_10_defenses missing in {fw_ref}")
+            owasp_qs = owasp_node.get("questions", {})
+            self.assertEqual(len(owasp_qs), 2, f"owasp_top_10_defenses must have 2 questions in {fw_ref}")
+            owasp_q1 = owasp_qs.get(f"urn:intuitem:risk:req_node:{fw_ref}:owasp_top_10_defenses:q1")
+            owasp_q2 = owasp_qs.get(f"urn:intuitem:risk:req_node:{fw_ref}:owasp_top_10_defenses:q2")
+            self.assertIsNotNone(owasp_q1)
+            self.assertIsNotNone(owasp_q2)
+            self.assertEqual(owasp_q1["choices"][0]["add_score"], 50)
+            self.assertEqual(owasp_q2["choices"][0]["add_score"], 50)
+
+            # 5. code_review_and_ci_cd_integrity: 2 questions (50 + 50 pts)
+            cr_node = fw["req_nodes"].get(f"urn:intuitem:risk:req_node:{fw_ref}:code_review_and_ci_cd_integrity")
+            self.assertIsNotNone(cr_node, f"code_review_and_ci_cd_integrity missing in {fw_ref}")
+            cr_qs = cr_node.get("questions", {})
+            self.assertEqual(len(cr_qs), 2, f"code_review_and_ci_cd_integrity must have 2 questions in {fw_ref}")
+            cr_q1 = cr_qs.get(f"urn:intuitem:risk:req_node:{fw_ref}:code_review_and_ci_cd_integrity:q1")
+            cr_q2 = cr_qs.get(f"urn:intuitem:risk:req_node:{fw_ref}:code_review_and_ci_cd_integrity:q2")
+            self.assertIsNotNone(cr_q1)
+            self.assertIsNotNone(cr_q2)
+            self.assertEqual(cr_q1["choices"][0]["add_score"], 50)
+            self.assertEqual(cr_q2["choices"][0]["add_score"], 50)
+
+            # 6. api_security_and_rate_limiting: 2 questions (50 + 50 pts)
+            api_node = fw["req_nodes"].get(f"urn:intuitem:risk:req_node:{fw_ref}:api_security_and_rate_limiting")
+            self.assertIsNotNone(api_node, f"api_security_and_rate_limiting missing in {fw_ref}")
+            api_qs = api_node.get("questions", {})
+            self.assertEqual(len(api_qs), 2, f"api_security_and_rate_limiting must have 2 questions in {fw_ref}")
+            api_q1 = api_qs.get(f"urn:intuitem:risk:req_node:{fw_ref}:api_security_and_rate_limiting:q1")
+            api_q2 = api_qs.get(f"urn:intuitem:risk:req_node:{fw_ref}:api_security_and_rate_limiting:q2")
+            self.assertIsNotNone(api_q1)
+            self.assertIsNotNone(api_q2)
+            self.assertEqual(api_q1["choices"][0]["add_score"], 50)
+            self.assertEqual(api_q2["choices"][0]["add_score"], 50)
+
+    def test_appsec_phase3_unlinked_requirements_risk_scenario_coverage(self):
+        """Verify that Phase 3 Point 2 connects all assessable security requirements to risk scenarios.
+
+        Asserts:
+        - Exactly 44 risk scenarios exist in both AppSec and AppSec Manual.
+        - Zero assessable security requirement nodes are unlinked (every assessable security node
+          is mapped to at least one scenario via 'likelihood').
+        - All 44 scenarios have valid likelihood and impact foreign keys.
+        """
+        for fw_ref in ["appsec", "appsec_manual"]:
+            fw = next((f for f in self.frameworks if f["ref_id"] == fw_ref), None)
+            self.assertIsNotNone(fw, f"Framework {fw_ref} missing")
+
+            scenarios = fw["scenarios"]
+            self.assertEqual(len(scenarios), 44, f"Framework {fw_ref} must have 44 risk scenarios")
+
+            # Collect all likelihood target nodes
+            linked_req_urns = {s.get("likelihood") for s in scenarios.values() if s.get("likelihood")}
+            linked_req_refs = {urn.split(":")[-1] for urn in linked_req_urns if urn}
+
+            # Assessable nodes excluding profiling nodes (data_classification, hosting, application_description)
+            req_nodes = fw["req_nodes"]
+            assessable_sec_nodes = {
+                ref_id: rn for urn, rn in req_nodes.items()
+                if rn.get("assessable") and (ref_id := rn.get("ref_id")) not in ("data_classification", "hosting", "application_description")
+            }
+
+            self.assertEqual(len(assessable_sec_nodes), 44, f"Expected 44 assessable security nodes in {fw_ref}")
+
+            unlinked_nodes = [
+                ref_id for ref_id in assessable_sec_nodes
+                if ref_id not in linked_req_refs
+            ]
+            self.assertEqual(
+                len(unlinked_nodes), 0,
+                f"Found unlinked assessable requirements in {fw_ref}: {unlinked_nodes}",
+            )
+
+    def test_appsec_application_description_screen(self):
+        """Verify the presence, structure, questions, and profiling scoping of the application_description screen."""
+        for fw_ref in ["appsec", "appsec_manual"]:
+            with self.subTest(framework=fw_ref):
+                fw = next((f for f in self.frameworks if f["ref_id"] == fw_ref), None)
+                self.assertIsNotNone(fw, f"Framework {fw_ref} missing")
+
+                node_urn = f"urn:intuitem:risk:req_node:{fw_ref}:application_description"
+                node = fw["req_nodes"].get(node_urn)
+                self.assertIsNotNone(node, f"application_description missing in {fw_ref}")
+
+                # Hierarchy & scoping assertions
+                self.assertTrue(node.get("assessable"), f"application_description must be assessable in {fw_ref}")
+                self.assertEqual(node.get("depth"), 2, f"application_description depth must be 2 in {fw_ref}")
+                self.assertEqual(
+                    node.get("parent_urn"), f"urn:intuitem:risk:req_node:{fw_ref}:info",
+                    f"application_description parent must be info in {fw_ref}",
+                )
+                self.assertEqual(
+                    node.get("implementation_groups"), ["info"],
+                    f"application_description must belong to ['info'] in {fw_ref}",
+                )
+
+                # Question structure assertions
+                questions = node.get("questions", {})
+                self.assertEqual(len(questions), 2, f"application_description must have 2 questions in {fw_ref}")
+
+                q1_urn = f"urn:intuitem:risk:req_node:{fw_ref}:application_description:q1"
+                q2_urn = f"urn:intuitem:risk:req_node:{fw_ref}:application_description:q2"
+                self.assertIn(q1_urn, questions, f"q1 missing in {fw_ref}")
+                self.assertIn(q2_urn, questions, f"q2 missing in {fw_ref}")
+
+                q1 = questions[q1_urn]
+                q2 = questions[q2_urn]
+                self.assertEqual(q1.get("type"), "unique_choice")
+                self.assertEqual(q2.get("type"), "unique_choice")
+                self.assertGreaterEqual(len(q1.get("choices", [])), 5)
+                self.assertGreaterEqual(len(q2.get("choices", [])), 4)
+
+                # Check unique choice URNs
+                q1_choice_urns = {c["urn"] for c in q1.get("choices", [])}
+                q2_choice_urns = {c["urn"] for c in q2.get("choices", [])}
+                self.assertEqual(len(q1_choice_urns), len(q1.get("choices", [])))
+                self.assertEqual(len(q2_choice_urns), len(q2.get("choices", [])))
 
 
 if __name__ == "__main__":

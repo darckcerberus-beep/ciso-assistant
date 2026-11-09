@@ -826,16 +826,19 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
         payload = request.get_json() or {}
         groups = payload.get("groups", [])
         mode = payload.get("mode", "add")
-        sync_asgns = payload.get("sync_existing_assignments", False)
         if not isinstance(groups, list):
             return jsonify({"error": "'groups' must be a list of implementation group names or IDs."}), 400
+
+        select_kwargs = {}
+        if "sync_existing_assignments" in payload:
+            select_kwargs["sync_existing_assignments"] = payload["sync_existing_assignments"]
 
         try:
             info = manager.select_audit_implementation_groups(
                 app_name,
                 groups=groups,
                 mode=mode,
-                sync_existing_assignments=sync_asgns,
+                **select_kwargs
             )
             return jsonify({
                 "message": f"Successfully updated implementation groups for '{app_name}'.",
@@ -852,7 +855,7 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
         payload = request.get_json() or {}
         groups = payload.get("groups")
         if groups is not None and not isinstance(groups, list):
-            groups = [str(groups)]
+            return jsonify({"error": "'groups' must be a list of implementation group names or IDs."}), 400
         user_email = payload.get("user_email") or payload.get("email")
         first_name = payload.get("first_name")
         last_name = payload.get("last_name")
@@ -860,7 +863,7 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
 
         try:
             res = manager.assign_audit_implementation_groups(
-                app_name_or_ca_id=app_name,
+                app_name,
                 groups=groups,
                 user_email=user_email,
                 first_name=first_name,
@@ -868,6 +871,7 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
                 start=start,
             )
             return jsonify({
+                "success": True,
                 "message": f"Successfully assigned implementation groups to {res.get('assigned_user')}.",
                 "data": res,
             })

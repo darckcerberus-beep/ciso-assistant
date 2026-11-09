@@ -1,7 +1,7 @@
 # AppSec Framework (`appsec_manual.yml` & `appsec.yml`) Questions & Risk Evaluation Improvement Plan
 
 **Date**: November 6, 2026  
-**Current Framework Versions**: `appsec_manual.yml` (v11), `appsec.yml` (v12), `appsec_objects.yml` (v2)  
+**Current Framework Versions**: `appsec_manual.yml` (v14), `appsec.yml` (v32), `appsec_objects.yml` (v2)  
 **Target Framework Versions**: `appsec_manual.yml` (v12), `appsec.yml` (v13), `appsec_objects.yml` (v3)  
 **Affected Files**:
 - [YML/appsec_manual.yml](file:///home/romain/ciso-assistant/YML/appsec_manual.yml) *(Reference Framework)*
@@ -166,15 +166,23 @@ Currently, **19 out of 34 assessable requirements** are not referenced by any ri
 
 ## 5. Implementation Checklist & Verification Plan
 
-- [ ] **Step 1 (Phase 1 — Scoring & `depends_on`)**:
-  - Update `non_prod_data` (`q2: 60`, `q3: 40`), `stakeholder_identification` weights, `cots_deployment_hardening:q3` `depends_on`, `access_control_and_rbac:q2`/`q3` `depends_on`, and `security_event_logging:q2` `depends_on` in both [YML/appsec_manual.yml](file:///home/romain/ciso-assistant/YML/appsec_manual.yml) and [YML/appsec.yml](file:///home/romain/ciso-assistant/YML/appsec.yml).
+- [x] **Step 1 (Phase 1 — Scoring & `depends_on`) [COMPLETED]**:
+  - Update `non_prod_data` (`q2: 60`, `q3: 40`), `stakeholder_identification` weights, `cots_deployment_hardening:q3` `depends_on`, `access_control_and_rbac:q3` `depends_on`, and `security_event_logging:q2` rephrasing in both [YML/appsec_manual.yml](file:///home/romain/ciso-assistant/YML/appsec_manual.yml) and [YML/appsec.yml](file:///home/romain/ciso-assistant/YML/appsec.yml).
   - Standardize `c1 = "Yes"` / `c2 = "No"` choice order in `non_prod_data:q3` and `data_destruction:q1`/`q2`.
-- [ ] **Step 2 (Phase 2 — Question Granularity & Hybrid Auth)**:
-  - Expand `authentication_and_mfa:q1` choices for hybrid SSO + local break-glass and machine-to-machine APIs.
-  - Split compound questions in `backup_and_disaster_recovery`, `owasp_top_10_defenses`, `code_review_and_ci_cd_integrity`, and `api_security_and_rate_limiting`.
+- [x] **Step 2 (Phase 2 — Question Granularity & Hybrid Auth) [COMPLETED]**:
+  - Expand `authentication_and_mfa:q1` choices for hybrid SSO + local break-glass (`+40`) and machine-to-machine APIs (`+100`), re-weighting `q2` and `q3` to `+30` / `+30`.
+  - Support stateless token architectures in `session_management:q1` (session identifiers and API bearer tokens).
+  - Split compound questions into two 50+50 point questions in `backup_and_disaster_recovery` (`q2` depends on `q1:c1`), `owasp_top_10_defenses`, `code_review_and_ci_cd_integrity`, and `api_security_and_rate_limiting`.
+  - Synchronize all 15 application profiles in `test_data/` and verify 100% automated test suite passing.
 - [ ] **Step 3 (Phase 3 — Availability & Risk Scenario Linkage)**:
-  - Add `availability_classification` to Chapter 1 and `criticality_mapping.availability`.
-  - Add/link risk scenarios in [YML/appsec_objects.yml](file:///home/romain/ciso-assistant/YML/appsec_objects.yml) for unlinked requirements and update `test_metadata`.
+  - Add `availability_classification` to Chapter 1 and `criticality_mapping.availability` (Phase 3 Point 1).
+  - [x] **Add/link risk scenarios in [YML/appsec_objects.yml](file:///home/python/ciso-assistant/YML/appsec_objects.yml) for unlinked requirements and update `test_metadata` (Phase 3 Point 2) [COMPLETED]**:
+    - Created 19 new risk scenarios (scenarios 26 through 44) linking all previously unlinked assessable requirements: `session_management`, `code_review_and_ci_cd_integrity`, `automated_security_testing`, `vendor_secure_development`, `security_event_logging`, `saas_data_hosting_and_residency`, `saas_pci_dss`, `saas_non_conformity_remediation`, and all 11 `saas_uncertified` operational nodes (`saas_logging_and_incidents`, `saas_backup_and_business_continuity`, `saas_subcontractor_management`, `saas_secure_development`, `saas_web_app_security`, `saas_network_security`, `saas_workstation_security`, `saas_mobile_security`, `saas_governance_and_policy`, `saas_security_awareness`, `saas_physical_security`).
+    - Achieved 100% risk scenario coverage: exactly 44 assessable security requirements mapped 1-to-1 to 44 risk scenarios with zero orphaned requirements, reference controls, or vulnerabilities.
+    - Updated `expected_risk_scenarios_count: 44` in `test_metadata` for `appsec` (v34) and `appsec_manual` (v16).
+    - Synchronized all 15 application profiles in [test_data/](file:///home/python/ciso-assistant/test_data/) with verified scenario counts, scaled likelihoods, impacts, and matrix risk IDs.
+    - Added unit test `test_appsec_phase3_unlinked_requirements_risk_scenario_coverage` in [tests/test_yaml_integrity.py](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py).
+    - Verified 100% pass across all 280 tests (`python3 -m unittest discover tests`).
 - [ ] **Step 4 (Sync Docs, Examples & Tests)**:
   - Update [docs/appsec_questions_cases.md](file:///home/romain/ciso-assistant/docs/appsec_questions_cases.md) and [docs/appsec_policy_applicability_matrix.md](file:///home/romain/ciso-assistant/docs/appsec_policy_applicability_matrix.md).
   - Update [test_data/app_appsec_*.yml](file:///home/romain/ciso-assistant/test_data/) and run `python3 -m unittest discover tests` to verify 100% test pass.

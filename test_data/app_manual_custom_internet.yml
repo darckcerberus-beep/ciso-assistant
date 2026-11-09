@@ -29,6 +29,16 @@ application:
   - infra
   - internet_facing
 answers:
+- requirement: application_description
+  question: What is the primary functional domain and business purpose of the application?
+  answer: Customer-Facing & Digital Commerce (e-commerce, customer portals, public web services, mobile apps)
+  result: compliant
+  observation: Custom developed Internet-facing financial transactions portal processing digital customer payments and transactions.
+- requirement: application_description
+  question: Who are the primary intended users or consumers of the application?
+  answer: External public consumers and customers (B2C)
+  result: compliant
+  observation: Public-facing internet banking and customer transaction services.
 - requirement: stakeholder_identification
   question: Is there a designated business contact? (Designated business owner or
     product sponsor accountable for business processes, functionality, and risk acceptance)
@@ -85,19 +95,16 @@ answers:
   observation: Internet-facing public cloud web application and mobile API gateway.
 - requirement: authentication_and_mfa
   question: How do users authenticate to the application?
-  answer: Direct / Local application authentication (Username & Password)
+  answer: "Hybrid: Enterprise SSO for users, with local admin / break-glass or external accounts"
   result: compliant
-  observation: Direct authentication backed by modern PBKDF2/Argon2 password hashing.
+  observation: "Hybrid authentication: Enterprise SSO for users with break-glass admin accounts backed by modern PBKDF2/Argon2 password hashing."
 - requirement: authentication_and_mfa
-  question: If direct authentication is used, are strong password policies and brute-force
-    lockout protections implemented?
+  question: If direct or hybrid authentication is used, are strong password policies and brute-force lockout protections implemented for local accounts?
   answer: 'Yes'
   result: compliant
-  observation: Enforces 14-char complexity, dictionary checks, and IP rate-limiting
-    lockout.
+  observation: Enforces 14-char complexity, dictionary checks, and IP rate-limiting lockout.
 - requirement: authentication_and_mfa
-  question: If direct authentication is used, is Multi-Factor Authentication (MFA)
-    enforced for all administrative and privileged access?
+  question: If direct or hybrid authentication is used, is Multi-Factor Authentication (MFA) enforced for all administrative, privileged, and break-glass access?
   answer: 'Yes'
   result: compliant
   observation: MFA enforced via TOTP / WebAuthn for all administrative and user logins.
@@ -125,18 +132,21 @@ answers:
   result: compliant
   observation: Semi-annual privileged entitlement recertification audit completed.
 - requirement: session_management
-  question: Are session tokens cryptographically secure, transmitted with secure cookie
-    flags (HttpOnly, Secure, SameSite), and invalidated on logout or inactivity?
+  question: "Are session identifiers and API bearer tokens cryptographically secure, protected in transit/storage (e.g. HttpOnly, Secure, SameSite cookie flags or secure token storage), and invalidated upon logout, expiration, or inactivity?"
   answer: 'Yes'
   result: compliant
   observation: Cryptographically signed JWT sessions stored in secure HttpOnly SameSite
     cookies.
 - requirement: owasp_top_10_defenses
-  question: Do you apply coding guidelines against OWASP Top 10 vulnerabilities (including
-    input validation, parameterized queries, output encoding, and secure error handling)?
+  question: "Are server-side input validation and parameterized queries/ORMs enforced to prevent injection flaws (SQLi, command injection, SSRF)?"
   answer: 'Yes'
   result: compliant
   observation: OWASP ASVS Level 2 standards implemented; strict parameterized SQL.
+- requirement: owasp_top_10_defenses
+  question: "Are context-aware output encoding, security headers (CSP), and generic production error handlers enforced to prevent XSS and stack-trace leakage?"
+  answer: 'Yes'
+  result: compliant
+  observation: Comprehensive context-aware output encoding, strict CSP headers, and generic production error masking.
 - requirement: file_upload_security
   question: Can files be uploaded to the application? (e.g., user attachments, documents,
     images, media, or data imports)
@@ -182,12 +192,15 @@ answers:
   result: compliant
   observation: SPDX and CycloneDX SBOMs published with every release.
 - requirement: code_review_and_ci_cd_integrity
-  question: Are mandatory peer code reviews and branch protection rules enforced before
-    any merge into deployment branches?
+  question: "Are mandatory peer code reviews enforced prior to merging changes into deployment branches?"
   answer: 'Yes'
   result: compliant
-  observation: Branch protections require two senior engineering approvals and CI
-    passing.
+  observation: Mandatory peer code reviews require two senior engineering approvals.
+- requirement: code_review_and_ci_cd_integrity
+  question: "Do repository branch protection rules block direct commits, force-pushes, and failing CI status checks on deployment branches?"
+  answer: 'Yes'
+  result: compliant
+  observation: Branch protections block direct commits, force-pushes, and require CI passing.
 - requirement: data_exchange
   question: 'Does the application exchange data externally? (e.g., B2B transfers,
     automated API integrations, webhooks, or network communications with external
@@ -275,11 +288,15 @@ answers:
   result: compliant
   observation: CloudWatch logs streamed to enterprise Datadog SIEM with 24/7 SOC alerting.
 - requirement: backup_and_disaster_recovery
-  question: Are automated and encrypted backups maintained for application state and
-    databases, with restoration tests performed at least annually?
+  question: "Are automated and encrypted backups maintained for application state and databases?"
   answer: 'Yes'
   result: compliant
-  observation: Multi-region continuous replication and weekly automated test restores.
+  observation: Multi-region continuous replication and encrypted daily snapshots of application state and databases.
+- requirement: backup_and_disaster_recovery
+  question: "Are backup restoration and disaster recovery drills tested at least annually against documented RTO/RPO targets?"
+  answer: 'Yes'
+  result: compliant
+  observation: Weekly automated test restores and semi-annual DR drills validated against documented RTO/RPO targets.
 - requirement: os_patching
   question: Are operating system (OS) security patches, kernel updates, and host/container
     security updates applied automatically within formal SLAs? (e.g. Critical <= 14
@@ -304,13 +321,15 @@ answers:
   observation: ECS rolling deployments ensure no service interruption during host
     patching.
 - requirement: api_security_and_rate_limiting
-  question: Are exposed web and API endpoints protected against abusive traffic via
-    an edge Web Application Firewall (WAF, e.g., Cloudflare, AWS WAF), bot protection,
-    and automated rate limiting / throttling controls?
+  question: "Are internet-facing endpoints fronted by an Edge WAF and anti-DDoS / bot protection (e.g. Cloudflare, AWS WAF)?"
   answer: 'Yes'
   result: compliant
-  observation: AWS WAF with managed rule sets, bot control, and strict token-bucket
-    rate limiting.
+  observation: AWS WAF with managed rule sets and bot control anti-DDoS protections.
+- requirement: api_security_and_rate_limiting
+  question: "Are API rate limiting, throttling, and payload size quotas enforced to prevent scraping and resource exhaustion?"
+  answer: 'Yes'
+  result: compliant
+  observation: Strict token-bucket API rate limiting, throttling, and payload size quotas.
 - requirement: penetration_testing_and_vulnerability_management
   question: Is independent penetration testing conducted on the application and underlying
     infrastructure at least annually by qualified internal or external penetration
@@ -325,16 +344,31 @@ expected_evaluation:
   confidentiality_impact: 4
   availability_impact: 4
   integrity_impact: 4
-  scenario_count: 17
+  scenario_count: 21
   excluded_scenarios:
+  - Compromise of cardholder data environment in SaaS service
+  - Compromise of customer data via unmanaged mobile devices
   - Compromise via unhardened or End-of-Life (EOL) COTS deployment
+  - Deployment of vulnerable commercial software due to unverified vendor SDLC
   - Exploitation of unpatched SaaS vulnerability
+  - Fourth-party vendor and sub-processor supply chain breach
+  - Phishing and social engineering compromise of SaaS personnel
+  - Physical unauthorized access and datacenter hardware tampering
   - Reliance on unverified SaaS security posture
+  - SaaS application exploitation via unverified vendor SDLC
   - SaaS customer data exposure due to missing encryption or NDA safeguards
+  - SaaS endpoint compromise and administrative credential theft
+  - SaaS operational security compromise due to missing governance policies
   - SaaS provider data leakage
+  - SaaS service disruption and catastrophic data loss
   - SaaS tenant isolation breach and cross-border leakage
+  - SaaS tenant network perimeter breach and unauthorized egress
   - SaaS tenant takeover via unprotected administrative console
   - SaaS vendor privilege abuse and sub-processor leakage
+  - SaaS web application transport and session exploitation
+  - Unlawful cross-border data transfer and residency non-compliance
+  - Unmonitored SaaS security incidents and delayed breach detection
+  - Unremediated SaaS security non-conformity and contractual remedy gap
 expected_risk_scenarios:
 - scenario: API abuse and denial of service
   likelihood_requirement: api_security_and_rate_limiting
@@ -376,8 +410,24 @@ expected_risk_scenarios:
   matrix_risk_id: 1
   risk_level: 2
   control_priority: 3
+- scenario: Compromise of CI/CD pipeline integrity and unreviewed code deployment
+  likelihood_requirement: code_review_and_ci_cd_integrity
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 4
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
 - scenario: Credential leakage via hardcoded secrets
   likelihood_requirement: secrets_management
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 4
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Deployment of undetected code vulnerabilities due to missing security testing
+  likelihood_requirement: automated_security_testing
   likelihood_score: 100
   scaled_likelihood: 1
   scaled_impact: 4
@@ -434,6 +484,22 @@ expected_risk_scenarios:
   control_priority: 3
 - scenario: Missing application stakeholders
   likelihood_requirement: stakeholder_identification
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 4
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Sensitive data exposure in logs or missing forensic audit trail
+  likelihood_requirement: security_event_logging
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 4
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Session hijacking and token replay
+  likelihood_requirement: session_management
   likelihood_score: 100
   scaled_likelihood: 1
   scaled_impact: 4

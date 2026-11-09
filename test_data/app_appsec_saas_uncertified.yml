@@ -28,6 +28,16 @@ application:
   - saas_app
   - saas_uncertified
 answers:
+- requirement: application_description
+  question: What is the primary functional domain and business purpose of the application?
+  answer: Data Analytics, AI & Business Intelligence (data warehouse, ETL pipelines, reporting, ML models)
+  result: compliant
+  observation: Third-party cloud SaaS analytics service providing custom data analysis and reporting dashboards.
+- requirement: application_description
+  question: Who are the primary intended users or consumers of the application?
+  answer: Internal workforce (employees, internal contractors)
+  result: compliant
+  observation: Internal operational and marketing analysts accessing vendor-hosted analytics portal.
 - requirement: stakeholder_identification
   question: Is there a designated business contact? (Designated business owner or
     product sponsor accountable for business processes, functionality, and risk acceptance)
@@ -84,19 +94,16 @@ answers:
     detailed contractual assessment.
 - requirement: authentication_and_mfa
   question: How do users authenticate to the application?
-  answer: Direct / Local application authentication (Username & Password)
+  answer: "Hybrid: Enterprise SSO for users, with local admin / break-glass or external accounts"
   result: compliant
-  observation: Direct tenant user authentication implemented with strong password
-    rules.
+  observation: "Hybrid authentication: Enterprise SSO for tenant users with break-glass admin accounts."
 - requirement: authentication_and_mfa
-  question: If direct authentication is used, are strong password policies and brute-force
-    lockout protections implemented?
+  question: If direct or hybrid authentication is used, are strong password policies and brute-force lockout protections implemented for local accounts?
   answer: 'Yes'
   result: compliant
   observation: 16-character minimum password policy, lockout after 5 consecutive failures.
 - requirement: authentication_and_mfa
-  question: If direct authentication is used, is Multi-Factor Authentication (MFA)
-    enforced for all administrative and privileged access?
+  question: If direct or hybrid authentication is used, is Multi-Factor Authentication (MFA) enforced for all administrative, privileged, and break-glass access?
   answer: 'Yes'
   result: compliant
   observation: MFA enforced for all user accounts and administrative roles.
@@ -380,26 +387,47 @@ expected_evaluation:
   confidentiality_impact: 4
   availability_impact: 4
   integrity_impact: 4
-  scenario_count: 10
+  scenario_count: 24
   excluded_scenarios:
   - API abuse and denial of service
   - Application compromise via injection attack
   - Application or storage compromise via unrestricted file upload
   - Catastrophic data loss due to unverified backups
+  - Compromise of CI/CD pipeline integrity and unreviewed code deployment
   - Compromise via unhardened or End-of-Life (EOL) COTS deployment
   - Credential leakage via hardcoded secrets
+  - Deployment of undetected code vulnerabilities due to missing security testing
+  - Deployment of vulnerable commercial software due to unverified vendor SDLC
   - Disclosure of production data in non-production environments
   - Excessive retention of sensitive data
   - Exploitation of unpatched vulnerability
   - Exposure of unencrypted data at rest
   - Exposure of unencrypted data in transit
   - Host or OS compromise via unpatched system vulnerabilities
+  - Sensitive data exposure in logs or missing forensic audit trail
+  - Session hijacking and token replay
   - Supply chain compromise via vulnerable dependency
   - Third-party data leakage
   - Undetected breach due to missing security logging
 expected_risk_scenarios:
 - scenario: Account takeover via weak authentication
   likelihood_requirement: authentication_and_mfa
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 4
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Compromise of cardholder data environment in SaaS service
+  likelihood_requirement: saas_pci_dss
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 4
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Compromise of customer data via unmanaged mobile devices
+  likelihood_requirement: saas_mobile_security
   likelihood_score: 100
   scaled_likelihood: 1
   scaled_impact: 4
@@ -414,8 +442,32 @@ expected_risk_scenarios:
   matrix_risk_id: 1
   risk_level: 2
   control_priority: 3
+- scenario: Fourth-party vendor and sub-processor supply chain breach
+  likelihood_requirement: saas_subcontractor_management
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 4
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
 - scenario: Missing application stakeholders
   likelihood_requirement: stakeholder_identification
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 4
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Phishing and social engineering compromise of SaaS personnel
+  likelihood_requirement: saas_security_awareness
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 4
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Physical unauthorized access and datacenter hardware tampering
+  likelihood_requirement: saas_physical_security
   likelihood_score: 100
   scaled_likelihood: 1
   scaled_impact: 4
@@ -430,8 +482,32 @@ expected_risk_scenarios:
   matrix_risk_id: 1
   risk_level: 2
   control_priority: 3
+- scenario: SaaS application exploitation via unverified vendor SDLC
+  likelihood_requirement: saas_secure_development
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 4
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
 - scenario: SaaS customer data exposure due to missing encryption or NDA safeguards
   likelihood_requirement: saas_confidentiality_and_data_protection
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 4
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: SaaS endpoint compromise and administrative credential theft
+  likelihood_requirement: saas_workstation_security
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 4
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: SaaS operational security compromise due to missing governance policies
+  likelihood_requirement: saas_governance_and_policy
   likelihood_score: 100
   scaled_likelihood: 1
   scaled_impact: 4
@@ -446,8 +522,24 @@ expected_risk_scenarios:
   matrix_risk_id: 1
   risk_level: 2
   control_priority: 3
+- scenario: SaaS service disruption and catastrophic data loss
+  likelihood_requirement: saas_backup_and_business_continuity
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 4
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
 - scenario: SaaS tenant isolation breach and cross-border leakage
   likelihood_requirement: saas_environment_isolation
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 4
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: SaaS tenant network perimeter breach and unauthorized egress
+  likelihood_requirement: saas_network_security
   likelihood_score: 100
   scaled_likelihood: 1
   scaled_impact: 4
@@ -470,8 +562,40 @@ expected_risk_scenarios:
   matrix_risk_id: 1
   risk_level: 2
   control_priority: 3
+- scenario: SaaS web application transport and session exploitation
+  likelihood_requirement: saas_web_app_security
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 4
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
 - scenario: Unauthorized data access via broken authorization
   likelihood_requirement: access_control_and_rbac
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 4
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Unlawful cross-border data transfer and residency non-compliance
+  likelihood_requirement: saas_data_hosting_and_residency
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 4
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Unmonitored SaaS security incidents and delayed breach detection
+  likelihood_requirement: saas_logging_and_incidents
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 4
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Unremediated SaaS security non-conformity and contractual remedy gap
+  likelihood_requirement: saas_non_conformity_remediation
   likelihood_score: 100
   scaled_likelihood: 1
   scaled_impact: 4

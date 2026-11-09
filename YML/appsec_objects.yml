@@ -7,7 +7,7 @@
 # - Threats (9 core application security threats)
 # - Vulnerabilities (18 core application security weaknesses)
 # - Reference Controls (26 core application security reference controls)
-# - Risk Scenarios (25 application security threat scenarios)
+# - Risk Scenarios (44 application security threat scenarios)
 # ============================================================================
 
 urn: urn:intuitem:risk:library:appsec_objects
@@ -18,8 +18,8 @@ description: >
   Common risk matrix, threats, vulnerabilities, reference controls, and risk scenarios
   shared between Application Security Assessment Frameworks (AppSec and AppSec Manual).
 copyright: DCME Corp
-version: 2
-publication_date: 2026-11-06
+version: 3
+publication_date: 2026-11-09
 provider: DCME Corp
 packager: DCME Corp
 
@@ -490,6 +490,353 @@ objects:
         - urn:intuitem:risk:control:appsec:saas_cryptographic_sovereignty
         - urn:intuitem:risk:control:appsec:encrypt_data_in_transit
         - urn:intuitem:risk:control:appsec:encrypt_data_at_rest
+      frameworks: ["appsec", "appsec_manual"]
+
+    # 26. Session hijacking and token replay (Custom applications)
+    - urn: urn:intuitem:risk:scenario:appsec:session_hijacking_and_token_replay
+      ref_id: session_hijacking_and_token_replay
+      name: "Session hijacking and token replay"
+      description: >
+        Adversaries intercept, hijack, or replay user sessions or stateless API bearer tokens
+        due to missing transport encryption, absent cookie security attributes (Secure, HttpOnly, SameSite),
+        or lack of session timeout and revocation mechanisms.
+      likelihood: urn:intuitem:risk:req_node:appsec:session_management
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+        - urn:intuitem:risk:threat:appsec:account_takeover
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:weak_authentication_controls
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:enforce_mfa_and_strong_auth
+      frameworks: ["appsec", "appsec_manual"]
+
+    # 27. Compromise of CI/CD pipeline integrity and unreviewed code deployment (Custom applications)
+    - urn: urn:intuitem:risk:scenario:appsec:ci_cd_pipeline_compromise_and_unreviewed_code
+      ref_id: ci_cd_pipeline_compromise_and_unreviewed_code
+      name: "Compromise of CI/CD pipeline integrity and unreviewed code deployment"
+      description: >
+        Unauthorized, malicious, or insecure code modifications bypass peer review and branch protection gates,
+        deploying untested changes directly into production environments.
+      likelihood: urn:intuitem:risk:req_node:appsec:code_review_and_ci_cd_integrity
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+        - urn:intuitem:risk:threat:appsec:supply_chain_tampering
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:untested_application_security
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:automated_devsecops_testing
+      frameworks: ["appsec", "appsec_manual"]
+
+    # 28. Deployment of undetected code vulnerabilities due to missing security testing (Custom applications)
+    - urn: urn:intuitem:risk:scenario:appsec:undetected_code_vulnerabilities_missing_testing
+      ref_id: undetected_code_vulnerabilities_missing_testing
+      name: "Deployment of undetected code vulnerabilities due to missing security testing"
+      description: >
+        Critical application security vulnerabilities remain undetected and reach production
+        due to the absence of automated SAST and DAST gates in the CI/CD pipeline.
+      likelihood: urn:intuitem:risk:req_node:appsec:automated_security_testing
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:injection_attacks
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:vulnerable_dependencies
+        - urn:intuitem:risk:vulnerability:appsec:untested_application_security
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:automated_devsecops_testing
+      frameworks: ["appsec", "appsec_manual"]
+
+    # 29. Deployment of vulnerable commercial software due to unverified vendor SDLC (COTS applications)
+    - urn: urn:intuitem:risk:scenario:appsec:cots_vendor_insecure_development_practices
+      ref_id: cots_vendor_insecure_development_practices
+      name: "Deployment of vulnerable commercial software due to unverified vendor SDLC"
+      description: >
+        Third-party commercial software contains exploitable design or implementation vulnerabilities
+        because the software vendor does not follow verifiable secure coding guidelines or security testing standards.
+      likelihood: urn:intuitem:risk:req_node:appsec:vendor_secure_development
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+        - urn:intuitem:risk:threat:appsec:supply_chain_tampering
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:untested_application_security
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:automated_devsecops_testing
+      frameworks: ["appsec", "appsec_manual"]
+
+    # 30. Sensitive data exposure in logs or missing forensic audit trail (Infrastructure)
+    - urn: urn:intuitem:risk:scenario:appsec:sensitive_data_exposure_in_logs
+      ref_id: sensitive_data_exposure_in_logs
+      name: "Sensitive data exposure in logs or missing forensic audit trail"
+      description: >
+        Personal data, credentials, or session tokens are leaked into application logs without masking,
+        or security event logs are disabled, hindering post-incident forensic investigation.
+      likelihood: urn:intuitem:risk:req_node:appsec:security_event_logging
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:insufficient_security_logging
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:centralized_security_logging
+      frameworks: ["appsec", "appsec_manual"]
+
+    # 31. Unlawful cross-border data transfer and residency non-compliance (SaaS applications)
+    - urn: urn:intuitem:risk:scenario:appsec:saas_cross_border_data_transfer_noncompliance
+      ref_id: saas_cross_border_data_transfer_noncompliance
+      name: "Unlawful cross-border data transfer and residency non-compliance"
+      description: >
+        Customer personal data processed by an external SaaS provider is transferred outside the European Economic Area (EEA)
+        without Standard Contractual Clauses (SCCs) or stored in non-compliant jurisdictions in violation of GDPR.
+      likelihood: urn:intuitem:risk:req_node:appsec:saas_data_hosting_and_residency
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:weak_tenant_isolation
+        - urn:intuitem:risk:vulnerability:appsec:contractual_gap
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:saas_tenant_isolation_and_residency
+      frameworks: ["appsec", "appsec_manual"]
+
+    # 32. Compromise of cardholder data environment in SaaS service (SaaS applications)
+    - urn: urn:intuitem:risk:scenario:appsec:saas_cardholder_data_compromise
+      ref_id: saas_cardholder_data_compromise
+      name: "Compromise of cardholder data environment in SaaS service"
+      description: >
+        Payment cardholder data processed or stored within a SaaS service is compromised or intercepted
+        due to lapsed PCI DSS certification, missing annual Attestation of Compliance (AOC), or inadequate payment breach procedures.
+      likelihood: urn:intuitem:risk:req_node:appsec:saas_pci_dss
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:contractual_gap
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:saas_third_party_assurance
+      frameworks: ["appsec", "appsec_manual"]
+
+    # 33. Unremediated SaaS security non-conformity and contractual remedy gap (SaaS applications)
+    - urn: urn:intuitem:risk:scenario:appsec:saas_unremediated_nonconformity_and_remedy_gap
+      ref_id: saas_unremediated_nonconformity_and_remedy_gap
+      name: "Unremediated SaaS security non-conformity and contractual remedy gap"
+      description: >
+        Identified security non-conformities, penetration test findings, or audit exceptions remain unremediated
+        by the SaaS provider because the contract lacks enforceable remediation SLAs, compensatory controls,
+        or access suspension and termination rights.
+      likelihood: urn:intuitem:risk:req_node:appsec:saas_non_conformity_remediation
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+        - urn:intuitem:risk:threat:appsec:data_loss
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:contractual_gap
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:saas_contract
+      frameworks: ["appsec", "appsec_manual"]
+
+    # 34. Unmonitored SaaS security incidents and delayed breach detection (Uncertified SaaS)
+    - urn: urn:intuitem:risk:scenario:appsec:saas_unmonitored_incidents
+      ref_id: saas_unmonitored_incidents
+      name: "Unmonitored SaaS security incidents and delayed breach detection"
+      description: >
+        Active intrusion, brute-force attempts, or data exfiltration on an uncertified SaaS platform go undetected
+        due to absent logging, lack of audit log export, or undefined security incident notification procedures.
+      likelihood: urn:intuitem:risk:req_node:appsec:saas_logging_and_incidents
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:undetected_intrusion
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:insufficient_security_logging
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:centralized_security_logging
+        - urn:intuitem:risk:control:appsec:saas_telemetry_and_audit_export
+      frameworks: ["appsec", "appsec_manual"]
+
+    # 35. SaaS service disruption and catastrophic data loss (Uncertified SaaS)
+    - urn: urn:intuitem:risk:scenario:appsec:saas_service_disruption_and_data_loss
+      ref_id: saas_service_disruption_and_data_loss
+      name: "SaaS service disruption and catastrophic data loss"
+      description: >
+        SaaS platform outage, ransomware, or infrastructure failure causes prolonged unavailability or permanent customer data loss
+        because backups are not performed regularly, restoration is untested, or disaster recovery SLAs are undefined.
+      likelihood: urn:intuitem:risk:req_node:appsec:saas_backup_and_business_continuity
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:service_disruption
+        - urn:intuitem:risk:threat:appsec:data_loss
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:inadequate_resilience_backup
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:backup_and_disaster_recovery
+        - urn:intuitem:risk:control:appsec:saas_resilience_and_data_portability
+      frameworks: ["appsec", "appsec_manual"]
+
+    # 36. Fourth-party vendor and sub-processor supply chain breach (Uncertified SaaS)
+    - urn: urn:intuitem:risk:scenario:appsec:saas_subcontractor_supply_chain_breach
+      ref_id: saas_subcontractor_supply_chain_breach
+      name: "Fourth-party vendor and sub-processor supply chain breach"
+      description: >
+        Customer data processed by the SaaS provider is compromised or exfiltrated through unauthorized fourth-party
+        sub-processors, unvetted subcontractors, or external AI model providers without binding data protection agreements.
+      likelihood: urn:intuitem:risk:req_node:appsec:saas_subcontractor_management
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:supply_chain_tampering
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:uncontrolled_vendor_access
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:saas_subprocessor_and_supply_chain
+      frameworks: ["appsec", "appsec_manual"]
+
+    # 37. SaaS application exploitation via unverified vendor SDLC (Uncertified SaaS)
+    - urn: urn:intuitem:risk:scenario:appsec:saas_unverified_vendor_sdlc_exploitation
+      ref_id: saas_unverified_vendor_sdlc_exploitation
+      name: "SaaS application exploitation via unverified vendor SDLC"
+      description: >
+        The SaaS vendor introduces exploitable vulnerabilities into production because software development
+        lacks secure coding guidelines, separation of environments, or regular automated vulnerability testing.
+      likelihood: urn:intuitem:risk:req_node:appsec:saas_secure_development
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:injection_attacks
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:untested_application_security
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:automated_devsecops_testing
+      frameworks: ["appsec", "appsec_manual"]
+
+    # 38. SaaS web application transport and session exploitation (Uncertified SaaS)
+    - urn: urn:intuitem:risk:scenario:appsec:saas_web_transport_exploitation
+      ref_id: saas_web_transport_exploitation
+      name: "SaaS web application transport and session exploitation"
+      description: >
+        Uncertified SaaS web applications transmit data over unencrypted channels or weak TLS ciphers,
+        exposing sensitive web sessions and user credentials to interception and tampering.
+      likelihood: urn:intuitem:risk:req_node:appsec:saas_web_app_security
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:untested_application_security
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:encrypt_data_in_transit
+      frameworks: ["appsec", "appsec_manual"]
+
+    # 39. SaaS tenant network perimeter breach and unauthorized egress (Uncertified SaaS)
+    - urn: urn:intuitem:risk:scenario:appsec:saas_network_perimeter_breach
+      ref_id: saas_network_perimeter_breach
+      name: "SaaS tenant network perimeter breach and unauthorized egress"
+      description: >
+        The SaaS vendor's hosting infrastructure lacks robust firewalling, network segmentation, or ingress/egress filtering,
+        permitting lateral movement or unauthorized network access across customer tenants.
+      likelihood: urn:intuitem:risk:req_node:appsec:saas_network_security
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:weak_tenant_isolation
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:api_security_and_rate_limiting
+      frameworks: ["appsec", "appsec_manual"]
+
+    # 40. SaaS endpoint compromise and administrative credential theft (Uncertified SaaS)
+    - urn: urn:intuitem:risk:scenario:appsec:saas_endpoint_compromise_and_theft
+      ref_id: saas_endpoint_compromise_and_theft
+      name: "SaaS endpoint compromise and administrative credential theft"
+      description: >
+        Vendor engineer workstations accessing customer environments lack disk encryption, antivirus protection,
+        or remote lock capabilities, exposing administrative access keys to endpoint theft or malware.
+      likelihood: urn:intuitem:risk:req_node:appsec:saas_workstation_security
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:account_takeover
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:unverified_saas_security
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:saas_contract
+      frameworks: ["appsec", "appsec_manual"]
+
+    # 41. Compromise of customer data via unmanaged mobile devices (Uncertified SaaS)
+    - urn: urn:intuitem:risk:scenario:appsec:saas_mobile_device_compromise
+      ref_id: saas_mobile_device_compromise
+      name: "Compromise of customer data via unmanaged mobile devices"
+      description: >
+        Customer data accessed or synchronized through unmanaged mobile devices by vendor personnel or mobile clients
+        is exposed due to lack of screen locks, device encryption, or remote wipe enforcement.
+      likelihood: urn:intuitem:risk:req_node:appsec:saas_mobile_security
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+        - urn:intuitem:risk:threat:appsec:data_exfiltration
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:unverified_saas_security
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:saas_contract
+      frameworks: ["appsec", "appsec_manual"]
+
+    # 42. SaaS operational security compromise due to missing governance policies (Uncertified SaaS)
+    - urn: urn:intuitem:risk:scenario:appsec:saas_missing_governance_and_policies
+      ref_id: saas_missing_governance_and_policies
+      name: "SaaS operational security compromise due to missing governance policies"
+      description: >
+        The SaaS vendor operates without formal security policies, regular policy reviews, or dedicated security governance roles,
+        leading to systemic operational security failures.
+      likelihood: urn:intuitem:risk:req_node:appsec:saas_governance_and_policy
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:undetected_intrusion
+        - urn:intuitem:risk:threat:appsec:data_loss
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:unverified_saas_security
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:saas_third_party_assurance
+      frameworks: ["appsec", "appsec_manual"]
+
+    # 43. Phishing and social engineering compromise of SaaS personnel (Uncertified SaaS)
+    - urn: urn:intuitem:risk:scenario:appsec:saas_personnel_social_engineering
+      ref_id: saas_personnel_social_engineering
+      name: "Phishing and social engineering compromise of SaaS personnel"
+      description: >
+        Vendor staff with access to customer systems succumb to phishing, spear-phishing, or social engineering attacks
+        due to absent or ineffective annual cybersecurity awareness training.
+      likelihood: urn:intuitem:risk:req_node:appsec:saas_security_awareness
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:account_takeover
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:unverified_saas_security
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:saas_contract
+      frameworks: ["appsec", "appsec_manual"]
+
+    # 44. Physical unauthorized access and datacenter hardware tampering (Uncertified SaaS)
+    - urn: urn:intuitem:risk:scenario:appsec:saas_physical_datacenter_breach
+      ref_id: saas_physical_datacenter_breach
+      name: "Physical unauthorized access and datacenter hardware tampering"
+      description: >
+        Unauthorized individuals gain physical access to datacenter facilities, server racks, or network appliances hosting the SaaS service,
+        compromising hardware integrity or exfiltrating data media.
+      likelihood: urn:intuitem:risk:req_node:appsec:saas_physical_security
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+        - urn:intuitem:risk:threat:appsec:data_loss
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:unverified_saas_security
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:saas_third_party_assurance
       frameworks: ["appsec", "appsec_manual"]
 
   # ========================================================================

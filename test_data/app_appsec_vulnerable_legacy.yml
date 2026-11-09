@@ -37,6 +37,18 @@ answers:
   # CHAPTER 1: APPLICATION INFORMATION & GOVERNANCE (IG: info)
   # ============================================================================
 
+  - requirement: "application_description"
+    question: "What is the primary functional domain and business purpose of the application?"
+    answer: "Internal Operations & Enterprise Management (ERP, CRM, HR, finance, supply chain, intranet)"
+    result: "compliant"
+    observation: "Legacy monolithic internal operations application scheduled for modernization and refactoring."
+
+  - requirement: "application_description"
+    question: "Who are the primary intended users or consumers of the application?"
+    answer: "Internal workforce (employees, internal contractors)"
+    result: "compliant"
+    observation: "Legacy internal operations personnel accessing on-premise application."
+
   - requirement: "stakeholder_identification"
     question: "Is there a designated business contact? (Designated business owner or product sponsor accountable for business processes, functionality, and risk acceptance)"
     answer: "No"
@@ -97,18 +109,18 @@ answers:
 
   - requirement: "authentication_and_mfa"
     question: "How do users authenticate to the application?"
-    answer: "Direct / Local application authentication (Username & Password)"
+    answer: "Direct / Local application authentication only (Username & Password)"
     result: "non_compliant"
     observation: "Uses standalone local database with legacy unsalted MD5 password hashes."
 
   - requirement: "authentication_and_mfa"
-    question: "If direct authentication is used, are strong password policies and brute-force lockout protections implemented?"
+    question: "If direct or hybrid authentication is used, are strong password policies and brute-force lockout protections implemented for local accounts?"
     answer: "No"
     result: "non_compliant"
     observation: "Permits short 6-character passwords with no rate limiting or lockout protection."
 
   - requirement: "authentication_and_mfa"
-    question: "If direct authentication is used, is Multi-Factor Authentication (MFA) enforced for all administrative and privileged access?"
+    question: "If direct or hybrid authentication is used, is Multi-Factor Authentication (MFA) enforced for all administrative, privileged, and break-glass access?"
     answer: "No"
     result: "non_compliant"
     observation: "Single-factor password authentication only; no MFA enforcement on admin portal."
@@ -126,7 +138,7 @@ answers:
     observation: "Standalone legacy application is completely unmanaged by enterprise IGA / SailPoint."
 
   - requirement: "session_management"
-    question: "Are session tokens cryptographically secure, transmitted with secure cookie flags (HttpOnly, Secure, SameSite), and invalidated on logout or inactivity?"
+    question: "Are session identifiers and API bearer tokens cryptographically secure, protected in transit/storage (e.g. HttpOnly, Secure, SameSite cookie flags or secure token storage), and invalidated upon logout, expiration, or inactivity?"
     answer: "No"
     result: "non_compliant"
     observation: "Sequential session identifiers transmitted over unencrypted HTTP without HttpOnly flag."
@@ -136,10 +148,16 @@ answers:
   # ============================================================================
 
   - requirement: "owasp_top_10_defenses"
-    question: "Do you apply coding guidelines against OWASP Top 10 vulnerabilities (including input validation, parameterized queries, output encoding, and secure error handling)?"
+    question: "Are server-side input validation and parameterized queries/ORMs enforced to prevent injection flaws (SQLi, command injection, SSRF)?"
     answer: "No"
     result: "non_compliant"
-    observation: "No formal secure coding guidelines enforced; application suffers from dynamic SQL concatenation, unencoded template rendering, and verbose debug errors."
+    observation: "No formal secure coding guidelines enforced; application suffers from dynamic SQL concatenation."
+
+  - requirement: "owasp_top_10_defenses"
+    question: "Are context-aware output encoding, security headers (CSP), and generic production error handlers enforced to prevent XSS and stack-trace leakage?"
+    answer: "No"
+    result: "non_compliant"
+    observation: "Application suffers from unencoded template rendering and verbose debug errors leaking stack traces."
 
   - requirement: "file_upload_security"
     question: "Can files be uploaded to the application? (e.g., user attachments, documents, images, media, or data imports)"
@@ -210,10 +228,16 @@ answers:
     observation: "No inventory or SBOM of third-party dependencies maintained."
 
   - requirement: "code_review_and_ci_cd_integrity"
-    question: "Are mandatory peer code reviews and branch protection rules enforced before any merge into deployment branches?"
+    question: "Are mandatory peer code reviews enforced prior to merging changes into deployment branches?"
     answer: "No"
     result: "non_compliant"
     observation: "No peer code reviews conducted; lone developer modifies production files directly."
+
+  - requirement: "code_review_and_ci_cd_integrity"
+    question: "Do repository branch protection rules block direct commits, force-pushes, and failing CI status checks on deployment branches?"
+    answer: "No"
+    result: "non_compliant"
+    observation: "No repository branch protection rules in place; direct commits to production."
 
   # ============================================================================
   # CHAPTER 7: DATA EXCHANGE & NON-PRODUCTION DATA PROTECTION (IG: custom_app)
@@ -282,7 +306,7 @@ answers:
   # ============================================================================
 
   - requirement: "backup_and_disaster_recovery"
-    question: "Are automated and encrypted backups maintained for application state and databases, with restoration tests performed at least annually?"
+    question: "Are automated and encrypted backups maintained for application state and databases?"
     answer: "No"
     result: "non_compliant"
     observation: "Manual ad-hoc backups to unencrypted shared NAS; restoration never tested."
@@ -309,7 +333,7 @@ answers:
 # Expected Risk Scenarios & Evaluation (AppSec Framework)
 # ==============================================================================
 # Internal In-House Application (IGs: info, baseline, custom_app, infra) -> 15 in-scope scenarios.
-# Impact Level: 2 (Internal). All likelihoods: 4 (Very Likely, 0-25% compliance).
+# Impact Level: 2 (Internal). Likelihoods: 4 (Very Likely, 0-25% compliance), except stakeholder_identification (Likelihood 3 / Low Risk due to designated IT contact).
 # Grid[3][1] (Likelihood 4, Impact 2) = 2 (Medium Risk, Level 3) -> Priority 2 (High)
 # ==============================================================================
 expected_evaluation:
@@ -317,151 +341,183 @@ expected_evaluation:
   confidentiality_impact: 2
   availability_impact: 2
   integrity_impact: 2
-  scenario_count: 15
+  scenario_count: 19
   excluded_scenarios:
-    - "SaaS provider data leakage"
-    - "API abuse and denial of service"
-    - "Exploitation of unpatched vulnerability"
-    - "Exploitation of unpatched SaaS vulnerability"
-    - "SaaS tenant isolation breach and cross-border leakage"
-    - "SaaS vendor privilege abuse and sub-processor leakage"
-    - "Reliance on unverified SaaS security posture"
-    - "Compromise via unhardened or End-of-Life (EOL) COTS deployment"
-    - "SaaS tenant takeover via unprotected administrative console"
-    - "SaaS customer data exposure due to missing encryption or NDA safeguards"
-
+  - API abuse and denial of service
+  - Compromise of cardholder data environment in SaaS service
+  - Compromise of customer data via unmanaged mobile devices
+  - Compromise via unhardened or End-of-Life (EOL) COTS deployment
+  - Deployment of vulnerable commercial software due to unverified vendor SDLC
+  - Exploitation of unpatched SaaS vulnerability
+  - Exploitation of unpatched vulnerability
+  - Fourth-party vendor and sub-processor supply chain breach
+  - Phishing and social engineering compromise of SaaS personnel
+  - Physical unauthorized access and datacenter hardware tampering
+  - Reliance on unverified SaaS security posture
+  - SaaS application exploitation via unverified vendor SDLC
+  - SaaS customer data exposure due to missing encryption or NDA safeguards
+  - SaaS endpoint compromise and administrative credential theft
+  - SaaS operational security compromise due to missing governance policies
+  - SaaS provider data leakage
+  - SaaS service disruption and catastrophic data loss
+  - SaaS tenant isolation breach and cross-border leakage
+  - SaaS tenant network perimeter breach and unauthorized egress
+  - SaaS tenant takeover via unprotected administrative console
+  - SaaS vendor privilege abuse and sub-processor leakage
+  - SaaS web application transport and session exploitation
+  - Unlawful cross-border data transfer and residency non-compliance
+  - Unmonitored SaaS security incidents and delayed breach detection
+  - Unremediated SaaS security non-conformity and contractual remedy gap
 expected_risk_scenarios:
-  - scenario: "Exposure of unencrypted data in transit"
-    likelihood_requirement: "data_in_transit"
-    likelihood_score: 0
-    scaled_likelihood: 4
-    scaled_impact: 2
-    matrix_risk_id: 2
-    risk_level: 3
-    control_priority: 2
-
-  - scenario: "Exposure of unencrypted data at rest"
-    likelihood_requirement: "data_at_rest"
-    likelihood_score: 0
-    scaled_likelihood: 4
-    scaled_impact: 2
-    matrix_risk_id: 2
-    risk_level: 3
-    control_priority: 2
-
-  - scenario: "Disclosure of production data in non-production environments"
-    likelihood_requirement: "non_prod_data"
-    likelihood_score: 0
-    scaled_likelihood: 4
-    scaled_impact: 2
-    matrix_risk_id: 2
-    risk_level: 3
-    control_priority: 2
-
-  - scenario: "Third-party data leakage"
-    likelihood_requirement: "data_exchange"
-    likelihood_score: 0
-    scaled_likelihood: 4
-    scaled_impact: 2
-    matrix_risk_id: 2
-    risk_level: 3
-    control_priority: 2
-
-  - scenario: "Missing application stakeholders"
-    likelihood_requirement: "stakeholder_identification"
-    likelihood_score: 25
-    scaled_likelihood: 4
-    scaled_impact: 2
-    matrix_risk_id: 2
-    risk_level: 3
-    control_priority: 2
-
-  - scenario: "Excessive retention of sensitive data"
-    likelihood_requirement: "data_destruction"
-    likelihood_score: 0
-    scaled_likelihood: 4
-    scaled_impact: 2
-    matrix_risk_id: 2
-    risk_level: 3
-    control_priority: 2
-
-  - scenario: "Account takeover via weak authentication"
-    likelihood_requirement: "authentication_and_mfa"
-    likelihood_score: 0
-    scaled_likelihood: 4
-    scaled_impact: 2
-    matrix_risk_id: 2
-    risk_level: 3
-    control_priority: 2
-
-  - scenario: "Unauthorized data access via broken authorization"
-    likelihood_requirement: "access_control_and_rbac"
-    likelihood_score: 0
-    scaled_likelihood: 4
-    scaled_impact: 2
-    matrix_risk_id: 2
-    risk_level: 3
-    control_priority: 2
-
-  - scenario: "Application compromise via injection attack"
-    likelihood_requirement: "owasp_top_10_defenses"
-    likelihood_score: 0
-    scaled_likelihood: 4
-    scaled_impact: 2
-    matrix_risk_id: 2
-    risk_level: 3
-    control_priority: 2
-
-  - scenario: "Application or storage compromise via unrestricted file upload"
-    likelihood_requirement: "file_upload_security"
-    likelihood_score: 0
-    scaled_likelihood: 4
-    scaled_impact: 2
-    matrix_risk_id: 2
-    risk_level: 3
-    control_priority: 2
-
-  - scenario: "Credential leakage via hardcoded secrets"
-    likelihood_requirement: "secrets_management"
-    likelihood_score: 0
-    scaled_likelihood: 4
-    scaled_impact: 2
-    matrix_risk_id: 2
-    risk_level: 3
-    control_priority: 2
-
-  - scenario: "Supply chain compromise via vulnerable dependency"
-    likelihood_requirement: "supply_chain_and_dependencies"
-    likelihood_score: 0
-    scaled_likelihood: 4
-    scaled_impact: 2
-    matrix_risk_id: 2
-    risk_level: 3
-    control_priority: 2
-
-  - scenario: "Undetected breach due to missing security logging"
-    likelihood_requirement: "centralized_monitoring_and_alerting"
-    likelihood_score: 0
-    scaled_likelihood: 4
-    scaled_impact: 2
-    matrix_risk_id: 2
-    risk_level: 3
-    control_priority: 2
-
-  - scenario: "Catastrophic data loss due to unverified backups"
-    likelihood_requirement: "backup_and_disaster_recovery"
-    likelihood_score: 0
-    scaled_likelihood: 4
-    scaled_impact: 2
-    matrix_risk_id: 2
-    risk_level: 3
-    control_priority: 2
-
-  - scenario: "Host or OS compromise via unpatched system vulnerabilities"
-    likelihood_requirement: "os_patching"
-    likelihood_score: 0
-    scaled_likelihood: 4
-    scaled_impact: 2
-    matrix_risk_id: 2
-    risk_level: 3
-    control_priority: 2
+- scenario: Account takeover via weak authentication
+  likelihood_requirement: authentication_and_mfa
+  likelihood_score: 0
+  scaled_likelihood: 4
+  scaled_impact: 2
+  matrix_risk_id: 2
+  risk_level: 3
+  control_priority: 2
+- scenario: Application compromise via injection attack
+  likelihood_requirement: owasp_top_10_defenses
+  likelihood_score: 0
+  scaled_likelihood: 4
+  scaled_impact: 2
+  matrix_risk_id: 2
+  risk_level: 3
+  control_priority: 2
+- scenario: Application or storage compromise via unrestricted file upload
+  likelihood_requirement: file_upload_security
+  likelihood_score: 0
+  scaled_likelihood: 4
+  scaled_impact: 2
+  matrix_risk_id: 2
+  risk_level: 3
+  control_priority: 2
+- scenario: Catastrophic data loss due to unverified backups
+  likelihood_requirement: backup_and_disaster_recovery
+  likelihood_score: 0
+  scaled_likelihood: 4
+  scaled_impact: 2
+  matrix_risk_id: 2
+  risk_level: 3
+  control_priority: 2
+- scenario: Compromise of CI/CD pipeline integrity and unreviewed code deployment
+  likelihood_requirement: code_review_and_ci_cd_integrity
+  likelihood_score: 0
+  scaled_likelihood: 4
+  scaled_impact: 2
+  matrix_risk_id: 2
+  risk_level: 3
+  control_priority: 2
+- scenario: Credential leakage via hardcoded secrets
+  likelihood_requirement: secrets_management
+  likelihood_score: 0
+  scaled_likelihood: 4
+  scaled_impact: 2
+  matrix_risk_id: 2
+  risk_level: 3
+  control_priority: 2
+- scenario: Deployment of undetected code vulnerabilities due to missing security testing
+  likelihood_requirement: automated_security_testing
+  likelihood_score: 0
+  scaled_likelihood: 4
+  scaled_impact: 2
+  matrix_risk_id: 2
+  risk_level: 3
+  control_priority: 2
+- scenario: Disclosure of production data in non-production environments
+  likelihood_requirement: non_prod_data
+  likelihood_score: 0
+  scaled_likelihood: 4
+  scaled_impact: 2
+  matrix_risk_id: 2
+  risk_level: 3
+  control_priority: 2
+- scenario: Excessive retention of sensitive data
+  likelihood_requirement: data_destruction
+  likelihood_score: 0
+  scaled_likelihood: 4
+  scaled_impact: 2
+  matrix_risk_id: 2
+  risk_level: 3
+  control_priority: 2
+- scenario: Exposure of unencrypted data at rest
+  likelihood_requirement: data_at_rest
+  likelihood_score: 0
+  scaled_likelihood: 4
+  scaled_impact: 2
+  matrix_risk_id: 2
+  risk_level: 3
+  control_priority: 2
+- scenario: Exposure of unencrypted data in transit
+  likelihood_requirement: data_in_transit
+  likelihood_score: 0
+  scaled_likelihood: 4
+  scaled_impact: 2
+  matrix_risk_id: 2
+  risk_level: 3
+  control_priority: 2
+- scenario: Host or OS compromise via unpatched system vulnerabilities
+  likelihood_requirement: os_patching
+  likelihood_score: 0
+  scaled_likelihood: 4
+  scaled_impact: 2
+  matrix_risk_id: 2
+  risk_level: 3
+  control_priority: 2
+- scenario: Missing application stakeholders
+  likelihood_requirement: stakeholder_identification
+  likelihood_score: 30
+  scaled_likelihood: 3
+  scaled_impact: 2
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Sensitive data exposure in logs or missing forensic audit trail
+  likelihood_requirement: security_event_logging
+  likelihood_score: 0
+  scaled_likelihood: 4
+  scaled_impact: 2
+  matrix_risk_id: 2
+  risk_level: 3
+  control_priority: 2
+- scenario: Session hijacking and token replay
+  likelihood_requirement: session_management
+  likelihood_score: 0
+  scaled_likelihood: 4
+  scaled_impact: 2
+  matrix_risk_id: 2
+  risk_level: 3
+  control_priority: 2
+- scenario: Supply chain compromise via vulnerable dependency
+  likelihood_requirement: supply_chain_and_dependencies
+  likelihood_score: 0
+  scaled_likelihood: 4
+  scaled_impact: 2
+  matrix_risk_id: 2
+  risk_level: 3
+  control_priority: 2
+- scenario: Third-party data leakage
+  likelihood_requirement: data_exchange
+  likelihood_score: 0
+  scaled_likelihood: 4
+  scaled_impact: 2
+  matrix_risk_id: 2
+  risk_level: 3
+  control_priority: 2
+- scenario: Unauthorized data access via broken authorization
+  likelihood_requirement: access_control_and_rbac
+  likelihood_score: 0
+  scaled_likelihood: 4
+  scaled_impact: 2
+  matrix_risk_id: 2
+  risk_level: 3
+  control_priority: 2
+- scenario: Undetected breach due to missing security logging
+  likelihood_requirement: centralized_monitoring_and_alerting
+  likelihood_score: 0
+  scaled_likelihood: 4
+  scaled_impact: 2
+  matrix_risk_id: 2
+  risk_level: 3
+  control_priority: 2

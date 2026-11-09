@@ -28,6 +28,16 @@ application:
   - cots_app
   - infra
 answers:
+- requirement: application_description
+  question: What is the primary functional domain and business purpose of the application?
+  answer: Internal Operations & Enterprise Management (ERP, CRM, HR, finance, supply chain, intranet)
+  result: compliant
+  observation: Commercial off-the-shelf software package deployed on corporate internal servers for internal enterprise workflow management.
+- requirement: application_description
+  question: Who are the primary intended users or consumers of the application?
+  answer: Internal workforce (employees, internal contractors)
+  result: compliant
+  observation: Used exclusively by corporate employees and internal operational teams.
 - requirement: stakeholder_identification
   question: Is there a designated business contact? (Designated business owner or
     product sponsor accountable for business processes, functionality, and risk acceptance)
@@ -84,7 +94,7 @@ answers:
   observation: Internal restricted warehouse VLAN; no public exposure.
 - requirement: authentication_and_mfa
   question: How do users authenticate to the application?
-  answer: Enterprise SSO (SAML 2.0 / OIDC federated IdP)
+  answer: Enterprise SSO exclusively (SAML 2.0 / OIDC federated IdP, with no local accounts)
   result: compliant
   observation: Federated with corporate Active Directory / Entra ID via SAML 2.0.
 - requirement: access_control_and_rbac
@@ -231,12 +241,15 @@ answers:
   observation: Events forwarded to internal SIEM with threshold alerts for repeated
     login failures.
 - requirement: backup_and_disaster_recovery
-  question: Are automated and encrypted backups maintained for application state and
-    databases, with restoration tests performed at least annually?
+  question: "Are automated and encrypted backups maintained for application state and databases?"
   answer: 'Yes'
   result: compliant
-  observation: Nightly encrypted Veeam VM backups with bi-annual disaster recovery
-    restore drills.
+  observation: Nightly encrypted Veeam VM backups of application state and databases.
+- requirement: backup_and_disaster_recovery
+  question: "Are backup restoration and disaster recovery drills tested at least annually against documented RTO/RPO targets?"
+  answer: 'Yes'
+  result: compliant
+  observation: Bi-annual disaster recovery restore drills validated against documented RTO and RPO targets.
 - requirement: os_patching
   question: Are operating system (OS) security patches, kernel updates, and host/container
     security updates applied automatically within formal SLAs? (e.g. Critical <= 14
@@ -265,20 +278,37 @@ expected_evaluation:
   confidentiality_impact: 3
   availability_impact: 3
   integrity_impact: 3
-  scenario_count: 13
+  scenario_count: 15
   excluded_scenarios:
   - API abuse and denial of service
   - Application compromise via injection attack
   - Application or storage compromise via unrestricted file upload
+  - Compromise of CI/CD pipeline integrity and unreviewed code deployment
+  - Compromise of cardholder data environment in SaaS service
+  - Compromise of customer data via unmanaged mobile devices
+  - Deployment of undetected code vulnerabilities due to missing security testing
   - Exploitation of unpatched SaaS vulnerability
   - Exploitation of unpatched vulnerability
+  - Fourth-party vendor and sub-processor supply chain breach
+  - Phishing and social engineering compromise of SaaS personnel
+  - Physical unauthorized access and datacenter hardware tampering
   - Reliance on unverified SaaS security posture
+  - SaaS application exploitation via unverified vendor SDLC
   - SaaS customer data exposure due to missing encryption or NDA safeguards
+  - SaaS endpoint compromise and administrative credential theft
+  - SaaS operational security compromise due to missing governance policies
   - SaaS provider data leakage
+  - SaaS service disruption and catastrophic data loss
   - SaaS tenant isolation breach and cross-border leakage
+  - SaaS tenant network perimeter breach and unauthorized egress
   - SaaS tenant takeover via unprotected administrative console
   - SaaS vendor privilege abuse and sub-processor leakage
+  - SaaS web application transport and session exploitation
+  - Session hijacking and token replay
   - Supply chain compromise via vulnerable dependency
+  - Unlawful cross-border data transfer and residency non-compliance
+  - Unmonitored SaaS security incidents and delayed breach detection
+  - Unremediated SaaS security non-conformity and contractual remedy gap
 expected_risk_scenarios:
 - scenario: Account takeover via weak authentication
   likelihood_requirement: authentication_and_mfa
@@ -306,6 +336,14 @@ expected_risk_scenarios:
   control_priority: 3
 - scenario: Credential leakage via hardcoded secrets
   likelihood_requirement: secrets_management
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Deployment of vulnerable commercial software due to unverified vendor SDLC
+  likelihood_requirement: vendor_secure_development
   likelihood_score: 100
   scaled_likelihood: 1
   scaled_impact: 3
@@ -354,6 +392,14 @@ expected_risk_scenarios:
   control_priority: 3
 - scenario: Missing application stakeholders
   likelihood_requirement: stakeholder_identification
+  likelihood_score: 100
+  scaled_likelihood: 1
+  scaled_impact: 3
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
+- scenario: Sensitive data exposure in logs or missing forensic audit trail
+  likelihood_requirement: security_event_logging
   likelihood_score: 100
   scaled_likelihood: 1
   scaled_impact: 3
