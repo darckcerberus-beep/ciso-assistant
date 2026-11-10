@@ -555,6 +555,68 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
             "available": available,
         })
 
+    @app.route("/api/frameworks/stored")
+    def api_frameworks_stored():
+        """Retrieve stored libraries available in CISO Assistant's built-in catalog."""
+        query = request.args.get("query")
+        loaded_only = request.args.get("loaded_only", "").lower() in ("true", "1")
+        unloaded_only = request.args.get("unloaded_only", "").lower() in ("true", "1")
+        libs = manager.list_stored_libraries(query=query, loaded_only=loaded_only, unloaded_only=unloaded_only)
+        return jsonify(libs)
+
+    @app.route("/api/frameworks/load", methods=["POST"])
+    def api_framework_load():
+        """Load a framework with automated pre-operation backup of existing data."""
+        payload = request.get_json() or {}
+        target = payload.get("target")
+        if not target:
+            return jsonify({"error": "Missing 'target' parameter (local file path or stored library identifier)."}), 400
+
+        backup_first = payload.get("backup_first", True)
+        backup_type = payload.get("backup_type", "snapshot")
+        force_reload = payload.get("force_reload", False)
+
+        def _job():
+            print(f"Loading framework '{target}' (backup_first={backup_first}, backup_type='{backup_type}', force_reload={force_reload})...")
+            res = manager.load_framework(
+                target=target,
+                backup_first=backup_first,
+                backup_type=backup_type,
+                force_reload=force_reload,
+            )
+            b = res.get("backup", {})
+            if b.get("backup_created"):
+                print(f"[BACKUP] Pre-operation backup saved: {b.get('filename')} ({b.get('size_formatted')})")
+            print(f"[SUCCESS] {res.get('message', 'Framework loaded successfully.')}")
+            return res
+
+        task_id = TASK_MANAGER.create_task(f"Load Framework: {target}", _job)
+        return jsonify({"task_id": task_id, "message": f"Framework load started: {target}"})
+
+    @app.route("/api/frameworks/unload", methods=["POST"])
+    def api_framework_unload():
+        """Unload an active framework with optional pre-operation backup."""
+        payload = request.get_json() or {}
+        target = payload.get("target")
+        if not target:
+            return jsonify({"error": "Missing 'target' parameter."}), 400
+
+        backup_first = payload.get("backup_first", False)
+        backup_type = payload.get("backup_type", "snapshot")
+
+        def _job():
+            print(f"Unloading framework '{target}' (backup_first={backup_first})...")
+            res = manager.unload_framework(
+                identifier=target,
+                backup_first=backup_first,
+                backup_type=backup_type,
+            )
+            print(f"[SUCCESS] {res.get('message', 'Framework unloaded.')}")
+            return res
+
+        task_id = TASK_MANAGER.create_task(f"Unload Framework: {target}", _job)
+        return jsonify({"task_id": task_id, "message": f"Framework unload started: {target}"})
+
     @app.route("/api/catalog")
     def api_catalog():
         """Retrieve pre-configured application portfolio catalog."""

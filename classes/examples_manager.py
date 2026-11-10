@@ -37,6 +37,7 @@ from classes.organization.entity import EntityDict, EntityRepresentativeDict
 from classes.organization.perimeter import PerimeterDict
 from classes.integrations import answers_import
 from classes.integrations.backup import BackupManager
+from classes.integrations.framework_loader import FrameworkLoader
 
 LOGGER = logging.getLogger(__name__)
 
@@ -108,6 +109,7 @@ class ExamplesManager:
         self.framework_yaml = Path(FRAMEWORK_YAML_PATH)
         self.data: dict[str, Any] | None = None
         self.backup_manager = BackupManager()
+        self.framework_loader = FrameworkLoader(backup_manager=self.backup_manager, manager=self)
 
     @staticmethod
     def load_example_applications(test_data_dir: str | Path | None = None) -> list[dict[str, Any]]:
@@ -3716,6 +3718,129 @@ class ExamplesManager:
         return self.backup_manager.diff_framework_snapshots(
             snapshot_a=snapshot_a,
             snapshot_b_or_live=snapshot_b_or_live,
+        )
+
+    def load_framework(
+        self,
+        target: str | Path,
+        backup_first: bool = True,
+        backup_type: str = "snapshot",
+        force_reload: bool = False,
+    ) -> dict[str, Any]:
+        """Load a framework into CISO Assistant with automatic pre-operation backup of existing data.
+
+        Intelligently handles:
+        - Local YAML or XLSX files (e.g. 'YML/appsec.yml', custom frameworks).
+        - Built-in stored libraries from CISO Assistant's catalog (by ref_id, URN, name, or ID).
+        - Local catalog frameworks (e.g. 'appsec', 'appsec_manual').
+
+        Args:
+            target: Local file path, stored library identifier, or catalog name.
+            backup_first: Whether to automatically backup existing data before loading (default: True).
+            backup_type: Type of pre-load backup ('snapshot', 'dump', 'framework', or 'none').
+            force_reload: If True, forces reload if already loaded.
+
+        Returns:
+            Dictionary reporting operation status, backup metadata, and framework details.
+        """
+        result = self.framework_loader.load_framework(
+            target=target,
+            backup_first=backup_first,
+            backup_type=backup_type,
+            force_reload=force_reload,
+        )
+        self._init_data(force_reload=True)
+        return result
+
+    def unload_framework(
+        self,
+        identifier: str,
+        backup_first: bool = False,
+        backup_type: str = "snapshot",
+    ) -> dict[str, Any]:
+        """Unload an active framework from CISO Assistant with optional pre-operation backup.
+
+        Args:
+            identifier: Framework ref_id, name, URN, or ID.
+            backup_first: Whether to automatically backup existing data before unloading.
+            backup_type: Type of backup ('snapshot', 'dump', 'framework', or 'none').
+
+        Returns:
+            Dictionary reporting unload operation status and backup metadata.
+        """
+        result = self.framework_loader.unload_framework(
+            identifier=identifier,
+            backup_first=backup_first,
+            backup_type=backup_type,
+        )
+        self._init_data(force_reload=True)
+        return result
+
+    def list_stored_libraries(
+        self,
+        query: str | None = None,
+        loaded_only: bool = False,
+        unloaded_only: bool = False,
+    ) -> list[dict[str, Any]]:
+        """List stored libraries available in CISO Assistant's built-in catalog.
+
+        Args:
+            query: Optional search keyword to filter by name, ref_id, URN, or description.
+            loaded_only: If True, only returns libraries currently loaded into frameworks.
+            unloaded_only: If True, only returns libraries available to be loaded.
+
+        Returns:
+            List of stored library summary dictionaries.
+        """
+        return self.framework_loader.list_stored_libraries(
+            query=query,
+            loaded_only=loaded_only,
+            unloaded_only=unloaded_only,
+        )
+
+    def find_stored_library(self, identifier: str) -> dict[str, Any] | None:
+        """Find a stored library in CISO Assistant by ID, ref_id, URN, or name.
+
+        Args:
+            identifier: UUID, ref_id, URN, or framework name.
+
+        Returns:
+            Raw stored library dictionary, or None if not found.
+        """
+        return self.framework_loader.find_stored_library(identifier)
+
+    def get_framework_status(self, identifier: str) -> dict[str, Any]:
+        """Inspect the current installation status of a framework in CISO Assistant.
+
+        Args:
+            identifier: Framework ref_id, name, URN, or ID.
+
+        Returns:
+            Dictionary reporting whether the framework is stored, loaded, its IDs, and versions.
+        """
+        return self.framework_loader.get_framework_status(identifier)
+
+    def backup_and_load_framework(
+        self,
+        target: str | Path,
+        backup_type: str = "snapshot",
+        force_reload: bool = False,
+    ) -> dict[str, Any]:
+        """Convenience method: create an explicit backup of existing data and load a framework.
+
+        Args:
+            target: Local file path, stored library identifier, or catalog name.
+            backup_type: 'snapshot' (workspace JSON snapshot, default) or 'dump' (database dump).
+            force_reload: If True, forces reload if already loaded.
+
+        Returns:
+            Dictionary reporting operation status, backup metadata, and framework details.
+        """
+        return self.load_framework(
+            target=target,
+            backup_first=True,
+            backup_type=backup_type,
+            force_reload=force_reload,
         )
 
 

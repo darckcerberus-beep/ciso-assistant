@@ -1249,6 +1249,118 @@ def list_backups_ui(manager: ExamplesManager):
     print("=" * 98)
 
 
+def load_framework_ui(
+    manager: ExamplesManager,
+    target: str,
+    backup_type: str = "snapshot",
+    force_reload: bool = False,
+):
+    """Load a framework into CISO Assistant with automated pre-operation backup of existing data."""
+    print("\n" + "=" * 80)
+    print("           LOAD FRAMEWORK WITH AUTOMATED PRE-LOAD BACKUP")
+    print("=" * 80)
+    print(f" Target Framework: {target}")
+    print(f" Pre-Load Backup:  {backup_type.upper()}")
+    print(f" Force Reload:     {'YES' if force_reload else 'NO'}")
+    print("=" * 80)
+    try:
+        res = manager.load_framework(
+            target=target,
+            backup_first=(backup_type.lower() not in ("none", "no", "skip")),
+            backup_type=backup_type,
+            force_reload=force_reload,
+        )
+        if res.get("success"):
+            print(f"\n[SUCCESS] {res.get('message', 'Framework loaded successfully.')}")
+            print(f"  Framework Name: {res.get('framework_name')}")
+            if res.get("ref_id"):
+                print(f"  Reference ID:   {res.get('ref_id')}")
+            if res.get("version"):
+                print(f"  Version:        {res.get('version')}")
+            if res.get("action"):
+                print(f"  Action Taken:   {res.get('action')}")
+            b = res.get("backup", {})
+            if b.get("backup_created"):
+                print(f"\n---> Pre-Operation Backup Successfully Created:")
+                print(f"     File:     {b.get('backup_path')}")
+                print(f"     Type:     {b.get('backup_type')}")
+                print(f"     Size:     {b.get('size_formatted')}")
+                print(f"     SHA-256:  {b.get('checksum')}")
+        else:
+            print(f"\n[ERROR] Failed to load framework: {res.get('error', 'Unknown error')}")
+            b = res.get("backup", {})
+            if b.get("backup_created"):
+                print(f"  (Note: Pre-operation backup was saved at: {b.get('backup_path')})")
+    except Exception as e:
+        print(f"\n[ERROR] Framework loading failed: {e}")
+
+
+def unload_framework_ui(
+    manager: ExamplesManager,
+    target: str,
+    backup_type: str = "snapshot",
+):
+    """Unload an active framework from CISO Assistant with optional pre-operation backup."""
+    print("\n" + "=" * 80)
+    print("           UNLOAD FRAMEWORK FROM CISO ASSISTANT")
+    print("=" * 80)
+    print(f" Target Framework: {target}")
+    print(f" Pre-Unload Backup:{backup_type.upper()}")
+    print("=" * 80)
+    try:
+        res = manager.unload_framework(
+            identifier=target,
+            backup_first=(backup_type.lower() not in ("none", "no", "skip")),
+            backup_type=backup_type,
+        )
+        if res.get("success"):
+            print(f"\n[SUCCESS] {res.get('message', 'Framework unloaded successfully.')}")
+            b = res.get("backup", {})
+            if b.get("backup_created"):
+                print(f"---> Pre-Unload Backup Saved: {b.get('backup_path')} ({b.get('size_formatted')})")
+        else:
+            print(f"\n[ERROR] Failed to unload framework: {res.get('error', 'Unknown error')}")
+    except Exception as e:
+        print(f"\n[ERROR] Framework unload failed: {e}")
+
+
+def list_stored_libraries_ui(
+    manager: ExamplesManager,
+    query: str | None = None,
+):
+    """Display table of stored libraries available in CISO Assistant's built-in catalog."""
+    libs = manager.list_stored_libraries(query=query)
+    print("\n" + "=" * 110)
+    title = f"STORED LIBRARIES IN CISO ASSISTANT (Filter: '{query}')" if query else "STORED LIBRARIES IN CISO ASSISTANT CATALOG"
+    print(f"                       {title}")
+    print("=" * 110)
+    if not libs:
+        print("No matching stored libraries found.")
+        print("=" * 110)
+        return
+
+    sep = "-" * 110
+    print(sep)
+    print(f"{'#':<4} | {'Reference ID':<25} | {'Framework Name':<45} | {'Loaded':<8} | {'Ver':<4}")
+    print(sep)
+    for idx, lib in enumerate(libs[:50], start=1):
+        ref = lib.get("ref_id") or "-"
+        if len(ref) > 25:
+            ref = ref[:22] + "..."
+        name = lib.get("name") or "-"
+        if len(name) > 45:
+            name = name[:42] + "..."
+        loaded = "YES" if lib.get("is_loaded") else "NO"
+        ver = str(lib.get("version") or "-")
+        print(f"{idx:<4} | {ref:<25} | {name:<45} | {loaded:<8} | {ver:<4}")
+    print(sep)
+    if len(libs) > 50:
+        print(f"Showing first 50 of {len(libs)} libraries. Use --query to search specific keywords.")
+    else:
+        print(f"Total: {len(libs)} library(ies) listed.")
+    print("=" * 110)
+
+
 def create_domain_ui(
     manager: ExamplesManager,
     name: str | None = None,
@@ -1598,10 +1710,11 @@ def interactive_menu(manager: ExamplesManager):
         print(" 12) Provision / Check NIS2 - ReCyF Dedicated Domain & Assets")
         print(" 13) Select Implementation Groups for an Audit (Add / Modify Groups)")
         print(" 14) Assign Triggered Implementation Groups (Multi-Step Audit Workflow)")
+        print(" 15) Manage Frameworks (Load New Frameworks & Backup Existing Data)")
         print(" 0) Exit")
         print("=" * 80)
 
-        choice = input("Enter your choice [0-14]: ").strip()
+        choice = input("Enter your choice [0-15]: ").strip()
 
         if choice == "1":
             show_status(manager, wait_seconds=2.0)
@@ -1780,11 +1893,61 @@ def interactive_menu(manager: ExamplesManager):
             select_audit_implementation_groups_ui(manager)
         elif choice == "14":
             assign_audit_implementation_groups_ui(manager)
+        elif choice == "15":
+            print("\n" + "=" * 80)
+            print("       MANAGE FRAMEWORKS (LOAD NEW FRAMEWORKS & BACKUP DATA)")
+            print("=" * 80)
+            print(" 1) Load Framework from Local File (YAML / XLSX) with Automatic Backup")
+            print(" 2) Load Framework from CISO Assistant Catalog (375+ available) with Automatic Backup")
+            print(" 3) Unload an Installed Framework (with Optional Backup)")
+            print(" 4) List Stored Libraries in CISO Assistant Catalog")
+            print(" 5) Create Standalone Backup (Snapshot / Dump / Framework Answers)")
+            f_choice = input("Enter choice [1-5, default: 1] (or 'c' to cancel): ").strip()
+            if f_choice.lower() in ("c", "cancel"):
+                pass
+            elif f_choice == "2":
+                q = input("Enter search keyword for stored library (or press Enter for all): ").strip() or None
+                libs = manager.list_stored_libraries(query=q)
+                if not libs:
+                    print("No matching stored libraries found.")
+                else:
+                    print("\nSelect library to load:")
+                    for idx, lib in enumerate(libs[:25], start=1):
+                        loaded_tag = "[ALREADY LOADED]" if lib.get("is_loaded") else "[AVAILABLE]"
+                        print(f" {idx}) {lib['name']} ({lib.get('ref_id')}) {loaded_tag}")
+                    sel_idx = input(f"Enter choice [1-{min(len(libs), 25)}] (or 'c' to cancel): ").strip()
+                    if sel_idx.isdigit() and 1 <= int(sel_idx) <= min(len(libs), 25):
+                        chosen_lib = libs[int(sel_idx) - 1]
+                        b_type = input("Backup type before load [snapshot/dump/none, default: snapshot]: ").strip().lower() or "snapshot"
+                        load_framework_ui(manager, target=chosen_lib["id"], backup_type=b_type)
+            elif f_choice == "3":
+                installed = manager.get_installed_frameworks()
+                if not installed:
+                    print("No installed frameworks found to unload.")
+                else:
+                    print("\nSelect installed framework to unload:")
+                    for idx, fw in enumerate(installed, start=1):
+                        print(f" {idx}) {fw['name']} ({fw.get('ref_id')})")
+                    u_idx = input(f"Enter choice [1-{len(installed)}] (or 'c' to cancel): ").strip()
+                    if u_idx.isdigit() and 1 <= int(u_idx) <= len(installed):
+                        chosen_fw = installed[int(u_idx) - 1]
+                        b_type = input("Backup type before unload [snapshot/dump/none, default: snapshot]: ").strip().lower() or "snapshot"
+                        unload_framework_ui(manager, target=chosen_fw.get("ref_id") or chosen_fw["name"], backup_type=b_type)
+            elif f_choice == "4":
+                q = input("Filter query (or press Enter to list): ").strip() or None
+                list_stored_libraries_ui(manager, query=q)
+            elif f_choice == "5":
+                backup_ui(manager)
+            else:
+                f_path = input("Enter path to framework file (.yaml, .yml, .xlsx) [default: YML/appsec.yml]: ").strip() or "YML/appsec.yml"
+                b_type = input("Backup type before load [snapshot/dump/none, default: snapshot]: ").strip().lower() or "snapshot"
+                force = input("Force reload if already loaded? [y/N]: ").strip().lower() == "y"
+                load_framework_ui(manager, target=f_path, backup_type=b_type, force_reload=force)
         elif choice in ("0", "q", "exit"):
             print("\nGoodbye!")
             break
         else:
-            print("\n[!] Invalid choice. Please select an option from 0 to 14.")
+            print("\n[!] Invalid choice. Please select an option from 0 to 15.")
 
         input("\nPress [Enter] to return to the menu...")
 
@@ -1921,6 +2084,38 @@ def main():
         help="List all discovered backup files and snapshots.",
     )
     parser.add_argument(
+        "--load-framework",
+        metavar="TARGET",
+        help="Load a framework into CISO Assistant from local YAML/XLSX file or from built-in catalog (with automatic pre-operation backup of existing data).",
+    )
+    parser.add_argument(
+        "--backup-before-load",
+        choices=["snapshot", "dump", "framework", "none"],
+        default="snapshot",
+        metavar="TYPE",
+        help="Type of backup to create before loading a framework ('snapshot' [default], 'dump', 'framework', or 'none').",
+    )
+    parser.add_argument(
+        "--unload-framework",
+        metavar="TARGET",
+        help="Unload an active framework from CISO Assistant.",
+    )
+    parser.add_argument(
+        "--force-reload",
+        action="store_true",
+        help="Force reloading/updating a framework even if already loaded.",
+    )
+    parser.add_argument(
+        "--list-stored-libraries",
+        action="store_true",
+        help="List available stored libraries in CISO Assistant's built-in catalog (375+ frameworks).",
+    )
+    parser.add_argument(
+        "--query",
+        metavar="TEXT",
+        help="Filter stored libraries by search keyword.",
+    )
+    parser.add_argument(
         "--create-domain",
         nargs="?",
         const="",
@@ -2047,6 +2242,27 @@ def main():
 
     if args.list_backups:
         list_backups_ui(manager)
+        return
+
+    if args.list_stored_libraries:
+        list_stored_libraries_ui(manager, query=args.query)
+        return
+
+    if args.load_framework:
+        load_framework_ui(
+            manager,
+            target=args.load_framework,
+            backup_type=args.backup_before_load,
+            force_reload=args.force_reload,
+        )
+        return
+
+    if args.unload_framework:
+        unload_framework_ui(
+            manager,
+            target=args.unload_framework,
+            backup_type=args.backup_before_load,
+        )
         return
 
     if args.diff_snapshots:

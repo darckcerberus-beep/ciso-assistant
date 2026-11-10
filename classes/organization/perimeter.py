@@ -16,6 +16,10 @@ class Perimeter:
     def __init__(self, json_perimeter):
         self.json_object = json_perimeter
 
+    def get_json(self):
+        """Return the raw JSON dictionary representation."""
+        return self.json_object
+
     def get_name(self):
         return self.json_object.get('name', '')
 

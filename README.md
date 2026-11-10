@@ -75,13 +75,32 @@ python3 main.py --backup dump
 python3 main.py --list-backups
 ```
 
+### 7. Framework Loading & Catalog Management (with Automated Pre-Operation Backup)
+```bash
+# List built-in stored library catalog (375+ frameworks available in CISO Assistant)
+python3 main.py --list-stored-libraries
+python3 main.py --list-stored-libraries --query "27001:2022"
+
+# Load a framework from built-in library (with automated pre-load workspace backup)
+python3 main.py --load-framework "ISO/IEC 27001:2022" --backup-before-load snapshot
+
+# Load a custom local YAML or Excel framework definition
+python3 main.py --load-framework YML/appsec.yml --backup-before-load snapshot
+
+# Force reload an updated framework
+python3 main.py --load-framework "Controlli-Minimi-AGID" --force-reload
+
+# Unload an active framework safely (with automated pre-operation backup)
+python3 main.py --unload-framework "Controlli-Minimi-AGID" --backup-before-load snapshot
+```
+
 ---
 
 ## 🧪 Testing & Verification
 
-Run the comprehensive automated test suite (158 unit & integration tests):
+Run the comprehensive automated test suite:
 ```bash
 python3 -m unittest discover tests
 ```
-*All 158 tests pass across API, web, orchestration, backup, and risk simulation modules.*
+*Comprehensive test coverage across API, web, orchestration, backup, framework loading, and risk simulation modules.*
 

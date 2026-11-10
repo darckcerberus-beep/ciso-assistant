@@ -3,8 +3,8 @@
 
 > **Target Audience:** Leadership & Management (CISO, Head of Information Security, VP of Engineering, Audit Directors)  
 > **Author:** Romain (`darckcerberus`)  
-> **Platform Version:** 2.1 (September 2026)  
-> **Test Suite Status:** 162 Tests Passing (100% Green across 13 test suites)
+> **Platform Version:** 2.2 (November 2026)  
+> **Test Suite Status:** 316 Tests Passing (100% Green across 14 test suites)
 
 ---
 
@@ -168,27 +168,35 @@ The platform includes 12 ready-to-deploy application and vendor profiles demonst
 - **Dynamic Runtime Level Adjustment:** Configurable via CLI flag `--log-level` or programmatically via `utils.set_log_level()`.
 - **Comprehensive Logging Documentation:** Full implementation details in `LOGGING_GUIDE.md`.
 
+### 11. Multi-Source Framework Loading & Automated Pre-Operation Backup
+- **Automated Pre-Operation Backup Safeguards:** Automatically captures a full JSON workspace snapshot or database dump before any framework modification (loading, uploading, force-reloading, or unloading), preventing data loss and configuration corruption.
+- **Built-in Stored Library Catalog Management:** Direct integration with CISO Assistant's stored library catalog (375+ pre-packaged frameworks including ISO 27001:2022, NIS-1 FR, Controlli-Minimi-AGID) via `/api/stored-libraries/` and `/api/stored-libraries/{id}/import/`.
+- **Custom Local Framework Ingestion:** Supports single and multi-file YAML definitions with `!include` tags, split modular architectures (e.g. `appsec_objects.yml`), Excel `.xlsx` matrices, and cross-framework dependency resolution.
+- **Safe Lifecycle & Hot-Reloading:** Enables force-reloading for framework updates and non-destructive unloading (`/api/stored-libraries/{id}/unload/`) with automated status tracking.
+- **Unified Multi-Interface Access:** Available via Python API (`FrameworkLoader`, `ExamplesManager`), Interactive Menu (Option 15), CLI flags (`--load-framework`, `--unload-framework`, `--list-stored-libraries`), and Web UI REST endpoints (`/api/frameworks/stored`, `/api/frameworks/load`, `/api/frameworks/unload`).
+
 ---
 
 ## Quality Assurance & Verification
 
 The platform has been built with strict test-driven discipline:
-- **162 Automated Tests Passing:** 100% green execution across 13 dedicated test suites.
-- **High-Speed Execution:** Full test suite runs in **~35 seconds** (`python3 -m unittest discover tests`).
+- **316 Automated Tests Passing:** 100% green execution across 14 dedicated test suites.
+- **High-Speed Execution:** Full test suite runs in **~70 seconds** (`python3 -m unittest discover tests`).
 - **Test Suite Breakdown:**
   1. `test_answers_import.py`: YAML answer parsing, type coercion, and assessment updates.
   2. `test_application_scenarios.py`: End-to-end scenario simulations and mathematical scoring.
   3. `test_backup.py`: Database dumps, JSON workspace snapshots, SHA-256 hashing, and restore operations.
   4. `test_examples_manager.py`: Application creation, linking, deletion ordering, and status detection.
   5. `test_findings.py`: Audit finding provisioning, severity calculation, and vulnerability linkage.
-  6. `test_main_status.py`: ASCII deployment status table rendering, lifecycle evaluation, and column formatting.
-  7. `test_risk_calculations.py`: Inverse likelihood and classification impact mathematics.
-  8. `test_user_protection.py`: Admin account protection and deletion refusal safeguards.
-  9. `test_utils.py`: Centralized logging, level modification, and log filtering.
-  10. `test_vulnerability_provisioning.py`: Asset-scoped vulnerability and threat provisioning.
-  11. `test_web_ui.py`: Flask routes, asynchronous task runner, SSE log streaming, and REST API dispatch.
-  12. `test_yaml_integrity.py`: Framework schema validation, foreign keys, scoring rules, and splash screens.
-  13. `test_tasks.py`: Recurrent task template specifications and scheduling.
+  6. `test_framework_loader.py`: Catalog searching, local YAML/Excel uploads, pre-load backups, unloading, and REST API dispatch.
+  7. `test_main_status.py`: ASCII deployment status table rendering, lifecycle evaluation, and column formatting.
+  8. `test_risk_calculations.py`: Inverse likelihood and classification impact mathematics.
+  9. `test_user_protection.py`: Admin account protection and deletion refusal safeguards.
+  10. `test_utils.py`: Centralized logging, level modification, and log filtering.
+  11. `test_vulnerability_provisioning.py`: Asset-scoped vulnerability and threat provisioning.
+  12. `test_web_ui.py`: Flask routes, asynchronous task runner, SSE log streaming, and REST API dispatch.
+  13. `test_yaml_integrity.py`: Framework schema validation, foreign keys, scoring rules, and splash screens.
+  14. `test_tasks.py`: Recurrent task template specifications and scheduling.
 - **Offline Simulation Mode:** Includes `ApplicationRiskSimulator` allowing instant local evaluation of risk scenarios and priority mappings without live network access.
 - **Robust API Resilience:** Session-based HTTP client with exponential backoff retries, JSON pagination caching, non-destructive PATCH operations, and multipart file upload/download streaming.
 
@@ -235,7 +243,7 @@ python3 main.py --list-backups
 ```bash
 python3 -m unittest discover tests
 ```
-* **What to highlight:** Run all 162 tests in front of your leadership; show 100% green passing across all 13 modules.
+* **What to highlight:** Run all 316 tests in front of your leadership; show 100% green passing across all 14 modules.
 
 ---
 
@@ -246,7 +254,7 @@ Simply run:
 ```bash
 python3 main.py
 ```
-This launches the interactive menu with options 0 through 10:
+This launches the interactive menu with options 0 through 15:
 ```
 ================================================================================
            CISO ASSISTANT - EXAMPLE APPLICATIONS MANAGER
@@ -262,7 +270,12 @@ This launches the interactive menu with options 0 through 10:
  7) Remove a Specific Application
  8) Run Offline Simulation (Local Preview without API)
  9) Backup & Restore Management (Dumps, Snapshots, Restores, Listing)
- 10) Launch Web UI & REST API Dashboard (http://127.0.0.1:5000)
+ 10) Create a New Domain (Organizational Folder)
+ 11) Launch Web UI & REST API Dashboard (http://127.0.0.1:5000)
+ 12) Provision / Check NIS2 - ReCyF Dedicated Domain & Assets
+ 13) Select Implementation Groups for an Audit (Add / Modify Groups)
+ 14) Assign Triggered Implementation Groups (Multi-Step Audit Workflow)
+ 15) Manage Frameworks (Load New Frameworks & Backup Existing Data)
  0) Exit
 ================================================================================
 ```
@@ -282,6 +295,11 @@ This launches the interactive menu with options 0 through 10:
 | `python3 main.py --backup [snapshot\|dump]` | Create a portable JSON snapshot or server database dump. |
 | `python3 main.py --restore <BackupPath>` | Restore workspace state from a backup file. |
 | `python3 main.py --list-backups` | List all discovered backups and SHA-256 checksums. |
+| `python3 main.py --list-stored-libraries [--query Q]` | List pre-packaged library frameworks available in CISO Assistant. |
+| `python3 main.py --load-framework <Name\|File>` | Load a framework from stored catalog or local YAML/Excel file. |
+| `python3 main.py --backup-before-load [snapshot\|dump]` | Perform pre-operation backup before loading or unloading a framework. |
+| `python3 main.py --force-reload` | Force reload/update an existing loaded framework. |
+| `python3 main.py --unload-framework <Name\|URN>` | Safely unload an active framework from CISO Assistant. |
 | `python3 main.py --link-controls all` | Re-sync control priorities and linkages to risk scenarios. |
 | `python3 main.py --remove all -y` | Cleanly tear down all example resources with auto-confirmation. |
 | `python3 main.py --offline` | Run offline risk simulator for pre-flight calculation checks. |
@@ -330,14 +348,16 @@ ciso-assistant/
 │   │   └── domain.py                   # Business domains & criticality mapping
 │   └── integrations/                   # Integration, serialization, and import adapters
 │       ├── backup.py                   # Dual-tier backup (dumps & JSON snapshots)
+│       ├── framework_loader.py         # Multi-source framework loader & catalog manager
 │       ├── answers_import.py           # YAML answer parsing & normalization logic
 │       └── entity_model_import.py      # Department & supplier model importer
-├── tests/                              # 162 Unit & Integration Tests (100% green)
+├── tests/                              # 316 Unit & Integration Tests (100% green)
 │   ├── test_answers_import.py          # YAML answer importer tests
 │   ├── test_application_scenarios.py   # End-to-end scenario simulations & risk math
 │   ├── test_backup.py                  # Backup creation, hashing, & restore tests
 │   ├── test_examples_manager.py        # Lifecycle management & reverse deletion ordering tests
 │   ├── test_findings.py                # Finding & vulnerability provisioning tests
+│   ├── test_framework_loader.py        # Catalog search, local upload, pre-load backup & unload tests
 │   ├── test_main_status.py             # Status ASCII table rendering & lifecycle tests
 │   ├── test_risk_calculations.py       # Inverse likelihood & impact math tests
 │   ├── test_tasks.py                   # Recurrent task template tests

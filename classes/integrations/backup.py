@@ -141,15 +141,34 @@ class BackupManager:
 
         utils.log("Exporting workspace snapshot resources...", level=logging.INFO)
 
-        # Query live API endpoints or pull from provided data objects
-        perimeters = [p.get_json() if hasattr(p, "get_json") else p for p in (data["perimeter_dict"].get_perimeters().values() if data and "perimeter_dict" in data else utils.get_all_results("/api/perimeters/"))]
-        assets = [a.get_json() if hasattr(a, "get_json") else a for a in (data["asset_dict"].get_assets().values() if data and "asset_dict" in data else utils.get_all_results("/api/assets/"))]
-        compliance_assessments = [ca.get_json() if hasattr(ca, "get_json") else ca for ca in (data["compliance_assessment_dict"].get_compliance_assessments().values() if data and "compliance_assessment_dict" in data else utils.get_all_results("/api/compliance-assessments/"))]
-        applied_controls = [c.get_json() if hasattr(c, "get_json") else c for c in (data["applied_control_dict"].get_controls().values() if data and "applied_control_dict" in data else utils.get_all_results("/api/applied-controls/"))]
-        risk_assessments = [ra.get_json() if hasattr(ra, "get_json") else ra for ra in (data["risk_assessment_dict"].get_risk_assessments().values() if data and "risk_assessment_dict" in data else utils.get_all_results("/api/risk-assessments/"))]
-        risk_scenarios = [rs.get_json() if hasattr(rs, "get_json") else rs for rs in (data["risk_scenario_dict"].get_risk_scenarios().values() if data and "risk_scenario_dict" in data else utils.get_all_results("/api/risk-scenarios/"))]
-        findings_assessments = [fa.get_json() if hasattr(fa, "get_json") else fa for fa in (data["findings_assessment_dict"].get_findings_assessments().values() if data and "findings_assessment_dict" in data else utils.get_all_results("/api/findings-assessments/"))]
-        findings = [f.get_json() if hasattr(f, "get_json") else f for f in (data["finding_dict"].get_findings().values() if data and "finding_dict" in data else utils.get_all_results("/api/findings/"))]
+        # Helper to extract raw JSON items from data dicts (whether list or dict) or fallback to API
+        def _serialize_item(x: Any) -> Any:
+            if hasattr(x, "get_json"):
+                return x.get_json()
+            if hasattr(x, "json_object"):
+                return x.json_object
+            return x
+
+        def _get_raw_items(d_key: str, method_name: str, api_endpoint: str) -> list[dict[str, Any]]:
+            if data and d_key in data:
+                d_obj = data[d_key]
+                if hasattr(d_obj, method_name):
+                    try:
+                        coll = getattr(d_obj, method_name)()
+                        items = coll.values() if hasattr(coll, "values") else coll
+                        return [_serialize_item(x) for x in items]
+                    except Exception as err:
+                        utils.log(f"Error reading from {d_key}.{method_name}(): {err}, falling back to {api_endpoint}", level=logging.DEBUG)
+            return [_serialize_item(x) for x in utils.get_all_results(api_endpoint)]
+
+        perimeters = _get_raw_items("perimeter_dict", "get_perimeters", "/api/perimeters/")
+        assets = _get_raw_items("asset_dict", "get_assets", "/api/assets/")
+        compliance_assessments = _get_raw_items("compliance_assessment_dict", "get_compliance_assessments", "/api/compliance-assessments/")
+        applied_controls = _get_raw_items("applied_control_dict", "get_controls", "/api/applied-controls/")
+        risk_assessments = _get_raw_items("risk_assessment_dict", "get_risk_assessments", "/api/risk-assessments/")
+        risk_scenarios = _get_raw_items("risk_scenario_dict", "get_risk_scenarios", "/api/risk-scenarios/")
+        findings_assessments = _get_raw_items("findings_assessment_dict", "get_findings_assessments", "/api/findings-assessments/")
+        findings = _get_raw_items("finding_dict", "get_findings", "/api/findings/")
 
         counts = {
             "perimeters": len(perimeters),

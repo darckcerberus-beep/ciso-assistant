@@ -25,7 +25,11 @@ class LibraryDict:
     def reload(self):
         """Reload all libraries from the API."""
         self.libraries = {}
-        for library in utils.get_all_results("/api/libraries/", force_reload=True):
+        # CISO Assistant v4+ uses /api/stored-libraries/; fallback to /api/libraries/
+        results = utils.get_all_results("/api/stored-libraries/", force_reload=True)
+        if not results:
+            results = utils.get_all_results("/api/libraries/", force_reload=True)
+        for library in results:
             utils.log(
                 f"Loading library: {library.get('name', '')} "
                 f"(ID: {library.get('id', '')})"
