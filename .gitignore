@@ -16,6 +16,14 @@ library/domains.json
 library/users.json
 library/tasks.json
 
+# Backups and snapshots
+backups/*.dump
+backups/*.sql
+backups/*.json
+backups/framework_snapshots/*.json
+!backups/.gitkeep
+!backups/framework_snapshots/.gitkeep
+
 # Temporary & system files
 *.log
 .DS_Store

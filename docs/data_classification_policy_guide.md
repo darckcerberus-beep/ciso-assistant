@@ -141,18 +141,58 @@ flowchart TD
 
 ## 6. Implementation in CISO Assistant Assessments
 
-### 6.1 Audit Requirement: `data_classification`
-When conducting an Application Security assessment in CISO Assistant:
-1. Open the **Application Information & Governance** (`info`) chapter.
-2. Navigate to **Data Classification** (`data_classification`).
-3. Select the maximum classification tier handled by the application:
-   - `Public` (Impact 0)
-   - `Internal` (Impact 1)
-   - `Confidential` (Impact 2) — triggers confidential baseline safeguards.
-   - `Secret` (Impact 3) — triggers secret baseline safeguards and stringent segregation.
+### 6.1 Multi-Question Narrowing Methodology
+Instead of directly prompting users with an abstract single question (*"What is the maximum classification level?"*), which often leads to inaccurate self-reporting or subjective bias, the assessment breaks data classification down into **four objective, multi-dimensional questions** in the **Application Information & Governance** (`info`) chapter under requirement node **Data Classification** (`data_classification`):
 
-### 6.2 Impact on Risk Calculations
-CISO Assistant maps this selection directly to the **Impact** score of core threat scenarios:
+1. **`q1`: Primary Retail & Operational Data Category**:
+   - `c1` — Public storefront & published brand content (Published descriptions, retail prices, delivery/return policies).
+   - `c2` — Internal operations, logistics & non-sensitive enterprise workflows (Warehouse SOPs, internal training, aggregated volume dashboards, org charts).
+   - `c3` — Confidential commercial, supplier & customer operational records (Customer PII, order/refund histories, support tickets, supplier costs/margins, unreleased campaigns).
+   - `c4` — Critical financial, cryptographic secrets, cardholder data & anti-fraud rules (Payment card data, refund bank accounts, admin/API keys, anti-fraud rules/thresholds).
+2. **`q2`: Adverse Impact Severity of Unauthorized Disclosure**:
+   - `c1` — Negligible / None (Information intended for public consumption; zero business or regulatory harm).
+   - `c2` — Minor operational friction (Internal workforce inconvenience, minor productivity delay, no external breach).
+   - `c3` — Moderate to severe harm (Customer trust damage, competitive disadvantage, financial penalties, GDPR notifications).
+   - `c4` — Catastrophic or existential impact (Systemic financial fraud, payment gateway de-certification, major regulatory sanctions).
+3. **`q3`: GDPR Personal Data Category**:
+   - `c1` — No personal data processed.
+   - `c2` — Contact data of employees (Workforce directories, internal emails).
+   - `c3` — Contact and order details about customers (E-commerce buyers, delivery addresses, customer order histories).
+   - `c4` — HR and financial details about employees and customer payment data (Payroll, banking details, cardholder data).
+4. **`q4`: GDPR Data Subject Volume / Scale** (Conditional on `q3` being personal data):
+   - `c1` — Low volume (< 1,000 individuals).
+   - `c2` — Medium volume (1,000 to 100,000 individuals).
+   - `c3` — High volume / Large-scale processing (> 100,000 individuals; triggers 1.5x impact multiplier).
+
+### 6.2 Matrix & Cumulative Derivation Formula
+The compliance engine (`classes/audits/compliance.py`) derives the final confidentiality criticality level and risk impact via a deterministic 2D matrix combining data category and adverse impact, reconciled with GDPR volume scaling:
+
+```mermaid
+flowchart TD
+    Q1["Q1: Data Category (D: 0-3)"] --> M["2D Evaluation Matrix<br/>Base = Matrix[D][I]"]
+    Q2["Q2: Adverse Impact (I: 0-3)"] --> M
+    M --> S1["Base Business Score (0-3)"]
+    Q3["Q3: GDPR Personal Data (0-3)"] --> G["GDPR Volume Scaling<br/>round((Q3 + 1) * Multiplier) - 1"]
+    Q4["Q4: GDPR Subject Volume (1.0x / 1.5x)"] --> G
+    G --> S2["GDPR Confidentiality Score (0-3)"]
+    S1 --> FIN{"max(Business Score, GDPR Score)"}
+    S2 --> FIN
+    FIN --> RES["Final Derived Confidentiality Level<br/>(0: Public, 1: Internal, 2: Confidential, 3: Secret)"]
+```
+
+#### Derivation Matrix ($D \times I$):
+| Data Category ($D$) \ Adverse Impact ($I$) | $I=0$ (Negligible) | $I=1$ (Minor) | $I=2$ (Moderate/Severe) | $I=3$ (Catastrophic) |
+| :--- | :---: | :---: | :---: | :---: |
+| **$D=0$ (Public)** | 0 (Public) | 0 (Public) | 1 (Internal) | 2 (Confidential) |
+| **$D=1$ (Internal)** | 0 (Public) | 1 (Internal) | 2 (Confidential) | 3 (Secret) |
+| **$D=2$ (Confidential)** | 1 (Internal) | 2 (Confidential) | 2 (Confidential) | 3 (Secret) |
+| **$D=3$ (Critical / Secret)** | 2 (Confidential) | 2 (Confidential) | 3 (Secret) | 3 (Secret) |
+
+- **GDPR Harmonization**: The higher of the derived business classification score and the GDPR data score governs:
+  $$\text{Final Confidentiality} = \max(\text{Derived Business Conf}, \text{GDPR Conf})$$
+
+### 6.3 Impact on Risk Calculations
+CISO Assistant maps this derived classification level (0-3) to the **Impact** score (1-4) of core threat scenarios:
 - `unencrypted_data_in_transit` (Data exfiltration & unauthorized access)
 - `unencrypted_data_at_rest` (Data store leakage)
 - `sensitive_data_in_non_prod` (Exposure of staging/test environments)

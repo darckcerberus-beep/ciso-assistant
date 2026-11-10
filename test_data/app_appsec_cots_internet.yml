@@ -66,11 +66,15 @@ answers:
   result: compliant
   observation: Documented in corporate service registry and CMDB.
 - requirement: data_classification
-  question: What is the maximum classification level handled? (Public, Internal, Confidential,
-    or Secret according to organizational data classification policy)
-  answer: Confidential
+  question: What primary category of retail, commercial, or operational data is handled by the application?
+  answer: Confidential commercial, merchant, or customer data (e.g. supplier purchase costs and margins, unreleased pricing strategies, detailed inventory forecasts, customer support conversations, order & return records)
   result: compliant
   observation: Confidential customer support tickets, purchase records, and RMA requests.
+- requirement: data_classification
+  question: What would be the estimated business, legal, or operational impact if the application's data were exposed, breached, or leaked?
+  answer: Moderate to severe harm (Loss of competitive advantage, supplier disputes, customer churn, breach of commercial contracts, or standard regulatory scrutiny)
+  result: compliant
+  observation: Exposure causes customer churn and commercial reputation damage.
 - requirement: data_classification
   question: What category of personal data is processed by the application under GDPR?
   answer: Contact and order details about customers

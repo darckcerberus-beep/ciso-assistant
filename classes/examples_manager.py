@@ -3644,3 +3644,78 @@ class ExamplesManager:
         """
         return self.backup_manager.inspect_backup(backup_path)
 
+    def create_framework_snapshot(
+        self,
+        framework_id_or_ref: str | None = None,
+        compliance_assessment_ids: list[str] | None = None,
+        output_dir: str | Path | None = None,
+        filename: str | None = None,
+        notes: str | None = None,
+    ) -> Path:
+        """Create a complete framework version and questionnaire answers snapshot.
+
+        Args:
+            framework_id_or_ref: Framework ID, ref_id, or name (defaults to active framework, e.g. 'appsec').
+            compliance_assessment_ids: Optional list of specific compliance assessment IDs.
+            output_dir: Target directory (default: 'backups/framework_snapshots').
+            filename: Custom filename.
+            notes: Optional human-readable notes/description.
+
+        Returns:
+            Path to created snapshot JSON file.
+        """
+        return self.backup_manager.create_framework_snapshot(
+            framework_id_or_ref=framework_id_or_ref,
+            compliance_assessment_ids=compliance_assessment_ids,
+            output_dir=output_dir,
+            filename=filename,
+            notes=notes,
+            manager=self,
+        )
+
+    def restore_framework_snapshot(
+        self,
+        snapshot_path: str | Path,
+        compliance_assessment_id: str | None = None,
+        dry_run: bool = False,
+        remap_rules: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Restore or migrate questionnaire answers from a framework snapshot file.
+
+        Args:
+            snapshot_path: Path to snapshot JSON file.
+            compliance_assessment_id: Optional ID of a specific target compliance assessment.
+            dry_run: When True, simulates migration without making API calls.
+            remap_rules: Optional custom mapping rules for explicitly remapping changed questions/choices.
+
+        Returns:
+            Summary of restored answers and remappings.
+        """
+        return self.backup_manager.restore_framework_snapshot(
+            snapshot_path=snapshot_path,
+            compliance_assessment_id=compliance_assessment_id,
+            dry_run=dry_run,
+            remap_rules=remap_rules,
+            manager=self,
+        )
+
+    def diff_framework_snapshots(
+        self,
+        snapshot_a: str | Path,
+        snapshot_b_or_live: str | Path | None = None,
+    ) -> dict[str, Any]:
+        """Compare two framework snapshots or compare a snapshot against live state.
+
+        Args:
+            snapshot_a: Path to base snapshot JSON file.
+            snapshot_b_or_live: Path to comparison snapshot file, or None/'live' for live state.
+
+        Returns:
+            Structured comparison report.
+        """
+        return self.backup_manager.diff_framework_snapshots(
+            snapshot_a=snapshot_a,
+            snapshot_b_or_live=snapshot_b_or_live,
+        )
+
+

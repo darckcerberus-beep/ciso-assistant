@@ -29,8 +29,8 @@ description: >
   Supports both internally managed applications and SaaS solutions whose security controls
   are defined with a contract and certified via third-party audit reports (SOC 2, ISO 27001).
 copyright: DCME Corp
-version: 35
-publication_date: 2026-11-09
+version: 36
+publication_date: 2026-11-10
 provider: DCME Corp
 packager: DCME Corp
 common_objects_file: "YML/appsec_objects.yml"
@@ -262,15 +262,15 @@ objects:
         parent_urn: urn:intuitem:risk:req_node:appsec:info
         ref_id: data_classification
         name: Data classification
-        description: "Classify data handled by the application according to organizational policy, including GDPR personal data category and processing volume."
+        description: "Classify data handled by the application according to organizational policy, evaluating online retail data categories, potential disclosure harm, and GDPR profiling."
         annotation: |
           ### Enterprise Data Classification & Governance Guidance
 
           > **Governance Principles**:
           > - **Data Ownership**: Data owners must confirm the appropriate level and review it as operational risks change.
           > - **Public Release**: Requires explicit formal approval prior to publication.
-          > - **Dataset Aggregation**: Combining lower-tier datasets (e.g. customer identities + detailed purchase histories) may escalate the overall classification.
           > - **GDPR Profiling**: Categorizing personal data types (standard vs. Art. 9/10 special categories) and processing volume determines statutory data protection mandates (e.g. mandatory DPIA, DPO appointment, enhanced transfer safeguards).
+          > - **Multi-Dimensional Matrix Refinement**: Rather than asking respondents to self-assign a classification tier directly, classification is systematically derived from the primary retail data category handled and the adverse impact severity of unauthorized disclosure, evaluated alongside GDPR personal data profiling.
 
           #### Classification Reference Matrix
 
@@ -297,56 +297,72 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec:data_classification:q1:
             type: unique_choice
-            text: "What is the maximum classification level handled? (Public, Internal, Confidential, or Secret according to organizational data classification policy)"
+            text: "What primary category of retail, commercial, or operational data is handled by the application?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:data_classification:q1:c1
-                value: "Public"                
+                value: "Public storefront & marketing data (e.g. published product catalogs, descriptions, size guides, active retail prices, delivery and returns policies)"
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec:data_classification:q1:c2
-                value: "Internal"            
+                value: "Internal retail operations & logistics records (e.g. routine warehouse SOPs, staff training materials, aggregated order-volume dashboards, non-sensitive sales metrics)"
                 color: "#fd7e14"
               - urn: urn:intuitem:risk:req_node:appsec:data_classification:q1:c3
-                value: "Confidential"
+                value: "Confidential commercial, merchant, or customer data (e.g. supplier purchase costs and margins, unreleased pricing strategies, detailed inventory forecasts, customer support conversations, order & return records)"
                 color: "#fd7e14"
               - urn: urn:intuitem:risk:req_node:appsec:data_classification:q1:c4
-                value: "Secret"
+                value: "Critical financial assets, secrets, or anti-fraud algorithms (e.g. customer payment cardholder data [PCI-DSS], refund bank accounts, production root credentials / API keys, fraud-detection evasion rules & thresholds)"
                 color: "#dc3545"
           urn:intuitem:risk:req_node:appsec:data_classification:q2:
             type: unique_choice
-            text: "What category of personal data is processed by the application under GDPR?"
+            text: "What would be the estimated business, legal, or operational impact if the application's data were exposed, breached, or leaked?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:data_classification:q2:c1
-                value: "No personal data"
+                value: "Negligible / Zero impact (Information is intended for public consumption; disclosure causes zero organizational or financial harm)"
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec:data_classification:q2:c2
-                value: "Contact data of employees"
-                color: "#ffc107"
+                value: "Minor operational friction (Internal workforce confusion or procedural inconvenience; no external financial, customer, or regulatory impact)"
+                color: "#fd7e14"
               - urn: urn:intuitem:risk:req_node:appsec:data_classification:q2:c3
-                value: "Contact and order details about customers"
+                value: "Moderate to severe harm (Loss of competitive advantage, supplier disputes, customer churn, breach of commercial contracts, or standard regulatory scrutiny)"
                 color: "#fd7e14"
               - urn: urn:intuitem:risk:req_node:appsec:data_classification:q2:c4
-                value: "HR and financial details about employees and customer payment data"
+                value: "Catastrophic or existential impact (Direct financial theft, payment card brand sanctions/fines, critical legal liability, systemic loss of customer trust, or severe statutory penalties)"
                 color: "#dc3545"
           urn:intuitem:risk:req_node:appsec:data_classification:q3:
             type: unique_choice
-            text: "What is the volume of data subjects (individuals) whose personal data is processed?"
-            depends_on:
-              question: urn:intuitem:risk:req_node:appsec:data_classification:q2
-              answers:
-                - urn:intuitem:risk:req_node:appsec:data_classification:q2:c2
-                - urn:intuitem:risk:req_node:appsec:data_classification:q2:c3
-                - urn:intuitem:risk:req_node:appsec:data_classification:q2:c4
-              condition: any
+            text: "What category of personal data is processed by the application under GDPR?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:data_classification:q3:c1
+                value: "No personal data"
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:data_classification:q3:c2
+                value: "Contact data of employees"
+                color: "#ffc107"
+              - urn: urn:intuitem:risk:req_node:appsec:data_classification:q3:c3
+                value: "Contact and order details about customers"
+                color: "#fd7e14"
+              - urn: urn:intuitem:risk:req_node:appsec:data_classification:q3:c4
+                value: "HR and financial details about employees and customer payment data"
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:data_classification:q4:
+            type: unique_choice
+            text: "What is the volume of data subjects (individuals) whose personal data is processed?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec:data_classification:q3
+              answers:
+                - urn:intuitem:risk:req_node:appsec:data_classification:q3:c2
+                - urn:intuitem:risk:req_node:appsec:data_classification:q3:c3
+                - urn:intuitem:risk:req_node:appsec:data_classification:q3:c4
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:data_classification:q4:c1
                 value: "Low volume (Fewer than 1,000 individuals / data subjects)"
                 color: "#33a745"
                 multiplier: 1.0
-              - urn: urn:intuitem:risk:req_node:appsec:data_classification:q3:c2
+              - urn: urn:intuitem:risk:req_node:appsec:data_classification:q4:c2
                 value: "Medium volume (1,000 to 100,000 individuals / data subjects)"
                 color: "#fd7e14"
                 multiplier: 1.0
-              - urn: urn:intuitem:risk:req_node:appsec:data_classification:q3:c3
+              - urn: urn:intuitem:risk:req_node:appsec:data_classification:q4:c3
                 value: "High volume / Large scale processing under GDPR (More than 100,000 individuals, or systemic nationwide monitoring)"
                 color: "#dc3545"
                 multiplier: 1.5
@@ -2767,18 +2783,26 @@ audit:
 # based on data classification requirements URNs
 criticality_mapping:
   confidentiality:
-    urn:intuitem:risk:req_node:appsec:data_classification:q1:c1: 0  # Public
-    urn:intuitem:risk:req_node:appsec:data_classification:q1:c2: 1  # Internal
-    urn:intuitem:risk:req_node:appsec:data_classification:q1:c3: 2  # Confidential
-    urn:intuitem:risk:req_node:appsec:data_classification:q1:c4: 3  # Secret
-    urn:intuitem:risk:req_node:appsec:data_classification:q2:c1: 0  # No personal data
-    urn:intuitem:risk:req_node:appsec:data_classification:q2:c2: 1  # Contact data of employees
-    urn:intuitem:risk:req_node:appsec:data_classification:q2:c3: 2  # Contact and order details about customers
-    urn:intuitem:risk:req_node:appsec:data_classification:q2:c4: 3  # HR and financial details about employees and customer payment data
+    # Question 1: Retail Data Category
+    urn:intuitem:risk:req_node:appsec:data_classification:q1:c1: 0  # Public storefront & marketing data
+    urn:intuitem:risk:req_node:appsec:data_classification:q1:c2: 1  # Internal retail operations & logistics
+    urn:intuitem:risk:req_node:appsec:data_classification:q1:c3: 2  # Confidential commercial & customer records
+    urn:intuitem:risk:req_node:appsec:data_classification:q1:c4: 3  # Critical financial assets, secrets & anti-fraud
+    # Question 2: Adverse Impact Severity
+    urn:intuitem:risk:req_node:appsec:data_classification:q2:c1: 0  # Negligible / Zero impact
+    urn:intuitem:risk:req_node:appsec:data_classification:q2:c2: 1  # Minor operational friction
+    urn:intuitem:risk:req_node:appsec:data_classification:q2:c3: 2  # Moderate to severe harm
+    urn:intuitem:risk:req_node:appsec:data_classification:q2:c4: 3  # Catastrophic or existential impact
+    # Question 3: GDPR Personal Data Category
+    urn:intuitem:risk:req_node:appsec:data_classification:q3:c1: 0  # No personal data
+    urn:intuitem:risk:req_node:appsec:data_classification:q3:c2: 1  # Contact data of employees
+    urn:intuitem:risk:req_node:appsec:data_classification:q3:c3: 2  # Contact and order details about customers
+    urn:intuitem:risk:req_node:appsec:data_classification:q3:c4: 3  # HR and financial details about employees and customer payment data
   quantity_multiplier:
-    urn:intuitem:risk:req_node:appsec:data_classification:q3:c1: 1.0  # Low volume (< 1k)
-    urn:intuitem:risk:req_node:appsec:data_classification:q3:c2: 1.0  # Medium volume (1k - 100k)
-    urn:intuitem:risk:req_node:appsec:data_classification:q3:c3: 1.5  # High volume (> 100k)
+    # Question 4: Volume of Data Subjects under GDPR
+    urn:intuitem:risk:req_node:appsec:data_classification:q4:c1: 1.0  # Low volume (< 1k)
+    urn:intuitem:risk:req_node:appsec:data_classification:q4:c2: 1.0  # Medium volume (1k - 100k)
+    urn:intuitem:risk:req_node:appsec:data_classification:q4:c3: 1.5  # High volume (> 100k)
   integrity: {}
   availability: {}
 

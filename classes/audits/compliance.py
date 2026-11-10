@@ -162,6 +162,99 @@ class ComplianceAssessment:
         return self.set_selected_implementation_groups(combined)
 
 
+def derive_confidentiality_impact(answers, conf_map, qty_map):
+    """Derive confidentiality score (0-3) and impact level (1-4) from assessment answers.
+
+    Supports:
+    - Multi-dimensional Online Retail Matrix Model:
+      q1: Data Category (0-3)
+      q2: Adverse Impact Severity (0-3)
+      q3: GDPR Personal Data Category (0-3)
+      q4: GDPR Volume Multiplier (1.0, 1.5)
+    - Legacy 3-question GDPR Model:
+      q1: Data Classification (0-3)
+      q2: GDPR Personal Data Category (0-3)
+      q3: GDPR Volume Multiplier (1.0, 1.5)
+    - Single question model (MLS):
+      q1: Data Classification (0-3)
+    """
+    val_data_type = None
+    val_impact_sev = None
+    val_gdpr_cat = None
+    qty_mult = 1.0
+
+    MATRIX = [
+        [0, 0, 1, 2],  # D=0 (Public)
+        [0, 1, 2, 3],  # D=1 (Internal)
+        [1, 2, 2, 3],  # D=2 (Confidential)
+        [2, 2, 3, 3],  # D=3 (Secret)
+    ]
+
+    is_4q_model = (
+        any(":q3" in str(k) for k in conf_map.keys())
+        or any(":q4" in str(k) for k in qty_map.keys())
+        or any(":q4" in str(k) or ":q4" in str(v) for k, v in answers.items())
+    )
+
+    for question, answer in answers.items():
+        ans_str = str(answer)
+        q_str = str(question)
+
+        # Volume multiplier
+        if ans_str in qty_map:
+            qty_mult = float(qty_map[ans_str])
+        elif is_4q_model and (":q4" in ans_str or ":q4" in q_str):
+            for k, v in qty_map.items():
+                if k in ans_str or k in q_str:
+                    qty_mult = float(v)
+                    break
+        elif not is_4q_model and (":q3" in ans_str or ":q3" in q_str):
+            for k, v in qty_map.items():
+                if k in ans_str or k in q_str:
+                    qty_mult = float(v)
+                    break
+
+        if ans_str in conf_map:
+            if is_4q_model:
+                if ":q3" in ans_str or ":q3" in q_str:
+                    val_gdpr_cat = conf_map[ans_str]
+                elif ":q2" in ans_str or ":q2" in q_str:
+                    val_impact_sev = conf_map[ans_str]
+                elif ":q1" in ans_str or ":q1" in q_str:
+                    val_data_type = conf_map[ans_str]
+                else:
+                    val_data_type = conf_map[ans_str]
+            else:
+                if ":q2" in ans_str or ":q2" in q_str:
+                    val_gdpr_cat = conf_map[ans_str]
+                elif ":q1" in ans_str or ":q1" in q_str:
+                    val_data_type = conf_map[ans_str]
+                else:
+                    val_data_type = conf_map[ans_str]
+
+    # Combine Data Category (D) and Impact Severity (I) via Matrix
+    if val_data_type is not None and val_impact_sev is not None:
+        d = min(3, max(0, val_data_type))
+        i = min(3, max(0, val_impact_sev))
+        derived_business_conf = MATRIX[d][i]
+    elif val_data_type is not None:
+        derived_business_conf = val_data_type
+    elif val_impact_sev is not None:
+        derived_business_conf = val_impact_sev
+    else:
+        derived_business_conf = 0
+
+    val_gdpr = 0
+    if val_gdpr_cat is not None and val_gdpr_cat > 0:
+        base_gdpr = val_gdpr_cat + 1
+        gdpr_impact = min(4, max(1, round(base_gdpr * qty_mult)))
+        val_gdpr = gdpr_impact - 1
+
+    final_conf = max(derived_business_conf, val_gdpr)
+    impact_level = final_conf + 1
+    return final_conf, impact_level
+
+
 class ComplianceAssessmentDict:
     """Manage a collection of compliance assessments and related API operations."""
 
@@ -445,36 +538,10 @@ class ComplianceAssessmentDict:
                     # Handle confidentiality with GDPR personal data category & quantity multiplier
                     conf_map = criticality_mapping.get("confidentiality", {})
                     qty_map = criticality_mapping.get("quantity_multiplier", {})
-                    val_q1 = None
-                    val_q2 = None
-                    qty_mult = 1.0
-
-                    for question, answer in answers.items():
-                        ans_str = str(answer)
-                        q_str = str(question)
-                        if ans_str in qty_map:
-                            qty_mult = float(qty_map[ans_str])
-                        elif ":q3" in ans_str or ":q3" in q_str:
-                            for k, v in qty_map.items():
-                                if k in ans_str:
-                                    qty_mult = float(v)
-                                    break
-                        if ans_str in conf_map:
-                            if ":q2" in ans_str or ":q2" in q_str:
-                                val_q2 = conf_map[ans_str]
-                            else:
-                                val_q1 = conf_map[ans_str]
-
-                    if val_q1 is not None or val_q2 is not None:
-                        val_gdpr = 0
-                        if val_q2 is not None and val_q2 > 0:
-                            base_gdpr = val_q2 + 1
-                            gdpr_impact = min(4, max(1, round(base_gdpr * qty_mult)))
-                            val_gdpr = gdpr_impact - 1
-                        final_conf = max(val_q1 if val_q1 is not None else 0, val_gdpr)
-                        for asset_id in asset_ids:
-                            utils.log(f"Updating confidentiality for asset ID: {asset_id} to {final_conf}")
-                            asset_dict.update_asset_criticality(asset_id, "confidentiality", final_conf)
+                    final_conf, _ = derive_confidentiality_impact(answers, conf_map, qty_map)
+                    for asset_id in asset_ids:
+                        utils.log(f"Updating confidentiality for asset ID: {asset_id} to {final_conf}")
+                        asset_dict.update_asset_criticality(asset_id, "confidentiality", final_conf)
 
                     # Update other criteria (integrity, availability)
                     for criteria_question in ("integrity", "availability"):
@@ -576,37 +643,7 @@ class ComplianceAssessmentDict:
                     if requirement_assessment.get_urn() == imp_target or (ra_ref and imp_target.endswith(f":{ra_ref}")):
                         impact_assessment = requirement_assessment
                         answers = requirement_assessment.get_requirement_json().get('answers', {})
-                        q1_impact = None
-                        q2_val = None
-                        qty_mult = 1.0
-
-                        for q_key, answer in answers.items():
-                            ans_str = str(answer)
-                            q_str = str(q_key)
-                            if ans_str in quantity_multiplier_map:
-                                qty_mult = float(quantity_multiplier_map[ans_str])
-                            elif ":q3" in ans_str or ":q3" in q_str:
-                                for k, v in quantity_multiplier_map.items():
-                                    if k in ans_str:
-                                        qty_mult = float(v)
-                                        break
-                            if ans_str in impact_mapping:
-                                if ":q2" in ans_str or ":q2" in q_str:
-                                    q2_val = impact_mapping[ans_str]
-                                else:
-                                    q1_impact = impact_mapping[ans_str] + 1
-
-                        gdpr_impact = 0
-                        if q2_val is not None and q2_val > 0:
-                            base_gdpr = q2_val + 1
-                            gdpr_impact = min(4, max(1, round(base_gdpr * qty_mult)))
-
-                        if q1_impact is not None and gdpr_impact > 0:
-                            impact = max(q1_impact, gdpr_impact)
-                        elif q1_impact is not None:
-                            impact = q1_impact
-                        elif gdpr_impact > 0:
-                            impact = gdpr_impact
+                        _, impact = derive_confidentiality_impact(answers, impact_mapping, quantity_multiplier_map)
 
                 # If either the likelihood or impact requirement assessment was never answered, clean up and skip
                 if (

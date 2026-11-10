@@ -1083,9 +1083,11 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
 
     @app.route("/api/backups/create", methods=["POST"])
     def api_backup_create():
-        """Create a new backup (workspace snapshot or database dump)."""
+        """Create a new backup (workspace snapshot, framework snapshot, or database dump)."""
         payload = request.get_json() or {}
         b_type = payload.get("type", "snapshot").lower()
+        notes = payload.get("notes")
+        fw_id = payload.get("framework_id") or payload.get("framework")
 
         def _job():
             if b_type == "dump":
@@ -1095,6 +1097,13 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
                     raise RuntimeError("Failed to create database dump.")
                 stat = manager.inspect_backup(dump_path)
                 print(f"[SUCCESS] Database dump created: {stat['filename']} ({stat['size_formatted']})")
+                print(f"SHA-256: {stat['sha256']}")
+                return stat
+            elif b_type in ("framework", "framework_snapshot"):
+                print("Exporting framework version & questionnaire answers snapshot...")
+                snap_path = manager.create_framework_snapshot(framework_id_or_ref=fw_id, notes=notes)
+                stat = manager.inspect_backup(snap_path)
+                print(f"[SUCCESS] Framework snapshot created: {stat['filename']} ({stat['size_formatted']})")
                 print(f"SHA-256: {stat['sha256']}")
                 return stat
             else:
@@ -1184,6 +1193,15 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
                     return res
                 else:
                     raise RuntimeError(f"Snapshot restore failed: {res.get('details')}")
+            elif b_type in ("framework_snapshot", "framework_answers_snapshot"):
+                dry_run = payload.get("dry_run", False)
+                ca_id = payload.get("compliance_assessment_id")
+                res = manager.restore_framework_snapshot(target, compliance_assessment_id=ca_id, dry_run=dry_run)
+                if res.get("status") == "success":
+                    print(f"[SUCCESS] Framework snapshot restored successfully! ({res.get('total_requirements_updated')} updated)")
+                    return res
+                else:
+                    raise RuntimeError(f"Framework snapshot restore failed: {res.get('details')}")
             else:
                 raise ValueError(f"Unrecognized backup format: {safe_name}")
 
@@ -1197,12 +1215,101 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
         b_dir = manager.backup_manager.get_backup_dir()
         target = b_dir / safe_name
         if not target.exists():
-            abort(404, description=f"Backup file '{safe_name}' not found.")
+            # Check framework_snapshots subdir
+            target_fw = b_dir / "framework_snapshots" / safe_name
+            if target_fw.exists():
+                target = target_fw
+            else:
+                abort(404, description=f"Backup file '{safe_name}' not found.")
         try:
             target.unlink()
             return jsonify({"message": f"Backup '{safe_name}' deleted successfully."})
         except Exception as e:
             return jsonify({"error": f"Failed to delete backup: {e}"}), 500
+
+    @app.route("/api/framework-snapshots")
+    def api_framework_snapshots_list():
+        """List all framework version & questionnaire answer snapshots."""
+        backups = manager.list_backups()
+        fw_snaps = [b for b in backups if b.get("type") == "framework_snapshot"]
+        return jsonify(fw_snaps)
+
+    @app.route("/api/framework-snapshots/create", methods=["POST"])
+    def api_framework_snapshot_create():
+        """Create a framework version & questionnaire answers snapshot."""
+        payload = request.get_json() or {}
+        fw_id = payload.get("framework_id") or payload.get("framework")
+        notes = payload.get("notes")
+
+        def _job():
+            print("Creating framework & questionnaire answers snapshot...")
+            snap_path = manager.create_framework_snapshot(framework_id_or_ref=fw_id, notes=notes)
+            stat = manager.inspect_backup(snap_path)
+            print(f"[SUCCESS] Framework snapshot created: {stat['filename']} ({stat['size_formatted']})")
+            return stat
+
+        task_id = TASK_MANAGER.create_task("Create Framework Snapshot", _job)
+        return jsonify({"task_id": task_id, "message": "Framework snapshot creation started."})
+
+    @app.route("/api/framework-snapshots/restore", methods=["POST"])
+    def api_framework_snapshot_restore():
+        """Restore or migrate questionnaire answers from a framework snapshot."""
+        payload = request.get_json() or {}
+        filename = payload.get("filename", "").strip()
+        dry_run = payload.get("dry_run", False)
+        ca_id = payload.get("compliance_assessment_id")
+        remap_rules = payload.get("remap_rules")
+
+        safe_name = secure_filename(filename)
+        b_dir = manager.backup_manager.get_backup_dir()
+        target = b_dir / safe_name
+        if not target.exists():
+            target = b_dir / "framework_snapshots" / safe_name
+
+        if not target.exists():
+            return jsonify({"error": f"Framework snapshot file '{safe_name}' not found."}), 404
+
+        def _job():
+            print(f"Restoring framework answers from {safe_name} (Dry Run: {dry_run})...")
+            res = manager.restore_framework_snapshot(
+                target,
+                compliance_assessment_id=ca_id,
+                dry_run=dry_run,
+                remap_rules=remap_rules,
+            )
+            if res.get("status") == "success":
+                print(f"[SUCCESS] Framework snapshot restored! ({res.get('total_requirements_updated')} requirements updated)")
+                return res
+            else:
+                raise RuntimeError(f"Framework restore failed: {res.get('details')}")
+
+        task_id = TASK_MANAGER.create_task(f"Restore Framework Snapshot ({safe_name})", _job)
+        return jsonify({"task_id": task_id, "message": "Framework restore operation started."})
+
+    @app.route("/api/framework-snapshots/diff", methods=["POST"])
+    def api_framework_snapshot_diff():
+        """Diff two framework snapshots or compare snapshot against live state."""
+        payload = request.get_json() or {}
+        snap_a = payload.get("snapshot_a", "").strip()
+        snap_b = payload.get("snapshot_b", "live").strip()
+
+        b_dir = manager.backup_manager.get_backup_dir()
+        path_a = b_dir / secure_filename(snap_a)
+        if not path_a.exists():
+            path_a = b_dir / "framework_snapshots" / secure_filename(snap_a)
+        if not path_a.exists():
+            return jsonify({"error": f"Snapshot A '{snap_a}' not found."}), 404
+
+        path_b = None
+        if snap_b and snap_b.lower() != "live":
+            path_b = b_dir / secure_filename(snap_b)
+            if not path_b.exists():
+                path_b = b_dir / "framework_snapshots" / secure_filename(snap_b)
+            if not path_b.exists():
+                return jsonify({"error": f"Snapshot B '{snap_b}' not found."}), 404
+
+        diff = manager.diff_framework_snapshots(path_a, path_b)
+        return jsonify(diff)
 
     # -----------------------------------------------------------------------
     # Legacy Pipeline & Model Importer Endpoints

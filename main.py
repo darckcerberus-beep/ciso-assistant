@@ -1060,8 +1060,8 @@ def remove_examples_ui(manager: ExamplesManager, target="all", auto_confirm=Fals
             print(f"[ERROR] Failed to remove {target_name}: {e}")
 
 
-def backup_ui(manager: ExamplesManager, backup_type: str = "snapshot"):
-    """Create a backup (database dump or workspace snapshot)."""
+def backup_ui(manager: ExamplesManager, backup_type: str = "snapshot", notes: str | None = None):
+    """Create a backup (database dump, workspace snapshot, or framework answers snapshot)."""
     ok, msg = manager.test_connection()
     if not ok:
         print(f"\n[ERROR] API Connection Failed: {msg}")
@@ -1082,6 +1082,20 @@ def backup_ui(manager: ExamplesManager, backup_type: str = "snapshot"):
             print(f" SHA-256:  {stat['sha256']}")
         else:
             print("\n[ERROR] Failed to create database dump.")
+    elif backup_type in ("framework", "framework_snapshot"):
+        print("Exporting framework version & questionnaire answers snapshot...")
+        snapshot_path = manager.create_framework_snapshot(notes=notes)
+        stat = manager.inspect_backup(snapshot_path)
+        print("\n[SUCCESS] Framework answers snapshot successfully created!")
+        print(f" File:      {stat['path']}")
+        print(f" Size:      {stat['size_formatted']}")
+        print(f" SHA-256:   {stat['sha256']}")
+        fw = stat.get("framework", {})
+        print(f" Framework: {fw.get('name')} (v{fw.get('version')})")
+        counts = stat.get("counts", {})
+        print(f" Audits:    {counts.get('compliance_assessments_count')} ({counts.get('total_answers')} answers preserved)")
+        if stat.get("notes"):
+            print(f" Notes:     {stat.get('notes')}")
     else:
         print("Exporting workspace resources to JSON snapshot...")
         snapshot_path = manager.create_workspace_snapshot()
@@ -1096,8 +1110,8 @@ def backup_ui(manager: ExamplesManager, backup_type: str = "snapshot"):
                 print(f"  - {k.replace('_', ' ').capitalize():<28}: {v}")
 
 
-def restore_ui(manager: ExamplesManager, file_path: str):
-    """Restore from a backup file (database dump or workspace snapshot)."""
+def restore_ui(manager: ExamplesManager, file_path: str, dry_run: bool = False):
+    """Restore from a backup file (database dump, workspace snapshot, or framework snapshot)."""
     ok, msg = manager.test_connection()
     if not ok:
         print(f"\n[ERROR] API Connection Failed: {msg}")
@@ -1112,7 +1126,8 @@ def restore_ui(manager: ExamplesManager, file_path: str):
     b_type = stat.get("type", "unknown")
 
     print("\n" + "=" * 80)
-    print("               RESTORE FROM BACKUP")
+    action = "SIMULATING RESTORE (DRY-RUN)" if dry_run else "RESTORE FROM BACKUP"
+    print(f"               {action}")
     print("=" * 80)
     print(f" File:     {stat['filename']}")
     print(f" Type:     {b_type}")
@@ -1138,20 +1153,79 @@ def restore_ui(manager: ExamplesManager, file_path: str):
             show_status(manager, wait_seconds=2)
         else:
             print(f"\n[ERROR] Snapshot restore failed: {res.get('details')}")
+    elif b_type in ("framework_snapshot", "framework_answers_snapshot"):
+        print(f"---> Restoring framework answers from snapshot (Dry Run: {dry_run})...")
+        res = manager.restore_framework_snapshot(path, dry_run=dry_run)
+        if res.get("status") == "success":
+            print("\n[SUCCESS] Framework answers restored successfully!")
+            print(f" Framework:            {res.get('framework')} (v{res.get('library_version')})")
+            print(f" Audits Processed:     {res.get('compliance_assessments_processed')}")
+            print(f" Requirements Updated: {res.get('total_requirements_updated')}")
+            print(f" Answers Restored:     {res.get('total_answers_restored')}")
+            print(f" Answers Remapped:     {res.get('remapped_answers_count')}")
+            if res.get("unmapped_questions"):
+                print(f" Unmapped Questions:   {res.get('unmapped_questions_count')}")
+            if not dry_run:
+                show_status(manager, wait_seconds=2)
+        else:
+            print(f"\n[ERROR] Framework restore failed: {res.get('details')}")
     else:
         print(f"\n[ERROR] Unrecognized backup file format: {path.name}")
+
+
+def diff_ui(manager: ExamplesManager, snapshot_a: str, snapshot_b: str = "live"):
+    """Display visual diff of framework versions and questionnaire answers."""
+    path_a = Path(snapshot_a)
+    if not path_a.exists():
+        print(f"[ERROR] Snapshot file A not found: {snapshot_a}")
+        return
+    diff = manager.diff_framework_snapshots(path_a, snapshot_b)
+    if "error" in diff:
+        print(f"[ERROR] Diff failed: {diff.get('details')}")
+        return
+
+    print("\n" + "=" * 80)
+    print("                     FRAMEWORK SNAPSHOT DIFF")
+    print("=" * 80)
+    print(f" Base:        {diff.get('source_a')}")
+    print(f" Target:      {diff.get('source_b')}")
+    print(f" Transition:  {diff.get('version_transition')}")
+    print(f" Differences: {diff.get('has_differences')}")
+
+    schema = diff.get("schema_diff", {})
+    if schema.get("requirements_added"):
+        print(f"\nRequirements Added: {schema['requirements_added']}")
+    if schema.get("requirements_removed"):
+        print(f"\nRequirements Removed: {schema['requirements_removed']}")
+    if schema.get("modified_requirements"):
+        print(f"\nModified Requirements ({len(schema['modified_requirements'])}):")
+        for m in schema["modified_requirements"]:
+            print(f"  - Requirement: {m['requirement']}")
+            for q in m.get("added_questions", []):
+                print(f"    + Question added: {q['urn']}")
+            for q in m.get("removed_questions", []):
+                print(f"    - Question removed: {q['urn']}")
+
+    apps = diff.get("applications_diff", [])
+    if apps:
+        print(f"\nApplication Answer Differences ({len(apps)}):")
+        for app in apps:
+            print(f"  - {app['compliance_assessment']}: {app['changed_count']} changed requirement(s)")
+    else:
+        print("\nNo application answer differences detected.")
+    print("=" * 80)
 
 
 def list_backups_ui(manager: ExamplesManager):
     """Display formatted table of all discovered backups."""
     backups = manager.list_backups()
-    print("\n" + "=" * 80)
+    print("\n" + "=" * 98)
     print("                       DISCOVERED BACKUPS")
-    print("=" * 80)
+    print("=" * 98)
     if not backups:
         print(f"No backups found in '{manager.backup_manager.backup_dir}'.")
         print("Use option 10 or 'python3 main.py --backup' to create one.")
-        print("=" * 80)
+        print("=" * 98)
         return
 
     sep = "-" * 98
@@ -1159,14 +1233,20 @@ def list_backups_ui(manager: ExamplesManager):
     print(f"{'#':<3} | {'Backup File':<38} | {'Type':<20} | {'Size':<10} | {'Modified (UTC)':<16}")
     print(sep)
     for idx, b in enumerate(backups, start=1):
-        f_name = b['filename']
-        if len(f_name) > 38:
-            f_name = f_name[:35] + "..."
-        mod_str = b['modified_at'][:19].replace("T", " ")
-        print(f"{idx:<3} | {f_name:<38} | {b['type']:<20} | {b['size_formatted']:<10} | {mod_str:<16}")
+        dt = b["modified_at"][:16].replace("T", " ")
+        fname = b["filename"]
+        if len(fname) > 38:
+            fname = fname[:35] + "..."
+        b_type = b["type"]
+        if b_type == "framework_snapshot":
+            fw_ver = b.get("details", {}).get("framework_version")
+            if fw_ver:
+                b_type = f"fw_snap (v{fw_ver})"
+        sz = b["size_formatted"]
+        print(f"{idx:<3} | {fname:<38} | {b_type:<20} | {sz:<10} | {dt:<16}")
     print(sep)
-    print(f"Total: {len(backups)} backup(s) in {manager.backup_manager.backup_dir}/")
-    print("=" * 80)
+    print(f"Total: {len(backups)} backup(s) found in {manager.backup_manager.backup_dir}/")
+    print("=" * 98)
 
 
 def create_domain_ui(
@@ -1600,14 +1680,19 @@ def interactive_menu(manager: ExamplesManager):
             print("\nSelect Backup & Restore action:")
             print(" 1) Create Workspace Snapshot Backup (Portable JSON export)")
             print(" 2) Create Full Database Dump (Server-side /api/serdes/dump-db/)")
-            print(" 3) Restore from Backup File (Dump or Snapshot)")
-            print(" 4) List Discovered Backups")
-            b_choice = input("Enter choice [1-4, default: 1] (or 'c' to cancel): ").strip()
+            print(" 3) Create Framework & Questionnaire Answers Snapshot (Pre-Update Backup)")
+            print(" 4) Restore from Backup File (Dump, Workspace Snapshot, or Framework Snapshot)")
+            print(" 5) Diff Framework Snapshots / Compare with Live State")
+            print(" 6) List Discovered Backups")
+            b_choice = input("Enter choice [1-6, default: 1] (or 'c' to cancel): ").strip()
             if b_choice.lower() in ("c", "cancel"):
                 pass
             elif b_choice == "2":
                 backup_ui(manager, backup_type="dump")
             elif b_choice == "3":
+                notes = input("Enter optional notes for this framework snapshot (or press Enter): ").strip() or None
+                backup_ui(manager, backup_type="framework", notes=notes)
+            elif b_choice == "4":
                 backups = manager.list_backups()
                 if not backups:
                     print("No backups found in default directory.")
@@ -1617,16 +1702,41 @@ def interactive_menu(manager: ExamplesManager):
                 else:
                     print("\nSelect backup to restore:")
                     for idx, b in enumerate(backups, start=1):
-                        print(f" {idx}) {b['filename']} ({b['type']}, {b['size_formatted']})")
+                        b_desc = b['type']
+                        if b['type'] == 'framework_snapshot':
+                            b_desc = f"Framework Snapshot (v{b.get('details', {}).get('framework_version')})"
+                        print(f" {idx}) {b['filename']} ({b_desc}, {b['size_formatted']})")
                     print(f" {len(backups) + 1}) Enter custom path manually")
                     r_sub = input(f"Enter choice [1-{len(backups) + 1}] (or 'c' to cancel): ").strip()
                     if r_sub.isdigit() and 1 <= int(r_sub) <= len(backups):
-                        restore_ui(manager, backups[int(r_sub) - 1]["path"])
+                        sel_b = backups[int(r_sub) - 1]
+                        if sel_b['type'] == 'framework_snapshot':
+                            dry = input("Simulate restore with Dry Run? [Y/n, default: Y]: ").strip().lower() != "n"
+                            restore_ui(manager, sel_b["path"], dry_run=dry)
+                        else:
+                            restore_ui(manager, sel_b["path"])
                     elif r_sub == str(len(backups) + 1):
                         file_input = input("Enter custom backup file path: ").strip()
                         if file_input:
                             restore_ui(manager, file_input)
-            elif b_choice == "4":
+            elif b_choice == "5":
+                fw_snaps = [b for b in manager.list_backups() if b.get("type") == "framework_snapshot"]
+                if not fw_snaps:
+                    print("No framework snapshots found to diff.")
+                else:
+                    print("\nSelect base framework snapshot:")
+                    for idx, b in enumerate(fw_snaps, start=1):
+                        print(f" {idx}) {b['filename']} ({b.get('details', {}).get('framework_ref_id')} v{b.get('details', {}).get('framework_version')})")
+                    s_idx = input(f"Enter choice [1-{len(fw_snaps)}] (or 'c' to cancel): ").strip()
+                    if s_idx.isdigit() and 1 <= int(s_idx) <= len(fw_snaps):
+                        base_snap = fw_snaps[int(s_idx) - 1]["path"]
+                        print("Select comparison target: 1) Live CISO Assistant State (Default), 2) Another snapshot file")
+                        t_choice = input("Enter choice [1-2, default: 1]: ").strip()
+                        target = "live"
+                        if t_choice == "2":
+                            target = input("Enter path to second snapshot file: ").strip()
+                        diff_ui(manager, base_snap, target)
+            elif b_choice == "6":
                 list_backups_ui(manager)
             else:
                 backup_ui(manager, backup_type="snapshot")
@@ -1780,9 +1890,25 @@ def main():
         "--backup",
         nargs="?",
         const="snapshot",
-        choices=["snapshot", "dump"],
+        choices=["snapshot", "dump", "framework"],
         metavar="TYPE",
-        help="Create a backup ('snapshot' for JSON export or 'dump' for database dump).",
+        help="Create a backup ('snapshot' for JSON export, 'dump' for database dump, or 'framework' for framework answers snapshot).",
+    )
+    parser.add_argument(
+        "--notes",
+        metavar="TEXT",
+        help="Optional descriptive notes for snapshots.",
+    )
+    parser.add_argument(
+        "--diff-snapshots",
+        nargs="+",
+        metavar="PATH",
+        help="Diff framework snapshots or compare snapshot against live state (e.g. '--diff-snapshots snap.json [live]').",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Simulate restore operation without applying live changes.",
     )
     parser.add_argument(
         "--restore",
@@ -1923,12 +2049,18 @@ def main():
         list_backups_ui(manager)
         return
 
+    if args.diff_snapshots:
+        snap_a = args.diff_snapshots[0]
+        snap_b = args.diff_snapshots[1] if len(args.diff_snapshots) > 1 else "live"
+        diff_ui(manager, snap_a, snap_b)
+        return
+
     if args.backup:
-        backup_ui(manager, backup_type=args.backup)
+        backup_ui(manager, backup_type=args.backup, notes=args.notes)
         return
 
     if args.restore:
-        restore_ui(manager, file_path=args.restore)
+        restore_ui(manager, file_path=args.restore, dry_run=args.dry_run)
         return
 
     if args.select_groups:

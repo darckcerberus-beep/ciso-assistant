@@ -60,7 +60,13 @@ Requirement nodes are assigned to native CISO Assistant Implementation Groups, e
 - `internet_facing`: Triggered when Network Exposure is **Internet-Facing** for self-hosted applications.
 
 > [!NOTE]
-> Data classification (`data_classification`) strictly determines the **confidentiality impact level** for risk scenario calculations (impact levels 1 to 4). It combines general data classification (`q1`: Public=1, Internal=2, Confidential=3, Secret=4) and GDPR personal data categorization (`q2`: No personal data=0, Employee contact=2, Customer contact & orders=3, HR/financial/payment=4) with GDPR data volume as an impact multiplier (`q3`: Low=1.0, Medium=1.0, High=1.5): $I_{gdpr} = \min(4, \max(1, \text{round}(I_{q2} \times M_{qty})))$ if $I_{q2} > 0$ else 0, resulting in final impact $\max(I_{q1}, I_{gdpr})$. It intentionally does not activate separate implementation groups, ensuring self-hosted requirements (`data_at_rest`, `non_prod_data`, `data_destruction`) are not asked redundantly for SaaS applications, which are governed by dedicated controls in Chapter 10.
+> Data classification (`data_classification`) strictly determines the **confidentiality impact level** for risk scenario calculations (impact levels 1 to 4). Instead of asking the user for a subjective classification tier directly, it narrows down the classification level via multi-dimensional questions:
+> 1. `q1`: Primary retail & operational data category ($D \in \{0, 1, 2, 3\}$).
+> 2. `q2`: Adverse impact severity of unauthorized disclosure ($I \in \{0, 1, 2, 3\}$).
+> 3. `q3`: GDPR personal data category ($G \in \{0, 1, 2, 3\}$).
+> 4. `q4`: GDPR data subject volume multiplier ($M_{qty} \in \{1.0, 1.5\}$).
+>
+> The engine evaluates a 2D matrix ($\text{Base} = \text{Matrix}[D][I]$), harmonizes with GDPR volume scaling ($I_{gdpr} = \min(4, \text{round}((G + 1) \times M_{qty})) - 1$), and yields the final confidentiality score $\max(\text{Base Score}, I_{gdpr}) + 1$. It intentionally does not activate separate implementation groups, ensuring self-hosted requirements (`data_at_rest`, `non_prod_data`, `data_destruction`) are not asked redundantly for SaaS applications, which are governed by dedicated controls in Chapter 10.
 
 Profiling triggers in `hosting:q1` dynamically activate the tracks:
 - **Custom Software**: Activates `custom_app`, `infra`, and `baseline`.

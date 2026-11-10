@@ -46,9 +46,10 @@ Define or customize your operational situations/cases here for reference:
 | 2 | Application Information & Governance | `stakeholder_identification` | `q2` | Is there a designated IT contact? (Technical lead or engineer responsible for main... | `info` | All applications (Info profiling) |
 | 3 | Application Information & Governance | `stakeholder_identification` | `q3` | Is there a designated data owner? (Data steward or governance officer responsible ... | `info` | All applications (Info profiling) |
 | 4 | Application Information & Governance | `stakeholder_identification` | `q4` | Is the information about stakeholders updated in LeanIX / CMDB? (Stakeholder assig... | `info` | All applications (Info profiling) |
-| 5 | Application Information & Governance | `data_classification` | `q1` | What is the maximum classification level handled? (Public, Internal, Confidential,... | `info` | All applications (Info profiling - Confidentiality) |
-| 5b | Application Information & Governance | `data_classification` | `q2` | What category of personal data is processed by the application under GDPR? | `info` | All applications (GDPR profiling - Personal data type) |
-| 5c | Application Information & Governance | `data_classification` | `q3` | What is the volume of data subjects (individuals) whose personal data is processed? | `info` | Applications processing personal data (depends on `data_classification:q2`) |
+| 5a | Application Information & Governance | `data_classification` | `q1` | What is the primary operational data category handled? (Retail storefront, warehouse/operations, confidential customer/commercial, or critical financial/secrets) | `info` | All applications (Data classification refinement - Category) |
+| 5b | Application Information & Governance | `data_classification` | `q2` | What is the adverse impact severity of unauthorized disclosure? (Negligible, minor friction, moderate/severe, or catastrophic) | `info` | All applications (Data classification refinement - Impact severity) |
+| 5c | Application Information & Governance | `data_classification` | `q3` | What category of personal data is processed by the application under GDPR? | `info` | All applications (GDPR profiling - Personal data type) |
+| 5d | Application Information & Governance | `data_classification` | `q4` | What is the volume of data subjects (individuals) whose personal data is processed? | `info` | Applications processing personal data (depends on `data_classification:q3`) |
 | 6 | Application Information & Governance | `hosting` | `q1` | What is the delivery and hosting model of the application? | `info` | All applications (Info profiling - Hosting model) |
 | 7 | Application Information & Governance | `hosting` | `q2` | What is the network exposure of the application? | `info` | Self-Hosted only (Custom & COTS - depends on `hosting:q1`) |
 | 7b | Application Information & Governance | `hosting` | `q3` | Is the SaaS vendor certified under ISO/IEC 27001 or SOC 2 Type II? | `info` | SaaS only (depends on `hosting:q1 == SaaS`) |
@@ -222,23 +223,35 @@ Action - None
 #### Node: Data classification (`data_classification`)
 Action - None
 - **Implementation Groups**: `info`
-- **Description**: Classify data handled by the application according to organizational policy, including GDPR personal data category and processing volume.
+- **Description**: Classify data handled by the application through multi-dimensional criteria narrowing down business classification, disclosure harm, and GDPR personal data profiling.
 - **Policy Reference**: See detailed classification standards and examples in [Data Classification Policy & Guidance](file:///home/python/ciso-assistant/docs/data_classification_policy_guide.md).
 
-##### Q5. `data_classification:q1`
+##### Q5a. `data_classification:q1`
 - **URN**: `urn:intuitem:risk:req_node:appsec:data_classification:q1`
-- **Question**: What is the maximum classification level handled? (Public, Internal, Confidential, or Secret according to organizational data classification policy)
+- **Question**: What is the primary operational data category handled by the application?
 - **Type**: `unique_choice`
 - **Choices & Scoring**:
-  - `Public` (Approved for public release; e.g. marketing collateral, press releases, published product descriptions, retail prices, delivery/refund policies)
-  - `Internal` (Workforce operational data; e.g. sales figures, org charts, routine warehouse SOPs, training docs, aggregated volume dashboards)
-  - `Confidential` (Sensitive business/customer data; e.g. customer PII & addresses, order/refund histories, support tickets, supplier purchase prices & margins, unreleased campaign strategies, inventory forecasts)
-  - `Secret` (Critical strategic/regulated assets; e.g. cardholder payment data, bank accounts for refunds, admin/API credentials, bulk PII + purchase history exports, fraud detection evasion rules)
+  - `Public storefront & published brand content (Published product descriptions, size guides, retail prices, delivery/return policies, public marketing collateral)`
+  - `Internal operations, logistics & non-sensitive enterprise workflows (Warehouse operating procedures, staff training materials, aggregated order-volume dashboards, org charts, sales figures)`
+  - `Confidential commercial, supplier & customer operational records (Customer PII/contact details & delivery addresses, customer order/return/refund histories, support tickets, supplier costs/margins, unreleased campaign plans, inventory forecasts)`
+  - `Critical financial, cryptographic secrets, cardholder data & anti-fraud rules (Customer payment-card data / PAN / CVV, refund bank accounts / IBANs, production admin credentials / API secrets / TLS keys, anti-fraud rules & evasion thresholds)`
 - **Applicable Cases / Situations**:
-  - [x] All applications (Info profiling - Confidentiality)
+  - [x] All applications (Data classification refinement - Category)
 
 ##### Q5b. `data_classification:q2`
 - **URN**: `urn:intuitem:risk:req_node:appsec:data_classification:q2`
+- **Question**: What would be the adverse impact severity of unauthorized disclosure or breach of the data handled?
+- **Type**: `unique_choice`
+- **Choices & Scoring**:
+  - `Negligible / None (Data is intended for public consumption; unauthorized disclosure causes zero harm)`
+  - `Minor operational friction (Internal workforce inconvenience, minor productivity delay, no external customer or financial harm)`
+  - `Moderate to severe harm (Damage to customer trust, competitive disadvantage, significant operational disruption, or GDPR regulatory notifications)`
+  - `Catastrophic or existential impact (Systemic payment fraud, loss of merchant processing agreement, severe GDPR/PCI-DSS fines, root cloud account compromise)`
+- **Applicable Cases / Situations**:
+  - [x] All applications (Data classification refinement - Disclosure impact)
+
+##### Q5c. `data_classification:q3`
+- **URN**: `urn:intuitem:risk:req_node:appsec:data_classification:q3`
 - **Question**: What category of personal data is processed by the application under GDPR?
 - **Type**: `unique_choice`
 - **Choices & Scoring**:
@@ -249,11 +262,11 @@ Action - None
 - **Applicable Cases / Situations**:
   - [x] All applications (GDPR profiling - Personal data type)
 
-##### Q5c. `data_classification:q3`
-- **URN**: `urn:intuitem:risk:req_node:appsec:data_classification:q3`
+##### Q5d. `data_classification:q4`
+- **URN**: `urn:intuitem:risk:req_node:appsec:data_classification:q4`
 - **Question**: What is the volume of data subjects (individuals) whose personal data is processed?
 - **Type**: `unique_choice`
-- **Depends On**: `data_classification:q2` (answers: employee contact data, customer contact/order details, or HR/financial/payment data)
+- **Depends On**: `data_classification:q3` (answers: employee contact data, customer contact/order details, or HR/financial/payment data)
 - **Choices & Scoring**:
   - `Low volume (Fewer than 1,000 individuals / data subjects)` (Impact multiplier: `1.0`)
   - `Medium volume (1,000 to 100,000 individuals / data subjects)` (Impact multiplier: `1.0`)

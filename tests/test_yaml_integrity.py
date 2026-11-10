@@ -1361,7 +1361,7 @@ class TestYamlIntegrity(unittest.TestCase):
 
         crit_map = appsec_fw["yaml_data"].get("criticality_mapping", {})
         conf_map = crit_map.get("confidentiality", {})
-        self.assertEqual(len(conf_map), 8, "Expected 8 choices (q1 and q2) in confidentiality criticality mapping")
+        self.assertEqual(len(conf_map), 12, "Expected 12 choices (q1 to q3) in confidentiality criticality mapping")
         self.assertEqual(set(conf_map.values()), {0, 1, 2, 3})
 
     def test_appsec_file_upload_controls(self):
@@ -1711,70 +1711,72 @@ class TestYamlIntegrity(unittest.TestCase):
             fw = next((f for f in self.frameworks if f["ref_id"] == fw_ref), None)
             self.assertIsNotNone(fw, f"{fw_ref} framework missing")
 
-            # 1. Verify data_classification has q1 (classification), q2 (GDPR data category), q3 (GDPR data volume)
+            # 1. Verify data_classification has 5 questions (q1: retail data category, q2: adverse impact, q3: aggregation scope, q4: GDPR category, q5: GDPR volume)
             data_class_node = fw["req_nodes"].get(f"urn:intuitem:risk:req_node:{fw_ref}:data_classification")
             self.assertIsNotNone(data_class_node, f"data_classification missing in {fw_ref}")
             dc_questions = data_class_node.get("questions", {})
-            self.assertEqual(len(dc_questions), 3, f"data_classification must have 3 questions in {fw_ref}")
+            self.assertEqual(len(dc_questions), 4, f"data_classification must have 4 questions in {fw_ref}")
 
             q1_dc = dc_questions.get(f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q1")
             q2_dc = dc_questions.get(f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q2")
             q3_dc = dc_questions.get(f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q3")
+            q4_dc = dc_questions.get(f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q4")
             self.assertIsNotNone(q1_dc, f"q1 missing in data_classification in {fw_ref}")
             self.assertIsNotNone(q2_dc, f"q2 missing in data_classification in {fw_ref}")
             self.assertIsNotNone(q3_dc, f"q3 missing in data_classification in {fw_ref}")
+            self.assertIsNotNone(q4_dc, f"q4 missing in data_classification in {fw_ref}")
 
-            self.assertIn("classification", q1_dc.get("text", "").lower())
-            self.assertIn("gdpr", q2_dc.get("text", "").lower())
-            self.assertIn("personal data", q2_dc.get("text", "").lower())
-            self.assertIn("volume", q3_dc.get("text", "").lower())
+            self.assertIn("category", q1_dc.get("text", "").lower())
+            self.assertIn("impact", q2_dc.get("text", "").lower())
+            self.assertIn("personal data", q3_dc.get("text", "").lower())
+            self.assertIn("volume", q4_dc.get("text", "").lower())
 
-            # Verify q2 choices: green (no personal data), yellow (contact data of employees), orange (contact and order details about customers), red (HR and financial details about employees and customer payment data)
-            q2_choices = {c["urn"]: c for c in q2_dc.get("choices", [])}
-            self.assertEqual(len(q2_choices), 4)
-            c1_q2 = q2_choices[f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q2:c1"]
-            c2_q2 = q2_choices[f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q2:c2"]
-            c3_q2 = q2_choices[f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q2:c3"]
-            c4_q2 = q2_choices[f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q2:c4"]
-
-            self.assertEqual(c1_q2["value"], "No personal data")
-            self.assertEqual(c1_q2["color"], "#33a745")
-            self.assertEqual(c2_q2["value"], "Contact data of employees")
-            self.assertEqual(c2_q2["color"], "#ffc107")
-            self.assertEqual(c3_q2["value"], "Contact and order details about customers")
-            self.assertEqual(c3_q2["color"], "#fd7e14")
-            self.assertEqual(c4_q2["value"], "HR and financial details about employees and customer payment data")
-            self.assertEqual(c4_q2["color"], "#dc3545")
-
-            # Verify q3 choices have impact multipliers (Low: 1.0, Medium: 1.0, High: 1.5)
+            # Verify q3 choices: green (no personal data), yellow (contact data of employees), orange (contact and order details about customers), red (HR and financial details about employees and customer payment data)
             q3_choices = {c["urn"]: c for c in q3_dc.get("choices", [])}
-            self.assertEqual(len(q3_choices), 3)
+            self.assertEqual(len(q3_choices), 4)
             c1_q3 = q3_choices[f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q3:c1"]
             c2_q3 = q3_choices[f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q3:c2"]
             c3_q3 = q3_choices[f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q3:c3"]
-            self.assertEqual(c1_q3.get("multiplier"), 1.0)
-            self.assertEqual(c2_q3.get("multiplier"), 1.0)
-            self.assertEqual(c3_q3.get("multiplier"), 1.5)
+            c4_q3 = q3_choices[f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q3:c4"]
+
+            self.assertEqual(c1_q3["value"], "No personal data")
+            self.assertEqual(c1_q3["color"], "#33a745")
+            self.assertEqual(c2_q3["value"], "Contact data of employees")
+            self.assertEqual(c2_q3["color"], "#ffc107")
+            self.assertEqual(c3_q3["value"], "Contact and order details about customers")
+            self.assertEqual(c3_q3["color"], "#fd7e14")
+            self.assertEqual(c4_q3["value"], "HR and financial details about employees and customer payment data")
+            self.assertEqual(c4_q3["color"], "#dc3545")
+
+            # Verify q4 choices have impact multipliers (Low: 1.0, Medium: 1.0, High: 1.5)
+            q4_choices = {c["urn"]: c for c in q4_dc.get("choices", [])}
+            self.assertEqual(len(q4_choices), 3)
+            c1_q4 = q4_choices[f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q4:c1"]
+            c2_q4 = q4_choices[f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q4:c2"]
+            c3_q4 = q4_choices[f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q4:c3"]
+            self.assertEqual(c1_q4.get("multiplier"), 1.0)
+            self.assertEqual(c2_q4.get("multiplier"), 1.0)
+            self.assertEqual(c3_q4.get("multiplier"), 1.5)
 
             # Verify criticality_mapping has quantity_multiplier
             raw_fw = utils.load_yaml_file(f"YML/{fw_ref}.yml")
             crit_map = raw_fw.get("criticality_mapping", {})
             self.assertIn("quantity_multiplier", crit_map)
             qty_map = crit_map["quantity_multiplier"]
-            self.assertEqual(qty_map.get(f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q3:c1"), 1.0)
-            self.assertEqual(qty_map.get(f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q3:c2"), 1.0)
-            self.assertEqual(qty_map.get(f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q3:c3"), 1.5)
+            self.assertEqual(qty_map.get(f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q4:c1"), 1.0)
+            self.assertEqual(qty_map.get(f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q4:c2"), 1.0)
+            self.assertEqual(qty_map.get(f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q4:c3"), 1.5)
 
-            # q3 depends on q2 being employees (c2), details about employees/customers (c3), or sensitive data (c4)
-            dep_q3 = q3_dc.get("depends_on")
-            self.assertIsNotNone(dep_q3, f"data_classification:q3 must depend on q2 in {fw_ref}")
-            self.assertEqual(dep_q3.get("question"), f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q2")
+            # q4 depends on q3 being employees (c2), details about employees/customers (c3), or sensitive data (c4)
+            dep_q4 = q4_dc.get("depends_on")
+            self.assertIsNotNone(dep_q4, f"data_classification:q4 must depend on q3 in {fw_ref}")
+            self.assertEqual(dep_q4.get("question"), f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q3")
             self.assertEqual(
-                sorted(dep_q3.get("answers", [])),
+                sorted(dep_q4.get("answers", [])),
                 sorted([
-                    f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q2:c2",
-                    f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q2:c3",
-                    f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q2:c4",
+                    f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q3:c2",
+                    f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q3:c3",
+                    f"urn:intuitem:risk:req_node:{fw_ref}:data_classification:q3:c4",
                 ]),
             )
 

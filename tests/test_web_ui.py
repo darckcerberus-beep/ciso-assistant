@@ -13,6 +13,7 @@ Tests cover:
 
 import io
 import json
+from pathlib import Path
 import threading
 import time
 import unittest
@@ -803,6 +804,60 @@ class TestWebUI(unittest.TestCase):
                 break
         self.assertEqual(task["status"], "completed")
         mock_import.assert_called_once()
+
+    def test_framework_snapshots_list_endpoint(self):
+        """Test GET /api/framework-snapshots returns list of framework snapshots."""
+        mock_snaps = [
+            {"filename": "framework_appsec_v35.json", "type": "framework_snapshot", "details": {"framework_version": 35}},
+            {"filename": "workspace_snap.json", "type": "workspace_snapshot"},
+        ]
+        with patch("classes.examples_manager.ExamplesManager.list_backups", return_value=mock_snaps):
+            response = self.client.get("/api/framework-snapshots")
+            self.assertEqual(response.status_code, 200)
+            data = response.get_json()
+            self.assertEqual(len(data), 1)
+            self.assertEqual(data[0]["filename"], "framework_appsec_v35.json")
+
+    def test_framework_snapshot_create_endpoint(self):
+        """Test POST /api/framework-snapshots/create initiates background task."""
+        mock_stat = {"filename": "snap.json", "size_formatted": "10 KB", "sha256": "abc"}
+        with patch("classes.examples_manager.ExamplesManager.create_framework_snapshot", return_value=Path("/tmp/snap.json")), \
+             patch("classes.examples_manager.ExamplesManager.inspect_backup", return_value=mock_stat):
+            response = self.client.post(
+                "/api/framework-snapshots/create",
+                data=json.dumps({"framework_id": "appsec", "notes": "Test"}),
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 200)
+            data = response.get_json()
+            self.assertIn("task_id", data)
+            task_id = data["task_id"]
+            for _ in range(100):
+                time.sleep(0.02)
+                task = TASK_MANAGER.get_task(task_id)
+                if task and task["status"] in ("completed", "failed"):
+                    break
+            self.assertEqual(task["status"], "completed")
+
+    def test_framework_snapshot_diff_endpoint(self):
+        """Test POST /api/framework-snapshots/diff returns comparison results."""
+        mock_diff = {
+            "source_a": "snap_a.json",
+            "source_b": "live",
+            "version_transition": "v35 -> v35",
+            "has_differences": False,
+        }
+        with patch("pathlib.Path.exists", return_value=True), \
+             patch("classes.examples_manager.ExamplesManager.diff_framework_snapshots", return_value=mock_diff):
+            response = self.client.post(
+                "/api/framework-snapshots/diff",
+                data=json.dumps({"snapshot_a": "snap_a.json", "snapshot_b": "live"}),
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 200)
+            data = response.get_json()
+            self.assertEqual(data["version_transition"], "v35 -> v35")
+            self.assertFalse(data["has_differences"])
 
 
 if __name__ == "__main__":

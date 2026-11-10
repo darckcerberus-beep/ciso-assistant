@@ -963,6 +963,116 @@ Synchronized all 15 application profiles in `test_data/` with answers and observ
 - `python3 -m unittest tests/test_web_ui.py`: **24/24 passed in 33.28s**.
 - Full test suite run (`python3 -m unittest discover tests`): **281 tests ran, 281 passed, 0 failures, 0 errors, 22 skipped in 114.36s**.
 
+---
+
+## 44. Multi-Question Data Classification Refinement (AppSec Framework)
+
+### 1. Requirements & Problem Statement
+- **Problem**: Previously, AppSec asked the data classification tier directly via a single question (`data_classification:q1`: *"What is the maximum classification level handled? -> Public, Internal, Confidential, Secret"*). This relied heavily on subjective respondent interpretation and often led to misclassifications or under-reporting of risk.
+- **Requirement**: Replace the direct single-question prompt with multiple objective questions that narrow down the actual classification level systematically.
+- **Scope**:
+  - Incorporate realistic online-retail operational data categories.
+  - Implement a cumulative / matrix-based derivation model combining data category, adverse disclosure impact severity, aggregation scope escalation, and GDPR personal data / volume profiling.
+  - Synchronize both [`YML/appsec.yml`](file:///home/python/ciso-assistant/YML/appsec.yml) (dynamic variant, version bumped to 36) and [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml) (manual IG variant, version bumped to 18).
+
+### 2. Multi-Question Questionnaire Structure (`data_classification`)
+Requirement node `data_classification` in Chapter 1 (`info`) now comprises 4 structured questions (with the aggregation question removed for streamlined usability):
+1. **`q1`: Primary Retail & Operational Data Category**:
+   - `c1` — Public storefront & published brand content (Product descriptions, size guides, retail prices, delivery/return policies, public marketing collateral).
+   - `c2` — Internal operations, logistics & non-sensitive enterprise workflows (Warehouse operating procedures, staff training materials, aggregated order-volume dashboards, org charts, sales figures).
+   - `c3` — Confidential commercial, supplier & customer operational records (Customer PII/contact details & delivery addresses, customer order/return/refund histories, support tickets, supplier costs/margins, unreleased campaign plans, inventory forecasts).
+   - `c4` — Critical financial, cryptographic secrets, cardholder data & anti-fraud rules (Customer payment-card data / PAN / CVV, refund bank accounts / IBANs, production admin credentials / API secrets / TLS keys, anti-fraud rules & evasion thresholds).
+2. **`q2`: Adverse Impact Severity of Unauthorized Disclosure**:
+   - `c1` — Negligible / None (Data intended for public release; zero business or regulatory harm).
+   - `c2` — Minor operational friction (Internal workforce inconvenience, minor productivity delay, no external customer or financial harm).
+   - `c3` — Moderate to severe harm (Damage to customer trust, competitive disadvantage, significant operational disruption, or GDPR regulatory notifications).
+   - `c4` — Catastrophic or existential impact (Systemic payment fraud, loss of merchant processing agreement, severe GDPR/PCI-DSS fines, root cloud account compromise).
+3. **`q3`: GDPR Personal Data Category**:
+   - `c1` — No personal data processed.
+   - `c2` — Contact data of employees (Workforce directories, internal emails).
+   - `c3` — Contact and order details about customers (E-commerce buyers, delivery addresses, customer order histories).
+   - `c4` — HR and financial details about employees and customer payment data (Payroll, banking details, cardholder data).
+4. **`q4`: GDPR Data Subject Volume / Scale** (Conditional on `q3` being personal data):
+   - `c1` — Low volume (< 1,000 individuals; multiplier 1.0x).
+   - `c2` — Medium volume (1,000 to 100,000 individuals; multiplier 1.0x).
+   - `c3` — High volume / Large-scale processing (> 100,000 individuals; multiplier 1.5x).
+
+### 3. Cumulative / Matrix Scoring Engine
+Implemented in [`classes/audits/compliance.py`](file:///home/python/ciso-assistant/classes/audits/compliance.py) via `derive_confidentiality_impact`:
+1. **Base 2D Matrix ($D \times I$)**:
+   $$\text{Base Score} = \text{Matrix}[D][I]$$
+   - $D=0$ (Public): $[0, 0, 1, 2]$
+   - $D=1$ (Internal): $[0, 1, 2, 3]$
+   - $D=2$ (Confidential): $[1, 2, 2, 3]$
+   - $D=3$ (Critical / Secret): $[2, 2, 3, 3]$
+2. **GDPR Volume Scaling**:
+   $$I_{gdpr} = \min(4, \text{round}((G + 1) \times M_{qty})) - 1 \quad \text{if } G > 0 \text{ else } 0$$
+3. **Overall Confidentiality & Risk Scenario Impact**:
+   $$\text{Confidentiality Score} = \max(\text{Base Score}, I_{gdpr}) \in \{0, 1, 2, 3\}$$
+   $$\text{Risk Scenario Impact} = \text{Confidentiality Score} + 1 \in \{1, 2, 3, 4\}$$
+   (Fully backward-compatible with legacy frameworks lacking `q2`).
+
+### 4. Updates to Test Data Profiles
+All 15 application profiles in [`test_data/`](file:///home/python/ciso-assistant/test_data/) updated to replace legacy direct classification questions with answers for `q1`, `q2`, `q3`, `q4`:
+- `app_appsec_custom_internal.yml`, `app_manual_custom_internal.yml`, `app_appsec_vulnerable_legacy.yml` $\rightarrow$ Internal ($D=1, I=1 \Rightarrow 1$).
+- `app_appsec_cots_internal.yml`, `app_manual_cots_internal.yml`, `app_appsec_cots_internet.yml`, `app_manual_cots_internet.yml`, `app_appsec_hybrid_saas.yml`, `app_appsec_saas_certified.yml`, `app_manual_saas_certified.yml` $\rightarrow$ Confidential ($D=2, I=2 \Rightarrow 2$).
+- `app_appsec_custom_internet.yml`, `app_manual_custom_internet.yml`, `app_appsec_saas_uncertified.yml`, `app_manual_saas_uncertified.yml`, `app_appsec_secure_api.yml` $\rightarrow$ Secret ($D=3, I=3 \Rightarrow 3$).
+
+---
+
+## 44. Framework Version & Questionnaire Answers Backup & Restoration Solution
+
+### 1. Context & Motivation
+- Live compliance assessments in CISO Assistant (e.g. `App-Audit-Demo-ThibaultR`, `Adobe Campaign`, `Ravelin`, `PIM`, `Stripe`) contain real respondent answers, compliance results (`compliant`, `partially_compliant`, etc.), and detailed auditor observations.
+- Updating a framework (e.g. updating `appsec` from version 35 to 36 via `/api/loaded-libraries/{id}/update/`) modifies requirement nodes, question schemas, and choice URNs.
+- To prevent answer loss or orphaning during framework upgrades, developed an end-to-end framework version and questionnaire answers backup, restoration, and diffing solution.
+
+### 2. Core Architecture & Capabilities
+- **Pre-Update Framework & Answers Snapshot**:
+  - Exports framework metadata, library version, requirement nodes catalog, and question definitions.
+  - Captures all compliance assessment requirement assessments with raw answers, compliance status, results, observations, scores, and applied control links.
+  - Enriches answers with human-readable question text and choice values alongside machine URNs.
+  - Computes SHA-256 integrity hash and stores structured JSON under `backups/framework_snapshots/`.
+- **Intelligent Semantic Question & Choice Remapping**:
+  - Matches questions by exact URN when unchanged.
+  - Matches re-indexed, renamed, or rephrased questions via text similarity and keyword overlap across framework versions.
+  - Resolves choice URNs by choice label text when choice IDs shift between library versions.
+  - Safely handles deprecated questions while preserving audit observations and results.
+  - Supports dry-run simulation mode (`--dry-run`) to preview updates before making API calls.
+- **Framework Diffing & Version Audit**:
+  - Compares two snapshot files or compares a snapshot against live CISO Assistant state.
+  - Identifies library version transitions (`v35 -> v36`), added/removed requirements, added/removed/reworded questions, and application answer drift.
+- **Backup Discovery & Verification**:
+  - Updates `BackupManager.list_backups()` and `inspect_backup()` to recognize framework snapshots with version metadata, audit counts, and answer statistics.
+
+### 3. Implementation Details
+- [`classes/integrations/backup.py`](file:///home/python/ciso-assistant/classes/integrations/backup.py):
+  - Implemented `create_framework_snapshot()`, `restore_framework_snapshot()`, and `diff_framework_snapshots()`.
+  - Updated `list_backups()` to scan `backups/` and `backups/framework_snapshots/` subdirectories.
+  - Updated `inspect_backup()` to extract framework metadata, library version, notes, and assessment breakdowns.
+- [`classes/examples_manager.py`](file:///home/python/ciso-assistant/classes/examples_manager.py):
+  - Added convenience methods `create_framework_snapshot()`, `restore_framework_snapshot()`, and `diff_framework_snapshots()`.
+- [`manage_framework_snapshots.py`](file:///home/python/ciso-assistant/manage_framework_snapshots.py):
+  - Standalone CLI supporting `snapshot`, `list`, `inspect`, `restore`, and `diff` subcommands.
+- [`main.py`](file:///home/python/ciso-assistant/main.py):
+  - Updated Backup & Restore submenu (Option 9) with options to create framework snapshots, restore answers with dry run, and diff snapshots.
+  - Added CLI flags: `--backup framework`, `--notes`, `--diff-snapshots`, `--dry-run`.
+- [`web/app.py`](file:///home/python/ciso-assistant/web/app.py):
+  - Added REST API endpoints: `GET /api/framework-snapshots`, `POST /api/framework-snapshots/create`, `POST /api/framework-snapshots/restore`, `POST /api/framework-snapshots/diff`.
+  - Updated `/api/backups/create` and `/api/backups/restore` to handle `framework_snapshot` types.
+- [`docs/framework_snapshots_guide.md`](file:///home/python/ciso-assistant/docs/framework_snapshots_guide.md):
+  - Complete guide with schema overview, workflow steps, CLI cheat sheet, SDK reference, and REST API documentation.
+
+### 4. Verification & Testing
+- Live Verification: Successfully took live snapshot of `appsec` v35 (`framework_appsec_v35_20261110_150115.json`, 399 KB, 80 answers across 5 assessments) on `https://ciso-assistant.siege.red`.
+- Tested snapshot inspection, live diffing (`v35 -> v35`, 0 diffs), and dry-run restoration.
+- Unit Tests:
+  - [`tests/test_backup.py`](file:///home/python/ciso-assistant/tests/test_backup.py): 21 tests covering snapshot creation, exact match restoration, cross-version semantic remapping, dry run, error handling, diffing, and manager delegates.
+  - [`tests/test_web_ui.py`](file:///home/python/ciso-assistant/tests/test_web_ui.py): Added tests for `/api/framework-snapshots` listing, creation, and diffing.
+  - Full test suite: **293 tests passing in 118s (0 failures, 0 errors, OK)**.
+
+
+
 
 
 
