@@ -29,8 +29,8 @@ description: >
   Supports both internally managed applications and SaaS solutions whose security controls
   are defined with a contract and certified via third-party audit reports (SOC 2, ISO 27001).
 copyright: DCME Corp
-version: 36
-publication_date: 2026-11-10
+version: 37
+publication_date: 2026-11-11
 provider: DCME Corp
 packager: DCME Corp
 common_objects_file: "YML/appsec_objects.yml"
@@ -447,30 +447,73 @@ objects:
                 select_implementation_groups: ["saas_uncertified"]
                 color: "#fd7e14"
 
-      # === SPLASH SCREEN: TECHNICAL SECURITY ASSESSMENT TRANSITION ===
+      # === SPLASH SCREEN: TRIGGERED IMPLEMENTATION TRACKS & DESIGNATED RESPONDENTS ===
       - urn: urn:intuitem:risk:req_node:appsec:baseline_splash
         assessable: false
         display_mode: splash
         depth: 1
         ref_id: baseline_splash
-        name: "Technical Security Assessment - Overview"
+        name: "Triggered Implementation Tracks & Designated Respondents"
         description: |
-          ### Baseline Profiling Complete: Technical Security Assessment
+          ### Baseline Profiling Complete: Triggered Implementation Tracks
 
-          You have completed the baseline profiling questions covering application ownership, data classification, hosting model, and network exposure.
+          You have completed the foundational profiling questions in **Chapter 1** covering application ownership, data classification, hosting model, and network exposure.
 
-          The following chapters evaluate the **technical cybersecurity controls** applicable to your application. Based on your profiling answers, subsequent sections are dynamically tailored:
-          - **Identity, Authentication & Access Control:** Federated SSO, Multi-Factor Authentication (MFA), and role-based permissions.
-          - **Application Architecture & Defenses:** Secure design patterns, input validation, output encoding, or third-party vendor assurance depending on your delivery track (Custom in-house, Bought COTS, or SaaS).
-          - **Secrets & Infrastructure Security:** Hardening baselines, secret management, and encryption at rest and in transit.
-          - **Perimeter & Edge Defenses:** If your application is exposed to the public Internet, relevant edge protections (WAF, anti-DDoS, and penetration testing) will be evaluated.
-          - **Resilience & Governance:** Audit logging, data protection, and incident response readiness.
+          Based on your profiling answers, specific **Implementation Groups (Tracks)** have been dynamically activated for this assessment. Each track focuses on a specialized domain of technical and operational security controls.
 
-          > **Note:** Only the technical requirements relevant to your application's delivery track and network exposure tier will be in scope.
+          ---
 
-          Please proceed to the next section to begin the technical evaluation.
+          ### 🎯 Implementation Groups (Tracks) Triggered by Your Answers
+
+          | Implementation Track | Trigger Condition | Technical Scope in Audit |
+          | :--- | :--- | :--- |
+          | **Application Security Baseline (`baseline`)** | **Always Active** (All Applications) | Universal Identity & Access Management: Centralized SSO federation, administrative Multi-Factor Authentication (MFA), and Role-Based Access Control (RBAC). |
+          | **Custom Software Track (`custom_app`)** | Triggered if **Custom in-house software** | Code-level session management, input validation, output encoding, debug suppression, secure SDLC, automated CI/CD security pipelines (SAST, DAST, SCA dependency scanning, and SBOM). |
+          | **Bought Software Track (`cots_app`)** | Triggered if **Bought software (COTS package)** | Deployment configuration hardening baselines, vendor security patch management SLAs, vulnerability tracking, and vendor support contracts. |
+          | **Infrastructure & Hosting Track (`infra`)** | Triggered if **Self-hosted** (Custom or COTS) | Server and hosting security: secrets vault management, encryption at rest and in transit, centralized SIEM audit logging, OS patching, and backup & disaster recovery resilience. |
+          | **SaaS Application Track (`saas_app`)** | Triggered if **Third-party SaaS** | SaaS governance and contractual security exhibits: Master SaaS Agreement (MSA), encryption, tenant isolation, admin MFA, EU data residency, audit rights (SOC 2 / ISO 27001), and 48-hour incident SLAs. |
+          | **Uncertified SaaS Vendor Track (`saas_uncertified`)** | Triggered if **SaaS vendor is NOT ISO 27001 / SOC 2 certified** | Detailed vendor operational assessment: ISMS, security awareness, workstation security, network isolation, secure SDLC, independent penetration testing, and subcontractor governance. |
+          | **Internet-Facing Track (`internet_facing`)** | Triggered if **Internet-facing** (Self-hosted) | Perimeter and edge defenses: Edge Web Application Firewall (WAF, e.g. Cloudflare, AWS WAF), anti-DDoS mitigation, automated API rate limiting/bot protection, and external penetration testing. |
+
+          ---
+
+          ### 👥 Who Will Be the Best People to Answer Each Track?
+
+          Technical security questions require direct operational and architectural knowledge. **Who should answer the upcoming sections?**
+
+          Please review the recommended respondent profiles below:
+          - 🛠️ **Custom Software Track (`custom_app`)**:
+            - **Best People:** **Lead Software Engineer**, **Application Architect**, **DevSecOps Engineer**, or **Senior Developer**.
+            - *Why:* Requires hands-on knowledge of source code architecture, CI/CD pipeline configs, automated scanners (SAST/DAST/SCA), and branch protection rules.
+          - 📦 **Bought Software Track (`cots_app`)**:
+            - **Best People:** **System Administrator**, **Application Custodian**, **IT Operations Lead**, or **Software Procurement Manager**.
+            - *Why:* Requires knowledge of vendor patch deployment SLAs, package deployment hardening, and vendor support agreements.
+          - ☁️ **Infrastructure & Hosting Track (`infra`)**:
+            - **Best People:** **Cloud / DevOps Engineer**, **Infrastructure Engineer**, **Hosting Administrator**, or **Database Administrator (DBA)**.
+            - *Why:* Requires knowledge of server OS hardening, KMS/vault secrets management, TLS certificates, SIEM log forwarding, and disaster recovery procedures.
+          - 🏢 **SaaS Application Track (`saas_app`)**:
+            - **Best People:** **SaaS Application Administrator**, **Vendor Risk Manager**, **IT Procurement / Legal Contact**, or **Business Application Owner**.
+            - *Why:* Requires access to the executed Master Services Agreement (MSA), Data Processing Agreement (DPA), vendor SOC 2 / ISO reports, and tenant administration settings.
+          - 🔍 **Uncertified SaaS Vendor Track (`saas_uncertified`)**:
+            - **Best People:** **Vendor Security Officer / CISO**, **Vendor Compliance Manager**, or **Internal IT Security Auditor**.
+            - *Why:* Requires deep operational security evidence directly from the third-party SaaS provider.
+          - 🌐 **Internet-Facing Track (`internet_facing`)**:
+            - **Best People:** **Network Security Engineer**, **Cloud Edge / WAF Administrator (e.g. Cloudflare, AWS WAF)**, or **Security Operations Center (SOC)**.
+            - *Why:* Requires knowledge of edge reverse proxy rules, DDoS mitigation thresholds, API gateway rate limiting, and external penetration test findings.
+          - 🔑 **Application Security Baseline (`baseline`)**:
+            - **Best People:** **Identity & Access Management (IAM) Administrator**, **System Owner**, or **IT Security Lead**.
+            - *Why:* Evaluates enterprise identity federation (SAML/OIDC), MFA enforcement, and access governance.
+
+          ---
+
+          ### 📋 Action Required: How to Proceed
+
+          > [!IMPORTANT]
+          > **Are you the best person to answer all triggered tracks?**
+          > - **If YES:** Click **Next** to proceed and complete the technical assessment chapters.
+          > - **If NO (or only for some tracks):** You can complete the sections you are familiar with, and coordinate with your **CISO / Security Team** or audit administrator to assign specific tracks to the designated specialists listed above. CISO Assistant supports multi-step respondent assignment so different team members can answer their respective sections.
         annotation: >
-          Generic transition splash screen concluding the baseline profiling phase and introducing upcoming technical security questions across dynamically triggered implementation groups.
+          Transition splash screen presenting dynamically triggered implementation groups based on Chapter 1 profiling (Custom, COTS, Infrastructure, SaaS, Internet-Facing) and providing explicit guidance on designated respondent roles and delegation workflows.
         implementation_groups: ["info", "baseline"]
 
       # === CHAPTER 2: IDENTITY, AUTHENTICATION & ACCESS CONTROL ===

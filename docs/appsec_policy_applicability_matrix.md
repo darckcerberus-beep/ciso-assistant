@@ -92,7 +92,7 @@ Within active requirement nodes, questions are dynamically conditioned using int
   - `q1`: Discriminates between Custom (In-house), Bought (COTS), and SaaS. Selecting SaaS automatically triggers `saas_app` and `baseline` (bypassing the self-hosted `internet_facing` track).
   - `q2`: For self-hosted applications (`depends_on: q1 in [Custom, COTS]`), identifies whether the app is restricted to internal corporate networks or exposed to the public Internet (triggers `internet_facing` track for self-hosted apps; hidden for SaaS).
   - `q3`: For SaaS applications (`depends_on: q1 == SaaS`), asks whether the SaaS vendor holds an active ISO/IEC 27001 certification or SOC 2 Type II report; answering `No` triggers the `saas_uncertified` track for detailed vendor security assessment.
-- **`baseline_splash`**: Generic transition splash screen concluding baseline profiling and introducing technical security questions across dynamically triggered implementation groups.
+- **`baseline_splash`**: Transition screen presenting triggered Implementation Groups (tracks) based on Chapter 1 profiling and providing explicit guidance on who are the best qualified people/roles to answer each technical track.
 
 ### Chapter 2: Identity, Authentication & Access Control (IAM)
 - **`authentication_and_mfa`** (`baseline` - All applications):
@@ -219,7 +219,7 @@ The table below defines the exact applicability criteria for every requirement a
 | **1. Profile** | `hosting` (q1) | Delivery & Hosting Model | `info` | All | All | All | Activates `baseline` + delivery tracks (`custom_app`/`cots_app` + `infra`, or `saas_app`) |
 | **1. Profile** | `hosting` (q2) | Application Network Exposure | `info` | Custom, COTS | All | All | `q1 in [Custom, COTS]`; Triggers `internet_facing` track for self-hosted apps; hidden for SaaS |
 | **1. Profile** | `hosting` (q3) | SaaS Vendor ISO 27001 / SOC 2 Type II Certification | `info` | SaaS | All | All | `q1 == SaaS`; Answering `No` triggers `saas_uncertified` track |
-| **1. Splash** | `baseline_splash` | Technical Assessment Transition | `info`, `baseline` | All | All | All | Generic transition introducing technical questions |
+| **1. Splash** | `baseline_splash` | Triggered Implementation Tracks & Designated Respondents | `info`, `baseline` | All | All | All | Presents triggered IGs and guidance on best people to answer |
 | **2. IAM** | `authentication_and_mfa` (q1) | Authentication Mode (SSO vs Direct) | `baseline` | **All (Custom, COTS, SaaS)** | All | All | None |
 | **2. IAM** | `authentication_and_mfa` (q2) | Password Policy & Lockout | `baseline` | **All (Custom, COTS, SaaS)** | All | All | `q1 == Direct Authentication` |
 | **2. IAM** | `authentication_and_mfa` (q3) | Admin MFA Enforcement | `baseline` | **All (Custom, COTS, SaaS)** | All | All | `q1 == Direct Authentication` |
