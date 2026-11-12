@@ -95,6 +95,21 @@ answers:
   answer: Internal / Restricted Network only
   result: compliant
   observation: Restricted internal corporate LAN / VPN access only.
+- requirement: hosting
+  question: Can you answer the Application Security Baseline track (SSO federation, administrative MFA, and Role-Based Access Control [RBAC]), or does somebody else have to?
+  answer: I can answer this track
+  result: compliant
+  observation: Initial respondent can answer enterprise SSO and baseline IAM controls.
+- requirement: hosting
+  question: Can you answer the Custom Software Track (code-level session management, input validation, output encoding, debug suppression, and CI/CD SAST/DAST/SCA pipelines), or does somebody else have to?
+  answer: I can answer this track
+  result: compliant
+  observation: Initial respondent is application development lead for internal operations software.
+- requirement: hosting
+  question: Can you answer the Infrastructure & Hosting Security Track (secrets vault management, encryption at rest/transit, SIEM logging, backup & DR, and host OS patching), or does somebody else have to?
+  answer: I can answer this track
+  result: compliant
+  observation: Application owner and infrastructure custodian can answer self-hosted infrastructure and OS security controls.
 - requirement: authentication_and_mfa
   question: How do users authenticate to the application?
   answer: Enterprise SSO exclusively (SAML 2.0 / OIDC federated IdP, with no local accounts)

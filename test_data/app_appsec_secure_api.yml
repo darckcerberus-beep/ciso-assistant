@@ -108,6 +108,18 @@ answers:
     result: "compliant"
     observation: "Vendor holds active ISO/IEC 27001:2022 certification and annual SOC 2 Type II report."
 
+  - requirement: "hosting"
+    question: "Can you answer the Application Security Baseline track (SSO federation, administrative MFA, and Role-Based Access Control [RBAC]), or does somebody else have to?"
+    answer: "I can answer this track"
+    result: "compliant"
+    observation: "Initial respondent can answer enterprise SSO and baseline IAM controls."
+
+  - requirement: "hosting"
+    question: "Can you answer the SaaS Application Track (Master SaaS Agreement, confidentiality & encryption clauses, tenant admin MFA, EU data residency, audit rights, and non-conformity remedies), or does somebody else have to?"
+    answer: "I can answer this track"
+    result: "compliant"
+    observation: "Vendor risk manager and procurement contact can answer core SaaS contractual and governance controls."
+
   # ============================================================================
   # CHAPTER 2: IDENTITY, AUTHENTICATION & ACCESS CONTROL (IG: baseline)
   # ============================================================================

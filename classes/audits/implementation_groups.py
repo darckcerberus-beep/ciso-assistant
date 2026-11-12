@@ -1,6 +1,7 @@
 """Shared helpers for framework implementation groups."""
 
 from pathlib import Path
+import re
 from typing import Any
 
 from .. import utils
@@ -360,10 +361,35 @@ def determine_implementation_groups_triggered_by_others(
     if not defs or not isinstance(defs, list):
         defs = []
 
-    # Build lookups for canonical group matching
+    # Build lookups for canonical group matching and delegate question mappings
     name_map: dict[str, str] = {}
     ref_map: dict[str, str] = {}
     defs_by_canonical: dict[str, dict[str, Any]] = {}
+    delegate_q_to_canonical: dict[str, str] = {}
+
+    def _register_delegate_spec(spec: Any, canonical_name: str) -> None:
+        if not spec or not canonical_name:
+            return
+        if isinstance(spec, (list, tuple, set)):
+            for s in spec:
+                _register_delegate_spec(s, canonical_name)
+            return
+        if isinstance(spec, dict):
+            for k in ("question_urn", "question_ref_id", "question", "urn", "ref_id", "answer", "key", "target"):
+                if spec.get(k):
+                    _register_delegate_spec(spec[k], canonical_name)
+            return
+        s_val = str(spec).strip()
+        if not s_val:
+            return
+        s_lower = s_val.lower()
+        delegate_q_to_canonical[s_lower] = canonical_name
+        delegate_q_to_canonical[s_val] = canonical_name
+        if ":" in s_val:
+            parts = s_val.split(":")
+            delegate_q_to_canonical[parts[-1].lower()] = canonical_name
+            if len(parts) >= 2:
+                delegate_q_to_canonical[f"{parts[-2]}:{parts[-1]}".lower()] = canonical_name
 
     for item in defs:
         if not isinstance(item, dict):
@@ -378,6 +404,22 @@ def determine_implementation_groups_triggered_by_others(
                 name_map[key.lower()] = c_name
                 if r_id:
                     ref_map[key.lower()] = r_id
+
+        # Framework-defined delegate question: specifies which answer will contain who can answer
+        del_spec = (
+            item.get("delegate_answer")
+            or item.get("delegate_question")
+            or item.get("suggested_assignee_answer")
+            or item.get("suggested_assignee_question")
+            or item.get("suggested_assignee")
+            or item.get("assignee_answer")
+            or item.get("assignee_question")
+            or item.get("delegate_question_urn")
+            or item.get("delegate_question_ref_id")
+            or item.get("delegate")
+        )
+        if del_spec:
+            _register_delegate_spec(del_spec, c_name)
 
     def _canonical(val: Any) -> str:
         s = str(val or "").strip()
@@ -570,7 +612,87 @@ def determine_implementation_groups_triggered_by_others(
 
     # Determine which groups have actually been triggered or are candidate triggers
     triggered_canonical_set: set[str] = set()
+    ciso_assistant_triggered_groups: set[str] = set()
+    ciso_assistant_triggered_ref_ids: set[str] = set()
     candidate_dependencies: list[dict[str, Any]] = []
+    delegate_answers: dict[str, str] = {}
+
+    def _clean_answer_text(ans_val: Any) -> str:
+        if ans_val is None:
+            return ""
+        if isinstance(ans_val, str):
+            return ans_val.strip()
+        if isinstance(ans_val, dict):
+            for k in ("text", "answer", "value", "choices"):
+                v = ans_val.get(k)
+                if v is not None:
+                    txt = _clean_answer_text(v)
+                    if txt:
+                        return txt
+            return ""
+        if isinstance(ans_val, (list, tuple)):
+            cleaned = [_clean_answer_text(x) for x in ans_val if x is not None]
+            return ", ".join(c for c in cleaned if c)
+        return str(ans_val).strip()
+
+    def _find_group_for_delegate_question(req_ref: str, q_key: str) -> str | None:
+        q_str = str(q_key or "").strip()
+        q_lower = q_str.lower()
+        req_lower = str(req_ref or "").strip().lower()
+
+        # 1. Direct question match from framework IG definition (delegate_answer / suggested_assignee_answer)
+        if q_lower in delegate_q_to_canonical:
+            return delegate_q_to_canonical[q_lower]
+        if q_str in delegate_q_to_canonical:
+            return delegate_q_to_canonical[q_str]
+
+        # 2. Combined req_ref:q_key match from framework IG definition
+        if req_lower and q_lower:
+            comb = f"{req_lower}:{q_lower}"
+            if comb in delegate_q_to_canonical:
+                return delegate_q_to_canonical[comb]
+
+        # 3. URN suffix match
+        if ":" in q_str:
+            parts = q_str.split(":")
+            if parts[-1].lower() in delegate_q_to_canonical:
+                return delegate_q_to_canonical[parts[-1].lower()]
+            if len(parts) >= 2:
+                comb_last = f"{parts[-2]}:{parts[-1]}".lower()
+                if comb_last in delegate_q_to_canonical:
+                    return delegate_q_to_canonical[comb_last]
+
+        # 4. Framework-independent fallback: match question key against any defined group's ref_id or name
+        for can_name, def_item in defs_by_canonical.items():
+            r_id = str(def_item.get("ref_id") or "").strip().lower()
+            c_low = can_name.lower()
+            if r_id and (
+                f"{r_id}_delegate" in q_lower
+                or f"{r_id}_assignee" in q_lower
+                or f"{r_id}:delegate" in q_lower
+                or f"{r_id}:assignee" in q_lower
+                or (r_id in q_lower and ("delegate" in q_lower or "assignee" in q_lower or "who can answer" in q_lower))
+            ):
+                return can_name
+            if c_low and ("delegate" in q_lower or "assignee" in q_lower or "who can answer" in q_lower) and c_low in q_lower:
+                return can_name
+
+        return None
+
+    def _record_delegate_answer(req_ref: str, q_key: str, ans_val: Any) -> None:
+        if ans_val is None:
+            return
+        ans_text = _clean_answer_text(ans_val)
+        if not ans_text:
+            return
+        target_group = _find_group_for_delegate_question(req_ref, q_key)
+        if target_group:
+            tg_can = _canonical(target_group)
+            delegate_answers[tg_can] = ans_text
+            delegate_answers[target_group] = ans_text
+            r_id = ref_map.get(tg_can.lower()) or ref_map.get(str(target_group).lower())
+            if r_id:
+                delegate_answers[r_id] = ans_text
 
     def _record_dep_match(dep_entry: dict[str, Any]) -> None:
         tg = dep_entry.get("target_implementation_group")
@@ -579,6 +701,21 @@ def determine_implementation_groups_triggered_by_others(
         tg_can = _canonical(tg)
         dep_rec = dict(dep_entry)
         dep_rec["canonical_group_name"] = tg_can
+        del_contact = (
+            delegate_answers.get(tg)
+            or delegate_answers.get(tg_can)
+            or delegate_answers.get(ref_map.get(str(tg).lower(), ""))
+        )
+        if del_contact:
+            dep_rec["delegate"] = del_contact
+            dep_rec["delegate_contact"] = del_contact
+            dep_rec["suggested_assignee"] = del_contact
+            dep_rec["suggestion"] = del_contact
+            dep_rec["suggested_delegate"] = del_contact
+            dep_rec["delegate_suggestion"] = del_contact
+            is_email = bool(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", str(del_contact).strip()))
+            dep_rec["is_directly_assignable"] = is_email
+            dep_rec["suggestion_type"] = "user_email" if is_email else "team_or_role"
         if not any(
             d.get("target_implementation_group") == tg and d.get("choice_urn") == dep_entry.get("choice_urn")
             for d in candidate_dependencies
@@ -603,6 +740,9 @@ def determine_implementation_groups_triggered_by_others(
                 req_ref = str(row.get("requirement", "")).strip().lower()
                 q_key = row.get("question", "")
                 ans_val = row.get("answer")
+                if ans_val is None:
+                    ans_val = row.get("text") or row.get("choices")
+                _record_delegate_answer(req_ref, q_key, ans_val)
                 node = nodes_by_ref.get(req_ref) or nodes_by_urn.get(req_ref)
                 matched_c = None
                 if node:
@@ -612,7 +752,10 @@ def determine_implementation_groups_triggered_by_others(
                             matched_c = c
                             for grp in c.get("select_implementation_groups", []) or []:
                                 if grp:
-                                    triggered_canonical_set.add(_canonical(grp))
+                                    can_g = _canonical(grp)
+                                    triggered_canonical_set.add(can_g)
+                                    ciso_assistant_triggered_groups.add(can_g)
+                                    ciso_assistant_triggered_ref_ids.add(ref_map.get(str(grp).lower(), str(grp)))
                 for dep in ig_dependencies:
                     if _check_dep_match(dep, req_ref, q_key, ans_val, matched_choice=matched_c):
                         _record_dep_match(dep)
@@ -622,24 +765,46 @@ def determine_implementation_groups_triggered_by_others(
     # 3. From direct answers dict or list
     if answers:
         if isinstance(answers, list):
+            flat_rows: list[dict[str, Any]] = []
             for row in answers:
                 if isinstance(row, dict):
-                    req_ref = str(row.get("requirement", "")).strip().lower()
-                    q_key = row.get("question", "")
-                    ans_val = row.get("answer")
-                    node = nodes_by_ref.get(req_ref) or nodes_by_urn.get(req_ref)
-                    matched_c = None
-                    if node:
-                        choices = _get_node_choices(node, q_key)
-                        for c in choices:
-                            if _match_choice(c, ans_val):
-                                matched_c = c
-                                for grp in c.get("select_implementation_groups", []) or []:
-                                    if grp:
-                                        triggered_canonical_set.add(_canonical(grp))
-                    for dep in ig_dependencies:
-                        if _check_dep_match(dep, req_ref, q_key, ans_val, matched_choice=matched_c):
-                            _record_dep_match(dep)
+                    if isinstance(row.get("answers"), list):
+                        req_ref = str(row.get("requirement", "")).strip().lower()
+                        for sub_a in row["answers"]:
+                            if isinstance(sub_a, dict):
+                                q_k = sub_a.get("question", "")
+                                ans_v = sub_a.get("answer")
+                                if ans_v is None:
+                                    if "choices" in sub_a:
+                                        ans_v = sub_a["choices"]
+                                    elif "text" in sub_a:
+                                        ans_v = sub_a["text"]
+                                flat_rows.append({"requirement": req_ref, "question": q_k, "answer": ans_v})
+                    else:
+                        flat_rows.append(row)
+            for row in flat_rows:
+                req_ref = str(row.get("requirement", "")).strip().lower()
+                q_key = row.get("question", "")
+                ans_val = row.get("answer")
+                if ans_val is None:
+                    ans_val = row.get("text") or row.get("choices")
+                _record_delegate_answer(req_ref, q_key, ans_val)
+                node = nodes_by_ref.get(req_ref) or nodes_by_urn.get(req_ref)
+                matched_c = None
+                if node:
+                    choices = _get_node_choices(node, q_key)
+                    for c in choices:
+                        if _match_choice(c, ans_val):
+                            matched_c = c
+                            for grp in c.get("select_implementation_groups", []) or []:
+                                if grp:
+                                    can_g = _canonical(grp)
+                                    triggered_canonical_set.add(can_g)
+                                    ciso_assistant_triggered_groups.add(can_g)
+                                    ciso_assistant_triggered_ref_ids.add(ref_map.get(str(grp).lower(), str(grp)))
+                for dep in ig_dependencies:
+                    if _check_dep_match(dep, req_ref, q_key, ans_val, matched_choice=matched_c):
+                        _record_dep_match(dep)
         elif isinstance(answers, dict):
             for k, val in answers.items():
                 k_str = str(k).strip()
@@ -648,6 +813,7 @@ def determine_implementation_groups_triggered_by_others(
                 if isinstance(val, dict):
                     # {req_ref: {q_key: ans_val}}
                     for q_k, a_v in val.items():
+                        _record_delegate_answer(k_str, str(q_k), a_v)
                         choices = _get_node_choices(node, q_k) if node else []
                         matched_c = None
                         for c in choices:
@@ -656,11 +822,13 @@ def determine_implementation_groups_triggered_by_others(
                                 for grp in c.get("select_implementation_groups", []) or []:
                                     if grp:
                                         triggered_canonical_set.add(_canonical(grp))
+                                        ciso_assistant_triggered_groups.add(_canonical(grp))
                         for dep in ig_dependencies:
                             if _check_dep_match(dep, k_str, q_k, a_v, matched_choice=matched_c):
                                 _record_dep_match(dep)
                 else:
                     # Could be {q_key: ans_val} or {node_ref: ans_val}
+                    _record_delegate_answer(k_str, k_str, val)
                     choices = _get_node_choices(node) if node else []
                     if not choices:
                         for n in nodes:
@@ -673,7 +841,10 @@ def determine_implementation_groups_triggered_by_others(
                             matched_c = c
                             for grp in c.get("select_implementation_groups", []) or []:
                                 if grp:
-                                    triggered_canonical_set.add(_canonical(grp))
+                                    can_g = _canonical(grp)
+                                    triggered_canonical_set.add(can_g)
+                                    ciso_assistant_triggered_groups.add(can_g)
+                                    ciso_assistant_triggered_ref_ids.add(ref_map.get(str(grp).lower(), str(grp)))
                     for dep in ig_dependencies:
                         if _check_dep_match(dep, k_str, k_str, val, matched_choice=matched_c):
                             _record_dep_match(dep)
@@ -723,6 +894,7 @@ def determine_implementation_groups_triggered_by_others(
                 for q_k, a_v in ra_answers.items():
                     if a_v is None:
                         continue
+                    _record_delegate_answer(ra_ref or ra_urn, str(q_k), a_v)
                     choices = _get_node_choices(node, str(q_k)) if node else []
                     if not choices and hasattr(ra, "get_questions"):
                         qs = ra.get_questions()
@@ -734,7 +906,10 @@ def determine_implementation_groups_triggered_by_others(
                             matched_c = c
                             for grp in c.get("select_implementation_groups", []) or []:
                                 if grp:
-                                    triggered_canonical_set.add(_canonical(grp))
+                                    can_g = _canonical(grp)
+                                    triggered_canonical_set.add(can_g)
+                                    ciso_assistant_triggered_groups.add(can_g)
+                                    ciso_assistant_triggered_ref_ids.add(ref_map.get(str(grp).lower(), str(grp)))
                     for dep in ig_dependencies:
                         if _check_dep_match(dep, ra_ref or ra_urn, str(q_k), a_v, matched_choice=matched_c):
                             _record_dep_match(dep)
@@ -746,13 +921,38 @@ def determine_implementation_groups_triggered_by_others(
         for ag in active_list:
             if ag:
                 active_canonical_set.add(_canonical(ag))
+    # Groups triggered by CISO Assistant (via choice-level select_implementation_groups
+    # when respondent answers "I can answer this track") are automatically active in assessment
+    active_canonical_set.update(ciso_assistant_triggered_groups)
 
-    pending_dependencies: list[dict[str, Any]] = [
-        d for d in candidate_dependencies
-        if d.get("canonical_group_name") not in active_canonical_set
-        and d.get("target_implementation_group") not in active_canonical_set
-        and _canonical(d.get("target_implementation_group", "")) not in active_canonical_set
-    ]
+    pending_dependencies: list[dict[str, Any]] = []
+    for d in candidate_dependencies:
+        c_grp = d.get("canonical_group_name")
+        t_grp = d.get("target_implementation_group")
+        if (
+            c_grp not in active_canonical_set
+            and t_grp not in active_canonical_set
+            and _canonical(t_grp or "") not in active_canonical_set
+        ):
+            dep_copy = dict(d)
+            del_val = (
+                delegate_answers.get(t_grp)
+                or delegate_answers.get(c_grp)
+                or delegate_answers.get(_canonical(t_grp or ""))
+                or delegate_answers.get(ref_map.get(str(t_grp).lower(), ""))
+            )
+            if del_val:
+                dep_copy["delegate"] = del_val
+                dep_copy["delegate_contact"] = del_val
+                dep_copy["suggested_assignee"] = del_val
+                dep_copy["suggestion"] = del_val
+                dep_copy["suggested_delegate"] = del_val
+                dep_copy["delegate_suggestion"] = del_val
+                is_email = bool(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", str(del_val).strip()))
+                dep_copy["is_directly_assignable"] = is_email
+                dep_copy["suggestion_type"] = "user_email" if is_email else "team_or_role"
+            pending_dependencies.append(dep_copy)
+
     pending_triggered_groups: list[str] = list({
         d.get("canonical_group_name") for d in pending_dependencies if d.get("canonical_group_name")
     })
@@ -823,10 +1023,33 @@ def determine_implementation_groups_triggered_by_others(
         group_copy["is_pending_trigger"] = bool(
             c_name in pending_triggered_groups or (r_id and _canonical(r_id) in pending_triggered_groups)
         )
+        group_copy["is_ciso_assistant_triggered"] = bool(
+            r_id in ciso_assistant_triggered_ref_ids or c_name in ciso_assistant_triggered_groups
+        )
         group_copy["condition_matched"] = bool(any(
             d.get("canonical_group_name") == c_name or d.get("target_implementation_group") == r_id
             for d in candidate_dependencies
         ))
+
+        # Attach questionnaire suggestions for who can answer (team name, email, or role)
+        del_val = (
+            delegate_answers.get(r_id)
+            or delegate_answers.get(c_name)
+            or delegate_answers.get(u_urn)
+            or delegate_answers.get(_canonical(r_id))
+        )
+        group_copy["suggested_assignee"] = del_val or None
+        group_copy["suggestion"] = del_val or None
+        group_copy["delegate"] = del_val or None
+        group_copy["delegate_suggestion"] = del_val or None
+        group_copy["delegate_contact"] = del_val or None
+        if del_val:
+            is_email = bool(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", str(del_val).strip()))
+            group_copy["is_directly_assignable"] = is_email
+            group_copy["suggestion_type"] = "user_email" if is_email else "team_or_role"
+        else:
+            group_copy["is_directly_assignable"] = False
+            group_copy["suggestion_type"] = None
 
         all_groups.append(group_copy)
         if always_selectable:
@@ -845,11 +1068,16 @@ def determine_implementation_groups_triggered_by_others(
         "hidden_groups": hidden_groups,
         "triggered_groups": triggered_groups,
         "visible_groups": visible_groups,
+        "ciso_assistant_triggered_groups": sorted(list(ciso_assistant_triggered_groups)),
+        "ciso_assistant_triggered_ref_ids": sorted(list(ciso_assistant_triggered_ref_ids)),
         "all_groups": all_groups,
         "dependency_map": dependency_map,
         "candidate_dependencies": candidate_dependencies,
         "pending_dependencies": pending_dependencies,
         "pending_triggered_groups": pending_triggered_groups,
+        "delegate_answers": delegate_answers,
+        "suggested_assignees": delegate_answers,
+        "suggestions": delegate_answers,
         "summary": {
             "total": len(all_groups),
             "always_selectable_count": len(always_selectable_groups),

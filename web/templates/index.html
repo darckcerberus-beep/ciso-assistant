@@ -1091,15 +1091,18 @@
 
         <!-- Triggered Groups Selection -->
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1.5">Select Triggered Tracks to Assign:</label>
-          <div id="mg-triggered-checkboxes" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-xs font-semibold text-slate-300">Triggered Tracks & Respondent Assignment:</label>
+            <span class="text-[11px] text-slate-400">Assign tracks individually or select multiple for batch assignment</span>
+          </div>
+          <div id="mg-triggered-checkboxes" class="space-y-3 max-h-80 overflow-y-auto pr-1">
             <!-- Dynamically populated -->
           </div>
         </div>
 
-        <!-- Assignee Selection Form -->
+        <!-- Assignee Selection Form (Fallback / Batch default) -->
         <div class="p-3 bg-surface-800/50 border border-slate-700/60 rounded-xl space-y-2.5">
-          <label class="block text-xs font-semibold text-slate-200">Assign Track To:</label>
+          <label class="block text-xs font-semibold text-slate-200">Default / Fallback Respondent (used if track email above is empty):</label>
           <div class="space-y-2 text-xs">
             <label class="flex items-center space-x-2.5 cursor-pointer text-slate-300">
               <input type="radio" name="mg_assignee_choice" id="mg-assignee-owner" value="owner" checked onchange="toggleMgAssigneeInput()" class="text-brand-500 bg-surface-900 border-slate-700 focus:ring-0">
@@ -1107,11 +1110,22 @@
             </label>
             <label class="flex items-center space-x-2.5 cursor-pointer text-slate-300">
               <input type="radio" name="mg_assignee_choice" id="mg-assignee-custom" value="custom" onchange="toggleMgAssigneeInput()" class="text-brand-500 bg-surface-900 border-slate-700 focus:ring-0">
-              <span>Designated Respondent / Team Member</span>
+              <span>Designated Default Respondent</span>
             </label>
           </div>
 
           <div id="mg-custom-user-form" class="hidden pt-2 border-t border-slate-700/50 space-y-2">
+            <div id="mg-suggestion-box" class="hidden p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs space-y-1">
+              <div class="flex items-center space-x-1.5 text-amber-300 font-semibold text-[11px]">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                <span>Questionnaire Assignment Suggestion:</span>
+              </div>
+              <div id="mg-suggestion-text" class="text-slate-200 text-xs font-medium pl-5"></div>
+              <p class="text-[10px] text-slate-400 pl-5 leading-tight">Note: If respondent suggested a team or department, enter an individual user's email address below for direct system assignment.</p>
+              <div id="mg-suggestion-action" class="hidden pl-5 pt-0.5">
+                <button type="button" onclick="useSuggestedAssigneeEmail()" class="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/30 transition">Use suggested email</button>
+              </div>
+            </div>
             <input type="email" id="mg-custom-email" placeholder="Respondent Email (e.g. dev.lead@company.local)" class="w-full px-3 py-1.5 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 transition">
             <div class="grid grid-cols-2 gap-2">
               <input type="text" id="mg-custom-first" placeholder="First Name (optional)" class="w-full px-3 py-1.5 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 transition">
@@ -1138,7 +1152,7 @@
           <button onclick="closeModal('manage-groups-modal')" class="px-3.5 py-2 rounded-lg bg-surface-800 hover:bg-slate-700 text-slate-300 text-xs font-medium">Cancel</button>
           <button onclick="submitAssignTriggeredGroups()" id="mg-assign-submit-btn" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold flex items-center space-x-1.5 transition shadow-md shadow-brand-600/20">
             <i data-lucide="play" class="w-3.5 h-3.5"></i>
-            <span>Assign Track & Start Assignment</span>
+            <span>Assign Selected Tracks & Start</span>
           </button>
         </div>
       </div>
@@ -2040,6 +2054,95 @@
       if (form) form.classList.toggle("hidden", !isCustom);
     }
 
+    let SUGGESTED_EMAIL_CANDIDATE = null;
+    let CURRENT_TRIG_ITEMS = [];
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function setTrackEmail(idx, email) {
+      const input = document.getElementById(`mg-trig-email-${idx}`);
+      if (input) {
+        input.value = email;
+        input.focus();
+        showToast(`Set respondent email to ${email}`, "info");
+      }
+    }
+
+    async function submitSingleTrackAssignment(idx) {
+      if (!CURRENT_MANAGE_GROUPS_APP || !CURRENT_TRIG_ITEMS || !CURRENT_TRIG_ITEMS[idx]) return;
+      const item = CURRENT_TRIG_ITEMS[idx];
+      const emailInput = document.getElementById(`mg-trig-email-${idx}`);
+      let userEmail = emailInput ? emailInput.value.trim() : "";
+
+      if (!userEmail) {
+        const isCustom = document.getElementById("mg-assignee-custom")?.checked;
+        if (isCustom) {
+          userEmail = document.getElementById("mg-custom-email")?.value.trim() || "";
+        } else {
+          userEmail = CURRENT_AUDIT_DATA?.app_owner_email || "";
+        }
+      }
+
+      if (!userEmail) {
+        showToast(`Please enter a respondent email address for "${item.name}".`, "error");
+        if (emailInput) emailInput.focus();
+        return;
+      }
+
+      const start = document.getElementById("mg-start-asgn")?.checked ?? true;
+      const btn = document.getElementById(`mg-btn-single-${idx}`);
+      const originalHtml = btn ? btn.innerHTML : "";
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader" class="w-3 h-3 animate-spin"></i><span>Assigning...</span>`;
+        if (window.lucide) lucide.createIcons();
+      }
+
+      try {
+        const payload = {
+          groups: [item.name],
+          user_email: userEmail,
+          start,
+        };
+        const res = await fetch(`/api/audits/${encodeURIComponent(CURRENT_MANAGE_GROUPS_APP)}/assign-implementation-groups`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to assign track");
+
+        const count = data.data?.assigned_requirements_count || 0;
+        const assignee = data.data?.assignee_email || data.data?.assigned_user || userEmail;
+        showToast(`Track "${item.name}" assigned to ${assignee} (${count} requirements in progress)!`, "success");
+
+        await openManageGroupsModal(CURRENT_MANAGE_GROUPS_APP, 'assign');
+        await refreshAll();
+      } catch (err) {
+        showToast(err.message, "error");
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = originalHtml;
+          if (window.lucide) lucide.createIcons();
+        }
+      }
+    }
+
+    function useSuggestedAssigneeEmail() {
+      if (SUGGESTED_EMAIL_CANDIDATE) {
+        const input = document.getElementById("mg-custom-email");
+        if (input) input.value = SUGGESTED_EMAIL_CANDIDATE;
+      }
+    }
+
     async function openManageGroupsModal(appName, defaultTab = "assign") {
       CURRENT_MANAGE_GROUPS_APP = appName;
       document.getElementById("mg-app-name").innerText = appName;
@@ -2158,6 +2261,7 @@
           const name = dep.name || dep.target_implementation_group;
           const refId = dep.target_implementation_group || "";
           const key = (refId || name).toLowerCase();
+          const suggestion = dep.suggested_assignee || dep.suggestion || dep.delegate;
           if (!seenTrigKeys.has(key)) {
             seenTrigKeys.add(key);
             trigItemsToRender.push({
@@ -2165,6 +2269,7 @@
               ref_id: refId,
               prompt: dep.prompt,
               choice_value: dep.choice_value,
+              suggested_assignee: suggestion,
               is_pending: true,
               is_selected: selected.some(s => s === name || (refId && s.toLowerCase() === refId.toLowerCase())),
             });
@@ -2175,6 +2280,7 @@
           const name = ig.name || ig.ref_id;
           const refId = ig.ref_id || "";
           const key = (refId || name).toLowerCase();
+          const suggestion = ig.suggested_assignee || ig.suggestion || ig.delegate || (data.suggested_assignees && (data.suggested_assignees[name] || data.suggested_assignees[refId]));
           if (!seenTrigKeys.has(key)) {
             seenTrigKeys.add(key);
             trigItemsToRender.push({
@@ -2183,11 +2289,44 @@
               description: ig.description,
               prompt: ig.prompt,
               triggered_by_questions: ig.triggered_by_questions || [],
+              suggested_assignee: suggestion,
               is_pending: false,
               is_selected: selected.some(s => s === name || (refId && s.toLowerCase() === refId.toLowerCase())),
             });
           }
         });
+
+        // Populate Assignee Suggestion Box
+        const suggestionBox = document.getElementById("mg-suggestion-box");
+        const suggestionText = document.getElementById("mg-suggestion-text");
+        const suggestionAction = document.getElementById("mg-suggestion-action");
+        if (suggestionBox && suggestionText) {
+          const suggestions = [];
+          const sugMap = data.suggested_assignees || {};
+          Object.entries(sugMap).forEach(([k, v]) => {
+            if (v && !suggestions.includes(v)) suggestions.push(v);
+          });
+          pendingDeps.forEach(d => {
+            const s = d.suggested_assignee || d.suggestion || d.delegate;
+            if (s && !suggestions.includes(s)) suggestions.push(s);
+          });
+          if (suggestions.length > 0) {
+            suggestionBox.classList.remove("hidden");
+            suggestionText.innerText = suggestions.join("; ");
+            const emailMatch = suggestions.find(s => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim()));
+            if (emailMatch && suggestionAction) {
+              SUGGESTED_EMAIL_CANDIDATE = emailMatch.trim();
+              suggestionAction.classList.remove("hidden");
+            } else if (suggestionAction) {
+              SUGGESTED_EMAIL_CANDIDATE = null;
+              suggestionAction.classList.add("hidden");
+            }
+          } else {
+            suggestionBox.classList.add("hidden");
+          }
+        }
+
+        CURRENT_TRIG_ITEMS = trigItemsToRender;
 
         if (trigItemsToRender.length === 0) {
           trigContainer.innerHTML = `
@@ -2202,28 +2341,72 @@
         } else {
           trigItemsToRender.forEach((item, idx) => {
             const cbId = `mg-trig-cb-${idx}`;
+            const emailInputId = `mg-trig-email-${idx}`;
             const isChecked = item.is_pending || item.is_selected || unassignedReqs > 0;
+            const sug = (item.suggested_assignee || "").trim();
+            const isSugEmail = Boolean(sug && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sug));
+            const ownerEmail = (CURRENT_AUDIT_DATA?.app_owner_email || "").trim();
+            const initialEmail = isSugEmail ? sug : "";
+
             const el = document.createElement("div");
-            el.className = `flex items-start space-x-2.5 p-2.5 rounded-lg border transition ${item.is_selected ? 'bg-indigo-500/10 border-indigo-500/30' : (item.is_pending ? 'bg-amber-500/10 border-amber-500/30' : 'bg-surface-800/80 border-slate-700/60 hover:border-slate-600')}`;
+            el.className = `p-3 rounded-xl border transition space-y-2.5 ${item.is_selected ? 'bg-indigo-500/10 border-indigo-500/30' : (item.is_pending ? 'bg-amber-500/10 border-amber-500/30' : 'bg-surface-800/80 border-slate-700/60 hover:border-slate-600')}`;
             el.innerHTML = `
-              <input type="checkbox" id="${cbId}" value="${item.name}" ${isChecked ? 'checked' : ''} class="mt-0.5 w-4 h-4 rounded text-brand-500 bg-surface-900 border-slate-700 focus:ring-0">
-              <label for="${cbId}" class="text-xs text-slate-200 cursor-pointer select-none space-y-1 flex-1">
-                <div class="flex items-center space-x-1.5 flex-wrap">
-                  <span class="font-semibold text-white">${item.name}</span>
-                  ${item.ref_id ? `<span class="px-1.5 py-0.2 rounded text-[10px] font-mono bg-surface-900 text-slate-400 border border-slate-700">${item.ref_id}</span>` : ''}
-                  ${item.is_selected ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">active in audit</span>` : ''}
-                  ${item.is_pending && !item.is_selected ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">triggered by answers</span>` : ''}
-                </div>
-                ${item.prompt ? `<p class="text-[11px] text-amber-200/90 leading-tight font-medium">${item.prompt}</p>` : ''}
-                ${item.choice_value ? `<p class="text-[10px] text-slate-400 leading-tight">Triggered by answer: <em>${item.choice_value}</em></p>` : ''}
-                ${item.description && !item.prompt ? `<p class="text-[11px] text-slate-400 leading-tight">${item.description}</p>` : ''}
-                ${item.triggered_by_questions?.length > 0 ? `
-                  <div class="text-[10px] text-brand-400/90 bg-brand-500/10 px-2 py-0.5 rounded border border-brand-500/20 inline-flex items-center space-x-1">
-                    <i data-lucide="help-circle" class="w-2.5 h-2.5"></i>
-                    <span>Triggered by: ${item.triggered_by_questions.join('; ')}</span>
+              <div class="flex items-start space-x-2.5">
+                <input type="checkbox" id="${cbId}" data-track-index="${idx}" value="${escapeHtml(item.name)}" ${isChecked ? 'checked' : ''} class="mt-0.5 w-4 h-4 rounded text-brand-500 bg-surface-900 border-slate-700 focus:ring-0">
+                <label for="${cbId}" class="text-xs text-slate-200 cursor-pointer select-none space-y-1 flex-1">
+                  <div class="flex items-center space-x-1.5 flex-wrap">
+                    <span class="font-bold text-white text-xs">${escapeHtml(item.name)}</span>
+                    ${item.ref_id ? `<span class="px-1.5 py-0.2 rounded text-[10px] font-mono bg-surface-900 text-slate-400 border border-slate-700">${escapeHtml(item.ref_id)}</span>` : ''}
+                    ${item.is_selected ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">active in audit</span>` : ''}
+                    ${item.is_pending && !item.is_selected ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">triggered by answers</span>` : ''}
                   </div>
-                ` : ''}
-              </label>
+                  ${item.prompt ? `<p class="text-[11px] text-amber-200/90 leading-tight font-medium">${escapeHtml(item.prompt)}</p>` : ''}
+                  ${item.choice_value ? `<p class="text-[10px] text-slate-400 leading-tight">Triggered by answer: <em>${escapeHtml(item.choice_value)}</em></p>` : ''}
+                  ${item.description && !item.prompt ? `<p class="text-[11px] text-slate-400 leading-tight">${escapeHtml(item.description)}</p>` : ''}
+                  ${item.triggered_by_questions?.length > 0 ? `
+                    <div class="text-[10px] text-brand-400/90 bg-brand-500/10 px-2 py-0.5 rounded border border-brand-500/20 inline-flex items-center space-x-1">
+                      <i data-lucide="help-circle" class="w-2.5 h-2.5"></i>
+                      <span>Triggered by: ${escapeHtml(item.triggered_by_questions.join('; '))}</span>
+                    </div>
+                  ` : ''}
+                </label>
+              </div>
+
+              ${sug ? `
+                <div class="flex items-center justify-between text-[11px] px-2.5 py-1 rounded-lg border ${isSugEmail ? 'bg-amber-500/10 border-amber-500/20 text-amber-300' : 'bg-slate-800/80 border-slate-700 text-slate-300'}">
+                  <div class="flex items-center space-x-1.5 truncate">
+                    <i data-lucide="sparkles" class="w-3 h-3 text-amber-400 shrink-0"></i>
+                    <span class="font-medium text-slate-400">Suggestion:</span>
+                    <span class="font-semibold ${isSugEmail ? 'text-amber-200 font-mono' : 'text-slate-200'} truncate">${escapeHtml(sug)}</span>
+                    ${!isSugEmail ? `<span class="text-[10px] text-amber-400/90 italic shrink-0">(team / role)</span>` : ''}
+                  </div>
+                  ${isSugEmail ? `
+                    <button type="button" onclick="setTrackEmail(${idx}, '${escapeHtml(sug)}')" class="text-[10px] font-semibold text-amber-300 hover:text-amber-200 underline ml-2 shrink-0">
+                      Use suggested
+                    </button>
+                  ` : ''}
+                </div>
+              ` : ''}
+
+              <!-- Per-track Respondent Email field & Individual Assign Button -->
+              <div class="pt-2 border-t border-slate-700/50 space-y-1.5">
+                <div class="flex items-center justify-between text-[11px]">
+                  <label for="${emailInputId}" class="font-semibold text-slate-300 flex items-center space-x-1">
+                    <i data-lucide="user" class="w-3 h-3 text-brand-400"></i>
+                    <span>Respondent Email for this Track:</span>
+                  </label>
+                  <div class="flex items-center space-x-2 text-[10px]">
+                    ${ownerEmail ? `<button type="button" onclick="setTrackEmail(${idx}, '${escapeHtml(ownerEmail)}')" class="text-brand-400 hover:text-brand-300 underline">Use owner (${escapeHtml(ownerEmail)})</button>` : ''}
+                  </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <input type="email" id="${emailInputId}" data-track-index="${idx}" data-track-name="${escapeHtml(item.name)}" value="${escapeHtml(initialEmail)}" placeholder="Respondent email (e.g. dev.lead@company.local)" class="flex-1 px-3 py-1.5 text-xs rounded-lg bg-surface-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 transition">
+                  <button type="button" onclick="submitSingleTrackAssignment(${idx})" id="mg-btn-single-${idx}" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center space-x-1.5 transition shadow shadow-indigo-600/20 whitespace-nowrap" title="Assign only this track to this respondent">
+                    <i data-lucide="send" class="w-3 h-3"></i>
+                    <span>Assign Track</span>
+                  </button>
+                </div>
+              </div>
             `;
             trigContainer.appendChild(el);
           });
@@ -2242,12 +2425,13 @@
             const item = document.createElement("div");
             item.className = "p-2 rounded-lg bg-surface-800/60 border border-slate-700/60 flex items-center justify-between text-xs";
             item.innerHTML = `
-              <div class="flex items-center space-x-2">
-                <i data-lucide="clipboard-list" class="w-3.5 h-3.5 text-slate-400"></i>
-                <span class="font-medium text-white">${asgn.name || 'Assignment'}</span>
-                <span class="text-slate-400 text-[11px]">(${asgn.requirements_count || 0} reqs)</span>
+              <div class="flex items-center space-x-2 truncate">
+                <i data-lucide="clipboard-list" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+                <span class="font-medium text-white truncate">${escapeHtml(asgn.name || 'Assignment')}</span>
+                <span class="text-slate-400 text-[11px] shrink-0">(${asgn.requirements_count || 0} reqs)</span>
+                ${asgn.assigned_user ? `<span class="text-brand-400 font-mono text-[11px] shrink-0">• ${escapeHtml(asgn.assigned_user)}</span>` : ''}
               </div>
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${badgeClass}">${asgn.status || 'pending'}</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold border shrink-0 ${badgeClass}">${asgn.status || 'pending'}</span>
             `;
             asgnsList.appendChild(item);
           });
@@ -2317,39 +2501,56 @@
     async function submitAssignTriggeredGroups() {
       if (!CURRENT_MANAGE_GROUPS_APP) return;
       const cbs = document.querySelectorAll("#mg-triggered-checkboxes input[type='checkbox']:checked");
-      const groups = Array.from(cbs).map(cb => cb.value);
-      if (groups.length === 0) {
+      if (cbs.length === 0) {
         showToast("Please select at least one implementation group to assign.", "error");
         return;
       }
 
-      const isCustom = document.getElementById("mg-assignee-custom").checked;
-      let userEmail = null;
-      let firstName = "";
-      let lastName = "";
-
+      // Determine default fallback assignee
+      const isCustom = document.getElementById("mg-assignee-custom")?.checked;
+      let defaultEmail = "";
+      let defaultFirst = "";
+      let defaultLast = "";
       if (isCustom) {
-        userEmail = document.getElementById("mg-custom-email").value.trim();
-        firstName = document.getElementById("mg-custom-first").value.trim();
-        lastName = document.getElementById("mg-custom-last").value.trim();
-        if (!userEmail) {
-          showToast("Please enter an email address for the designated respondent.", "error");
-          return;
-        }
+        defaultEmail = document.getElementById("mg-custom-email")?.value.trim() || "";
+        defaultFirst = document.getElementById("mg-custom-first")?.value.trim() || "";
+        defaultLast = document.getElementById("mg-custom-last")?.value.trim() || "";
       } else {
-        userEmail = CURRENT_AUDIT_DATA?.app_owner_email || null;
+        defaultEmail = CURRENT_AUDIT_DATA?.app_owner_email || "";
       }
 
-      const start = document.getElementById("mg-start-asgn").checked;
+      const assignments = [];
+      for (const cb of cbs) {
+        const idx = cb.getAttribute("data-track-index");
+        const trackName = cb.value;
+        const trackEmailInput = idx !== null ? document.getElementById(`mg-trig-email-${idx}`) : null;
+        let trackEmail = trackEmailInput ? trackEmailInput.value.trim() : "";
+
+        if (!trackEmail) {
+          trackEmail = defaultEmail;
+        }
+
+        if (!trackEmail) {
+          showToast(`Please enter a respondent email for "${trackName}" or designate a Default Respondent below.`, "error");
+          if (trackEmailInput) trackEmailInput.focus();
+          return;
+        }
+
+        assignments.push({
+          groups: [trackName],
+          user_email: trackEmail,
+          first_name: defaultFirst,
+          last_name: defaultLast,
+        });
+      }
+
+      const start = document.getElementById("mg-start-asgn")?.checked ?? true;
       const btn = document.getElementById("mg-assign-submit-btn");
       if (btn) btn.disabled = true;
 
       try {
         const payload = {
-          groups,
-          user_email: userEmail,
-          first_name: firstName,
-          last_name: lastName,
+          assignments,
           start,
         };
         const res = await fetch(`/api/audits/${encodeURIComponent(CURRENT_MANAGE_GROUPS_APP)}/assign-implementation-groups`, {
@@ -2362,8 +2563,9 @@
 
         closeModal("manage-groups-modal");
         const count = data.data?.assigned_requirements_count || 0;
-        showToast(`Triggered tracks successfully assigned to ${data.data?.assignee_email || 'respondent'} (${count} requirements in progress)!`, "success");
-        await refreshStatus();
+        const assignedMsg = data.message || `Triggered tracks assigned successfully (${count} requirements in progress)!`;
+        showToast(assignedMsg, "success");
+        await refreshAll();
       } catch (err) {
         showToast(err.message, "error");
       } finally {
@@ -2393,7 +2595,7 @@
         closeModal("manage-groups-modal");
         const count = data.data?.selected_implementation_groups?.length || groups.length;
         showToast(`Implementation groups successfully updated (${count} active)!`, "success");
-        await refreshStatus();
+        await refreshAll();
       } catch (err) {
         showToast(err.message, "error");
       } finally {

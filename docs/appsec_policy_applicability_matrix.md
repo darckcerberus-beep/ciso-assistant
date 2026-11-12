@@ -134,7 +134,10 @@ Within active requirement nodes, questions are dynamically conditioned using int
 - **`vendor_secure_development`** (`cots_app` only):
   - `q1`: High-level verification that third-party COTS software vendors adhere to recognized secure coding baselines (OWASP Top 10, ISO 27034, NIST SSDF) without requiring proprietary source-code disclosures. (SaaS provider secure development is governed under Chapter 10 `saas_secure_development`).
 
-### Chapter 6: API Security & Gateway Protections
+### Chapter 6: API Security & Edge Protections
+- **`edge_network_protection`** (`internet_facing`):
+  - Applicable strictly to self-hosted applications exposed to the public Internet (Custom and COTS).
+  - `q1`: Inbound HTTP/HTTPS traffic routed through and protected by Cloudflare (reverse proxy, edge WAF, and DDoS mitigation). Internal applications never see this requirement.
 - **`api_security_and_rate_limiting`** (`internet_facing`):
   - Applicable strictly to self-hosted applications exposed to the public Internet (Custom and COTS).
   - `q1`: Edge Web Application Firewall (WAF, e.g., Cloudflare, AWS WAF), bot protection, and automated rate limiting / throttling controls.
@@ -238,6 +241,7 @@ The table below defines the exact applicability criteria for every requirement a
 | **5. SDLC** | `supply_chain_and_dependencies` (q2) | Audited Release Artifact SBOM | `custom_app` | **Custom Only** | All | All | **Active exclusively if custom_app is selected** |
 | **5. SDLC** | `code_review_and_ci_cd_integrity` (q1) | Peer Code Review & Branch Protection | `custom_app` | **Custom Only** | All | All | **Active exclusively if custom_app is selected** |
 | **5. SDLC** | `vendor_secure_development` (q1) | Vendor Secure Coding Guidelines | `cots_app` | **COTS Only** | All | All | Active exclusively for COTS software |
+| **6. API** | `edge_network_protection` (q1) | Edge Network Protection & Inbound Reverse Proxy | `internet_facing` | Custom, COTS | All | **Internet-Facing** | Active if Self-Hosted & Network Exposure == Internet |
 | **6. API** | `api_security_and_rate_limiting` (q1) | Edge WAF, Bot Protection & Rate Limiting | `internet_facing` | Custom, COTS | All | **Internet-Facing** | Active if Self-Hosted & Network Exposure == Internet |
 | **6. API** | `api_security_and_rate_limiting` (q2) | OpenAPI / Schema Validation | `internet_facing` | Custom, COTS | All | **Internet-Facing** | Active if Self-Hosted & Network Exposure == Internet |
 | **7. Lifecycle**| `data_exchange` (q1) | External Data Exchange Tracking | `custom_app`, `cots_app` | **Custom, COTS** | All | All | Active for Self-Hosted Applications |

@@ -795,7 +795,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
                 "name": "App-Manual-Custom-Internet",
                 "visible_igs": {"info", "baseline", "custom_app", "infra", "internet_facing"},
                 "hidden_igs": {"cots_app", "saas_app", "saas_uncertified"},
-                "node_count": 24,
+                "node_count": 25,
                 "scenario_count": 21,
                 "excluded_scenario_count": 23,
             },
@@ -811,7 +811,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
                 "name": "App-Manual-COTS-Internet",
                 "visible_igs": {"info", "baseline", "cots_app", "infra", "internet_facing"},
                 "hidden_igs": {"custom_app", "saas_app", "saas_uncertified"},
-                "node_count": 20,
+                "node_count": 21,
                 "scenario_count": 17,
                 "excluded_scenario_count": 27,
             },
@@ -880,6 +880,89 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
                         f"Scenario '{sc_name}' evaluated but its likelihood requirement '{lh_node_ref}' is not answered in {file_path}",
                     )
 
+    def test_appsec_manual_respondent_questions_per_triggered_ig(self):
+        """Verify that appsec_manual framework asks the initial respondent if they can answer each triggered IG or if somebody else has to."""
+        import yaml
+        with open("YML/appsec_manual.yml", "r", encoding="utf-8") as f:
+            fw_doc = yaml.safe_load(f)
+        fw = fw_doc["objects"]["framework"]
+        hosting_node = next(n for n in fw["requirement_nodes"] if n.get("ref_id") == "hosting")
+        questions = hosting_node["questions"]
+
+        # 1. Verify hosting has 17 questions (q1-q3 profiling + q4-q10 choice questions + q4_delegate-q10_delegate text fields)
+        self.assertEqual(len(questions), 17)
+
+        # 2. Verify each of the 7 triggered IGs has a corresponding choice question and free text delegate field
+        expected_tracks = {
+            "q4": ("baseline", ["c1", "c2", "c3"]),
+            "q5": ("custom_app", ["c1"]),
+            "q6": ("cots_app", ["c2"]),
+            "q7": ("infra", ["c1", "c2"]),
+            "q8": ("internet_facing", ["c2"]),
+            "q9": ("saas_app", ["c3"]),
+            "q10": ("saas_uncertified", ["c2"]),
+        }
+
+        for q_id, (track, trigger_choices) in expected_tracks.items():
+            q_urn = f"urn:intuitem:risk:req_node:appsec_manual:hosting:{q_id}"
+            self.assertIn(q_urn, questions)
+            q_def = questions[q_urn]
+            text = q_def["text"]
+            self.assertIn("can you answer", text.lower())
+            self.assertIn("somebody else", text.lower())
+            choices = q_def["choices"]
+            self.assertEqual(len(choices), 2)
+            c1_val = choices[0]["value"]
+            c2_val = choices[1]["value"]
+            self.assertEqual(c1_val, "I can answer this track")
+            self.assertEqual(c2_val, "Somebody else has to answer this track")
+
+            # Check delegate free text form field
+            del_urn = f"urn:intuitem:risk:req_node:appsec_manual:hosting:{q_id}_delegate"
+            self.assertIn(del_urn, questions)
+            del_def = questions[del_urn]
+            self.assertEqual(del_def["type"], "text")
+            self.assertNotIn("choices", del_def)
+            self.assertFalse(del_def.get("required", True))
+            self.assertIn("who can answer", del_def["text"].lower())
+            self.assertEqual(del_def["depends_on"]["question"], q_urn)
+            self.assertEqual(del_def["depends_on"]["answers"], [f"{q_urn}:c2"])
+            self.assertEqual(del_def["depends_on"]["condition"], "any")
+
+        # 3. Verify that across the 6 application profiles, only triggered IG questions and active delegates are answered
+        case_active_q_ids = {
+            "test_data/app_manual_custom_internal.yml": {"q4", "q5", "q7", "q7_delegate"},
+            "test_data/app_manual_custom_internet.yml": {"q4", "q5", "q7", "q7_delegate", "q8", "q8_delegate"},
+            "test_data/app_manual_cots_internal.yml": {"q4", "q6", "q7", "q7_delegate"},
+            "test_data/app_manual_cots_internet.yml": {"q4", "q6", "q7", "q7_delegate", "q8", "q8_delegate"},
+            "test_data/app_manual_saas_certified.yml": {"q4", "q9"},
+            "test_data/app_manual_saas_uncertified.yml": {"q4", "q9", "q10", "q10_delegate"},
+        }
+
+        all_track_and_delegate_ids = [
+            "q4", "q4_delegate",
+            "q5", "q5_delegate",
+            "q6", "q6_delegate",
+            "q7", "q7_delegate",
+            "q8", "q8_delegate",
+            "q9", "q9_delegate",
+            "q10", "q10_delegate",
+        ]
+
+        for profile_path, expected_active in case_active_q_ids.items():
+            with open(profile_path, "r", encoding="utf-8") as f:
+                prof = yaml.safe_load(f)
+            hosting_answers = [a for a in prof.get("answers", []) if a.get("requirement") == "hosting"]
+            answered_questions = {a["question"] for a in hosting_answers}
+
+            for q_id in all_track_and_delegate_ids:
+                q_urn = f"urn:intuitem:risk:req_node:appsec_manual:hosting:{q_id}"
+                q_text = questions[q_urn]["text"]
+                if q_id in expected_active:
+                    self.assertIn(q_text, answered_questions, f"Expected active question {q_id} not answered in {profile_path}")
+                else:
+                    self.assertNotIn(q_text, answered_questions, f"Inactive question {q_id} should not be answered in {profile_path}")
+
     def test_appsec_example_suite_all_6_combinations(self):
         """Verify the comprehensive application example suite testing all 6 conditional IG combinations for appsec."""
         from pathlib import Path
@@ -905,7 +988,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
                 "name": "App-AppSec-Custom-Internet",
                 "visible_igs": {"info", "baseline", "custom_app", "infra", "internet_facing"},
                 "hidden_igs": {"cots_app", "saas_app", "saas_uncertified"},
-                "node_count": 24,
+                "node_count": 25,
                 "scenario_count": 21,
                 "excluded_scenario_count": 23,
             },
@@ -921,7 +1004,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
                 "name": "App-AppSec-COTS-Internet",
                 "visible_igs": {"info", "baseline", "cots_app", "infra", "internet_facing"},
                 "hidden_igs": {"custom_app", "saas_app", "saas_uncertified"},
-                "node_count": 20,
+                "node_count": 21,
                 "scenario_count": 17,
                 "excluded_scenario_count": 27,
             },
@@ -989,6 +1072,196 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
                         lh_node_ref, answered_req_refs,
                         f"Scenario '{sc_name}' evaluated but its likelihood requirement '{lh_node_ref}' is not answered in {file_path}",
                     )
+
+    def test_merged_framework_ciso_assistant_trigger_vs_orchestrator_delegation(self):
+        """Verify merged framework behavior:
+        - When respondent answers 'I can answer this track' (c1): CISO Assistant triggers the IG directly,
+          making it active and removing it from pending_dependencies.
+        - When respondent answers 'Somebody else has to answer this track' (c2): CISO Assistant does not trigger the IG,
+          leaving it in pending_dependencies with the delegate's contact information populated for orchestrator assignment.
+        """
+        for fw_ref in ["appsec", "appsec_manual"]:
+            with self.subTest(framework=fw_ref):
+                # Scenario: Custom software hosted internally.
+                # Respondent can answer baseline (q4) and custom_app (q5),
+                # but delegates infra (q7) to infrastructure team lead.
+                answers = [
+                    {
+                        "requirement": "hosting",
+                        "answers": [
+                            {"question": f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q1", "choices": [f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q1:c1"]},
+                            {"question": f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q2", "choices": [f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q2:c1"]},
+                            {"question": f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q4", "choices": [f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q4:c1"]},
+                            {"question": f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q5", "choices": [f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q5:c1"]},
+                            {"question": f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q7", "choices": [f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q7:c2"]},
+                            {"question": f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q7_delegate", "text": "cloud-sec-team@company.org"},
+                        ],
+                    }
+                ]
+
+                dep_info = determine_implementation_groups_triggered_by_others(fw_ref, answers=answers)
+
+                # 1. Baseline and custom_app are triggered by CISO Assistant (c1); infra was delegated (c2)
+                ca_triggered = set(dep_info.get("ciso_assistant_triggered_ref_ids", []))
+                self.assertIn("baseline", ca_triggered)
+                self.assertIn("custom_app", ca_triggered)
+                self.assertNotIn("infra", ca_triggered)
+
+                # Groups in all_groups reflect whether they are pending orchestrator delegation
+                groups_by_ref = {g["ref_id"]: g for g in dep_info["all_groups"]}
+                self.assertTrue(groups_by_ref["infra"]["is_pending_trigger"])
+                self.assertFalse(groups_by_ref["infra"]["is_ciso_assistant_triggered"])
+                self.assertFalse(groups_by_ref["baseline"]["is_pending_trigger"])
+                self.assertTrue(groups_by_ref["baseline"]["is_ciso_assistant_triggered"])
+                self.assertFalse(groups_by_ref["custom_app"]["is_pending_trigger"])
+                self.assertTrue(groups_by_ref["custom_app"]["is_ciso_assistant_triggered"])
+
+                # 2. Infra remains in pending_dependencies for the orchestrator, enriched with delegate info
+                pending = dep_info["pending_dependencies"]
+                pending_targets = {p["target_implementation_group"] for p in pending}
+                self.assertIn("infra", pending_targets)
+                self.assertNotIn("baseline", pending_targets)
+                self.assertNotIn("custom_app", pending_targets)
+
+                infra_dep = next(p for p in pending if p["target_implementation_group"] == "infra")
+                self.assertEqual(infra_dep.get("delegate"), "cloud-sec-team@company.org")
+                self.assertEqual(infra_dep.get("suggested_assignee"), "cloud-sec-team@company.org")
+                self.assertEqual(infra_dep.get("suggestion"), "cloud-sec-team@company.org")
+                self.assertTrue(infra_dep.get("is_directly_assignable"))
+                self.assertEqual(infra_dep.get("suggestion_type"), "user_email")
+
+                # 3. If respondent self-answers all tracks (c1 for q7 as well), pending_dependencies is empty
+                all_self_answers = [
+                    {
+                        "requirement": "hosting",
+                        "answers": [
+                            {"question": f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q1", "choices": [f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q1:c1"]},
+                            {"question": f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q2", "choices": [f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q2:c1"]},
+                            {"question": f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q4", "choices": [f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q4:c1"]},
+                            {"question": f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q5", "choices": [f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q5:c1"]},
+                            {"question": f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q7", "choices": [f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q7:c1"]},
+                        ],
+                    }
+                ]
+                dep_info_self = determine_implementation_groups_triggered_by_others(fw_ref, answers=all_self_answers)
+                ca_triggered_self = set(dep_info_self.get("ciso_assistant_triggered_ref_ids", []))
+                self.assertIn("infra", ca_triggered_self)
+                self.assertIn("custom_app", ca_triggered_self)
+                self.assertIn("baseline", ca_triggered_self)
+                self.assertEqual(len(dep_info_self["pending_dependencies"]), 0)
+
+    def test_framework_ig_delegate_answer_team_suggestion_and_assignability(self):
+        """Verify that when a respondent answers with a team name instead of an email:
+        1. The answer is provided as a suggestion (suggested_assignee, suggestion, delegate).
+        2. is_directly_assignable is set to False (teams cannot be directly assigned as user accounts).
+        3. suggestion_type is 'team_or_role'.
+        """
+        for fw_ref in ["appsec", "appsec_manual"]:
+            with self.subTest(framework=fw_ref):
+                answers = [
+                    {
+                        "requirement": "hosting",
+                        "answers": [
+                            {"question": f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q1", "choices": [f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q1:c1"]},
+                            {"question": f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q2", "choices": [f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q2:c1"]},
+                            {"question": f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q4", "choices": [f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q4:c1"]},
+                            {"question": f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q5", "choices": [f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q5:c1"]},
+                            {"question": f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q7", "choices": [f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q7:c2"]},
+                            {"question": f"urn:intuitem:risk:req_node:{fw_ref}:hosting:q7_delegate", "text": "Cloud Infrastructure Operations Team"},
+                        ],
+                    }
+                ]
+                dep_info = determine_implementation_groups_triggered_by_others(fw_ref, answers=answers)
+
+                pending = dep_info["pending_dependencies"]
+                infra_dep = next(p for p in pending if p["target_implementation_group"] == "infra")
+                self.assertEqual(infra_dep.get("delegate"), "Cloud Infrastructure Operations Team")
+                self.assertEqual(infra_dep.get("suggested_assignee"), "Cloud Infrastructure Operations Team")
+                self.assertEqual(infra_dep.get("suggestion"), "Cloud Infrastructure Operations Team")
+                self.assertFalse(infra_dep.get("is_directly_assignable"))
+                self.assertEqual(infra_dep.get("suggestion_type"), "team_or_role")
+
+                groups_by_ref = {g["ref_id"]: g for g in dep_info["all_groups"]}
+                self.assertEqual(groups_by_ref["infra"]["suggested_assignee"], "Cloud Infrastructure Operations Team")
+                self.assertFalse(groups_by_ref["infra"]["is_directly_assignable"])
+                self.assertEqual(groups_by_ref["infra"]["suggestion_type"], "team_or_role")
+
+                self.assertEqual(dep_info.get("suggested_assignees", {}).get("infra"), "Cloud Infrastructure Operations Team")
+
+    def test_custom_framework_ig_delegate_answer_definition(self):
+        """Verify framework-driven delegate resolution using custom IG definition and delegate_answer."""
+        mock_custom_fw = {
+            "ref_id": "custom_track_fw",
+            "implementation_groups_definition": [
+                {
+                    "urn": "urn:custom:ig:core",
+                    "ref_id": "core",
+                    "name": "Core Security",
+                    "default_selected": True,
+                },
+                {
+                    "urn": "urn:custom:ig:specialized_track",
+                    "ref_id": "specialized_track",
+                    "name": "Specialized Track",
+                    "delegate_answer": "urn:custom:req_node:intro:q_lead",
+                },
+            ],
+            "requirement_nodes": [
+                {
+                    "urn": "urn:custom:req_node:intro",
+                    "ref_id": "intro",
+                    "questions": {
+                        "urn:custom:req_node:intro:q_trigger": {
+                            "type": "unique_choice",
+                            "text": "Trigger track?",
+                            "choices": [
+                                {
+                                    "urn": "urn:custom:req_node:intro:q_trigger:c1",
+                                    "value": "Yes",
+                                }
+                            ],
+                        },
+                        "urn:custom:req_node:intro:q_lead": {
+                            "type": "text",
+                            "text": "Who can answer Specialized Track?",
+                        },
+                    },
+                }
+            ],
+            "implementation_groups_dependencies": [
+                {
+                    "target_implementation_group": "specialized_track",
+                    "name": "Specialized Track",
+                    "question_urn": "urn:custom:req_node:intro:q_trigger",
+                    "choice_urn": "urn:custom:req_node:intro:q_trigger:c1",
+                    "choice_value": "Yes",
+                }
+            ],
+        }
+
+        # Case 1: Team name suggestion
+        answers_team = [
+            {"question": "urn:custom:req_node:intro:q_trigger", "choices": ["urn:custom:req_node:intro:q_trigger:c1"]},
+            {"question": "urn:custom:req_node:intro:q_lead", "text": "SecOps Blue Team"},
+        ]
+        res_team = determine_implementation_groups_triggered_by_others(mock_custom_fw, answers=answers_team)
+        self.assertEqual(len(res_team["pending_dependencies"]), 1)
+        dep_team = res_team["pending_dependencies"][0]
+        self.assertEqual(dep_team["suggested_assignee"], "SecOps Blue Team")
+        self.assertEqual(dep_team["suggestion"], "SecOps Blue Team")
+        self.assertFalse(dep_team["is_directly_assignable"])
+        self.assertEqual(dep_team["suggestion_type"], "team_or_role")
+
+        # Case 2: Individual email suggestion
+        answers_email = [
+            {"question": "urn:custom:req_node:intro:q_trigger", "choices": ["urn:custom:req_node:intro:q_trigger:c1"]},
+            {"question": "urn:custom:req_node:intro:q_lead", "text": "blue.lead@corp.internal"},
+        ]
+        res_email = determine_implementation_groups_triggered_by_others(mock_custom_fw, answers=answers_email)
+        dep_email = res_email["pending_dependencies"][0]
+        self.assertEqual(dep_email["suggested_assignee"], "blue.lead@corp.internal")
+        self.assertTrue(dep_email["is_directly_assignable"])
+        self.assertEqual(dep_email["suggestion_type"], "user_email")
 
 if __name__ == "__main__":
     unittest.main()

@@ -1071,6 +1071,230 @@ All 15 application profiles in [`test_data/`](file:///home/python/ciso-assistant
   - [`tests/test_web_ui.py`](file:///home/python/ciso-assistant/tests/test_web_ui.py): Added tests for `/api/framework-snapshots` listing, creation, and diffing.
   - Full test suite: **293 tests passing in 118s (0 failures, 0 errors, OK)**.
 
+---
+
+## 45. Initial Respondent Assignment Questions for Each Triggered Implementation Group (`appsec_manual.yml`, Version 20)
+
+Implemented questions for the initial respondent in the `appsec_manual` framework to indicate whether they can answer each triggered implementation group (track) or if somebody else has to:
+
+### 1. Architectural Placement & Dependency Gating
+- Because CISO Assistant questionnaire forms strictly enforce intra-node dependencies (`depends_on` must target questions within the same requirement node), the respondent assignment questions are placed directly inside the initial profiling node **`hosting`** (`urn:intuitem:risk:req_node:appsec_manual:hosting`, scoped to `["info"]`).
+- For each of the 7 triggered implementation groups, a dedicated question (`q4` through `q10`) is conditionally presented via `depends_on` matching the exact trigger conditions:
+  1. **`hosting:q4` (Application Security Baseline - `baseline`)**:
+     - *Text*: *"Can you answer the Application Security Baseline track (SSO federation, administrative MFA, and Role-Based Access Control [RBAC]), or does somebody else have to?"*
+     - *Condition*: `hosting:q1` in `[c1, c2, c3]` (Universal baseline triggered for all applications).
+  2. **`hosting:q5` (Custom Software Track - `custom_app`)**:
+     - *Text*: *"Can you answer the Custom Software Track (code-level session management, input validation, output encoding, debug suppression, and CI/CD SAST/DAST/SCA pipelines), or does somebody else have to?"*
+     - *Condition*: `hosting:q1 == c1` (Custom in-house software).
+  3. **`hosting:q6` (Bought Software Track - `cots_app`)**:
+     - *Text*: *"Can you answer the Bought Software Track (COTS deployment configuration hardening, vendor maintenance/support contracts, and patch SLAs), or does somebody else have to?"*
+     - *Condition*: `hosting:q1 == c2` (Bought COTS package).
+  4. **`hosting:q7` (Infrastructure & Hosting Security Track - `infra`)**:
+     - *Text*: *"Can you answer the Infrastructure & Hosting Security Track (secrets vault management, encryption at rest/transit, SIEM logging, backup & DR, and host OS patching), or does somebody else have to?"*
+     - *Condition*: `hosting:q1` in `[c1, c2]` (Self-hosted software).
+  5. **`hosting:q8` (Internet-Facing Application Track - `internet_facing`)**:
+     - *Text*: *"Can you answer the Internet-Facing Application Track (edge Web Application Firewall [WAF], anti-DDoS, API rate limiting, and external penetration testing), or does somebody else have to?"*
+     - *Condition*: `hosting:q2 == c2` (Internet-facing exposure).
+  6. **`hosting:q9` (SaaS Application Track - `saas_app`)**:
+     - *Text*: *"Can you answer the SaaS Application Track (Master SaaS Agreement, confidentiality & encryption clauses, tenant admin MFA, EU data residency, audit rights, and non-conformity remedies), or does somebody else have to?"*
+     - *Condition*: `hosting:q1 == c3` (Third-party SaaS).
+  7. **`hosting:q10` (Uncertified SaaS Vendor Track - `saas_uncertified`)**:
+     - *Text*: *"Can you answer the Uncertified SaaS Vendor Track (detailed vendor security assessment: ISMS, awareness, workstation/mobile security, network isolation, secure development, penetration testing, physical security, and subcontractor governance), or does somebody else have to?"*
+     - *Condition*: `hosting:q3 == c2` (Uncertified SaaS vendor).
+
+### 2. Standardized Binary Choices
+- Each question presents two standardized options:
+  - `c1`: *"I can answer this track"* (`color: "#33a745"`)
+  - `c2`: *"Somebody else has to answer this track"* (`color: "#17a2b8"`)
+- Respondents selecting *"Somebody else has to answer this track"* are guided to specify the designated contact name, role, and email in the observation field for seamless orchestrator/auditor track delegation.
+
+### 3. Framework Versioning & Test Data Synchronization
+- [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml): Incremented to **`version: 20`** (`publication_date: 2026-11-12`).
+- Synchronized all 6 manual application profiles in [`test_data/`](file:///home/python/ciso-assistant/test_data/) (`app_manual_custom_internal.yml`, `app_manual_custom_internet.yml`, `app_manual_cots_internal.yml`, `app_manual_cots_internet.yml`, `app_manual_saas_certified.yml`, `app_manual_saas_uncertified.yml`) with answers and observations for their respective triggered track questions.
+- Updated [`docs/appsec_manual_conditional_ig_graph.md`](file:///home/python/ciso-assistant/docs/appsec_manual_conditional_ig_graph.md) with complete reference table.
+
+### 4. Automated Test Validation
+- [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py): Updated `test_appsec_manual_structure_and_scoping` to assert 10 questions in `hosting`, validating trigger dependencies, texts, and choices for `q4`–`q10`.
+- [`tests/test_implementation_groups.py`](file:///home/python/ciso-assistant/tests/test_implementation_groups.py): Added `test_appsec_manual_respondent_questions_per_triggered_ig` verifying all 7 track questions and ensuring only triggered questions are active across all 6 application profiles.
+- Full test suites pass cleanly.
+
+---
+
+## 46. Implementation of Free Text Delegate Form Fields for Triggered Track Assignees (`appsec_manual` Framework v21)
+
+### 1. Requirements & Architectural Design
+- **Objective**: Following the introduction of respondent assignment questions (`hosting:q4`–`q10`) for each triggered Implementation Group (IG) in `appsec_manual`, provide a free text form field so the initial respondent can directly specify who can answer each delegated track (name, email address, or team).
+- **Dynamic Gating via Intra-Node `depends_on`**:
+  - In CISO Assistant questionnaire forms, question dependencies are evaluated within the same requirement node.
+  - For each of the 7 triggered tracks, a corresponding free text question (`hosting:q4_delegate` through `hosting:q10_delegate`) of `type: text` is placed directly under the choice question.
+  - The free text field is conditionally gated to appear **only** when the respondent selects `c2` (*"Somebody else has to answer this track"*).
+  - If the respondent selects `c1` (*"I can answer this track"*), the text field remains hidden to prevent form clutter.
+  - Marked `required: false` so respondents are not hard-blocked if contact details are pending confirmation.
+
+### 2. Delegate Questions Added to Node `hosting`
+| Choice Question (`type: unique_choice`) | Free Text Delegate Question (`type: text`) | Trigger Condition | Text Prompt |
+| :--- | :--- | :--- | :--- |
+| **`hosting:q4`** (Baseline) | **`hosting:q4_delegate`** | `hosting:q4 == c2` | *"Application Security Baseline track: please specify who can answer (name, email address, or team):"* |
+| **`hosting:q5`** (Custom Software) | **`hosting:q5_delegate`** | `hosting:q5 == c2` | *"Custom Software Track: please specify who can answer (name, email address, or team):"* |
+| **`hosting:q6`** (Bought Software COTS) | **`hosting:q6_delegate`** | `hosting:q6 == c2` | *"Bought Software Track (COTS): please specify who can answer (name, email address, or team):"* |
+| **`hosting:q7`** (Infrastructure) | **`hosting:q7_delegate`** | `hosting:q7 == c2` | *"Infrastructure & Hosting Security Track: please specify who can answer (name, email address, or team):"* |
+| **`hosting:q8`** (Internet-Facing) | **`hosting:q8_delegate`** | `hosting:q8 == c2` | *"Internet-Facing Application Track: please specify who can answer (name, email address, or team):"* |
+| **`hosting:q9`** (SaaS Application) | **`hosting:q9_delegate`** | `hosting:q9 == c2` | *"SaaS Application Track: please specify who can answer (name, email address, or team):"* |
+| **`hosting:q10`** (Uncertified SaaS) | **`hosting:q10_delegate`** | `hosting:q10 == c2` | *"Uncertified SaaS Vendor Track: please specify who can answer (name, email address, or team):"* |
+
+### 3. Framework Versioning & Test Synchronization
+- [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml): Incremented to **`version: 21`** (`publication_date: 2026-11-12`), with 17 total questions in `hosting`.
+- [`test_data/`](file:///home/python/ciso-assistant/test_data/): Updated manual profiles where `Somebody else has to answer this track` was answered:
+  - `app_manual_custom_internal.yml`: Added answer for `q7_delegate` (DevOps).
+  - `app_manual_custom_internet.yml`: Added answers for `q7_delegate` (Cloud Infra) and `q8_delegate` (SecOps Edge).
+  - `app_manual_cots_internal.yml`: Added answer for `q7_delegate` (SysAdmin).
+  - `app_manual_cots_internet.yml`: Added answers for `q7_delegate` (Hosting Ops) and `q8_delegate` (Cloud Sec).
+  - `app_manual_saas_certified.yml`: All self-answered (`c1`), delegate fields cleanly inactive.
+  - `app_manual_saas_uncertified.yml`: Added answer for `q10_delegate` (Vendor Security Auditor).
+- [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py):
+  - Updated `test_questions_choices_and_scoring_logic` to support `type: text` non-choice questions.
+  - Updated `test_appsec_manual_structure_and_scoping` to assert 17 questions in `hosting` and validate text question types, dependencies on `c2`, and `required: false`.
+- [`tests/test_implementation_groups.py`](file:///home/python/ciso-assistant/tests/test_implementation_groups.py):
+  - Updated `test_appsec_manual_respondent_questions_per_triggered_ig` asserting 17 questions and validating active/inactive state of both choice questions and delegate text fields across all 6 test profiles.
+- [`docs/appsec_manual_conditional_ig_graph.md`](file:///home/python/ciso-assistant/docs/appsec_manual_conditional_ig_graph.md): Updated Section 3.1 documentation.
+
+---
+
+## 48. Unified Framework Model: Merging AppSec and AppSec Manual via Dynamic Self-Response vs. Orchestrator Delegation
+
+### 1. Architectural Unification & Intent
+- **User Request**: Merge the two frameworks by letting CISO Assistant trigger the Implementation Group (IG) if the user says they can respond, and leaving the assignment in the orchestrator if not.
+- **Problem**:
+  - `appsec.yml` auto-triggered implementation groups on delivery model and exposure profiling questions (`hosting:q1`, `q2`, `q3`) via `select_implementation_groups` without asking if the respondent could answer them.
+  - `appsec_manual.yml` avoided `select_implementation_groups` completely, requiring manual assignment in the orchestrator even when the respondent could self-answer.
+- **Merged Solution**:
+  - Profiling questions (`hosting:q1`, `q2`, `q3`) define the technical architecture (Custom, COTS, SaaS; Internal vs. Internet-Facing; SaaS Certified vs. Uncertified) without directly triggering implementation groups.
+  - Respondent assignment questions (`hosting:q4` through `hosting:q10`) are dynamically displayed based on intra-node dependencies:
+    - **Self-Answered (`c1`: *"I can answer this track"*):** Carries `select_implementation_groups: ["<track>"]`. CISO Assistant activates the IG dynamically inside the assessment. The track is marked `is_ciso_assistant_triggered: true` and excluded from `pending_dependencies`.
+    - **Delegated (`c2`: *"Somebody else has to answer this track"*):** Has no `select_implementation_groups`. Intra-node dependency unlocks free text question `hosting:qX_delegate` (`type: text`) where the respondent specifies the delegate's name, email, or team. CISO Assistant does not activate the IG; the assignment remains in the orchestrator under `pending_dependencies`, enriched with `dep["delegate"]` contact information.
+    - If all tracks are self-answered (`c1`), `pending_dependencies` is completely empty. If any track is delegated (`c2`), it remains pending for the orchestrator to assign.
+
+### 2. Framework Versioning & Content Harmonization
+- [`YML/appsec.yml`](file:///home/python/ciso-assistant/YML/appsec.yml): Incremented to **`version: 42`** (`publication_date: 2026-11-12`).
+  - Added all 10 `implementation_groups_dependencies` matching `appsec_manual` with URNs for `appsec`.
+  - Removed `select_implementation_groups` from `hosting:q1` (`c1`, `c2`, `c3`), `hosting:q2` (`c2`), and `hosting:q3` (`c2`).
+  - Added questions `q4`–`q10` and `q4_delegate`–`q10_delegate` in requirement node `hosting` (17 total questions). Choice `c1` triggers `select_implementation_groups: ["<track>"]`; choice `c2` does not.
+- [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml): Incremented to **`version: 26`** (`publication_date: 2026-11-12`).
+  - Added `select_implementation_groups: ["<track>"]` to choice `c1` across `hosting:q4` through `q10`.
+  - Choice `c2` remains free of `select_implementation_groups`.
+
+### 3. Orchestrator Engine Updates (`classes/audits/implementation_groups.py`)
+- Added tracking of `ciso_assistant_triggered_groups` (canonical names), `ciso_assistant_triggered_ref_ids` (ref_ids), and `delegate_answers` across `yaml_path`, `answers`, and `ca_reqs`.
+- Added helper `_extract_track_delegate_key` to map delegate fields (`q4_delegate`–`q10_delegate`) to their respective tracks.
+- Enriched `pending_dependencies` entries with `dep["delegate"]` and `dep["delegate_contact"]`.
+- Added metadata to each group in `all_groups`:
+  - `is_ciso_assistant_triggered`: `True` when respondent answered `c1` triggering the track via CISO Assistant.
+  - `is_pending_trigger`: `True` when candidate dependency was matched by profiling but not self-answered, remaining for orchestrator delegation.
+- Returned `ciso_assistant_triggered_groups` and `ciso_assistant_triggered_ref_ids` in `determine_implementation_groups_triggered_by_others`.
+- Added flexible unnesting in `determine_implementation_groups_triggered_by_others` to accept both flat row lists and nested `{requirement, answers: [...]}` structures.
+
+### 4. Test Profile Synchronization & Verification
+- Synchronized all 9 `test_data/app_appsec_*` profiles with `hosting` answers for `q4`–`q10` selecting `c1` (*"I can answer this track"*).
+- Verified all 6 `test_data/app_manual_*` profiles exercising both `c1` self-response and `c2` delegation with contact emails.
+- Updated [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py):
+  - Updated `test_appsec_network_exposure_and_conditional_branching`: verifies profiling choices don't trigger IGs directly and `q4:c1`, `q8:c1`, `q9:c1`, `q10:c1` trigger tracks dynamically.
+  - Updated `test_appsec_software_delivery_models_and_sdlc_scoping`: verifies `q1` discriminates delivery models while `q4`–`q10` handle IG triggers on `c1`.
+  - Updated `test_appsec_manual_structure_and_scoping`: asserts `c1` choices have `select_implementation_groups` and `c2` choices do not.
+- Added dedicated test `test_merged_framework_ciso_assistant_trigger_vs_orchestrator_delegation` in [`tests/test_implementation_groups.py`](file:///home/python/ciso-assistant/tests/test_implementation_groups.py):
+  - Asserts that answering `c1` activates the IG in CISO Assistant and removes it from `pending_dependencies`.
+  - Asserts that answering `c2` leaves the IG in `pending_dependencies` with delegate email populated.
+  - Asserts that when all tracks are self-answered (`c1`), `pending_dependencies` is completely empty.
+- Test suite results:
+  - `python3 -m unittest tests/test_implementation_groups.py`: 26/26 passed.
+  - `python3 -m unittest tests/test_yaml_integrity.py`: 36/36 passed.
+  - `python3 -m unittest tests/test_examples_manager.py`: 50/50 passed.
+
+
+Added a dedicated technical profiling question evaluating Cloudflare protection of inbound HTTP/HTTPS traffic for self-hosted (COTS and Custom in-house) applications that are exposed to the public Internet:
+
+### 1. Architectural Placement & Dependency Gating
+- Placed directly inside the initial profiling requirement node **`hosting`** (`urn:intuitem:risk:req_node:appsec:hosting` in `appsec.yml`, `urn:intuitem:risk:req_node:appsec_manual:hosting` in `appsec_manual.yml`).
+- Gated conditionally via intra-node `depends_on` on the network exposure question:
+  - **Prerequisite**: `hosting:q2 == urn:intuitem:risk:req_node:<fw>:hosting:q2:c2` (*"Internet-facing [Public Web / Mobile API]"*).
+  - Because `hosting:q2` is only shown for self-hosted apps (`q1 in [Custom software, Bought software COTS]`), this question is dynamically active **exclusively** for COTS and custom externally exposed applications. Internal and SaaS applications cleanly bypass it.
+
+### 2. Standardized Binary Choice & Scoring
+- **Question ID**:
+  - `appsec.yml`: `urn:intuitem:risk:req_node:appsec:hosting:q4`
+  - `appsec_manual.yml`: `urn:intuitem:risk:req_node:appsec_manual:hosting:q11`
+- **Question Text**:
+  > *"Is inbound HTTP/HTTPS traffic routed through and protected by Cloudflare (e.g. Cloudflare reverse proxy, Web Application Firewall [WAF], and DDoS mitigation)?"*
+- **Choices & Scoring**:
+  - `c1` (*"Yes"*): `add_score: 100`, `compute_result: true`, `color: "#33a745"`
+  - `c2` (*"No"*): `add_score: 0`, `compute_result: false`, `color: "#dc3545"`
+
+### 3. Framework Versioning & Test Data Synchronization
+- [`YML/appsec.yml`](file:///home/python/ciso-assistant/YML/appsec.yml): Incremented to **`version: 38`** (`publication_date: 2026-11-12`).
+- [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml): Incremented to **`version: 22`** (`publication_date: 2026-11-12`).
+- Synchronized all 4 externally exposed self-hosted application profiles in [`test_data/`](file:///home/python/ciso-assistant/test_data/):
+  - `app_appsec_cots_internet.yml`
+  - `app_appsec_custom_internet.yml`
+  - `app_manual_cots_internet.yml`
+  - `app_manual_custom_internet.yml`
+- Internal and SaaS application profiles remain unaffected and require no answers for this conditional question.
+
+### 4. Automated Testing & Verification
+- [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py):
+  - Validated `hosting:q4` in `appsec.yml` and `hosting:q11` in `appsec_manual.yml` with dependencies on `hosting:q2:c2`, binary choices, and scoring.
+  - Updated `appsec_manual` `hosting` question count assertion from 17 to 18.
+- [`tests/test_implementation_groups.py`](file:///home/python/ciso-assistant/tests/test_implementation_groups.py):
+  - Updated `test_appsec_manual_respondent_questions_per_triggered_ig` to assert 18 questions in `hosting` and verified `q11` Cloudflare question definition.
+- Documentation synchronized in:
+  - [`docs/appsec_policy_applicability_matrix.md`](file:///home/python/ciso-assistant/docs/appsec_policy_applicability_matrix.md)
+  - [`docs/appsec_questions_cases.md`](file:///home/python/ciso-assistant/docs/appsec_questions_cases.md)
+  - [`docs/appsec_manual_conditional_ig_graph.md`](file:///home/python/ciso-assistant/docs/appsec_manual_conditional_ig_graph.md)
+
+---
+
+## 47. Framework-Driven Implementation Group Respondent Designation (`delegate_answer`) & Team Assignment Suggestions
+
+Enhanced track delegation and respondent designation to be fully framework-driven and handle non-user (team/department) responses as suggestions rather than directly assignable user accounts:
+
+### 1. Framework IG Definition Specification (`delegate_answer`)
+- In [`YML/appsec.yml`](file:///home/python/ciso-assistant/YML/appsec.yml) and [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml), implementation group definitions under `implementation_groups_definition` now explicitly specify which question's answer contains who can answer that track (`delegate_answer`):
+  - `custom_app`: `urn:intuitem:risk:req_node:<fw>:hosting:q5_delegate`
+  - `cots_app`: `urn:intuitem:risk:req_node:<fw>:hosting:q6_delegate`
+  - `infra`: `urn:intuitem:risk:req_node:<fw>:hosting:q7_delegate`
+  - `saas_app`: `urn:intuitem:risk:req_node:<fw>:hosting:q9_delegate`
+  - `saas_uncertified`: `urn:intuitem:risk:req_node:<fw>:hosting:q10_delegate`
+  - `baseline`: `urn:intuitem:risk:req_node:<fw>:hosting:q4_delegate`
+  - `internet_facing`: `urn:intuitem:risk:req_node:<fw>:hosting:q8_delegate`
+- The Python engine flexibly supports `delegate_answer`, `delegate_question`, `suggested_assignee_answer`, `suggested_assignee_question`, `assignee_answer`, and `delegate_question_urn` / `delegate_question_ref_id`.
+
+### 2. Dynamic Python Extraction & Team Suggestion Classification
+- Updated [`classes/audits/implementation_groups.py`](file:///home/python/ciso-assistant/classes/audits/implementation_groups.py) `determine_implementation_groups_triggered_by_others`:
+  - Builds dynamic question-to-group mappings directly from framework IG definitions.
+  - Automatically extracts respondent answers across YAML profiles, direct answer dictionaries/lists, and live CISO Assistant requirement assessment records.
+  - Recognizes that respondents often designate a team or department (e.g., *"Cloud Infrastructure Operations Team"*, *"SecOps"*, *"DevOps"*) rather than a single user email.
+  - Enriches `pending_dependencies`, `candidate_dependencies`, and `all_groups` with:
+    - `suggested_assignee`: Text provided by the respondent.
+    - `suggestion`: Cleaned suggestion value.
+    - `is_directly_assignable`: `True` if the suggestion is a valid user email address, `False` if it designates a team or department.
+    - `suggestion_type`: `"user_email"` vs `"team_or_role"`.
+- Updated [`classes/examples_manager.py`](file:///home/python/ciso-assistant/classes/examples_manager.py):
+  - `get_audit_implementation_groups`: Returns `suggested_assignees`, `suggestions`, and `delegate_answers`.
+  - `assign_audit_implementation_groups`: Prevents treating team names as invalid user email accounts, maintaining suggestions in the returned metadata summary while respecting explicit `user_email` or defaulting to application owner.
+
+### 3. Web UI Visual Integration
+- Updated [`web/templates/index.html`](file:///home/python/ciso-assistant/web/templates/index.html):
+  - Added suggestion badge (`<i data-lucide="sparkles"></i> Suggested respondent: <name> (from questionnaire)`) on each triggered track card in the Manage Implementation Groups modal.
+  - Added a dedicated suggestion box in the assignee form advising auditors of team/department suggestions and providing a one-click *"Use suggested email"* button when an email address was provided.
+
+### 4. Automated Testing & Verification
+- [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py):
+  - Added assertions ensuring all triggered IGs across `appsec` and `appsec_manual` define `delegate_answer` matching valid hosting delegate questions.
+- [`tests/test_implementation_groups.py`](file:///home/python/ciso-assistant/tests/test_implementation_groups.py):
+  - Added `test_framework_ig_delegate_answer_team_suggestion_and_assignability`: verifies team names are captured as suggestions with `is_directly_assignable=False` and `suggestion_type="team_or_role"`.
+  - Added `test_custom_framework_ig_delegate_answer_definition`: verifies 100% framework-driven resolution on arbitrary custom framework models.
+  - Full test suite: **318 tests passing (0 failures, 0 errors, OK)**.
+
+
+
 
 
 

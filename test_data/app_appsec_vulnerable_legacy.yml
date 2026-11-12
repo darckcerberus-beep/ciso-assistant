@@ -108,6 +108,24 @@ answers:
     result: "compliant"
     observation: "Accessible only via corporate intranet and legacy LAN subnets."
 
+  - requirement: "hosting"
+    question: "Can you answer the Application Security Baseline track (SSO federation, administrative MFA, and Role-Based Access Control [RBAC]), or does somebody else have to?"
+    answer: "I can answer this track"
+    result: "compliant"
+    observation: "Initial respondent can answer enterprise SSO and baseline IAM controls."
+
+  - requirement: "hosting"
+    question: "Can you answer the Custom Software Track (code-level session management, input validation, output encoding, debug suppression, and CI/CD SAST/DAST/SCA pipelines), or does somebody else have to?"
+    answer: "I can answer this track"
+    result: "compliant"
+    observation: "Initial respondent is application development lead for internal operations software."
+
+  - requirement: "hosting"
+    question: "Can you answer the Infrastructure & Hosting Security Track (secrets vault management, encryption at rest/transit, SIEM logging, backup & DR, and host OS patching), or does somebody else have to?"
+    answer: "I can answer this track"
+    result: "compliant"
+    observation: "Application owner and infrastructure custodian can answer self-hosted infrastructure and OS security controls."
+
   # ============================================================================
   # CHAPTER 2: IDENTITY, AUTHENTICATION & ACCESS CONTROL (IGs: baseline, custom_app)
   # ============================================================================

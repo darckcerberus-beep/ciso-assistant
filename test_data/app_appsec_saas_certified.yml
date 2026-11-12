@@ -95,6 +95,16 @@ answers:
   result: compliant
   observation: SaaS vendor holds active ISO/IEC 27001 certification and annual SOC
     2 Type II attestation.
+- requirement: hosting
+  question: Can you answer the Application Security Baseline track (SSO federation, administrative MFA, and Role-Based Access Control [RBAC]), or does somebody else have to?
+  answer: I can answer this track
+  result: compliant
+  observation: Initial respondent can answer enterprise SSO and baseline IAM controls.
+- requirement: hosting
+  question: Can you answer the SaaS Application Track (Master SaaS Agreement, confidentiality & encryption clauses, tenant admin MFA, EU data residency, audit rights, and non-conformity remedies), or does somebody else have to?
+  answer: I can answer this track
+  result: compliant
+  observation: Vendor risk manager and procurement contact can answer core SaaS contractual and governance controls.
 - requirement: authentication_and_mfa
   question: How do users authenticate to the application?
   answer: Enterprise SSO exclusively (SAML 2.0 / OIDC federated IdP, with no local accounts)

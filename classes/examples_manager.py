@@ -132,29 +132,34 @@ class ExamplesManager:
         """Initialize or refresh cached API resource collections."""
         if self.data is None or force_reload:
             utils.clear_get_all_results_cache()
-            self.data = {
-                "domain_dict": DomainDict(),
-                "perimeter_dict": PerimeterDict(),
-                "asset_dict": AssetDict(),
-                "framework_dict": FrameworkDict(),
-                "compliance_assessment_dict": ComplianceAssessmentDict(),
-                "risk_assessment_dict": RiskAssessmentDict(),
-                "risk_scenario_dict": RiskScenarioDict(),
-                "risk_matrix_dict": RiskMatrixDict(),
-                "reference_control_dict": ReferenceControlDict(),
-                "applied_control_dict": AppliedControlDict(),
-                "user_dict": UserDict(),
-                "entity_dict": EntityDict(),
-                "entity_assessment_dict": EntityAssessmentDict(),
-                "entity_representative_dict": EntityRepresentativeDict(),
-                "findings_assessment_dict": FindingsAssessmentDict(),
-                "finding_dict": FindingDict(),
-                "vulnerability_dict": VulnerabilityDict(),
-                "threat_dict": ThreatDict(),
-                "task_template_dict": TaskTemplateDict(),
-                "task_dict": TaskDict(),
-                "framework_file": FrameworkFile(str(self.framework_yaml)),
+            from concurrent.futures import ThreadPoolExecutor
+
+            constructors = {
+                "domain_dict": DomainDict,
+                "perimeter_dict": PerimeterDict,
+                "asset_dict": AssetDict,
+                "framework_dict": FrameworkDict,
+                "compliance_assessment_dict": ComplianceAssessmentDict,
+                "risk_assessment_dict": RiskAssessmentDict,
+                "risk_scenario_dict": RiskScenarioDict,
+                "risk_matrix_dict": RiskMatrixDict,
+                "reference_control_dict": ReferenceControlDict,
+                "applied_control_dict": AppliedControlDict,
+                "user_dict": UserDict,
+                "entity_dict": EntityDict,
+                "entity_assessment_dict": EntityAssessmentDict,
+                "entity_representative_dict": EntityRepresentativeDict,
+                "findings_assessment_dict": FindingsAssessmentDict,
+                "finding_dict": FindingDict,
+                "vulnerability_dict": VulnerabilityDict,
+                "threat_dict": ThreatDict,
+                "task_template_dict": TaskTemplateDict,
+                "task_dict": TaskDict,
             }
+            with ThreadPoolExecutor(max_workers=8) as executor:
+                futures = {k: executor.submit(cls) for k, cls in constructors.items()}
+                self.data = {k: f.result() for k, f in futures.items()}
+            self.data["framework_file"] = FrameworkFile(str(self.framework_yaml))
         return self.data
 
 
@@ -694,7 +699,7 @@ class ExamplesManager:
                         candidate = fw_id.strip()
                         break
 
-        cache_key = f"{candidate}:{yaml_path}"
+        cache_key = str(candidate).strip().lower() if candidate else (f"path:{yaml_path}" if yaml_path else "default")
         if cache_key in cls._framework_metadata_cache:
             return cls._framework_metadata_cache[cache_key]
 
@@ -2363,14 +2368,62 @@ class ExamplesManager:
                         if getattr(asgn, "get_compliance_assessment_id", lambda: None)() == ca_obj.get_id():
                             ra_list = getattr(asgn, "get_requirement_assessment_id_list", lambda: [])() or []
                             assigned_ra_ids.update(ra_list)
+
+                            # Resolve assigned user name/email
+                            assigned_user_str = ""
+                            assigned_user_email = ""
+                            asgn_json = getattr(asgn, "json_object", {}) if hasattr(asgn, "json_object") else {}
+
+                            # 1. Try events (records email of actor who submitted or started)
+                            events = asgn_json.get("events") or []
+                            for ev in events:
+                                ev_actor = ev.get("event_actor") or {}
+                                if isinstance(ev_actor, dict) and ev_actor.get("email"):
+                                    assigned_user_email = ev_actor.get("email")
+                                    break
+
+                            # 2. Try actor object
+                            actors = asgn_json.get("actor") or asgn_json.get("actors") or []
+                            if actors and isinstance(actors, list):
+                                first_act = actors[0]
+                                if isinstance(first_act, dict):
+                                    if first_act.get("email"):
+                                        assigned_user_email = first_act.get("email")
+                                    assigned_user_str = first_act.get("str") or first_act.get("name") or ""
+                                elif isinstance(first_act, str) and user_dict and hasattr(user_dict, "get_users"):
+                                    for u in (user_dict.get_users() or {}).values():
+                                        if getattr(u, "get_id", lambda: None)() == first_act:
+                                            assigned_user_email = getattr(u, "get_email", lambda: None)() or ""
+                                            assigned_user_str = getattr(u, "get_email", lambda: None)() or getattr(u, "get_name", lambda: None)() or ""
+                                            break
+
+                            # 3. Match user by name if email not found
+                            if not assigned_user_email and assigned_user_str and user_dict and hasattr(user_dict, "get_users"):
+                                for u in (user_dict.get_users() or {}).values():
+                                    u_full = f"{getattr(u, 'get_first_name', lambda: '')()} {getattr(u, 'get_last_name', lambda: '')()}".strip()
+                                    if u_full.lower() == assigned_user_str.lower() or getattr(u, "get_name", lambda: "")().lower() == assigned_user_str.lower():
+                                        assigned_user_email = getattr(u, "get_email", lambda: None)() or ""
+                                        break
+
                             existing_assignments.append({
                                 "id": getattr(asgn, "get_id", lambda: None)(),
                                 "name": getattr(asgn, "get_name", lambda: None)(),
-                                "status": getattr(asgn, "json_object", {}).get("status", "") if hasattr(asgn, "json_object") else "",
+                                "status": asgn_json.get("status", ""),
                                 "requirements_count": len(ra_list),
+                                "assigned_user": assigned_user_email or assigned_user_str,
+                                "assigned_user_name": assigned_user_str,
+                                "assigned_user_email": assigned_user_email,
                             })
             except Exception:
                 pass
+
+        # Fallback app owner resolution from existing assignments if not set
+        if not app_owner_email and existing_assignments:
+            for asgn_item in existing_assignments:
+                user_cand = asgn_item.get("assigned_user_email") or asgn_item.get("assigned_user") or ""
+                if "@" in user_cand:
+                    app_owner_email = user_cand
+                    break
 
         # Scoped assessable requirements for this CA
         scoped_ra_ids = []
@@ -2423,6 +2476,9 @@ class ExamplesManager:
             "app_owner_email": app_owner_email,
             "existing_assignments": existing_assignments,
             "unassigned_requirements_count": len(unassigned_ra_ids),
+            "suggested_assignees": dep_info.get("suggested_assignees", {}),
+            "suggestions": dep_info.get("suggestions", {}),
+            "delegate_answers": dep_info.get("delegate_answers", {}),
         }
 
     def select_audit_implementation_groups(
@@ -2685,6 +2741,15 @@ class ExamplesManager:
             level=logging.INFO,
         )
 
+        # Collect questionnaire suggestions for assigned groups (e.g. teams or designated contacts)
+        suggested_map = current_info.get("suggested_assignees") or {}
+        group_suggestions = {}
+        for g in target_groups:
+            sug = suggested_map.get(g) or suggested_map.get(str(g).lower())
+            if sug:
+                group_suggestions[g] = sug
+        first_suggestion = list(group_suggestions.values())[0] if group_suggestions else None
+
         return {
             "app_name": app_name,
             "compliance_assessment_id": ca_id,
@@ -2698,6 +2763,9 @@ class ExamplesManager:
             "assigned_requirements_count": len(target_ra_ids),
             "requirements_count": len(target_ra_ids),
             "requirement_assessments": target_ra_ids,
+            "suggested_assignees": group_suggestions,
+            "suggestion": first_suggestion,
+            "suggested_assignee": first_suggestion,
         }
 
     def generate_controls_and_risks_for_application(

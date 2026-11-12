@@ -1,6 +1,13 @@
-# Conditional Implementation Group (IG) Graph & Application Example Suite — `appsec_manual.yml`
+# Conditional Implementation Group (IG) Graph & Application Example Suite — Merged AppSec Framework
 
-This document details the complete conditional Implementation Group (IG) state machine, intra-node question dependencies (`depends_on`), requirement scoping, and risk scenario scoping for **`YML/appsec_manual.yml`** (`ref_id: "appsec_manual"`, **Application Security Assessment Framework (AppSec - Manual IG)**).
+This document details the complete conditional Implementation Group (IG) state machine, intra-node question dependencies (`depends_on`), requirement scoping, and risk scenario scoping for **`YML/appsec.yml`** and **`YML/appsec_manual.yml`** (**Application Security Assessment Framework - Merged Model**).
+
+> [!NOTE]
+> **Unified Framework Model**: Both `appsec.yml` and `appsec_manual.yml` share the exact same conditional logic:
+> - **Profiling Questions (`hosting:q1`–`q3`)**: Determine the delivery model, network exposure, and SaaS certification status without directly activating implementation groups.
+> - **Dynamic Track Assignment Questions (`hosting:q4`–`q10`)**: Unlocked via intra-node `depends_on`.
+>   - If respondent selects `c1` (*"I can answer this track"*): CISO Assistant triggers the Implementation Group dynamically via `select_implementation_groups: ["<track>"]`. The track is active and omitted from `pending_dependencies`.
+>   - If respondent selects `c2` (*"Somebody else has to answer this track"*): `select_implementation_groups` is absent. Dedicated text field `hosting:qX_delegate` appears dynamically so the respondent can designate who can answer (name, email, or team). The track remains pending in the orchestrator under `pending_dependencies`, enriched with the delegate contact information for dispatching.
 
 ---
 
@@ -95,17 +102,43 @@ flowchart TD
 
 ---
 
+## 3.1 Initial Respondent Assignment Questions & Delegate Form Fields for Each Triggered IG (`hosting:q4`–`q10_delegate`)
+
+Inside the initial profiling requirement node **`hosting`** (`urn:intuitem:risk:req_node:appsec_manual:hosting`), the initial respondent is asked for each triggered implementation group whether they can answer that track directly or if somebody else has to. When *"Somebody else has to answer this track"* is selected, a dedicated free text form field (`type: text`) is dynamically displayed so the respondent can record who should answer (name, email, or team):
+
+| Question ID | Target Triggered IG | Trigger Condition (`depends_on`) | Question Text / Delegate Text Field | Type & Choices |
+| :---: | :--- | :--- | :--- | :--- |
+| **`q4`** | `baseline` (Application Security Baseline) | `hosting:q1` $\in \{c_1, c_2, c_3\}$ | *"Can you answer the Application Security Baseline track (SSO federation, administrative MFA, and Role-Based Access Control [RBAC]), or does somebody else have to?"* | `unique_choice`<br>`c1`: I can answer this track<br>`c2`: Somebody else has to answer this track |
+| **`q4_delegate`** | `baseline` (Assignee Designation) | `hosting:q4` $= c_2$ (*Somebody else*) | *"Application Security Baseline track: please specify who can answer (name, email address, or team):"* | `text` *(free text input, optional)* |
+| **`q5`** | `custom_app` (Custom Software Track) | `hosting:q1` $= c_1$ (*Custom software*) | *"Can you answer the Custom Software Track (code-level session management, input validation, output encoding, debug suppression, and CI/CD SAST/DAST/SCA pipelines), or does somebody else have to?"* | `unique_choice`<br>`c1`: I can answer this track<br>`c2`: Somebody else has to answer this track |
+| **`q5_delegate`** | `custom_app` (Assignee Designation) | `hosting:q5` $= c_2$ (*Somebody else*) | *"Custom Software Track: please specify who can answer (name, email address, or team):"* | `text` *(free text input, optional)* |
+| **`q6`** | `cots_app` (Bought Software Track) | `hosting:q1` $= c_2$ (*Bought software*) | *"Can you answer the Bought Software Track (COTS deployment configuration hardening, vendor maintenance/support contracts, and patch SLAs), or does somebody else have to?"* | `unique_choice`<br>`c1`: I can answer this track<br>`c2`: Somebody else has to answer this track |
+| **`q6_delegate`** | `cots_app` (Assignee Designation) | `hosting:q6` $= c_2$ (*Somebody else*) | *"Bought Software Track (COTS): please specify who can answer (name, email address, or team):"* | `text` *(free text input, optional)* |
+| **`q7`** | `infra` (Infrastructure & Hosting Security Track) | `hosting:q1` $\in \{c_1, c_2\}$ (*Self-hosted*) | *"Can you answer the Infrastructure & Hosting Security Track (secrets vault management, encryption at rest/transit, SIEM logging, backup & DR, and host OS patching), or does somebody else have to?"* | `unique_choice`<br>`c1`: I can answer this track<br>`c2`: Somebody else has to answer this track |
+| **`q7_delegate`** | `infra` (Assignee Designation) | `hosting:q7` $= c_2$ (*Somebody else*) | *"Infrastructure & Hosting Security Track: please specify who can answer (name, email address, or team):"* | `text` *(free text input, optional)* |
+| **`q8`** | `internet_facing` (Internet-Facing Application Track) | `hosting:q2` $= c_2$ (*Internet-facing*) | *"Can you answer the Internet-Facing Application Track (edge Web Application Firewall [WAF], anti-DDoS, API rate limiting, and external penetration testing), or does somebody else have to?"* | `unique_choice`<br>`c1`: I can answer this track<br>`c2`: Somebody else has to answer this track |
+| **`q8_delegate`** | `internet_facing` (Assignee Designation) | `hosting:q8` $= c_2$ (*Somebody else*) | *"Internet-Facing Application Track: please specify who can answer (name, email address, or team):"* | `text` *(free text input, optional)* |
+| **`q9`** | `saas_app` (SaaS Application Track) | `hosting:q1` $= c_3$ (*SaaS*) | *"Can you answer the SaaS Application Track (Master SaaS Agreement, confidentiality & encryption clauses, tenant admin MFA, EU data residency, audit rights, and non-conformity remedies), or does somebody else have to?"* | `unique_choice`<br>`c1`: I can answer this track<br>`c2`: Somebody else has to answer this track |
+| **`q9_delegate`** | `saas_app` (Assignee Designation) | `hosting:q9` $= c_2$ (*Somebody else*) | *"SaaS Application Track: please specify who can answer (name, email address, or team):"* | `text` *(free text input, optional)* |
+| **`q10`** | `saas_uncertified` (Uncertified SaaS Vendor Track) | `hosting:q3` $= c_2$ (*Uncertified SaaS*) | *"Can you answer the Uncertified SaaS Vendor Track (detailed vendor security assessment: ISMS, awareness, workstation/mobile security, network isolation, secure development, penetration testing, physical security, and subcontractor governance), or does somebody else have to?"* | `unique_choice`<br>`c1`: I can answer this track<br>`c2`: Somebody else has to answer this track |
+| **`q10_delegate`** | `saas_uncertified` (Assignee Designation) | `hosting:q10` $= c_2$ (*Somebody else*) | *"Uncertified SaaS Vendor Track: please specify who can answer (name, email address, or team):"* | `text` *(free text input, optional)* |
+
+> [!TIP]
+> When the respondent selects *"Somebody else has to answer this track"*, the corresponding `qX_delegate` free text form field expands immediately below the choice question via intra-node `depends_on`. If the initial respondent answers *"I can answer this track"*, the text field remains hidden to keep the questionnaire streamlined.
+
+---
+
 ## 4. Exhaustive Matrix of the 6 Conditional IG Combinations & Example Profiles
 
 | Case | Example Profile (`test_data/*.yml`) | `hosting:q1` | `hosting:q2` | `hosting:q3` | Active IGs (`visible_groups`) | Hidden IGs (`hidden_groups`) | Scoped Reqs | Scoped Scenarios | Classification |
 | :---: | :--- | :--- | :--- | :--- | :--- | :--- | :---: | :---: | :--- |
-| **0** | *(Initial Audit State)* | *(Unanswered)* | *(Hidden)* | *(Hidden)* | `info` (1) | `baseline`, `custom_app`, `cots_app`, `infra`, `saas_app`, `saas_uncertified`, `internet_facing` (7) | **3** | **0** | N/A |
-| **1** | `app_manual_custom_internal.yml` | `c1` (Custom) | `c1` (Internal) | *(Hidden)* | `info`, `baseline`, `custom_app`, `infra` (4) | `cots_app`, `internet_facing`, `saas_app`, `saas_uncertified` (4) | **21** | **15** | `Internal` |
-| **2** | `app_manual_custom_internet.yml` | `c1` (Custom) | `c2` (Internet) | *(Hidden)* | `info`, `baseline`, `custom_app`, `infra`, `internet_facing` (5) | `cots_app`, `saas_app`, `saas_uncertified` (3) | **23** | **17** | `Secret` |
-| **3** | `app_manual_cots_internal.yml` | `c2` (COTS) | `c1` (Internal) | *(Hidden)* | `info`, `baseline`, `cots_app`, `infra` (4) | `custom_app`, `internet_facing`, `saas_app`, `saas_uncertified` (4) | **17** | **13** | `Confidential` |
-| **4** | `app_manual_cots_internet.yml` | `c2` (COTS) | `c2` (Internet) | *(Hidden)* | `info`, `baseline`, `cots_app`, `infra`, `internet_facing` (5) | `custom_app`, `saas_app`, `saas_uncertified` (3) | **19** | **15** | `Confidential` |
-| **5** | `app_manual_saas_certified.yml` | `c3` (SaaS) | *(Hidden)* | `c1` (Yes) | `info`, `baseline`, `saas_app` (3) | `custom_app`, `cots_app`, `infra`, `internet_facing`, `saas_uncertified` (5) | **12** | **7** | `Confidential` |
-| **6** | `app_manual_saas_uncertified.yml` | `c3` (SaaS) | *(Hidden)* | `c2` (No) | `info`, `baseline`, `saas_app`, `saas_uncertified` (4) | `custom_app`, `cots_app`, `infra`, `internet_facing` (4) | **26** | **10** | `Secret` |
+| **0** | *(Initial Audit State)* | *(Unanswered)* | *(Hidden)* | *(Hidden)* | `info` (1) | `baseline`, `custom_app`, `cots_app`, `infra`, `saas_app`, `saas_uncertified`, `internet_facing` (7) | **4** | **0** | N/A |
+| **1** | `app_manual_custom_internal.yml` | `c1` (Custom) | `c1` (Internal) | *(Hidden)* | `info`, `baseline`, `custom_app`, `infra` (4) | `cots_app`, `internet_facing`, `saas_app`, `saas_uncertified` (4) | **22** | **15** | `Internal` |
+| **2** | `app_manual_custom_internet.yml` | `c1` (Custom) | `c2` (Internet) | *(Hidden)* | `info`, `baseline`, `custom_app`, `infra`, `internet_facing` (5) | `cots_app`, `saas_app`, `saas_uncertified` (3) | **25** | **17** | `Secret` |
+| **3** | `app_manual_cots_internal.yml` | `c2` (COTS) | `c1` (Internal) | *(Hidden)* | `info`, `baseline`, `cots_app`, `infra` (4) | `custom_app`, `internet_facing`, `saas_app`, `saas_uncertified` (4) | **18** | **13** | `Confidential` |
+| **4** | `app_manual_cots_internet.yml` | `c2` (COTS) | `c2` (Internet) | *(Hidden)* | `info`, `baseline`, `cots_app`, `infra`, `internet_facing` (5) | `custom_app`, `saas_app`, `saas_uncertified` (3) | **21** | **15** | `Confidential` |
+| **5** | `app_manual_saas_certified.yml` | `c3` (SaaS) | *(Hidden)* | `c1` (Yes) | `info`, `baseline`, `saas_app` (3) | `custom_app`, `cots_app`, `infra`, `internet_facing`, `saas_uncertified` (5) | **13** | **7** | `Confidential` |
+| **6** | `app_manual_saas_uncertified.yml` | `c3` (SaaS) | *(Hidden)* | `c2` (No) | `info`, `baseline`, `saas_app`, `saas_uncertified` (4) | `custom_app`, `cots_app`, `infra`, `internet_facing` (4) | **27** | **10** | `Secret` |
 
 ---
 
@@ -130,54 +163,56 @@ flowchart LR
 
 ---
 
-## 6. Requirement Node Applicability Matrix Across All 6 Cases (46 Assessable Nodes)
+## 6. Requirement Node Applicability Matrix Across All 6 Cases (48 Assessable Nodes)
 
 | # | Requirement `ref_id` | Implementation Group(s) | Case 1 (Custom+Int) | Case 2 (Custom+Ext) | Case 3 (COTS+Int) | Case 4 (COTS+Ext) | Case 5 (SaaS+Cert) | Case 6 (SaaS+Uncert) |
 | :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| 1 | `stakeholder_identification` | `info` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ |
-| 2 | `data_classification` | `info` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ |
-| 3 | `hosting` | `info` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ |
-| 4 | `authentication_and_mfa` | `baseline` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ |
-| 5 | `access_control_and_rbac` | `baseline` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ |
-| 6 | `session_management` | `custom_app` | $\checkmark$ | $\checkmark$ | — | — | — | — |
-| 7 | `owasp_top_10_defenses` | `custom_app` | $\checkmark$ | $\checkmark$ | — | — | — | — |
-| 8 | `file_upload_security` | `custom_app` | $\checkmark$ | $\checkmark$ | — | — | — | — |
-| 9 | `automated_security_testing` | `custom_app` | $\checkmark$ | $\checkmark$ | — | — | — | — |
-| 10 | `supply_chain_and_dependencies` | `custom_app` | $\checkmark$ | $\checkmark$ | — | — | — | — |
-| 11 | `code_review_and_ci_cd_integrity` | `custom_app` | $\checkmark$ | $\checkmark$ | — | — | — | — |
-| 12 | `vendor_secure_development` | `cots_app` | — | — | $\checkmark$ | $\checkmark$ | — | — |
-| 13 | `cots_deployment_hardening` | `cots_app` | — | — | $\checkmark$ | $\checkmark$ | — | — |
-| 14 | `data_exchange` | `custom_app`, `cots_app` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | — | — |
-| 15 | `non_prod_data` | `custom_app`, `cots_app` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | — | — |
-| 16 | `data_destruction` | `custom_app`, `cots_app` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | — | — |
-| 17 | `secrets_management` | `infra` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | — | — |
-| 18 | `data_in_transit` | `infra` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | — | — |
-| 19 | `data_at_rest` | `infra` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | — | — |
-| 20 | `security_event_logging` | `infra` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | — | — |
-| 21 | `centralized_monitoring_and_alerting` | `infra` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | — | — |
-| 22 | `backup_and_disaster_recovery` | `infra` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | — | — |
-| 23 | `os_patching` | `infra` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | — | — |
-| 24 | `api_security_and_rate_limiting` | `internet_facing` | — | $\checkmark$ | — | $\checkmark$ | — | — |
-| 25 | `penetration_testing_and_vulnerability_management` | `internet_facing` | — | $\checkmark$ | — | $\checkmark$ | — | — |
-| 26 | `saas_contract_compliance` | `saas_app` | — | — | — | — | $\checkmark$ | $\checkmark$ |
-| 27 | `saas_confidentiality_and_data_protection` | `saas_app` | — | — | — | — | $\checkmark$ | $\checkmark$ |
-| 28 | `saas_iam` | `saas_app` | — | — | — | — | $\checkmark$ | $\checkmark$ |
-| 29 | `saas_data_hosting_and_residency` | `saas_app` | — | — | — | — | $\checkmark$ | $\checkmark$ |
-| 30 | `saas_audit_and_compliance` | `saas_app` | — | — | — | — | $\checkmark$ | $\checkmark$ |
-| 31 | `saas_pci_dss` | `saas_app` | — | — | — | — | $\checkmark$ | $\checkmark$ |
-| 32 | `saas_non_conformity_remediation` | `saas_app` | — | — | — | — | $\checkmark$ | $\checkmark$ |
-| 33 | `saas_governance_and_policy` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
-| 34 | `saas_security_awareness` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
-| 35 | `saas_entitlements_and_privileges` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
-| 36 | `saas_logging_and_incidents` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
-| 37 | `saas_workstation_security` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
-| 38 | `saas_mobile_security` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
-| 39 | `saas_network_security` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
-| 40 | `saas_environment_isolation` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
-| 41 | `saas_secure_development` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
-| 42 | `saas_web_app_security` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
-| 43 | `saas_vulnerability_remediation_sla` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
-| 44 | `saas_physical_security` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
-| 45 | `saas_backup_and_business_continuity` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
-| 46 | `saas_subcontractor_management` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
-| | **Total Active Assessable Nodes** | | **21** | **23** | **17** | **19** | **12** | **26** |
+| 1 | `application_description` | `info` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ |
+| 2 | `stakeholder_identification` | `info` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ |
+| 3 | `data_classification` | `info` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ |
+| 4 | `hosting` | `info` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ |
+| 5 | `authentication_and_mfa` | `baseline` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ |
+| 6 | `access_control_and_rbac` | `baseline` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ |
+| 7 | `session_management` | `custom_app` | $\checkmark$ | $\checkmark$ | — | — | — | — |
+| 8 | `owasp_top_10_defenses` | `custom_app` | $\checkmark$ | $\checkmark$ | — | — | — | — |
+| 9 | `file_upload_security` | `custom_app` | $\checkmark$ | $\checkmark$ | — | — | — | — |
+| 10 | `automated_security_testing` | `custom_app` | $\checkmark$ | $\checkmark$ | — | — | — | — |
+| 11 | `supply_chain_and_dependencies` | `custom_app` | $\checkmark$ | $\checkmark$ | — | — | — | — |
+| 12 | `code_review_and_ci_cd_integrity` | `custom_app` | $\checkmark$ | $\checkmark$ | — | — | — | — |
+| 13 | `vendor_secure_development` | `cots_app` | — | — | $\checkmark$ | $\checkmark$ | — | — |
+| 14 | `cots_deployment_hardening` | `cots_app` | — | — | $\checkmark$ | $\checkmark$ | — | — |
+| 15 | `data_exchange` | `custom_app`, `cots_app` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | — | — |
+| 16 | `non_prod_data` | `custom_app`, `cots_app` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | — | — |
+| 17 | `data_destruction` | `custom_app`, `cots_app` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | — | — |
+| 18 | `secrets_management` | `infra` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | — | — |
+| 19 | `data_in_transit` | `infra` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | — | — |
+| 20 | `data_at_rest` | `infra` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | — | — |
+| 21 | `security_event_logging` | `infra` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | — | — |
+| 22 | `centralized_monitoring_and_alerting` | `infra` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | — | — |
+| 23 | `backup_and_disaster_recovery` | `infra` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | — | — |
+| 24 | `os_patching` | `infra` | $\checkmark$ | $\checkmark$ | $\checkmark$ | $\checkmark$ | — | — |
+| 25 | `edge_network_protection` | `internet_facing` | — | $\checkmark$ | — | $\checkmark$ | — | — |
+| 26 | `api_security_and_rate_limiting` | `internet_facing` | — | $\checkmark$ | — | $\checkmark$ | — | — |
+| 27 | `penetration_testing_and_vulnerability_management` | `internet_facing` | — | $\checkmark$ | — | $\checkmark$ | — | — |
+| 28 | `saas_contract_compliance` | `saas_app` | — | — | — | — | $\checkmark$ | $\checkmark$ |
+| 29 | `saas_confidentiality_and_data_protection` | `saas_app` | — | — | — | — | $\checkmark$ | $\checkmark$ |
+| 30 | `saas_iam` | `saas_app` | — | — | — | — | $\checkmark$ | $\checkmark$ |
+| 31 | `saas_data_hosting_and_residency` | `saas_app` | — | — | — | — | $\checkmark$ | $\checkmark$ |
+| 32 | `saas_audit_and_compliance` | `saas_app` | — | — | — | — | $\checkmark$ | $\checkmark$ |
+| 33 | `saas_pci_dss` | `saas_app` | — | — | — | — | $\checkmark$ | $\checkmark$ |
+| 34 | `saas_non_conformity_remediation` | `saas_app` | — | — | — | — | $\checkmark$ | $\checkmark$ |
+| 35 | `saas_governance_and_policy` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
+| 36 | `saas_security_awareness` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
+| 37 | `saas_entitlements_and_privileges` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
+| 38 | `saas_logging_and_incidents` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
+| 39 | `saas_workstation_security` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
+| 40 | `saas_mobile_security` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
+| 41 | `saas_network_security` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
+| 42 | `saas_environment_isolation` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
+| 43 | `saas_secure_development` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
+| 44 | `saas_web_app_security` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
+| 45 | `saas_vulnerability_remediation_sla` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
+| 46 | `saas_physical_security` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
+| 47 | `saas_backup_and_business_continuity` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
+| 48 | `saas_subcontractor_management` | `saas_uncertified` | — | — | — | — | — | $\checkmark$ |
+| | **Total Active Assessable Nodes** | | **22** | **25** | **18** | **21** | **13** | **27** |

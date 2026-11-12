@@ -96,6 +96,31 @@ answers:
   answer: Internet-facing (Public Web / Mobile API)
   result: compliant
   observation: Internet-facing public cloud web application and mobile API gateway.
+- requirement: hosting
+  question: Can you answer the Application Security Baseline track (SSO federation, administrative MFA, and Role-Based Access Control [RBAC]), or does somebody else have to?
+  answer: I can answer this track
+  result: compliant
+  observation: Initial respondent can answer enterprise SSO and baseline IAM controls.
+- requirement: hosting
+  question: Can you answer the Custom Software Track (code-level session management, input validation, output encoding, debug suppression, and CI/CD SAST/DAST/SCA pipelines), or does somebody else have to?
+  answer: I can answer this track
+  result: compliant
+  observation: Initial respondent is application development lead for customer-facing services.
+- requirement: hosting
+  question: Can you answer the Infrastructure & Hosting Security Track (secrets vault management, encryption at rest/transit, SIEM logging, backup & DR, and host OS patching), or does somebody else have to?
+  answer: I can answer this track
+  result: compliant
+  observation: Application owner and infrastructure custodian can answer self-hosted infrastructure and OS security controls.
+- requirement: hosting
+  question: Can you answer the Internet-Facing Application Track (edge Web Application Firewall [WAF], anti-DDoS, API rate limiting, and external penetration testing), or does somebody else have to?
+  answer: I can answer this track
+  result: compliant
+  observation: Application security lead can answer edge WAF, DDoS protection, and penetration testing controls.
+- requirement: edge_network_protection
+  question: "Is inbound HTTP/HTTPS traffic routed through and protected by Cloudflare (e.g. Cloudflare reverse proxy, Web Application Firewall [WAF], and DDoS mitigation)?"
+  answer: 'Yes'
+  result: compliant
+  observation: Production HTTP/HTTPS traffic routed through enterprise Cloudflare reverse proxy with edge WAF and DDoS protection.
 - requirement: authentication_and_mfa
   question: How do users authenticate to the application?
   answer: "Hybrid: Enterprise SSO for users, with local admin / break-glass or external accounts"

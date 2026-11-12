@@ -402,14 +402,29 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
         )
 
     # -----------------------------------------------------------------------
+    # -----------------------------------------------------------------------
     # Status & Inventory Endpoints
     # -----------------------------------------------------------------------
+
+    _status_cache: dict[str, Any] = {"time": 0.0, "data": None}
+    _status_lock = threading.Lock()
+
+    def invalidate_status_cache():
+        with _status_lock:
+            _status_cache["time"] = 0.0
+            _status_cache["data"] = None
 
     @app.route("/api/status")
     def api_status():
         """Retrieve deployment status across all applications."""
         target_folder = getattr(manager, "folder_name", None) or EXAMPLE_FOLDER_NAME
         wait_sec = float(request.args.get("wait", 0.0))
+        force = request.args.get("refresh", "").lower() in ("1", "true")
+
+        now = time.time()
+        with _status_lock:
+            if not force and wait_sec == 0 and _status_cache["data"] and (now - _status_cache["time"] < 4.0):
+                return jsonify(_status_cache["data"])
 
         connected, conn_msg = manager.test_connection()
         if not connected:
@@ -473,7 +488,7 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
         total_controls = sum(s.get("applied_controls_count", 0) for s in deployed_apps)
         total_findings = sum(s.get("findings_count", 0) for s in deployed_apps)
 
-        return jsonify({
+        payload = {
             "connected": True,
             "message": conn_msg,
             "base_url": utils.BASE_URL,
@@ -494,7 +509,11 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
                 "total_controls": total_controls,
                 "total_findings": total_findings,
             },
-        })
+        }
+        with _status_lock:
+            _status_cache["time"] = time.time()
+            _status_cache["data"] = payload
+        return jsonify(payload)
 
     @app.route("/api/domains", methods=["GET", "POST"])
     def api_domains():
@@ -902,6 +921,7 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
                 mode=mode,
                 **select_kwargs
             )
+            invalidate_status_cache()
             return jsonify({
                 "message": f"Successfully updated implementation groups for '{app_name}'.",
                 "data": info,
@@ -915,28 +935,71 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
     def api_audit_assign_implementation_groups(app_name: str):
         """Assign triggered or specified implementation groups to a respondent and start the assignment."""
         payload = request.get_json() or {}
-        groups = payload.get("groups")
-        if groups is not None and not isinstance(groups, list):
-            return jsonify({"error": "'groups' must be a list of implementation group names or IDs."}), 400
-        user_email = payload.get("user_email") or payload.get("email")
-        first_name = payload.get("first_name")
-        last_name = payload.get("last_name")
+        assignments_data = payload.get("assignments")
         start = payload.get("start", True)
 
         try:
-            res = manager.assign_audit_implementation_groups(
-                app_name,
-                groups=groups,
-                user_email=user_email,
-                first_name=first_name,
-                last_name=last_name,
-                start=start,
-            )
-            return jsonify({
-                "success": True,
-                "message": f"Successfully assigned implementation groups to {res.get('assigned_user')}.",
-                "data": res,
-            })
+            if assignments_data and isinstance(assignments_data, list):
+                # Multiple or per-track assignments requested
+                results = []
+                total_reqs = 0
+                assigned_users = []
+                for item in assignments_data:
+                    item_groups = item.get("groups")
+                    if isinstance(item_groups, str):
+                        item_groups = [item_groups]
+                    if not item_groups:
+                        continue
+                    item_email = item.get("user_email") or item.get("email")
+                    item_first = item.get("first_name")
+                    item_last = item.get("last_name")
+                    item_start = item.get("start", start)
+                    res = manager.assign_audit_implementation_groups(
+                        app_name,
+                        groups=item_groups,
+                        user_email=item_email,
+                        first_name=item_first,
+                        last_name=item_last,
+                        start=item_start,
+                    )
+                    results.append(res)
+                    total_reqs += res.get("assigned_requirements_count", 0)
+                    user_disp = res.get("assigned_user") or item_email or "respondent"
+                    if user_disp not in assigned_users:
+                        assigned_users.append(user_disp)
+
+                invalidate_status_cache()
+                return jsonify({
+                    "success": True,
+                    "message": f"Successfully created {len(results)} assignment(s) for {', '.join(assigned_users)} ({total_reqs} requirements in progress).",
+                    "data": {
+                        "results": results,
+                        "assignments_count": len(results),
+                        "assigned_requirements_count": total_reqs,
+                        "assigned_users": assigned_users,
+                    },
+                })
+            else:
+                groups = payload.get("groups")
+                if groups is not None and not isinstance(groups, list):
+                    return jsonify({"error": "'groups' must be a list of implementation group names or IDs."}), 400
+                user_email = payload.get("user_email") or payload.get("email")
+                first_name = payload.get("first_name")
+                last_name = payload.get("last_name")
+                res = manager.assign_audit_implementation_groups(
+                    app_name,
+                    groups=groups,
+                    user_email=user_email,
+                    first_name=first_name,
+                    last_name=last_name,
+                    start=start,
+                )
+                invalidate_status_cache()
+                return jsonify({
+                    "success": True,
+                    "message": f"Successfully assigned implementation groups to {res.get('assigned_user')}.",
+                    "data": res,
+                })
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
         except Exception as e:

@@ -611,6 +611,52 @@ class TestWebUI(unittest.TestCase):
                 start=True,
             )
 
+    def test_audit_assign_implementation_groups_multiple_endpoint(self):
+        """Test POST /api/audits/<app_name>/assign-implementation-groups with multiple assignments."""
+        mock_res_1 = {
+            "app_name": "App-Audit-Demo",
+            "compliance_assessment_id": "ca-1",
+            "assignment_id": "asgn-1",
+            "status": "in_progress",
+            "assigned_user": "dev@company.local",
+            "assigned_requirements_count": 5,
+        }
+        mock_res_2 = {
+            "app_name": "App-Audit-Demo",
+            "compliance_assessment_id": "ca-1",
+            "assignment_id": "asgn-2",
+            "status": "in_progress",
+            "assigned_user": "toto@redoute.fr",
+            "assigned_requirements_count": 8,
+        }
+
+        with patch("classes.examples_manager.ExamplesManager.assign_audit_implementation_groups", side_effect=[mock_res_1, mock_res_2]) as mock_assign:
+            resp = self.client.post(
+                "/api/audits/App-Audit-Demo/assign-implementation-groups",
+                data=json.dumps({
+                    "assignments": [
+                        {
+                            "groups": ["custom_app"],
+                            "user_email": "dev@company.local",
+                        },
+                        {
+                            "groups": ["saas_app"],
+                            "user_email": "toto@redoute.fr",
+                        },
+                    ],
+                    "start": True,
+                }),
+                content_type="application/json",
+            )
+            self.assertEqual(resp.status_code, 200)
+            data = resp.get_json()
+            self.assertTrue(data["success"])
+            self.assertEqual(data["data"]["assignments_count"], 2)
+            self.assertEqual(data["data"]["assigned_requirements_count"], 13)
+            self.assertIn("dev@company.local", data["data"]["assigned_users"])
+            self.assertIn("toto@redoute.fr", data["data"]["assigned_users"])
+            self.assertEqual(mock_assign.call_count, 2)
+
     @patch("classes.examples_manager.ExamplesManager.generate_controls_and_risks_for_application")
     def test_generate_risks_endpoint(self, mock_gen):
         """Test POST /api/generate-risks launches calculation task."""

@@ -95,6 +95,41 @@ answers:
   answer: Internet-facing (Public Web / Mobile API)
   result: compliant
   observation: Internet-facing web portal accessible by external corporate clients.
+- requirement: edge_network_protection
+  question: "Is inbound HTTP/HTTPS traffic routed through and protected by Cloudflare (e.g. Cloudflare reverse proxy, Web Application Firewall [WAF], and DDoS mitigation)?"
+  answer: 'Yes'
+  result: compliant
+  observation: Inbound HTTP/HTTPS traffic is routed through Cloudflare with active WAF and DDoS mitigation rulesets.
+- requirement: hosting
+  question: Can you answer the Application Security Baseline track (SSO federation, administrative MFA, and Role-Based Access Control [RBAC]), or does somebody else have to?
+  answer: I can answer this track
+  result: compliant
+  observation: Initial respondent can answer baseline IAM questions.
+- requirement: hosting
+  question: Can you answer the Bought Software Track (COTS deployment configuration hardening, vendor maintenance/support contracts, and patch SLAs), or does somebody else have to?
+  answer: I can answer this track
+  result: compliant
+  observation: Support portal manager coordinates vendor patches and configuration hardening.
+- requirement: hosting
+  question: Can you answer the Infrastructure & Hosting Security Track (secrets vault management, encryption at rest/transit, SIEM logging, backup & DR, and host OS patching), or does somebody else have to?
+  answer: Somebody else has to answer this track
+  result: compliant
+  observation: Hosting operations lead (hosting@example.com) will answer infrastructure security controls.
+- requirement: hosting
+  question: "Infrastructure & Hosting Security Track: please specify who can answer (name, email address, or team):"
+  answer: "Hosting Operations Lead (hosting@example.com)"
+  result: compliant
+  observation: Hosting operations lead assigned to infrastructure, OS patching, and backup questions.
+- requirement: hosting
+  question: Can you answer the Internet-Facing Application Track (edge Web Application Firewall [WAF], anti-DDoS, API rate limiting, and external penetration testing), or does somebody else have to?
+  answer: Somebody else has to answer this track
+  result: compliant
+  observation: Cloud security engineer (cloudsec@example.com) will answer edge WAF and penetration testing controls.
+- requirement: hosting
+  question: "Internet-Facing Application Track: please specify who can answer (name, email address, or team):"
+  answer: "Cloud Security Engineer (cloudsec@example.com)"
+  result: compliant
+  observation: Cloud security engineer assigned to edge WAF, DDoS defense, and external penetration testing.
 - requirement: authentication_and_mfa
   question: How do users authenticate to the application?
   answer: "Hybrid: Enterprise SSO for users, with local admin / break-glass or external accounts"

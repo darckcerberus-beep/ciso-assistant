@@ -109,6 +109,24 @@ answers:
     result: "compliant"
     observation: "Vendor has not yet completed ISO 27001 or SOC 2 Type II certification; detailed SaaS vendor track triggered."
 
+  - requirement: "hosting"
+    question: "Can you answer the Application Security Baseline track (SSO federation, administrative MFA, and Role-Based Access Control [RBAC]), or does somebody else have to?"
+    answer: "I can answer this track"
+    result: "compliant"
+    observation: "Initial respondent can answer enterprise SSO and baseline IAM controls."
+
+  - requirement: "hosting"
+    question: "Can you answer the SaaS Application Track (Master SaaS Agreement, confidentiality & encryption clauses, tenant admin MFA, EU data residency, audit rights, and non-conformity remedies), or does somebody else have to?"
+    answer: "I can answer this track"
+    result: "compliant"
+    observation: "Vendor risk manager and procurement contact can answer core SaaS contractual and governance controls."
+
+  - requirement: "hosting"
+    question: "Can you answer the Uncertified SaaS Vendor Track (detailed vendor security assessment: ISMS, awareness, workstation/mobile security, network isolation, secure development, penetration testing, physical security, and subcontractor governance), or does somebody else have to?"
+    answer: "I can answer this track"
+    result: "compliant"
+    observation: "Third-party risk assessor can evaluate detailed vendor operational and physical controls."
+
   # ============================================================================
   # CHAPTER 2: IDENTITY, AUTHENTICATION & ACCESS CONTROL (IG: baseline)
   # ============================================================================

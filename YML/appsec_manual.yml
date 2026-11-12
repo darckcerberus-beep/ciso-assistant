@@ -30,8 +30,8 @@ description: >
   before auditors manually assign relevant tracks (Custom, COTS, Infrastructure, SaaS, Internet-Facing) without
   dynamic choice triggering.
 copyright: DCME Corp
-version: 19
-publication_date: 2026-11-11
+version: 27
+publication_date: 2026-11-12
 provider: DCME Corp
 packager: DCME Corp
 common_objects_file: "YML/appsec_objects.yml"
@@ -58,30 +58,37 @@ objects:
         name: "Custom Software Track (In-house Development)"
         ref_id: "custom_app"
         description: "Requirements for custom in-house software created and deployed by our teams (Development track: code-level session management, input validation, output encoding, debug suppression, and CI/CD SAST/DAST/SCA/SBOM)"
+        delegate_answer: "urn:intuitem:risk:req_node:appsec_manual:hosting:q5_delegate"
       - urn: urn:intuitem:risk:ig:appsec_manual:cots_app
         name: "Bought Software Track (COTS / Vendor Package)"
         ref_id: "cots_app"
         description: "Requirements for bought commercial off-the-shelf software deployed by our teams (COTS software deployment hardening, vendor support contract, and vendor patch SLAs)"
+        delegate_answer: "urn:intuitem:risk:req_node:appsec_manual:hosting:q6_delegate"
       - urn: urn:intuitem:risk:ig:appsec_manual:infra
         name: "Infrastructure & Hosting Security Track"
         ref_id: "infra"
         description: "Requirements for infrastructure, hosting, and platform security for self-hosted software (Infrastructure track: secrets management, encryption at rest/transit, SIEM logging, backup & DR, OS patching, and patch SLAs)"
+        delegate_answer: "urn:intuitem:risk:req_node:appsec_manual:hosting:q7_delegate"
       - urn: urn:intuitem:risk:ig:appsec_manual:saas_app
         name: "SaaS Application Track"
         ref_id: "saas_app"
         description: "Core contractual, data protection, and tenant security requirements for third-party SaaS applications (Master SaaS Agreement, confidentiality & encryption, admin MFA, EU data residency, audit rights, PCI DSS, and non-conformity remedies)"
+        delegate_answer: "urn:intuitem:risk:req_node:appsec_manual:hosting:q9_delegate"
       - urn: urn:intuitem:risk:ig:appsec_manual:saas_uncertified
         name: "Uncertified SaaS Vendor Track (Detailed Security Assessment)"
         ref_id: "saas_uncertified"
         description: "Detailed security and operational control requirements for SaaS applications whose vendor is not ISO/IEC 27001 or SOC 2 Type II certified (ISMS, security awareness, internal privileges, logging, workstation/mobile security, network/environment isolation, secure SDLC, web app security, penetration testing & SLAs, physical security, backup/BCP, and subcontractor management)"
+        delegate_answer: "urn:intuitem:risk:req_node:appsec_manual:hosting:q10_delegate"
       - urn: urn:intuitem:risk:ig:appsec_manual:baseline
         name: "Application Security Baseline"
         ref_id: "baseline"
         description: "Core application security baseline requirements applicable to all applications (Governance, Profiling, Authentication & Access Control)"
+        delegate_answer: "urn:intuitem:risk:req_node:appsec_manual:hosting:q4_delegate"
       - urn: urn:intuitem:risk:ig:appsec_manual:internet_facing
         name: "Internet-Facing Application Track"
         ref_id: "internet_facing"
         description: "Perimeter and edge defense requirements for self-hosted applications exposed to the public Internet (Edge WAF, anti-DDoS, rate limiting, external penetration testing). Excluded for SaaS apps where edge controls are maintained by the cloud provider."
+        delegate_answer: "urn:intuitem:risk:req_node:appsec_manual:hosting:q8_delegate"
 
     # Implementation groups dependencies define conditions under which tracks become relevant
     # without choice-level auto-triggering in respondent questionnaires, allowing orchestrator-driven assignment.
@@ -468,13 +475,27 @@ objects:
         parent_urn: urn:intuitem:risk:req_node:appsec_manual:info
         ref_id: hosting
         name: Application Delivery & Network Exposure
-        description: "Determine the application delivery and hosting model (Custom software, Bought COTS, or third-party SaaS), its network exposure (for self-hosted apps), and SaaS vendor ISO/IEC 27001 or SOC 2 Type II certification status."
+        description: >
+          Determine the application delivery and hosting model (Custom software, Bought COTS, or third-party SaaS),
+          its network exposure (for self-hosted apps), SaaS vendor ISO/IEC 27001 or SOC 2 Type II certification status,
+          and designate whether the initial respondent can answer each triggered implementation track or specify who can answer.
+          Recommended respondents: Lead Application Architect or Technical Lead (delivery model), Cloud / Network Security Engineer
+          (network exposure), Vendor Risk Manager / IT Procurement (SaaS certifications), and Application Custodian / Audit Admin (track routing).
         annotation: >
-          Application delivery, hosting model, network exposure, and SaaS vendor certification classification:
-          - Custom software created and deployed by my teams: In-house developed software where source code is written and maintained internally. Subject to internal DevSecOps (SAST, DAST, SCA/SBOM, peer code review) and self-hosted network exposure discrimination.
-          - Bought software deployed by my teams: Commercial Off-The-Shelf (COTS) or vendor software package deployed on internal infrastructure. Subject to vendor security patch management, CVE tracking, deployment configuration hardening, and self-hosted network exposure discrimination.
-          - SaaS: Third-party software hosted and operated by a vendor. SaaS applications are inherently hosted on external cloud infrastructure and governed via Chapter 10 (saas_app). If the SaaS vendor is not ISO/IEC 27001 or SOC 2 Type II certified, the detailed Uncertified SaaS Vendor Track (saas_uncertified) is triggered.
-          - Network exposure tier for self-hosted apps: Internal / Restricted (accessible only within corporate networks/VPN) vs Internet-facing (accessible over the public Internet, used to assign the internet_facing track).
+          Application delivery, hosting model, network exposure, SaaS vendor certification classification, and track assignment:
+
+          - Recommended respondent roles:
+            * Primary Lead Respondent: Lead Application Architect, Technical Lead / Engineering Manager, or Application Custodian (end-to-end visibility into delivery model, software ownership, and runtime deployment).
+            * Network & Edge Infrastructure Specialist: Cloud / Infrastructure Engineer or Network Security Engineer (for Q2 network exposure and subnet/VPC zoning).
+            * Vendor Risk & Compliance Specialist: Vendor Risk Manager (TPRM), IT Procurement / Legal Contact, or SaaS Application Administrator (for Q3 SaaS vendor contract, DPA, and active ISO/IEC 27001 / SOC 2 Type II certification).
+            * Track Delegation & Assignment Lead: Application Custodian or Audit Administrator (for Q4–Q10 evaluating track readiness and designating specialized co-respondents).
+
+          - Delivery & exposure scoping guidance:
+            * Custom software created and deployed by my teams: In-house developed software where source code is written and maintained internally. Subject to internal DevSecOps (SAST, DAST, SCA/SBOM, peer code review) and self-hosted network exposure discrimination.
+            * Bought software deployed by my teams: Commercial Off-The-Shelf (COTS) or vendor software package deployed on internal infrastructure. Subject to vendor security patch management, CVE tracking, deployment configuration hardening, and self-hosted network exposure discrimination.
+            * SaaS: Third-party software hosted and operated by a vendor. SaaS applications are inherently hosted on external cloud infrastructure and governed via Chapter 10 (saas_app). If the SaaS vendor is not ISO/IEC 27001 or SOC 2 Type II certified, the detailed Uncertified SaaS Vendor Track (saas_uncertified) is triggered.
+            * Network exposure tier for self-hosted apps: Internal / Restricted (accessible only within corporate networks/VPN) vs Internet-facing (accessible over the public Internet, used to assign the internet_facing track).
+            * Implementation track assignment (Q4–Q10): For each triggered implementation group (track), specify whether you can answer the section directly or if somebody else has to. If somebody else has to answer, a dedicated free text form field allows designating the contact person or team (name, email address, or team) for audit assignment routing.
         typical_evidence: >
           - Architecture design document (ADD) / System topology diagram
           - Software procurement contract, vendor license, or Git repository metadata
@@ -534,6 +555,191 @@ objects:
                 add_score: 100
                 compute_result: true
                 color: "#fd7e14"
+          urn:intuitem:risk:req_node:appsec_manual:hosting:q4:
+            type: unique_choice
+            text: "Can you answer the Application Security Baseline track (SSO federation, administrative MFA, and Role-Based Access Control [RBAC]), or does somebody else have to?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec_manual:hosting:q1
+              answers:
+                - urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c1
+                - urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c2
+                - urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c3
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec_manual:hosting:q4:c1
+                value: "I can answer this track"
+                select_implementation_groups: ["baseline"]
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec_manual:hosting:q4:c2
+                value: "Somebody else has to answer this track"
+                color: "#17a2b8"
+          urn:intuitem:risk:req_node:appsec_manual:hosting:q4_delegate:
+            type: text
+            text: "Application Security Baseline track: please specify who can answer (name, email address, or team):"
+            annotation: "Designated point of contact or team responsible for completing the Application Security Baseline track questions."
+            required: false
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec_manual:hosting:q4
+              answers:
+                - urn:intuitem:risk:req_node:appsec_manual:hosting:q4:c2
+              condition: any
+          urn:intuitem:risk:req_node:appsec_manual:hosting:q5:
+            type: unique_choice
+            text: "Can you answer the Custom Software Track (code-level session management, input validation, output encoding, debug suppression, and CI/CD SAST/DAST/SCA pipelines), or does somebody else have to?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec_manual:hosting:q1
+              answers:
+                - urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c1
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec_manual:hosting:q5:c1
+                value: "I can answer this track"
+                select_implementation_groups: ["custom_app"]
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec_manual:hosting:q5:c2
+                value: "Somebody else has to answer this track"
+                color: "#17a2b8"
+          urn:intuitem:risk:req_node:appsec_manual:hosting:q5_delegate:
+            type: text
+            text: "Custom Software Track: please specify who can answer (name, email address, or team):"
+            annotation: "Designated point of contact or team responsible for completing the Custom Software Track questions."
+            required: false
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec_manual:hosting:q5
+              answers:
+                - urn:intuitem:risk:req_node:appsec_manual:hosting:q5:c2
+              condition: any
+          urn:intuitem:risk:req_node:appsec_manual:hosting:q6:
+            type: unique_choice
+            text: "Can you answer the Bought Software Track (COTS deployment configuration hardening, vendor maintenance/support contracts, and patch SLAs), or does somebody else have to?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec_manual:hosting:q1
+              answers:
+                - urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c2
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec_manual:hosting:q6:c1
+                value: "I can answer this track"
+                select_implementation_groups: ["cots_app"]
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec_manual:hosting:q6:c2
+                value: "Somebody else has to answer this track"
+                color: "#17a2b8"
+          urn:intuitem:risk:req_node:appsec_manual:hosting:q6_delegate:
+            type: text
+            text: "Bought Software Track (COTS): please specify who can answer (name, email address, or team):"
+            annotation: "Designated point of contact or team responsible for completing the Bought Software Track (COTS) questions."
+            required: false
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec_manual:hosting:q6
+              answers:
+                - urn:intuitem:risk:req_node:appsec_manual:hosting:q6:c2
+              condition: any
+          urn:intuitem:risk:req_node:appsec_manual:hosting:q7:
+            type: unique_choice
+            text: "Can you answer the Infrastructure & Hosting Security Track (secrets vault management, encryption at rest/transit, SIEM logging, backup & DR, and host OS patching), or does somebody else have to?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec_manual:hosting:q1
+              answers:
+                - urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c1
+                - urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c2
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec_manual:hosting:q7:c1
+                value: "I can answer this track"
+                select_implementation_groups: ["infra"]
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec_manual:hosting:q7:c2
+                value: "Somebody else has to answer this track"
+                color: "#17a2b8"
+          urn:intuitem:risk:req_node:appsec_manual:hosting:q7_delegate:
+            type: text
+            text: "Infrastructure & Hosting Security Track: please specify who can answer (name, email address, or team):"
+            annotation: "Designated point of contact or team responsible for completing the Infrastructure & Hosting Security Track questions."
+            required: false
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec_manual:hosting:q7
+              answers:
+                - urn:intuitem:risk:req_node:appsec_manual:hosting:q7:c2
+              condition: any
+          urn:intuitem:risk:req_node:appsec_manual:hosting:q8:
+            type: unique_choice
+            text: "Can you answer the Internet-Facing Application Track (edge Web Application Firewall [WAF], anti-DDoS, API rate limiting, and external penetration testing), or does somebody else have to?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec_manual:hosting:q2
+              answers:
+                - urn:intuitem:risk:req_node:appsec_manual:hosting:q2:c2
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec_manual:hosting:q8:c1
+                value: "I can answer this track"
+                select_implementation_groups: ["internet_facing"]
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec_manual:hosting:q8:c2
+                value: "Somebody else has to answer this track"
+                color: "#17a2b8"
+          urn:intuitem:risk:req_node:appsec_manual:hosting:q8_delegate:
+            type: text
+            text: "Internet-Facing Application Track: please specify who can answer (name, email address, or team):"
+            annotation: "Designated point of contact or team responsible for completing the Internet-Facing Application Track questions."
+            required: false
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec_manual:hosting:q8
+              answers:
+                - urn:intuitem:risk:req_node:appsec_manual:hosting:q8:c2
+              condition: any
+          urn:intuitem:risk:req_node:appsec_manual:hosting:q9:
+            type: unique_choice
+            text: "Can you answer the SaaS Application Track (Master SaaS Agreement, confidentiality & encryption clauses, tenant admin MFA, EU data residency, audit rights, and non-conformity remedies), or does somebody else have to?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec_manual:hosting:q1
+              answers:
+                - urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c3
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec_manual:hosting:q9:c1
+                value: "I can answer this track"
+                select_implementation_groups: ["saas_app"]
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec_manual:hosting:q9:c2
+                value: "Somebody else has to answer this track"
+                color: "#17a2b8"
+          urn:intuitem:risk:req_node:appsec_manual:hosting:q9_delegate:
+            type: text
+            text: "SaaS Application Track: please specify who can answer (name, email address, or team):"
+            annotation: "Designated point of contact or team responsible for completing the SaaS Application Track questions."
+            required: false
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec_manual:hosting:q9
+              answers:
+                - urn:intuitem:risk:req_node:appsec_manual:hosting:q9:c2
+              condition: any
+          urn:intuitem:risk:req_node:appsec_manual:hosting:q10:
+            type: unique_choice
+            text: "Can you answer the Uncertified SaaS Vendor Track (detailed vendor security assessment: ISMS, awareness, workstation/mobile security, network isolation, secure development, penetration testing, physical security, and subcontractor governance), or does somebody else have to?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec_manual:hosting:q3
+              answers:
+                - urn:intuitem:risk:req_node:appsec_manual:hosting:q3:c2
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec_manual:hosting:q10:c1
+                value: "I can answer this track"
+                select_implementation_groups: ["saas_uncertified"]
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec_manual:hosting:q10:c2
+                value: "Somebody else has to answer this track"
+                color: "#17a2b8"
+          urn:intuitem:risk:req_node:appsec_manual:hosting:q10_delegate:
+            type: text
+            text: "Uncertified SaaS Vendor Track: please specify who can answer (name, email address, or team):"
+            annotation: "Designated point of contact or team responsible for completing the Uncertified SaaS Vendor Track questions."
+            required: false
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec_manual:hosting:q10
+              answers:
+                - urn:intuitem:risk:req_node:appsec_manual:hosting:q10:c2
+              condition: any
 
       # === SPLASH SCREEN: TRIGGERED IMPLEMENTATION TRACKS & DESIGNATED RESPONDENTS ===
       - urn: urn:intuitem:risk:req_node:appsec_manual:baseline_splash
@@ -599,7 +805,7 @@ objects:
           > [!NOTE]
           > **How track assignment works in this framework:**
           > 1. **Auditor Review**: The GRC / security audit team will review the answers you provided in Chapter 1.
-          > 2. **Track Assignment**: Based on the triggered tracks identified above, the audit administrator will assign each track to the designated specialists (either yourself or the specific team members identified).
+          > 2. **Track Assignment**: Based on the triggered tracks identified above and your responses regarding track ownership, the audit administrator will assign each track to the designated specialists (either yourself or the specific team members identified in your observations).
           > 3. **Follow-up Notification**: If no further questions appear immediately after this screen, your profiling phase is complete! The auditor will assign the triggered tracks, and the respective respondents will be notified to answer their sections.
         annotation: >
           Transition splash screen presenting indicated implementation groups based on Chapter 1 profiling (Custom, COTS, Infrastructure, SaaS, Internet-Facing) and providing explicit guidance on designated respondent roles and orchestrator assignment workflows.
@@ -1253,6 +1459,40 @@ objects:
         annotation: >
           Edge and gateway protections for web services and APIs aligned with OWASP API Security Top 10.
         implementation_groups: ["internet_facing"]
+
+      # Requirement: Edge Network Protection & Reverse Proxy
+      - urn: urn:intuitem:risk:req_node:appsec_manual:edge_network_protection
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec_manual:api_chapter
+        ref_id: edge_network_protection
+        name: Edge Network Protection & Inbound Reverse Proxy
+        description: "Ensure inbound HTTP/HTTPS traffic is routed through and protected by edge network protections (e.g. Cloudflare reverse proxy, Web Application Firewall [WAF], and DDoS mitigation)."
+        annotation: >
+          Edge network protection and reverse proxying (e.g. Cloudflare) shields origin servers from direct exposure, absorbs DDoS attacks, and inspects inbound HTTP/HTTPS traffic for malicious payloads.
+          Applicable strictly to self-hosted internet-facing applications (Custom and COTS).
+        typical_evidence: >
+          - Cloudflare DNS proxy configuration / reverse proxy routing rules
+          - Edge WAF and DDoS mitigation configuration
+          - Network perimeter firewall rules restricting inbound origin access to Cloudflare IP ranges
+        implementation_groups: ["internet_facing"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:api_security_and_rate_limiting
+        questions:
+          urn:intuitem:risk:req_node:appsec_manual:edge_network_protection:q1:
+            type: unique_choice
+            text: "Is inbound HTTP/HTTPS traffic routed through and protected by Cloudflare (e.g. Cloudflare reverse proxy, Web Application Firewall [WAF], and DDoS mitigation)?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec_manual:edge_network_protection:q1:c1
+                value: "Yes"
+                add_score: 100
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec_manual:edge_network_protection:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
 
       # Requirement: API Security & Rate limiting
       - urn: urn:intuitem:risk:req_node:appsec_manual:api_security_and_rate_limiting
@@ -2948,7 +3188,7 @@ test_metadata:
   expected_threats_count: 9
   expected_vulnerabilities_count: 18
   expected_reference_controls_count: 26
-  expected_requirement_nodes_count: 60
+  expected_requirement_nodes_count: 61
   matrix_dimensions:
     likelihood_levels: 4
     impact_levels: 4

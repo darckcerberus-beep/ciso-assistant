@@ -53,6 +53,20 @@ Define or customize your operational situations/cases here for reference:
 | 6 | Application Information & Governance | `hosting` | `q1` | What is the delivery and hosting model of the application? | `info` | All applications (Info profiling - Hosting model) |
 | 7 | Application Information & Governance | `hosting` | `q2` | What is the network exposure of the application? | `info` | Self-Hosted only (Custom & COTS - depends on `hosting:q1`) |
 | 7b | Application Information & Governance | `hosting` | `q3` | Is the SaaS vendor certified under ISO/IEC 27001 or SOC 2 Type II? | `info` | SaaS only (depends on `hosting:q1 == SaaS`) |
+| 7c | Application Information & Governance | `hosting` | `q4` | Can you answer the Application Security Baseline track (SSO federation, admin MFA, RBAC), or does somebody else have to? | `info` | All applications (Triggers `baseline` on `c1`, leaves in orchestrator on `c2`) |
+| 7d | Application Information & Governance | `hosting` | `q4_delegate` | Baseline track: specify who can answer (name, email address, or team) | `info` | Free text delegate field (depends on `hosting:q4 == c2`) |
+| 7e | Application Information & Governance | `hosting` | `q5` | Can you answer the Custom Software Track (session mgmt, input validation, SAST/DAST/SCA), or does somebody else have to? | `info` | Custom applications (Triggers `custom_app` on `c1`, leaves in orchestrator on `c2`) |
+| 7f | Application Information & Governance | `hosting` | `q5_delegate` | Custom Software track: specify who can answer (name, email address, or team) | `info` | Free text delegate field (depends on `hosting:q5 == c2`) |
+| 7g | Application Information & Governance | `hosting` | `q6` | Can you answer the Bought Software Track (COTS deployment hardening, vendor patch SLAs), or does somebody else have to? | `info` | COTS applications (Triggers `cots_app` on `c1`, leaves in orchestrator on `c2`) |
+| 7h | Application Information & Governance | `hosting` | `q6_delegate` | COTS track: specify who can answer (name, email address, or team) | `info` | Free text delegate field (depends on `hosting:q6 == c2`) |
+| 7i | Application Information & Governance | `hosting` | `q7` | Can you answer the Infrastructure & Hosting Security Track (secrets vault, encryption, SIEM, backup/DR, OS patching), or does somebody else have to? | `info` | Self-Hosted applications (Triggers `infra` on `c1`, leaves in orchestrator on `c2`) |
+| 7j | Application Information & Governance | `hosting` | `q7_delegate` | Infrastructure track: specify who can answer (name, email address, or team) | `info` | Free text delegate field (depends on `hosting:q7 == c2`) |
+| 7k | Application Information & Governance | `hosting` | `q8` | Can you answer the Internet-Facing Application Track (edge WAF, anti-DDoS, API rate limiting, external pen testing), or does somebody else have to? | `info` | Internet-facing applications (Triggers `internet_facing` on `c1`, leaves in orchestrator on `c2`) |
+| 7l | Application Information & Governance | `hosting` | `q8_delegate` | Internet-Facing track: specify who can answer (name, email address, or team) | `info` | Free text delegate field (depends on `hosting:q8 == c2`) |
+| 7m | Application Information & Governance | `hosting` | `q9` | Can you answer the SaaS Application Track (MSA, confidentiality, tenant admin MFA, EU data residency, audit rights), or does somebody else have to? | `info` | SaaS applications (Triggers `saas_app` on `c1`, leaves in orchestrator on `c2`) |
+| 7n | Application Information & Governance | `hosting` | `q9_delegate` | SaaS track: specify who can answer (name, email address, or team) | `info` | Free text delegate field (depends on `hosting:q9 == c2`) |
+| 7o | Application Information & Governance | `hosting` | `q10` | Can you answer the Uncertified SaaS Vendor Track (detailed vendor security assessment: ISMS, workstations, isolation), or does somebody else have to? | `info` | Uncertified SaaS applications (Triggers `saas_uncertified` on `c1`, leaves in orchestrator on `c2`) |
+| 7p | Application Information & Governance | `hosting` | `q10_delegate` | Uncertified SaaS track: specify who can answer (name, email address, or team) | `info` | Free text delegate field (depends on `hosting:q10 == c2`) |
 | 8 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q1` | How do users authenticate to the application? (Exclusive SSO [+100], Hybrid [+40], Direct [+0], M2M API [+100]) | `baseline` | **All applications** (Custom, COTS, SaaS) - Mandatory SSO / Hybrid |
 | 9 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q2` | If direct or hybrid authentication is used, are strong password policies and brute-force lockout protections implemented for local accounts? | `baseline` | All applications (If direct or hybrid auth used - Password policy, +30 pts) |
 | 10 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q3` | If direct or hybrid authentication is used, is Multi-Factor Authentication (MFA) enforced for all administrative, privileged, and break-glass access? | `baseline` | All applications (If direct or hybrid auth used - Admin MFA, +30 pts) |
@@ -77,6 +91,7 @@ Define or customize your operational situations/cases here for reference:
 | 27 | Secure SDLC & DevSecOps Automation | `code_review_and_ci_cd_integrity` | `q1` | Are mandatory peer code reviews enforced prior to merging changes into deployment branches? | `custom_app` | Custom applications (+50 pts) |
 | 27b | Secure SDLC & DevSecOps Automation | `code_review_and_ci_cd_integrity` | `q2` | Do repository branch protection rules block direct commits, force-pushes, and failing CI status checks on deployment branches? | `custom_app` | Custom applications (+50 pts) |
 | 28 | Secure SDLC & DevSecOps Automation | `vendor_secure_development` | `q1` | Does the third-party COTS software vendor adhere to recognized secure coding stand... | `cots_app` | **COTS Only** (Vendor secure coding guidelines) |
+| 28b | API Security & Edge Protections | `edge_network_protection` | `q1` | Is inbound HTTP/HTTPS traffic routed through and protected by Cloudflare (e.g. Cloudflare reverse proxy, WAF, DDoS mitigation)? | `internet_facing` | **Self-Hosted Internet-Facing only** (Cloudflare reverse proxy & edge WAF, +100 pts) |
 | 29 | API Security & Edge Protections | `api_security_and_rate_limiting` | `q1` | Are internet-facing endpoints fronted by an Edge WAF and anti-DDoS / bot protection (e.g. Cloudflare, AWS WAF)? | `internet_facing` | **Self-Hosted Internet-Facing only** (Edge WAF & DDoS, +50 pts) |
 | 30 | API Security & Edge Protections | `api_security_and_rate_limiting` | `q2` | Are API rate limiting, throttling, and payload size quotas enforced to prevent scraping and resource exhaustion? | `internet_facing` | **Self-Hosted Internet-Facing only** (Rate limiting & quotas, +50 pts) |
 | 31 | Data Protection & Lifecycle Governance | `data_exchange` | `q1` | Does the application exchange data externally? (e.g., transfers, automated API int... | `custom_app, cots_app` | Self-Hosted only (Custom & COTS) |
@@ -642,7 +657,21 @@ Action - For COTS, ask if vendor follows secure coding guidelines without going 
 <a id="api_chapter"></a>
 ### API Security & Edge Protections (`api_chapter`)
 
-*Protect application interfaces and APIs against abuse, volumetric attacks, and automated bots for self-hosted internet-facing applications.*
+*Protect application interfaces and APIs against abuse, volumetric attacks, and automated bots for self-hosted applications.*
+
+#### Node: Edge Network Protection & Inbound Reverse Proxy (`edge_network_protection`)
+- **Implementation Groups**: `internet_facing`
+- **Description**: Ensure inbound HTTP/HTTPS traffic is routed through and protected by edge network protections (e.g. Cloudflare reverse proxy, Web Application Firewall [WAF], and DDoS mitigation). Applicable strictly to self-hosted applications exposed to the public Internet (Custom and COTS).
+
+##### Q28b. `edge_network_protection:q1`
+- **URN**: `urn:intuitem:risk:req_node:appsec:edge_network_protection:q1` / `urn:intuitem:risk:req_node:appsec_manual:edge_network_protection:q1`
+- **Question**: Is inbound HTTP/HTTPS traffic routed through and protected by Cloudflare (e.g. Cloudflare reverse proxy, Web Application Firewall [WAF], and DDoS mitigation)?
+- **Type**: `unique_choice`
+- **Choices & Scoring**:
+  - `Yes` (100 pts, compute_result: true)
+  - `No` (0 pts, compute_result: false)
+- **Applicable Cases / Situations**:
+  - [x] **Self-Hosted Internet-Facing only** (Custom & COTS with public Internet exposure)
 
 #### Node: API Gateway, Edge WAF, Rate Limiting & Bot Protection (`api_security_and_rate_limiting`)
 - **Implementation Groups**: `internet_facing`

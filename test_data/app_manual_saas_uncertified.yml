@@ -95,6 +95,26 @@ answers:
   result: compliant
   observation: SaaS startup vendor is not ISO 27001 or SOC 2 Type II certified; requires
     detailed contractual assessment.
+- requirement: hosting
+  question: Can you answer the Application Security Baseline track (SSO federation, administrative MFA, and Role-Based Access Control [RBAC]), or does somebody else have to?
+  answer: I can answer this track
+  result: compliant
+  observation: Initial respondent can answer enterprise SSO and baseline IAM controls.
+- requirement: hosting
+  question: Can you answer the SaaS Application Track (Master SaaS Agreement, confidentiality & encryption clauses, tenant admin MFA, EU data residency, audit rights, and non-conformity remedies), or does somebody else have to?
+  answer: I can answer this track
+  result: compliant
+  observation: Procurement lead maintains master contract and data protection schedules.
+- requirement: hosting
+  question: "Can you answer the Uncertified SaaS Vendor Track (detailed vendor security assessment: ISMS, awareness, workstation/mobile security, network isolation, secure development, penetration testing, physical security, and subcontractor governance), or does somebody else have to?"
+  answer: Somebody else has to answer this track
+  result: compliant
+  observation: Vendor Security Auditor (vendor-security@vendor.cloud) must provide detailed operational security responses.
+- requirement: hosting
+  question: "Uncertified SaaS Vendor Track: please specify who can answer (name, email address, or team):"
+  answer: "Vendor Security Auditor (vendor-security@vendor.cloud)"
+  result: compliant
+  observation: Third-party vendor security officer assigned to complete detailed operational security questions.
 - requirement: authentication_and_mfa
   question: How do users authenticate to the application?
   answer: "Hybrid: Enterprise SSO for users, with local admin / break-glass or external accounts"
