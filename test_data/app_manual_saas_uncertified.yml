@@ -90,12 +90,6 @@ answers:
   result: compliant
   observation: Third-party cloud hosted SaaS analytics platform.
 - requirement: hosting
-  question: Is the SaaS vendor ISO/IEC 27001 or SOC 2 Type II certified?
-  answer: No - The SaaS vendor is not ISO/IEC 27001 or SOC 2 Type II certified
-  result: compliant
-  observation: SaaS startup vendor is not ISO 27001 or SOC 2 Type II certified; requires
-    detailed contractual assessment.
-- requirement: hosting
   question: Can you answer the Application Security Baseline track (SSO federation, administrative MFA, and Role-Based Access Control [RBAC]), or does somebody else have to?
   answer: I can answer this track
   result: compliant
@@ -105,16 +99,6 @@ answers:
   answer: I can answer this track
   result: compliant
   observation: Procurement lead maintains master contract and data protection schedules.
-- requirement: hosting
-  question: "Can you answer the Uncertified SaaS Vendor Track (detailed vendor security assessment: ISMS, awareness, workstation/mobile security, network isolation, secure development, penetration testing, physical security, and subcontractor governance), or does somebody else have to?"
-  answer: Somebody else has to answer this track
-  result: compliant
-  observation: Vendor Security Auditor (vendor-security@vendor.cloud) must provide detailed operational security responses.
-- requirement: hosting
-  question: "Uncertified SaaS Vendor Track: please specify who can answer (name, email address, or team):"
-  answer: "Vendor Security Auditor (vendor-security@vendor.cloud)"
-  result: compliant
-  observation: Third-party vendor security officer assigned to complete detailed operational security questions.
 - requirement: authentication_and_mfa
   question: How do users authenticate to the application?
   answer: "Hybrid: Enterprise SSO for users, with local admin / break-glass or external accounts"
@@ -159,6 +143,22 @@ answers:
   result: compliant
   observation: Legally executed Master Services Agreement and custom detailed Security
     Schedule.
+- requirement: saas_contract_compliance
+  question: Is the SaaS vendor ISO/IEC 27001 or SOC 2 Type II certified?
+  answer: No - The SaaS vendor is not ISO/IEC 27001 or SOC 2 Type II certified
+  result: compliant
+  observation: SaaS startup vendor is not ISO 27001 or SOC 2 Type II certified; requires
+    detailed contractual assessment.
+- requirement: saas_contract_compliance
+  question: "Can you answer the Uncertified SaaS Vendor Track (detailed vendor security assessment: ISMS, awareness, workstation/mobile security, network isolation, secure development, penetration testing, physical security, and subcontractor governance), or does somebody else have to?"
+  answer: Somebody else has to answer this track
+  result: compliant
+  observation: Vendor Security Auditor (vendor-security@vendor.cloud) must provide detailed operational security responses.
+- requirement: saas_contract_compliance
+  question: "Uncertified SaaS Vendor Track: please specify who can answer (name, email address, or team):"
+  answer: "Vendor Security Auditor (vendor-security@vendor.cloud)"
+  result: compliant
+  observation: Third-party vendor security officer assigned to complete detailed operational security questions.
 - requirement: saas_confidentiality_and_data_protection
   question: Does the contract require vendor personnel to sign confidentiality agreements
     (NDAs) and restrict access to customer data (e.g. requiring client approval before

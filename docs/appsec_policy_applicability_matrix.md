@@ -72,7 +72,7 @@ Profiling triggers in `hosting:q1` dynamically activate the tracks:
 - **Custom Software**: Activates `custom_app`, `infra`, and `baseline`.
 - **Bought Software (COTS)**: Activates `cots_app`, `infra`, and `baseline`.
 - **SaaS**: Activates `saas_app` and `baseline`.
-- **Uncertified SaaS Vendor**: Activates `saas_uncertified` (triggered by `hosting:q3:c2` when the SaaS vendor is not ISO 27001 or SOC 2 certified).
+- **Uncertified SaaS Vendor**: Activates `saas_uncertified` (triggered by `saas_contract_compliance:q2:c2` when the SaaS vendor is not ISO 27001 or SOC 2 certified).
 - **Internet-Facing**: Activates `internet_facing` (triggered by `hosting:q2:c2`).
 
 ### B. Dynamic Dependencies (`depends_on`) — Question-Level Scoping
@@ -88,11 +88,18 @@ Within active requirement nodes, questions are dynamically conditioned using int
 - **`instructions_splash`**: Guidance splash screen detailing assessment expectations.
 - **`stakeholder_identification`**: Mandatory documentation of Business Owner, Technical Owner, and Information Security Officer (CISO/SecOps delegate).
 - **`data_classification`**: Formally categorizes data assets into Public, Internal, Confidential, or Secret (Confidentiality impact governing all risk scenario ratings).
-- **`hosting`**: Application Delivery, Hosting Model, Network Exposure & SaaS Vendor Certification:
+- **`hosting`**: Application Delivery, Hosting Model, Network Exposure & Primary Track Delegation:
   - `q1`: Discriminates between Custom (In-house), Bought (COTS), and SaaS. Selecting SaaS automatically triggers `saas_app` and `baseline` (bypassing the self-hosted `internet_facing` track).
   - `q2`: For self-hosted applications (`depends_on: q1 in [Custom, COTS]`), identifies whether the app is restricted to internal corporate networks or exposed to the public Internet (triggers `internet_facing` track for self-hosted apps; hidden for SaaS).
-  - `q3`: For SaaS applications (`depends_on: q1 == SaaS`), asks whether the SaaS vendor holds an active ISO/IEC 27001 certification or SOC 2 Type II report; answering `No` triggers the `saas_uncertified` track for detailed vendor security assessment.
-- **`baseline_splash`**: Transition screen presenting triggered Implementation Groups (tracks) based on Chapter 1 profiling and providing explicit guidance on who are the best qualified people/roles to answer each technical track.
+  - `q4`–`q9` & `_delegate`: Respondent readiness and delegation routing for each primary implementation track:
+    - `q4` / `q4_delegate`: Application Security Baseline track readiness / designated contact.
+    - `q5` / `q5_delegate`: Custom Software track readiness / designated contact.
+    - `q6` / `q6_delegate`: Bought Software track readiness / designated contact.
+    - `q7` / `q7_delegate`: Infrastructure & Hosting track readiness / designated contact.
+    - `q8` / `q8_delegate`: Internet-Facing track readiness / designated contact.
+    - `q9` / `q9_delegate`: SaaS Application track readiness / designated contact.
+    *(Note: SaaS vendor certification and the uncertified SaaS vendor track delegation are evaluated in Chapter 10 under `saas_contract_compliance:q2` and `q3` / `q3_delegate`.)*
+- **`baseline_splash`**: Transition screen synthesizing Chapter 1 profiling and the respondent readiness and delegation choices made in questions Q4–Q9. Outlines the next steps: confirmed tracks continue immediately for the current respondent, while delegated tracks are queued for CISO and Automated Orchestrator multi-respondent assignment.
 
 ### Chapter 2: Identity, Authentication & Access Control (IAM)
 - **`authentication_and_mfa`** (`baseline` - All applications):
@@ -186,7 +193,7 @@ Within active requirement nodes, questions are dynamically conditioned using int
   - `q3`: High-availability and zero-downtime patching architecture (e.g., multi-node clusters, rolling updates, or blue-green deployments preventing business outages during host maintenance).
 
 ### Chapter 10: SaaS Requirements & Vendor Security Exhibit
-- **`saas_contract_compliance`**: Execution of Master Agreement and Security Schedules (SaaS MSA and binding Security Exhibit). Detailed technical clauses (audit, incidents, IAM, confidentiality) are merged into their respective sections.
+- **`saas_contract_compliance`**: Execution of Master Agreement and Security Schedules (SaaS MSA and binding Security Exhibit) (`q1`), and third-party ISO 27001 / SOC 2 certification (`q2`) with uncertified track readiness delegation (`q3` / `q3_delegate`). Detailed technical clauses (audit rights, incident notification, IAM, confidentiality) are evaluated in their respective sections.
 - **`saas_governance_and_policy`**: Documented Information Security Policy and formal annual management reviews.
 - **`saas_confidentiality_and_data_protection`**: Vendor employee NDAs, tenant data access controls, and contractual data encryption (in transit and at rest).
 - **`saas_security_awareness`**: Mandatory annual cybersecurity training for vendor personnel.
@@ -221,8 +228,8 @@ The table below defines the exact applicability criteria for every requirement a
 | **1. Profile** | `data_classification` (q1-q3) | Application Data Classification & GDPR Profiling | `info` | All | All | All | `q1`: Sensitivity; `q2`: GDPR Personal data category; `q3`: Volume (depends on `q2`) |
 | **1. Profile** | `hosting` (q1) | Delivery & Hosting Model | `info` | All | All | All | Activates `baseline` + delivery tracks (`custom_app`/`cots_app` + `infra`, or `saas_app`) |
 | **1. Profile** | `hosting` (q2) | Application Network Exposure | `info` | Custom, COTS | All | All | `q1 in [Custom, COTS]`; Triggers `internet_facing` track for self-hosted apps; hidden for SaaS |
-| **1. Profile** | `hosting` (q3) | SaaS Vendor ISO 27001 / SOC 2 Type II Certification | `info` | SaaS | All | All | `q1 == SaaS`; Answering `No` triggers `saas_uncertified` track |
-| **1. Splash** | `baseline_splash` | Triggered Implementation Tracks & Designated Respondents | `info`, `baseline` | All | All | All | Presents triggered IGs and guidance on best people to answer |
+| **1. Profile** | `hosting` (q4-q9, delegates) | Primary Track Readiness & Designated Respondent Routing | `info` | All | All | All | Routes tracks based on respondent capability or captures delegate details for orchestrator |
+| **1. Splash** | `baseline_splash` | Triggered Implementation Tracks & Designated Respondents | `info`, `baseline` | All | All | All | Synthesizes triggered IGs, reflects Q4–Q9 delegation choices, and routes confirmed vs delegated tracks |
 | **2. IAM** | `authentication_and_mfa` (q1) | Authentication Mode (SSO vs Direct) | `baseline` | **All (Custom, COTS, SaaS)** | All | All | None |
 | **2. IAM** | `authentication_and_mfa` (q2) | Password Policy & Lockout | `baseline` | **All (Custom, COTS, SaaS)** | All | All | `q1 == Direct Authentication` |
 | **2. IAM** | `authentication_and_mfa` (q3) | Admin MFA Enforcement | `baseline` | **All (Custom, COTS, SaaS)** | All | All | `q1 == Direct Authentication` |
@@ -256,7 +263,7 @@ The table below defines the exact applicability criteria for every requirement a
 | **9. Resilience**| `cots_deployment_hardening` (q1-q3)| COTS Hardening, Vendor Patch Support & SLAs | `cots_app` | **COTS Only** | All | All | **Active exclusively if cots_app is selected** |
 | **9. Resilience**| `backup_and_disaster_recovery` (q1) | Immutable Backups & DR Testing | `infra` | Custom, COTS | All | All | None |
 | **9. Resilience**| `os_patching` (q1-q3) | Operating System Patching & High Availability | `infra` | **Custom, COTS** | All | All | `q2` depends on `q1 == No` (manual patching schedule) |
-| **10. SaaS** | `saas_contract_compliance` (q1)| SaaS Agreement & Schedules | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
+| **10. SaaS** | `saas_contract_compliance` (q1-q3)| SaaS Agreement, Security Schedule, ISO 27001/SOC 2 Certification & Track Delegation | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** (`q2`: ISO 27001/SOC 2 certification; `q3` & `q3_delegate`: uncertified track readiness) |
 | **10. SaaS** | `saas_governance_and_policy` | Security Policy & Management Review | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_confidentiality_and_data_protection` | Staff NDAs & Contractual Data Encryption | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_security_awareness` | Annual Security Awareness Training | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
@@ -274,7 +281,7 @@ The table below defines the exact applicability criteria for every requirement a
 | **10. SaaS** | `saas_physical_security` | Datacenter Physical Security | `saas_uncertified` | **Uncertified SaaS** | All | All | Active if `saas_uncertified` is selected |
 | **10. SaaS** | `saas_backup_and_business_continuity` | Daily Backups & Tested DR | `saas_uncertified` | **Uncertified SaaS** | All | All | Active if `saas_uncertified` is selected |
 | **10. SaaS** | `saas_subcontractor_management` | Sub-Processor Auditing & Notice | `saas_uncertified` | **Uncertified SaaS** | All | All | Active if `saas_uncertified` is selected |
-| **10. SaaS** | `saas_audit_and_compliance` (q1-q2) | Contractual Right to Audit & Penetration Testing Governance | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
+| **10. SaaS** | `saas_audit_and_compliance` (q1-q2) | Contractual Right to Audit & Independent Penetration Testing Governance | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **10. SaaS** | `saas_pci_dss` (q1-q2) | PCI DSS AOC (if payment cards) | `saas_app` | **SaaS Only** | All | All | `saas_pci_dss:q1 == Card data processed` |
 | **10. SaaS** | `saas_non_conformity_remediation` | Contractual Remedies & SLAs | `saas_app` | **SaaS Only** | All | All | **Active exclusively if saas_app is selected** |
 | **End** | `thank_you_splash` | Assessment Completion Splash | `info`, `baseline` | All | All | All | None (Always visible) |

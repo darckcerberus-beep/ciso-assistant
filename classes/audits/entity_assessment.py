@@ -269,7 +269,7 @@ class EntityAssessment:
                     if specific
                     else ''
                 )
-                if specific_id and str(specific_id) == normalized:
+                if specific_id and _normalize(specific_id).replace('-', '') == _normalize(normalized).replace('-', ''):
                     actor_ids.append(str(actor.get('id')))
                     break
 
@@ -453,7 +453,7 @@ class EntityAssessment:
                 requirement_assessment_ids.append(str(requirement_assessment_id))
         return list(dict.fromkeys(requirement_assessment_ids))
 
-    def assign_requirements_to_representatives(self, representative_ids=None, first_only=False):
+    def assign_requirements_to_representatives(self, representative_ids=None, first_only=False, compliance_assessment_id=None):
         """Assign requirement assessments to linked entity representatives."""
         if representative_ids is None:
             representative_ids = self.get_representative_ids()
@@ -463,7 +463,8 @@ class EntityAssessment:
         if first_only and representative_ids:
             representative_ids = representative_ids[:1]
 
-        compliance_assessment_id = self.get_compliance_assessment_id()
+        if not compliance_assessment_id:
+            compliance_assessment_id = self.get_compliance_assessment_id()
         if not compliance_assessment_id:
             return None
 

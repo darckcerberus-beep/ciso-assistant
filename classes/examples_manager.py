@@ -312,16 +312,43 @@ class ExamplesManager:
 
     def resolve_actor_id(self, user_id: str | None = None, user_email: str | None = None) -> str | None:
         """Resolve an Actor UUID from a User UUID or email, falling back to default assignee."""
-        actor_records = utils.get_all_results("/api/actors/", force_reload=False)
-        if actor_records:
-            for actor in actor_records:
-                if isinstance(actor, dict):
-                    spec = actor.get("specific")
-                    spec_id = spec.get("id") if isinstance(spec, dict) else None
-                    if user_id and spec_id == user_id:
-                        return actor.get("id")
-                    if user_email and actor.get("str") == user_email:
-                        return actor.get("id")
+        def _norm(val: Any) -> str:
+            return str(val).replace("-", "").strip().lower() if val else ""
+
+        target_uid = _norm(user_id) if user_id else ""
+        norm_email = str(user_email).strip().lower() if user_email else ""
+
+        # If user_id wasn't provided, try looking it up by email
+        if not target_uid and norm_email:
+            if hasattr(self, "user_dict") and self.user_dict and hasattr(self.user_dict, "get_id_from_email"):
+                uid = self.user_dict.get_id_from_email(norm_email)
+                if uid:
+                    target_uid = _norm(uid)
+            if not target_uid:
+                users = utils.get_all_results("/api/users/", force_reload=False)
+                for u in (users or []):
+                    if isinstance(u, dict) and str(u.get("email", "")).strip().lower() == norm_email:
+                        target_uid = _norm(u.get("id"))
+                        break
+
+        # Check actor records (try cached first, then reload if not found)
+        for force in (False, True):
+            actor_records = utils.get_all_results("/api/actors/", force_reload=force)
+            if actor_records:
+                for actor in actor_records:
+                    if isinstance(actor, dict):
+                        spec = actor.get("specific")
+                        spec_id = spec.get("id") if isinstance(spec, dict) else (spec if isinstance(spec, str) else None)
+                        if target_uid and _norm(spec_id) == target_uid:
+                            return actor.get("id")
+                        if norm_email:
+                            act_str = str(actor.get("str", "")).strip().lower()
+                            if act_str == norm_email:
+                                return actor.get("id")
+            if not force and (target_uid or norm_email):
+                continue
+            break
+
         return self.get_default_assignee_id()
 
     @staticmethod
@@ -1556,8 +1583,6 @@ class ExamplesManager:
             if (domain_dict and hasattr(domain_dict, "get_name_from_id") and folder_id)
             else (domain_name or self.folder_name)
         )
-        assignee_id = self.get_default_assignee_id()
-
         target_fw_spec = framework_ref_or_name or app_spec.get("framework_ref") or app_spec.get("framework_name")
         framework = self.find_target_framework(target_fw_spec)
 
@@ -1599,6 +1624,8 @@ class ExamplesManager:
             if not user_id:
                 user_id = user_dict.get_id_from_email(user_email)
             utils.log(f"Third-party user '{user_email}' ready with ID: {user_id}", level=logging.INFO)
+
+        assignee_id = self.resolve_actor_id(user_id=user_id, user_email=user_email) if (user_id or user_email) else self.get_default_assignee_id()
 
         # Step 1: Create External Entity for TPRM
         entity_dict: EntityDict = data["entity_dict"]
@@ -1656,7 +1683,7 @@ class ExamplesManager:
 
         # Step 4: Create Compliance Assessment
         compliance_dict: ComplianceAssessmentDict = data["compliance_assessment_dict"]
-        ca_name = f"Assessment of {framework_name} in {app_name}"
+        ca_name = utils.format_audit_name(app_name, framework_name, framework_ref)
 
         ca_obj = None
         for ca in compliance_dict.get_compliance_assessments().values():
@@ -1988,7 +2015,6 @@ class ExamplesManager:
             if (domain_dict and hasattr(domain_dict, "get_name_from_id") and folder_id)
             else (domain_name or self.folder_name)
         )
-        assignee_id = self.get_default_assignee_id()
         framework = self.find_target_framework(framework_ref_or_name)
 
         if not framework:
@@ -2019,6 +2045,10 @@ class ExamplesManager:
             utils.log(f"Created new user '{user_email}' with ID: {user_id}", level=logging.INFO)
         else:
             utils.log(f"Found existing user '{user_email}' with ID: {user_id}", level=logging.INFO)
+
+        # Resolve assignee actor ID for this user (falling back to default assignee)
+        assignee_id = self.resolve_actor_id(user_id=user_id, user_email=user_email)
+        utils.log(f"Resolved assignee actor ID: {assignee_id} for user {user_email}", level=logging.INFO)
 
         # Step 2: Create External Entity for TPRM
         entity_dict: EntityDict = data["entity_dict"]
@@ -2064,7 +2094,7 @@ class ExamplesManager:
 
         # Step 6: Create Compliance Assessment
         compliance_dict: ComplianceAssessmentDict = data["compliance_assessment_dict"]
-        ca_name = f"Assessment of {framework_name} in {app_name}"
+        ca_name = utils.format_audit_name(app_name, framework_name, framework_ref)
 
         ca_obj = None
         for ca in compliance_dict.get_compliance_assessments().values():
@@ -2132,7 +2162,10 @@ class ExamplesManager:
         if req_ids and ea_id:
             for ea in entity_assessment_dict.get_entity_assessments():
                 if ea.get_id() == ea_id:
-                    ea.assign_requirements_to_representatives([user_id] if user_id else None)
+                    ea.assign_requirements_to_representatives(
+                        [user_id] if user_id else None,
+                        compliance_assessment_id=ca_id,
+                    )
                     break
             compliance_dict.requirement_assignments.reload()
             assignment_ids = compliance_dict.requirement_assignments.get_requirement_assignment_id_list_from_compliance_assessment_id(ca_id)
@@ -2330,14 +2363,20 @@ class ExamplesManager:
         # Resolve app owner email from entity assessment or perimeter owner
         app_owner_email = None
         user_dict = data.get("user_dict")
+        def _iter_users(ud):
+            if not ud or not hasattr(ud, "get_users"):
+                return []
+            u_res = ud.get_users()
+            return u_res.values() if isinstance(u_res, dict) else (u_res or [])
+
         entity_assessment_dict = data.get("entity_assessment_dict")
         if entity_assessment_dict and hasattr(entity_assessment_dict, "get_entity_assessments"):
             try:
                 for ea in entity_assessment_dict.get_entity_assessments() or []:
                     if getattr(ea, "get_compliance_assessment_id", lambda: None)() == ca_obj.get_id():
                         rep_ids = getattr(ea, "get_representative_ids", lambda: [])()
-                        if rep_ids and user_dict and hasattr(user_dict, "get_users"):
-                            for u in (user_dict.get_users() or {}).values():
+                        if rep_ids and user_dict:
+                            for u in _iter_users(user_dict):
                                 if getattr(u, "get_id", lambda: None)() in rep_ids:
                                     app_owner_email = getattr(u, "get_email", lambda: None)()
                                     break
@@ -2348,8 +2387,8 @@ class ExamplesManager:
         if not app_owner_email and ca_obj.get_perimeter_id() and perimeter_dict:
             try:
                 owner_id = perimeter_dict.get_owner_id_from_perimeter_id(ca_obj.get_perimeter_id())
-                if owner_id and user_dict and hasattr(user_dict, "get_users"):
-                    for u in (user_dict.get_users() or {}).values():
+                if owner_id and user_dict:
+                    for u in _iter_users(user_dict):
                         if getattr(u, "get_id", lambda: None)() == owner_id:
                             app_owner_email = getattr(u, "get_email", lambda: None)()
                             break
@@ -2369,40 +2408,62 @@ class ExamplesManager:
                             ra_list = getattr(asgn, "get_requirement_assessment_id_list", lambda: [])() or []
                             assigned_ra_ids.update(ra_list)
 
-                            # Resolve assigned user name/email
+                            # Resolve assigned user name/email from assigned actor
                             assigned_user_str = ""
                             assigned_user_email = ""
                             asgn_json = getattr(asgn, "json_object", {}) if hasattr(asgn, "json_object") else {}
 
-                            # 1. Try events (records email of actor who submitted or started)
-                            events = asgn_json.get("events") or []
-                            for ev in events:
-                                ev_actor = ev.get("event_actor") or {}
-                                if isinstance(ev_actor, dict) and ev_actor.get("email"):
-                                    assigned_user_email = ev_actor.get("email")
-                                    break
-
-                            # 2. Try actor object
+                            # 1. Try actor object first (the actual assignee)
                             actors = asgn_json.get("actor") or asgn_json.get("actors") or []
                             if actors and isinstance(actors, list):
                                 first_act = actors[0]
+                                act_id = None
                                 if isinstance(first_act, dict):
                                     if first_act.get("email"):
                                         assigned_user_email = first_act.get("email")
                                     assigned_user_str = first_act.get("str") or first_act.get("name") or ""
-                                elif isinstance(first_act, str) and user_dict and hasattr(user_dict, "get_users"):
-                                    for u in (user_dict.get_users() or {}).values():
-                                        if getattr(u, "get_id", lambda: None)() == first_act:
-                                            assigned_user_email = getattr(u, "get_email", lambda: None)() or ""
-                                            assigned_user_str = getattr(u, "get_email", lambda: None)() or getattr(u, "get_name", lambda: None)() or ""
-                                            break
+                                    act_id = first_act.get("id")
+                                elif isinstance(first_act, str):
+                                    act_id = first_act
 
-                            # 3. Match user by name if email not found
-                            if not assigned_user_email and assigned_user_str and user_dict and hasattr(user_dict, "get_users"):
-                                for u in (user_dict.get_users() or {}).values():
+                                if not assigned_user_email and act_id:
+                                    # Map Actor ID -> User ID -> User email
+                                    try:
+                                        actor_records = utils.get_all_results("/api/actors/", force_reload=False)
+                                        act_norm = str(act_id).replace("-", "").strip().lower()
+                                        for a_rec in (actor_records or []):
+                                            if isinstance(a_rec, dict) and str(a_rec.get("id", "")).replace("-", "").strip().lower() == act_norm:
+                                                spec = a_rec.get("specific") or {}
+                                                spec_uid = spec.get("id") if isinstance(spec, dict) else spec
+                                                if spec_uid:
+                                                    spec_uid_norm = str(spec_uid).replace("-", "").strip().lower()
+                                                    if user_dict:
+                                                        for u in _iter_users(user_dict):
+                                                            u_id = getattr(u, "get_id", lambda: None)()
+                                                            if u_id and str(u_id).replace("-", "").strip().lower() == spec_uid_norm:
+                                                                assigned_user_email = getattr(u, "get_email", lambda: None)() or ""
+                                                                if not assigned_user_str:
+                                                                    assigned_user_str = getattr(u, "get_name", lambda: None)() or getattr(u, "get_email", lambda: None)() or ""
+                                                                break
+                                                break
+                                    except Exception:
+                                        pass
+
+                            # 2. Match user by name if email not found
+                            if not assigned_user_email and assigned_user_str and user_dict:
+                                for u in _iter_users(user_dict):
                                     u_full = f"{getattr(u, 'get_first_name', lambda: '')()} {getattr(u, 'get_last_name', lambda: '')()}".strip()
                                     if u_full.lower() == assigned_user_str.lower() or getattr(u, "get_name", lambda: "")().lower() == assigned_user_str.lower():
                                         assigned_user_email = getattr(u, "get_email", lambda: None)() or ""
+                                        break
+
+                            # 3. Fallback: try events (records actor who submitted or started)
+                            if not assigned_user_email:
+                                events = asgn_json.get("events") or []
+                                for ev in events:
+                                    ev_actor = ev.get("event_actor") or {}
+                                    if isinstance(ev_actor, dict) and ev_actor.get("email"):
+                                        assigned_user_email = ev_actor.get("email")
                                         break
 
                             existing_assignments.append({
@@ -2827,7 +2888,7 @@ class ExamplesManager:
         # Find compliance assessment for this application
         ca_obj = None
         for ca in compliance_dict.get_compliance_assessments().values():
-            if (perimeter_id and ca.get_perimeter_id() == perimeter_id) or f"in {app_name}" in ca.get_name():
+            if (perimeter_id and ca.get_perimeter_id() == perimeter_id) or f"in {app_name}" in ca.get_name() or app_name in ca.get_name():
                 ca_obj = ca
                 break
 
@@ -3142,7 +3203,7 @@ class ExamplesManager:
         # Resolve compliance assessment (check perimeter or name or TPRM entity assessment)
         ca_obj = None
         for ca in compliance_dict.get_compliance_assessments().values():
-            if (perimeter_id and ca.get_perimeter_id() == perimeter_id) or f"in {app_name}" in ca.get_name():
+            if (perimeter_id and ca.get_perimeter_id() == perimeter_id) or f"in {app_name}" in ca.get_name() or app_name in ca.get_name():
                 ca_obj = ca
                 break
 
@@ -3232,7 +3293,7 @@ class ExamplesManager:
         # Find compliance assessment for this application
         ca_obj = None
         for ca in compliance_dict.get_compliance_assessments().values():
-            if ca.get_perimeter_id() == perimeter_id or f"in {app_name}" in ca.get_name():
+            if ca.get_perimeter_id() == perimeter_id or f"in {app_name}" in ca.get_name() or app_name in ca.get_name():
                 ca_obj = ca
                 break
 

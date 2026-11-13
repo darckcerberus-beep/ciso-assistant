@@ -103,12 +103,6 @@ answers:
     observation: "Multi-tenant SaaS payment platform operated by a certified third-party vendor."
 
   - requirement: "hosting"
-    question: "Is the SaaS vendor ISO/IEC 27001 or SOC 2 Type II certified?"
-    answer: "Yes - The SaaS vendor holds an active ISO/IEC 27001 certification or SOC 2 Type II report"
-    result: "compliant"
-    observation: "Vendor holds active ISO/IEC 27001:2022 certification and annual SOC 2 Type II report."
-
-  - requirement: "hosting"
     question: "Can you answer the Application Security Baseline track (SSO federation, administrative MFA, and Role-Based Access Control [RBAC]), or does somebody else have to?"
     answer: "I can answer this track"
     result: "compliant"
@@ -157,6 +151,12 @@ answers:
     answer: "Yes"
     result: "compliant"
     observation: "Signed enterprise SaaS Master Services Agreement (MSA), DPA, and binding Security Schedule."
+
+  - requirement: "saas_contract_compliance"
+    question: "Is the SaaS vendor ISO/IEC 27001 or SOC 2 Type II certified?"
+    answer: "Yes - The SaaS vendor holds an active ISO/IEC 27001 certification or SOC 2 Type II report"
+    result: "compliant"
+    observation: "Vendor holds active ISO/IEC 27001:2022 certification and annual SOC 2 Type II report."
 
   - requirement: "saas_confidentiality_and_data_protection"
     question: "Does the contract require vendor personnel to sign confidentiality agreements (NDAs) and restrict access to customer data (e.g. requiring client approval before vendor support or engineering can access tenant data)?"

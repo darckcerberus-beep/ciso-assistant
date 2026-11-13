@@ -52,7 +52,6 @@ Define or customize your operational situations/cases here for reference:
 | 5d | Application Information & Governance | `data_classification` | `q4` | What is the volume of data subjects (individuals) whose personal data is processed? | `info` | Applications processing personal data (depends on `data_classification:q3`) |
 | 6 | Application Information & Governance | `hosting` | `q1` | What is the delivery and hosting model of the application? | `info` | All applications (Info profiling - Hosting model) |
 | 7 | Application Information & Governance | `hosting` | `q2` | What is the network exposure of the application? | `info` | Self-Hosted only (Custom & COTS - depends on `hosting:q1`) |
-| 7b | Application Information & Governance | `hosting` | `q3` | Is the SaaS vendor certified under ISO/IEC 27001 or SOC 2 Type II? | `info` | SaaS only (depends on `hosting:q1 == SaaS`) |
 | 7c | Application Information & Governance | `hosting` | `q4` | Can you answer the Application Security Baseline track (SSO federation, admin MFA, RBAC), or does somebody else have to? | `info` | All applications (Triggers `baseline` on `c1`, leaves in orchestrator on `c2`) |
 | 7d | Application Information & Governance | `hosting` | `q4_delegate` | Baseline track: specify who can answer (name, email address, or team) | `info` | Free text delegate field (depends on `hosting:q4 == c2`) |
 | 7e | Application Information & Governance | `hosting` | `q5` | Can you answer the Custom Software Track (session mgmt, input validation, SAST/DAST/SCA), or does somebody else have to? | `info` | Custom applications (Triggers `custom_app` on `c1`, leaves in orchestrator on `c2`) |
@@ -65,8 +64,6 @@ Define or customize your operational situations/cases here for reference:
 | 7l | Application Information & Governance | `hosting` | `q8_delegate` | Internet-Facing track: specify who can answer (name, email address, or team) | `info` | Free text delegate field (depends on `hosting:q8 == c2`) |
 | 7m | Application Information & Governance | `hosting` | `q9` | Can you answer the SaaS Application Track (MSA, confidentiality, tenant admin MFA, EU data residency, audit rights), or does somebody else have to? | `info` | SaaS applications (Triggers `saas_app` on `c1`, leaves in orchestrator on `c2`) |
 | 7n | Application Information & Governance | `hosting` | `q9_delegate` | SaaS track: specify who can answer (name, email address, or team) | `info` | Free text delegate field (depends on `hosting:q9 == c2`) |
-| 7o | Application Information & Governance | `hosting` | `q10` | Can you answer the Uncertified SaaS Vendor Track (detailed vendor security assessment: ISMS, workstations, isolation), or does somebody else have to? | `info` | Uncertified SaaS applications (Triggers `saas_uncertified` on `c1`, leaves in orchestrator on `c2`) |
-| 7p | Application Information & Governance | `hosting` | `q10_delegate` | Uncertified SaaS track: specify who can answer (name, email address, or team) | `info` | Free text delegate field (depends on `hosting:q10 == c2`) |
 | 8 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q1` | How do users authenticate to the application? (Exclusive SSO [+100], Hybrid [+40], Direct [+0], M2M API [+100]) | `baseline` | **All applications** (Custom, COTS, SaaS) - Mandatory SSO / Hybrid |
 | 9 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q2` | If direct or hybrid authentication is used, are strong password policies and brute-force lockout protections implemented for local accounts? | `baseline` | All applications (If direct or hybrid auth used - Password policy, +30 pts) |
 | 10 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q3` | If direct or hybrid authentication is used, is Multi-Factor Authentication (MFA) enforced for all administrative, privileged, and break-glass access? | `baseline` | All applications (If direct or hybrid auth used - Admin MFA, +30 pts) |
@@ -115,6 +112,9 @@ Define or customize your operational situations/cases here for reference:
 | 45 | Penetration Testing & Resilience | `cots_deployment_hardening` | `q2` | Does the COTS software actively receive security patches and vulnerability updates... | `cots_app` |  |
 | 46 | Penetration Testing & Resilience | `cots_deployment_hardening` | `q3` | Are published vendor security patches, hotfixes, and critical vulnerability update... | `cots_app` |  |
 | 47 | SaaS Requirements & Vendor Security Exhibit | `saas_contract_compliance` | `q1` | Is there a signed SaaS contract and binding Security Schedule? (e.g., legally exec... | `saas_app` |  |
+| 47b | SaaS Requirements & Vendor Security Exhibit | `saas_contract_compliance` | `q2` | Is the SaaS vendor certified under ISO/IEC 27001 or SOC 2 Type II? | `saas_app` | SaaS applications (Answering `No` triggers `saas_uncertified` track) |
+| 47c | SaaS Requirements & Vendor Security Exhibit | `saas_contract_compliance` | `q3` | Can you answer the Uncertified SaaS Vendor Track (detailed vendor security assessment: ISMS, workstations, isolation), or does somebody else have to? | `saas_app` | Uncertified SaaS applications (Triggers `saas_uncertified` on `c1`, leaves in orchestrator on `c2`) |
+| 47d | SaaS Requirements & Vendor Security Exhibit | `saas_contract_compliance` | `q3_delegate` | Uncertified SaaS track: specify who can answer (name, email address, or team) | `saas_app` | Free text delegate field (depends on `saas_contract_compliance:q3 == c2`) |
 | 48 | SaaS Requirements & Vendor Security Exhibit | `saas_governance_and_policy` | `q1` | Does the contract require and does the provider maintain an Information Security P... | `saas_app` |  |
 | 49 | SaaS Requirements & Vendor Security Exhibit | `saas_governance_and_policy` | `q2` | Does the contract require and does the provider maintain an active Information Sec... | `saas_app` |  |
 | 50 | SaaS Requirements & Vendor Security Exhibit | `saas_confidentiality_and_data_protection` | `q1` | Does the contract require vendor personnel to sign confidentiality agreements (NDAs... | `saas_app` |  |
@@ -315,17 +315,6 @@ Action - None
   - `Internet-facing (Public Web / Mobile API)` (100 pts, compute_result: true)
 - **Applicable Cases / Situations**:
   - [x] Self-Hosted only (Custom & COTS; hidden for SaaS)
-
-##### Q7b. `hosting:q3`
-- **URN**: `urn:intuitem:risk:req_node:appsec:hosting:q3`
-- **Question**: Is the SaaS vendor certified under ISO/IEC 27001 or SOC 2 Type II?
-- **Depends on**: `hosting:q1` == `SaaS`
-- **Type**: `unique_choice`
-- **Choices & Scoring**:
-  - `Yes - Vendor holds an active ISO/IEC 27001 certification or SOC 2 Type II report` (100 pts, compute_result: true)
-  - `No - Vendor is not ISO/IEC 27001 or SOC 2 Type II certified` (100 pts, compute_result: true; activates `saas_uncertified`)
-- **Applicable Cases / Situations**:
-  - [x] SaaS only (triggers `saas_uncertified` when `No`)
 
 
 <a id="iam_chapter"></a>
@@ -980,6 +969,35 @@ Action - Ask if non prod environments (if used) are secure identically as prod. 
   - `No` (0 pts)
 - **Applicable Cases / Situations**:
   - [ ] 
+
+##### Q47b. `saas_contract_compliance:q2`
+- **URN**: `urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q2`
+- **Question**: Is the SaaS vendor ISO/IEC 27001 or SOC 2 Type II certified?
+- **Type**: `unique_choice`
+- **Choices & Scoring**:
+  - `Yes - The SaaS vendor holds an active ISO/IEC 27001 certification or SOC 2 Type II report`
+  - `No - The SaaS vendor is not ISO/IEC 27001 or SOC 2 Type II certified` (activates `saas_uncertified` track)
+- **Applicable Cases / Situations**:
+  - [x] SaaS only (answering `No` unlocks `q3` and triggers `saas_uncertified` track)
+
+##### Q47c. `saas_contract_compliance:q3`
+- **URN**: `urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q3`
+- **Question**: Can you answer the Uncertified SaaS Vendor Track (detailed vendor security assessment: ISMS, awareness, workstation/mobile security, network isolation, secure development, penetration testing, physical security, and subcontractor governance), or does somebody else have to?
+- **Depends on**: `saas_contract_compliance:q2` == `No`
+- **Type**: `unique_choice`
+- **Choices & Scoring**:
+  - `I can answer this track` (triggers `saas_uncertified` implementation group)
+  - `Somebody else has to answer this track` (unlocks `q3_delegate`)
+- **Applicable Cases / Situations**:
+  - [x] Uncertified SaaS only
+
+##### Q47d. `saas_contract_compliance:q3_delegate`
+- **URN**: `urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q3_delegate`
+- **Question**: Uncertified SaaS Vendor Track: please specify who can answer (name, email address, or team):
+- **Depends on**: `saas_contract_compliance:q3` == `Somebody else has to answer this track`
+- **Type**: `text`
+- **Applicable Cases / Situations**:
+  - [x] Uncertified SaaS with delegated respondent 
 
 #### Node: Security Governance & Policy (`saas_governance_and_policy`)
 - **Implementation Groups**: `saas_app`

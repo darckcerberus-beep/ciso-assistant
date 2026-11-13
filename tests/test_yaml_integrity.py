@@ -684,10 +684,10 @@ class TestYamlIntegrity(unittest.TestCase):
         if not appsec_fw:
             return
 
-        # 1. In merged model, hosting questions q4-q10 dynamically trigger IGs when respondent can self-answer (c1)
+        # 1. In merged model, hosting questions q4-q9 dynamically trigger IGs when respondent can self-answer (c1)
         hosting_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:hosting")
         self.assertIsNotNone(hosting_node, "hosting node missing in AppSec")
-        self.assertEqual(len(hosting_node.get("questions", {})), 17)
+        self.assertEqual(len(hosting_node.get("questions", {})), 14)
         q1_hosting = hosting_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:hosting:q1")
         self.assertIsNotNone(q1_hosting)
         saas_choice = next(c for c in q1_hosting["choices"] if c["urn"] == "urn:intuitem:risk:req_node:appsec:hosting:q1:c3")
@@ -719,31 +719,39 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertIn("urn:intuitem:risk:req_node:appsec:hosting:q1:c2", dep.get("answers", []))
         self.assertNotIn("urn:intuitem:risk:req_node:appsec:hosting:q1:c3", dep.get("answers", []))
 
-        # Validate hosting question q3 (SaaS vendor ISO 27001 / SOC 2 certification) depends on SaaS hosting choice (c3)
-        q3_hosting = hosting_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:hosting:q3")
-        self.assertIsNotNone(q3_hosting, "hosting:q3 (SaaS vendor certification) missing in AppSec hosting node")
-        dep_q3 = q3_hosting.get("depends_on", {})
-        self.assertEqual(dep_q3.get("question"), "urn:intuitem:risk:req_node:appsec:hosting:q1")
-        self.assertEqual(dep_q3.get("answers", []), ["urn:intuitem:risk:req_node:appsec:hosting:q1:c3"])
-        q3_choices = {c["urn"]: c for c in q3_hosting.get("choices", [])}
-        self.assertEqual(len(q3_choices), 2)
-        cert_yes = q3_choices["urn:intuitem:risk:req_node:appsec:hosting:q3:c1"]
-        cert_no = q3_choices["urn:intuitem:risk:req_node:appsec:hosting:q3:c2"]
-        self.assertEqual(cert_yes["add_score"], 100)
-        self.assertTrue(cert_yes["compute_result"])
+        # Validate SaaS vendor ISO 27001 / SOC 2 certification is evaluated in saas_contract_compliance (saas_app)
+        self.assertNotIn("urn:intuitem:risk:req_node:appsec:hosting:q3", hosting_node.get("questions", {}))
+        self.assertNotIn("urn:intuitem:risk:req_node:appsec:hosting:q10", hosting_node.get("questions", {}))
+        self.assertNotIn("urn:intuitem:risk:req_node:appsec:hosting:q10_delegate", hosting_node.get("questions", {}))
+
+        saas_contract_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:saas_contract_compliance")
+        self.assertIsNotNone(saas_contract_node)
+        q2_saas = saas_contract_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q2")
+        self.assertIsNotNone(q2_saas, "saas_contract_compliance:q2 (certification) missing")
+        q2_choices = {c["urn"]: c for c in q2_saas.get("choices", [])}
+        self.assertEqual(len(q2_choices), 2)
+        cert_yes = q2_choices["urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q2:c1"]
+        cert_no = q2_choices["urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q2:c2"]
         self.assertNotIn("select_implementation_groups", cert_yes)
-        self.assertEqual(cert_no["add_score"], 100)
-        self.assertTrue(cert_no["compute_result"])
         self.assertNotIn("select_implementation_groups", cert_no)
 
-        # Question q10 (saas_uncertified) triggers when cert_no and choice c1 are selected
-        q10_hosting = hosting_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:hosting:q10")
-        self.assertIsNotNone(q10_hosting)
-        q10_c1 = next(c for c in q10_hosting["choices"] if c["urn"] == "urn:intuitem:risk:req_node:appsec:hosting:q10:c1")
-        q10_c2 = next(c for c in q10_hosting["choices"] if c["urn"] == "urn:intuitem:risk:req_node:appsec:hosting:q10:c2")
-        self.assertEqual(q10_c1.get("select_implementation_groups"), ["saas_uncertified"])
-        self.assertNotIn("select_implementation_groups", q10_c2)
+        # Question q3 (saas_uncertified) in saas_contract_compliance triggers when cert_no and choice c1 are selected
+        q3_saas = saas_contract_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q3")
+        self.assertIsNotNone(q3_saas)
+        dep_q3 = q3_saas.get("depends_on", {})
+        self.assertEqual(dep_q3.get("question"), "urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q2")
+        self.assertEqual(dep_q3.get("answers", []), ["urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q2:c2"])
+        q3_c1 = next(c for c in q3_saas["choices"] if c["urn"] == "urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q3:c1")
+        q3_c2 = next(c for c in q3_saas["choices"] if c["urn"] == "urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q3:c2")
+        self.assertEqual(q3_c1.get("select_implementation_groups"), ["saas_uncertified"])
+        self.assertNotIn("select_implementation_groups", q3_c2)
 
+        # Delegate question q3_delegate for saas_uncertified
+        q3_del = saas_contract_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q3_delegate")
+        self.assertIsNotNone(q3_del)
+        self.assertEqual(q3_del.get("type"), "text")
+        self.assertEqual(q3_del.get("depends_on", {}).get("question"), "urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q3")
+        self.assertEqual(q3_del.get("depends_on", {}).get("answers"), ["urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q3:c2"])
         # network_exposure is no longer a standalone node
         self.assertNotIn("urn:intuitem:risk:req_node:appsec:network_exposure", appsec_fw["req_nodes"])
 
@@ -974,7 +982,7 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertIn("throttling", api_q2_text.lower())
 
         # 1. Delivery & Hosting model discriminator in Chapter 1 (hosting:q1) configures delivery model
-        # while questions q4-q10 dynamically select implementation groups if respondent self-answers (c1)
+        # while questions q4-q9 dynamically select implementation groups if respondent self-answers (c1)
         hosting_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:hosting")
         self.assertIsNotNone(hosting_node)
         q1 = hosting_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:hosting:q1")
@@ -995,7 +1003,7 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertEqual(bought_choice.get("select_implementation_groups", []), [])
         self.assertEqual(saas_choice.get("select_implementation_groups", []), [])
 
-        # Instead, questions q4-q10 trigger the respective IGs on choice c1
+        # Instead, questions q4-q9 trigger the respective IGs on choice c1
         hosting_questions = hosting_node.get("questions", {})
         q4_c1 = next(c for c in hosting_questions["urn:intuitem:risk:req_node:appsec:hosting:q4"]["choices"] if c["urn"].endswith(":c1"))
         q5_c1 = next(c for c in hosting_questions["urn:intuitem:risk:req_node:appsec:hosting:q5"]["choices"] if c["urn"].endswith(":c1"))
@@ -1522,7 +1530,7 @@ class TestYamlIntegrity(unittest.TestCase):
             "urn:intuitem:risk:req_node:appsec_manual:hosting:q7:c1": ["infra"],
             "urn:intuitem:risk:req_node:appsec_manual:hosting:q8:c1": ["internet_facing"],
             "urn:intuitem:risk:req_node:appsec_manual:hosting:q9:c1": ["saas_app"],
-            "urn:intuitem:risk:req_node:appsec_manual:hosting:q10:c1": ["saas_uncertified"],
+            "urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q3:c1": ["saas_uncertified"],
         }
         for n_urn, node in manual_fw["req_nodes"].items():
             for q_key, q in node.get("questions", {}).items():
@@ -1558,12 +1566,16 @@ class TestYamlIntegrity(unittest.TestCase):
                 f"Node {ref_id} in appsec_manual must be scoped to ['info']",
             )
 
-        # In appsec_manual, hosting node contains hosting model (q1), network exposure (q2), SaaS certification (q3),
-        # respondent assignment questions for each triggered implementation group (q4-q10),
-        # and conditional free text delegate form fields for designating assignees (q4_delegate - q10_delegate)
+        # In appsec_manual, hosting node contains hosting model (q1), network exposure (q2),
+        # respondent assignment questions for each triggered implementation group (q4-q9),
+        # and conditional free text delegate form fields for designating assignees (q4_delegate - q9_delegate)
         hosting_node = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:hosting")
         self.assertIsNotNone(hosting_node, "Node hosting missing in appsec_manual")
-        self.assertEqual(len(hosting_node.get("questions", {})), 17)
+        self.assertEqual(len(hosting_node.get("questions", {})), 14)
+        self.assertNotIn("urn:intuitem:risk:req_node:appsec_manual:hosting:q3", hosting_node.get("questions", {}))
+        self.assertNotIn("urn:intuitem:risk:req_node:appsec_manual:hosting:q10", hosting_node.get("questions", {}))
+        self.assertNotIn("urn:intuitem:risk:req_node:appsec_manual:hosting:q10_delegate", hosting_node.get("questions", {}))
+
         q2_manual = hosting_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec_manual:hosting:q2")
         self.assertIsNotNone(q2_manual)
         dep_manual = q2_manual.get("depends_on", {})
@@ -1572,13 +1584,7 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertIn("urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c2", dep_manual.get("answers", []))
         self.assertNotIn("urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c3", dep_manual.get("answers", []))
 
-        q3_manual = hosting_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec_manual:hosting:q3")
-        self.assertIsNotNone(q3_manual)
-        dep_q3_manual = q3_manual.get("depends_on", {})
-        self.assertEqual(dep_q3_manual.get("question"), "urn:intuitem:risk:req_node:appsec_manual:hosting:q1")
-        self.assertEqual(dep_q3_manual.get("answers", []), ["urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c3"])
-
-        # Verify respondent assignment questions for each triggered IG (q4 to q10) and delegate text fields
+        # Verify respondent assignment questions for each triggered IG in hosting (q4 to q9) and delegate text fields
         expected_ig_questions = {
             "q4": {
                 "track": "baseline",
@@ -1617,11 +1623,6 @@ class TestYamlIntegrity(unittest.TestCase):
                 "dep_q": "urn:intuitem:risk:req_node:appsec_manual:hosting:q1",
                 "dep_answers": ["urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c3"],
             },
-            "q10": {
-                "track": "saas_uncertified",
-                "dep_q": "urn:intuitem:risk:req_node:appsec_manual:hosting:q3",
-                "dep_answers": ["urn:intuitem:risk:req_node:appsec_manual:hosting:q3:c2"],
-            },
         }
 
         for q_id, q_info in expected_ig_questions.items():
@@ -1652,6 +1653,27 @@ class TestYamlIntegrity(unittest.TestCase):
             self.assertEqual(del_dep.get("answers"), [f"{q_urn}:c2"])
             self.assertEqual(del_dep.get("condition"), "any")
 
+        # Verify saas_contract_compliance node in appsec_manual has q1 (contract), q2 (certification), q3 (saas_uncertified readiness), and q3_delegate
+        saas_contract_manual = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance")
+        self.assertIsNotNone(saas_contract_manual)
+        q2_m = saas_contract_manual.get("questions", {}).get("urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q2")
+        self.assertIsNotNone(q2_m)
+        q3_m = saas_contract_manual.get("questions", {}).get("urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q3")
+        self.assertIsNotNone(q3_m)
+        self.assertEqual(q3_m.get("depends_on", {}).get("question"), "urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q2")
+        self.assertEqual(q3_m.get("depends_on", {}).get("answers"), ["urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q2:c2"])
+        q3_m_choices = q3_m.get("choices", [])
+        self.assertEqual(len(q3_m_choices), 2)
+        self.assertEqual(q3_m_choices[0].get("value"), "I can answer this track")
+        self.assertEqual(q3_m_choices[1].get("value"), "Somebody else has to answer this track")
+        q3_m_del = saas_contract_manual.get("questions", {}).get("urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q3_delegate")
+        self.assertIsNotNone(q3_m_del)
+        self.assertEqual(q3_m_del.get("type"), "text")
+        self.assertNotIn("choices", q3_m_del)
+        self.assertFalse(q3_m_del.get("required", True))
+        self.assertEqual(q3_m_del.get("depends_on", {}).get("question"), "urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q3")
+        self.assertEqual(q3_m_del.get("depends_on", {}).get("answers"), ["urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q3:c2"])
+
         # Verify that in both appsec and appsec_manual, each triggered IG definition specifies delegate_answer
         appsec_fw = next((fw for fw in self.frameworks if fw["ref_id"] == "appsec"), None)
         self.assertIsNotNone(appsec_fw, "appsec framework not found in catalog")
@@ -1666,6 +1688,14 @@ class TestYamlIntegrity(unittest.TestCase):
                     expected_del_urn,
                     f"IG '{track_ref}' in {fw_key} must specify delegate_answer={expected_del_urn}",
                 )
+            # Verify saas_uncertified delegate_answer points to saas_audit_and_compliance:q4_delegate
+            self.assertIn("saas_uncertified", ig_defs)
+            expected_saas_uncert_del = f"urn:intuitem:risk:req_node:{fw_key}:saas_contract_compliance:q3_delegate"
+            self.assertEqual(
+                ig_defs["saas_uncertified"].get("delegate_answer"),
+                expected_saas_uncert_del,
+                f"IG 'saas_uncertified' in {fw_key} must specify delegate_answer={expected_saas_uncert_del}",
+            )
 
         # Validate edge_network_protection requirement node in appsec_manual is scoped to internet_facing track
         edge_manual = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:edge_network_protection")
@@ -1741,6 +1771,11 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertEqual(len(manual_de.get("questions", {})), 2)
 
         self.assertNotIn("urn:intuitem:risk:req_node:appsec_manual:saas_penetration_testing", manual_fw["req_nodes"])
+        saas_contract = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance")
+        self.assertIsNotNone(saas_contract, "saas_contract_compliance missing in appsec_manual")
+        self.assertEqual(saas_contract.get("implementation_groups"), ["saas_app"])
+        self.assertEqual(len(saas_contract.get("questions", {})), 4)
+
         saas_audit = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:saas_audit_and_compliance")
         self.assertIsNotNone(saas_audit, "saas_audit_and_compliance missing in appsec_manual")
         self.assertEqual(saas_audit.get("implementation_groups"), ["saas_app"])

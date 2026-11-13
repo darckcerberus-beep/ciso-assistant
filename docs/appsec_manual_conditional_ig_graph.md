@@ -4,10 +4,10 @@ This document details the complete conditional Implementation Group (IG) state m
 
 > [!NOTE]
 > **Unified Framework Model**: Both `appsec.yml` and `appsec_manual.yml` share the exact same conditional logic:
-> - **Profiling Questions (`hosting:q1`–`q3`)**: Determine the delivery model, network exposure, and SaaS certification status without directly activating implementation groups.
-> - **Dynamic Track Assignment Questions (`hosting:q4`–`q10`)**: Unlocked via intra-node `depends_on`.
+> - **Profiling Questions (`hosting:q1`–`q2`)**: Determine the delivery model and network exposure without directly activating implementation groups.
+> - **Dynamic Track Assignment Questions (`hosting:q4`–`q9` in Chapter 1, `saas_contract_compliance:q3` in Chapter 10)**: Unlocked via intra-node `depends_on`.
 >   - If respondent selects `c1` (*"I can answer this track"*): CISO Assistant triggers the Implementation Group dynamically via `select_implementation_groups: ["<track>"]`. The track is active and omitted from `pending_dependencies`.
->   - If respondent selects `c2` (*"Somebody else has to answer this track"*): `select_implementation_groups` is absent. Dedicated text field `hosting:qX_delegate` appears dynamically so the respondent can designate who can answer (name, email, or team). The track remains pending in the orchestrator under `pending_dependencies`, enriched with the delegate contact information for dispatching.
+>   - If respondent selects `c2` (*"Somebody else has to answer this track"*): `select_implementation_groups` is absent. Dedicated text field (`_delegate`) appears dynamically so the respondent can designate who can answer (name, email, or team). The track remains pending in the orchestrator under `pending_dependencies`, enriched with the delegate contact information for dispatching.
 
 ---
 
@@ -22,7 +22,7 @@ This document details the complete conditional Implementation Group (IG) state m
 | `infra` | **Infrastructure & Hosting Security Track** | `false` | Triggered by `hosting:q1` $\in \{c_1, c_2\}$ | **7** |
 | `internet_facing` | **Internet-Facing Application Track** | `false` | Triggered by `hosting:q2` $= c_2$ (when `hosting:q1` $\in \{c_1, c_2\}$) | **2** |
 | `saas_app` | **SaaS Application Track** | `false` | Triggered by `hosting:q1` $= c_3$ | **7** |
-| `saas_uncertified` | **Uncertified SaaS Vendor Track (Detailed Security Assessment)** | `false` | Triggered by `hosting:q3` $= c_2$ (when `hosting:q1` $= c_3$) | **14** |
+| `saas_uncertified` | **Uncertified SaaS Vendor Track (Detailed Security Assessment)** | `false` | Triggered by `saas_contract_compliance:q2` $= c_2$ (in `saas_app`) | **14** |
 
 > [!NOTE]
 > Three requirement nodes (`data_exchange`, `non_prod_data`, and `data_destruction`) belong to both `custom_app` and `cots_app` (`implementation_groups: ["custom_app", "cots_app"]`). Therefore, the total number of distinct assessable requirement nodes across all 8 Implementation Groups is $3 + 2 + 6 + 2 + 3 + 7 + 2 + 7 + 14 = 46$.
@@ -31,7 +31,7 @@ This document details the complete conditional Implementation Group (IG) state m
 
 ## 2. Conditional IG Decision & Dependency Graph
 
-All 10 `implementation_groups_dependencies` rules originate from the **`hosting`** requirement node (`urn:intuitem:risk:req_node:appsec_manual:hosting`) inside the initial **`info`** Implementation Group:
+Framework-level `implementation_groups_dependencies` rules originate from the **`hosting`** requirement node (`urn:intuitem:risk:req_node:appsec_manual:hosting`) inside the initial **`info`** Implementation Group, and from **`saas_contract_compliance`** (`urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance`) in the **`saas_app`** Implementation Group:
 
 ```mermaid
 flowchart TD
@@ -40,7 +40,10 @@ flowchart TD
     subgraph INFO_IG ["Initial Profiling IG: info"]
         Q1{"<b>hosting:q1</b><br/>What is the delivery and<br/>hosting model of the application?"}
         Q2{"<b>hosting:q2</b><br/>What is the network exposure?<br/><i>(depends_on: q1 in [c1, c2])</i>"}
-        Q3{"<b>hosting:q3</b><br/>Is the SaaS vendor ISO 27001<br/>or SOC 2 Type II certified?<br/><i>(depends_on: q1 == c3)</i>"}
+    end
+
+    subgraph SAAS_TRACK ["SaaS Track IG: saas_app"]
+        Q3{"<b>saas_contract_compliance:q2</b><br/>Is the SaaS vendor ISO 27001<br/>or SOC 2 Type II certified?"}
     end
 
     %% Branch 1: Custom Software (c1)
@@ -97,40 +100,40 @@ flowchart TD
 | **6** | `dep_cots_baseline` | `info` | `hosting:q1` | `c2` (*Bought software...*) | `baseline` |
 | **7** | `dep_saas_app` | `info` | `hosting:q1` | `c3` (*SaaS...*) | `saas_app` |
 | **8** | `dep_saas_baseline` | `info` | `hosting:q1` | `c3` (*SaaS...*) | `baseline` |
-| **9** | `dep_saas_uncertified` | `info` | `hosting:q3` | `c2` (*No - Not certified*) | `saas_uncertified` |
+| **9** | `dep_saas_uncertified` | `saas_app` | `saas_contract_compliance:q2` | `c2` (*No - Not certified*) | `saas_uncertified` |
 | **10** | `dep_internet_facing` | `info` | `hosting:q2` | `c2` (*Internet-facing...*) | `internet_facing` |
 
 ---
 
-## 3.1 Initial Respondent Assignment Questions & Delegate Form Fields for Each Triggered IG (`hosting:q4`–`q10_delegate`)
+## 3.1 Initial Respondent Assignment Questions & Delegate Form Fields for Each Triggered IG (`hosting:q4`–`q9_delegate` & `saas_contract_compliance:q3`–`q3_delegate`)
 
-Inside the initial profiling requirement node **`hosting`** (`urn:intuitem:risk:req_node:appsec_manual:hosting`), the initial respondent is asked for each triggered implementation group whether they can answer that track directly or if somebody else has to. When *"Somebody else has to answer this track"* is selected, a dedicated free text form field (`type: text`) is dynamically displayed so the respondent can record who should answer (name, email, or team):
+Inside the initial profiling requirement node **`hosting`** (`urn:intuitem:risk:req_node:appsec_manual:hosting`) and the SaaS contract compliance node **`saas_contract_compliance`** (`urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance`), the respondent is asked for each triggered implementation group whether they can answer that track directly or if somebody else has to. When *"Somebody else has to answer this track"* is selected, a dedicated free text form field (`type: text`) is dynamically displayed so the respondent can record who should answer (name, email, or team):
 
 | Question ID | Target Triggered IG | Trigger Condition (`depends_on`) | Question Text / Delegate Text Field | Type & Choices |
 | :---: | :--- | :--- | :--- | :--- |
-| **`q4`** | `baseline` (Application Security Baseline) | `hosting:q1` $\in \{c_1, c_2, c_3\}$ | *"Can you answer the Application Security Baseline track (SSO federation, administrative MFA, and Role-Based Access Control [RBAC]), or does somebody else have to?"* | `unique_choice`<br>`c1`: I can answer this track<br>`c2`: Somebody else has to answer this track |
-| **`q4_delegate`** | `baseline` (Assignee Designation) | `hosting:q4` $= c_2$ (*Somebody else*) | *"Application Security Baseline track: please specify who can answer (name, email address, or team):"* | `text` *(free text input, optional)* |
-| **`q5`** | `custom_app` (Custom Software Track) | `hosting:q1` $= c_1$ (*Custom software*) | *"Can you answer the Custom Software Track (code-level session management, input validation, output encoding, debug suppression, and CI/CD SAST/DAST/SCA pipelines), or does somebody else have to?"* | `unique_choice`<br>`c1`: I can answer this track<br>`c2`: Somebody else has to answer this track |
-| **`q5_delegate`** | `custom_app` (Assignee Designation) | `hosting:q5` $= c_2$ (*Somebody else*) | *"Custom Software Track: please specify who can answer (name, email address, or team):"* | `text` *(free text input, optional)* |
-| **`q6`** | `cots_app` (Bought Software Track) | `hosting:q1` $= c_2$ (*Bought software*) | *"Can you answer the Bought Software Track (COTS deployment configuration hardening, vendor maintenance/support contracts, and patch SLAs), or does somebody else have to?"* | `unique_choice`<br>`c1`: I can answer this track<br>`c2`: Somebody else has to answer this track |
-| **`q6_delegate`** | `cots_app` (Assignee Designation) | `hosting:q6` $= c_2$ (*Somebody else*) | *"Bought Software Track (COTS): please specify who can answer (name, email address, or team):"* | `text` *(free text input, optional)* |
-| **`q7`** | `infra` (Infrastructure & Hosting Security Track) | `hosting:q1` $\in \{c_1, c_2\}$ (*Self-hosted*) | *"Can you answer the Infrastructure & Hosting Security Track (secrets vault management, encryption at rest/transit, SIEM logging, backup & DR, and host OS patching), or does somebody else have to?"* | `unique_choice`<br>`c1`: I can answer this track<br>`c2`: Somebody else has to answer this track |
-| **`q7_delegate`** | `infra` (Assignee Designation) | `hosting:q7` $= c_2$ (*Somebody else*) | *"Infrastructure & Hosting Security Track: please specify who can answer (name, email address, or team):"* | `text` *(free text input, optional)* |
-| **`q8`** | `internet_facing` (Internet-Facing Application Track) | `hosting:q2` $= c_2$ (*Internet-facing*) | *"Can you answer the Internet-Facing Application Track (edge Web Application Firewall [WAF], anti-DDoS, API rate limiting, and external penetration testing), or does somebody else have to?"* | `unique_choice`<br>`c1`: I can answer this track<br>`c2`: Somebody else has to answer this track |
-| **`q8_delegate`** | `internet_facing` (Assignee Designation) | `hosting:q8` $= c_2$ (*Somebody else*) | *"Internet-Facing Application Track: please specify who can answer (name, email address, or team):"* | `text` *(free text input, optional)* |
-| **`q9`** | `saas_app` (SaaS Application Track) | `hosting:q1` $= c_3$ (*SaaS*) | *"Can you answer the SaaS Application Track (Master SaaS Agreement, confidentiality & encryption clauses, tenant admin MFA, EU data residency, audit rights, and non-conformity remedies), or does somebody else have to?"* | `unique_choice`<br>`c1`: I can answer this track<br>`c2`: Somebody else has to answer this track |
-| **`q9_delegate`** | `saas_app` (Assignee Designation) | `hosting:q9` $= c_2$ (*Somebody else*) | *"SaaS Application Track: please specify who can answer (name, email address, or team):"* | `text` *(free text input, optional)* |
-| **`q10`** | `saas_uncertified` (Uncertified SaaS Vendor Track) | `hosting:q3` $= c_2$ (*Uncertified SaaS*) | *"Can you answer the Uncertified SaaS Vendor Track (detailed vendor security assessment: ISMS, awareness, workstation/mobile security, network isolation, secure development, penetration testing, physical security, and subcontractor governance), or does somebody else have to?"* | `unique_choice`<br>`c1`: I can answer this track<br>`c2`: Somebody else has to answer this track |
-| **`q10_delegate`** | `saas_uncertified` (Assignee Designation) | `hosting:q10` $= c_2$ (*Somebody else*) | *"Uncertified SaaS Vendor Track: please specify who can answer (name, email address, or team):"* | `text` *(free text input, optional)* |
+| **`hosting:q4`** | `baseline` (Application Security Baseline) | `hosting:q1` $\in \{c_1, c_2, c_3\}$ | *"Can you answer the Application Security Baseline track (SSO federation, administrative MFA, and Role-Based Access Control [RBAC]), or does somebody else have to?"* | `unique_choice`<br>`c1`: I can answer this track<br>`c2`: Somebody else has to answer this track |
+| **`hosting:q4_delegate`** | `baseline` (Assignee Designation) | `hosting:q4` $= c_2$ (*Somebody else*) | *"Application Security Baseline track: please specify who can answer (name, email address, or team):"* | `text` *(free text input, optional)* |
+| **`hosting:q5`** | `custom_app` (Custom Software Track) | `hosting:q1` $= c_1$ (*Custom software*) | *"Can you answer the Custom Software Track (code-level session management, input validation, output encoding, debug suppression, and CI/CD SAST/DAST/SCA pipelines), or does somebody else have to?"* | `unique_choice`<br>`c1`: I can answer this track<br>`c2`: Somebody else has to answer this track |
+| **`hosting:q5_delegate`** | `custom_app` (Assignee Designation) | `hosting:q5` $= c_2$ (*Somebody else*) | *"Custom Software Track: please specify who can answer (name, email address, or team):"* | `text` *(free text input, optional)* |
+| **`hosting:q6`** | `cots_app` (Bought Software Track) | `hosting:q1` $= c_2$ (*Bought software*) | *"Can you answer the Bought Software Track (COTS deployment configuration hardening, vendor maintenance/support contracts, and patch SLAs), or does somebody else have to?"* | `unique_choice`<br>`c1`: I can answer this track<br>`c2`: Somebody else has to answer this track |
+| **`hosting:q6_delegate`** | `cots_app` (Assignee Designation) | `hosting:q6` $= c_2$ (*Somebody else*) | *"Bought Software Track (COTS): please specify who can answer (name, email address, or team):"* | `text` *(free text input, optional)* |
+| **`hosting:q7`** | `infra` (Infrastructure & Hosting Security Track) | `hosting:q1` $\in \{c_1, c_2\}$ (*Self-hosted*) | *"Can you answer the Infrastructure & Hosting Security Track (secrets vault management, encryption at rest/transit, SIEM logging, backup & DR, and host OS patching), or does somebody else have to?"* | `unique_choice`<br>`c1`: I can answer this track<br>`c2`: Somebody else has to answer this track |
+| **`hosting:q7_delegate`** | `infra` (Assignee Designation) | `hosting:q7` $= c_2$ (*Somebody else*) | *"Infrastructure & Hosting Security Track: please specify who can answer (name, email address, or team):"* | `text` *(free text input, optional)* |
+| **`hosting:q8`** | `internet_facing` (Internet-Facing Application Track) | `hosting:q2` $= c_2$ (*Internet-facing*) | *"Can you answer the Internet-Facing Application Track (edge Web Application Firewall [WAF], anti-DDoS, API rate limiting, and external penetration testing), or does somebody else have to?"* | `unique_choice`<br>`c1`: I can answer this track<br>`c2`: Somebody else has to answer this track |
+| **`hosting:q8_delegate`** | `internet_facing` (Assignee Designation) | `hosting:q8` $= c_2$ (*Somebody else*) | *"Internet-Facing Application Track: please specify who can answer (name, email address, or team):"* | `text` *(free text input, optional)* |
+| **`hosting:q9`** | `saas_app` (SaaS Application Track) | `hosting:q1` $= c_3$ (*SaaS*) | *"Can you answer the SaaS Application Track (Master SaaS Agreement, confidentiality & encryption clauses, tenant admin MFA, EU data residency, audit rights, and non-conformity remedies), or does somebody else have to?"* | `unique_choice`<br>`c1`: I can answer this track<br>`c2`: Somebody else has to answer this track |
+| **`hosting:q9_delegate`** | `saas_app` (Assignee Designation) | `hosting:q9` $= c_2$ (*Somebody else*) | *"SaaS Application Track: please specify who can answer (name, email address, or team):"* | `text` *(free text input, optional)* |
+| **`saas_contract_compliance:q3`** | `saas_uncertified` (Uncertified SaaS Vendor Track) | `saas_contract_compliance:q2` $= c_2$ (*Uncertified SaaS*) | *"Can you answer the Uncertified SaaS Vendor Track (detailed vendor security assessment: ISMS, awareness, workstation/mobile security, network isolation, secure development, penetration testing, physical security, and subcontractor governance), or does somebody else have to?"* | `unique_choice`<br>`c1`: I can answer this track<br>`c2`: Somebody else has to answer this track |
+| **`saas_contract_compliance:q3_delegate`** | `saas_uncertified` (Assignee Designation) | `saas_contract_compliance:q3` $= c_2$ (*Somebody else*) | *"Uncertified SaaS Vendor Track: please specify who can answer (name, email address, or team):"* | `text` *(free text input, optional)* |
 
 > [!TIP]
-> When the respondent selects *"Somebody else has to answer this track"*, the corresponding `qX_delegate` free text form field expands immediately below the choice question via intra-node `depends_on`. If the initial respondent answers *"I can answer this track"*, the text field remains hidden to keep the questionnaire streamlined.
+> When the respondent selects *"Somebody else has to answer this track"*, the corresponding `_delegate` free text form field expands immediately below the choice question via intra-node `depends_on`. If the respondent answers *"I can answer this track"*, the text field remains hidden to keep the questionnaire streamlined.
 
 ---
 
 ## 4. Exhaustive Matrix of the 6 Conditional IG Combinations & Example Profiles
 
-| Case | Example Profile (`test_data/*.yml`) | `hosting:q1` | `hosting:q2` | `hosting:q3` | Active IGs (`visible_groups`) | Hidden IGs (`hidden_groups`) | Scoped Reqs | Scoped Scenarios | Classification |
+| Case | Example Profile (`test_data/*.yml`) | Delivery (`hosting:q1`) | Exposure (`hosting:q2`) | Certification (`saas_contract_compliance:q2`) | Active IGs (`visible_groups`) | Hidden IGs (`hidden_groups`) | Scoped Reqs | Scoped Scenarios | Classification |
 | :---: | :--- | :--- | :--- | :--- | :--- | :--- | :---: | :---: | :--- |
 | **0** | *(Initial Audit State)* | *(Unanswered)* | *(Hidden)* | *(Hidden)* | `info` (1) | `baseline`, `custom_app`, `cots_app`, `infra`, `saas_app`, `saas_uncertified`, `internet_facing` (7) | **4** | **0** | N/A |
 | **1** | `app_manual_custom_internal.yml` | `c1` (Custom) | `c1` (Internal) | *(Hidden)* | `info`, `baseline`, `custom_app`, `infra` (4) | `cots_app`, `internet_facing`, `saas_app`, `saas_uncertified` (4) | **22** | **15** | `Internal` |

@@ -409,6 +409,7 @@ class TestExamplesManager(unittest.TestCase):
         self.manager.data = mock_data
         with patch.object(self.manager, "_init_data", return_value=mock_data), \
              patch.object(self.manager, "get_or_create_folder", return_value="folder-uuid-1"), \
+             patch.object(self.manager, "resolve_actor_id", return_value="assignee-uuid-1"), \
              patch.object(self.manager, "get_default_assignee_id", return_value="assignee-uuid-1"), \
              patch.object(self.manager, "find_target_framework", return_value=mock_fw), \
              patch.object(self.manager, "find_target_risk_matrix", return_value="matrix-uuid-1"), \
@@ -482,7 +483,7 @@ class TestExamplesManager(unittest.TestCase):
 
         mock_ca = MagicMock()
         mock_ca.get_id.return_value = "ca-uuid-audit"
-        mock_ca.get_name.return_value = "Assessment of Multi-level DPP in App-Audit-Demo"
+        mock_ca.get_name.return_value = "Assessment of App-Audit-Demo with Multi-level DPP framework"
         mock_ca.get_status.return_value = "in_progress"
         mock_data["compliance_assessment_dict"].get_compliance_assessments.return_value = {"ca-uuid-audit": mock_ca}
         mock_data["compliance_assessment_dict"].requirement_assessments.get_requirement_assessment_id_list_from_compliance_assessment_id.return_value = ["ra-1", "ra-2"]
@@ -492,6 +493,7 @@ class TestExamplesManager(unittest.TestCase):
 
         with patch.object(self.manager, "_init_data", return_value=mock_data), \
              patch.object(self.manager, "get_or_create_folder", return_value="folder-uuid-1"), \
+             patch.object(self.manager, "resolve_actor_id", return_value="assignee-uuid-1"), \
              patch.object(self.manager, "get_default_assignee_id", return_value="assignee-uuid-1"), \
              patch.object(self.manager, "find_target_framework", return_value=mock_fw), \
              patch("time.sleep"):
@@ -590,6 +592,7 @@ class TestExamplesManager(unittest.TestCase):
 
         with patch.object(self.manager, "_init_data", return_value=mock_data), \
              patch.object(self.manager, "get_or_create_folder", return_value="folder-uuid-1"), \
+             patch.object(self.manager, "resolve_actor_id", return_value="assignee-uuid-1"), \
              patch.object(self.manager, "get_default_assignee_id", return_value="assignee-uuid-1"), \
              patch.object(self.manager, "find_target_framework", return_value=mock_fw), \
              patch("time.sleep"):
@@ -677,6 +680,7 @@ class TestExamplesManager(unittest.TestCase):
 
         with patch.object(self.manager, "_init_data", return_value=mock_data), \
              patch.object(self.manager, "get_or_create_folder", return_value="folder-uuid-1"), \
+             patch.object(self.manager, "resolve_actor_id", return_value="assignee-uuid-1"), \
              patch.object(self.manager, "get_default_assignee_id", return_value="assignee-uuid-1"), \
              patch.object(self.manager, "find_target_framework", return_value=mock_fw), \
              patch("time.sleep"):
@@ -725,7 +729,7 @@ class TestExamplesManager(unittest.TestCase):
 
         mock_ca = MagicMock()
         mock_ca.get_id.return_value = "ca-uuid-2"
-        mock_ca.get_name.return_value = "Assessment of Multi-level DPP in App-Audit-Existing"
+        mock_ca.get_name.return_value = "Assessment of App-Audit-Existing with Multi-level DPP framework"
         mock_ca.get_status.return_value = "in_progress"
         mock_data["compliance_assessment_dict"].get_compliance_assessments.return_value = {"ca-uuid-2": mock_ca}
         mock_data["compliance_assessment_dict"].requirement_assessments.get_requirement_assessment_id_list_from_compliance_assessment_id.return_value = ["ra-1"]
@@ -735,6 +739,7 @@ class TestExamplesManager(unittest.TestCase):
 
         with patch.object(self.manager, "_init_data", return_value=mock_data), \
              patch.object(self.manager, "get_or_create_folder", return_value="folder-uuid-1"), \
+             patch.object(self.manager, "resolve_actor_id", return_value="assignee-uuid-1"), \
              patch.object(self.manager, "get_default_assignee_id", return_value="assignee-uuid-1"), \
              patch.object(self.manager, "find_target_framework", return_value=mock_fw), \
              patch("time.sleep"):
@@ -785,7 +790,7 @@ class TestExamplesManager(unittest.TestCase):
 
         mock_ca = MagicMock()
         mock_ca.get_id.return_value = "ca-uuid-1"
-        mock_ca.get_name.return_value = "Assessment of Multi-level DPP in App-Audit-Demo"
+        mock_ca.get_name.return_value = "Assessment of App-Audit-Demo with Multi-level DPP framework"
         mock_ca.get_framework_id.return_value = "fw-uuid-1"
         mock_data["compliance_assessment_dict"].get_compliance_assessments.return_value = {"ca-uuid-1": mock_ca}
 
@@ -868,7 +873,7 @@ class TestExamplesManager(unittest.TestCase):
 
         mock_ca = MagicMock()
         mock_ca.get_id.return_value = "ca-uuid-1"
-        mock_ca.get_name.return_value = "Assessment of Multi-level DPP in App-Audit-Demo"
+        mock_ca.get_name.return_value = "Assessment of App-Audit-Demo with Multi-level DPP framework"
         mock_ca.get_framework_id.return_value = "fw-uuid-1"
         mock_data["compliance_assessment_dict"].get_compliance_assessments.return_value = {"ca-uuid-1": mock_ca}
 
@@ -1224,7 +1229,7 @@ class TestExamplesManager(unittest.TestCase):
 
         mock_ca = MagicMock()
         mock_ca.get_id.return_value = "ca-uuid-1"
-        mock_ca.get_name.return_value = "Assessment of Multi-level DPP in App-Audit-Demo"
+        mock_ca.get_name.return_value = "Assessment of App-Audit-Demo with Multi-level DPP framework"
         mock_ca.get_framework_id.return_value = "fw-uuid-1"
         mock_data["compliance_assessment_dict"].get_compliance_assessments.return_value = {"ca-uuid-1": mock_ca}
 
@@ -2094,7 +2099,7 @@ class TestAuditAssignmentAndOrchestration(unittest.TestCase):
 
         mock_ca = MagicMock()
         mock_ca.get_id.return_value = "ca-uuid-3"
-        mock_ca.get_name.return_value = "Assessment of AppSec in App-Fallback"
+        mock_ca.get_name.return_value = "Assessment of App-Fallback with AppSec framework"
         mock_ca.get_status.return_value = "in_progress"
         mock_data["compliance_assessment_dict"].get_compliance_assessments.return_value = {"ca-uuid-3": mock_ca}
         mock_data["compliance_assessment_dict"].requirement_assessments.get_requirement_assessment_id_list_from_compliance_assessment_id.return_value = ["ra-30"]

@@ -511,6 +511,16 @@ class FrameworkLoader:
             i_res = requests.post(import_url, headers={"Authorization": f"Token {API_TOKEN}"}, verify=False)
             if i_res.status_code in (200, 201):
                 LOGGER.info(f"Successfully imported updated framework {fw_name}.")
+            else:
+                LOGGER.error(f"Failed to import updated framework {fw_name}: {i_res.text}")
+        elif stored_id and not res_json.get("is_loaded"):
+            LOGGER.info(f"Library uploaded into catalog. Triggering import on stored library {stored_id}...")
+            import_url = f"{BASE_URL.rstrip('/')}/api/stored-libraries/{stored_id}/import/"
+            i_res = requests.post(import_url, headers={"Authorization": f"Token {API_TOKEN}"}, verify=False)
+            if i_res.status_code in (200, 201):
+                LOGGER.info(f"Successfully imported framework {fw_name}.")
+            else:
+                LOGGER.error(f"Failed to import framework {fw_name}: {i_res.text}")
 
         # Sync caches
         self._sync_cache()

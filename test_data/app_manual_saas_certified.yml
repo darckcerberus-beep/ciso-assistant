@@ -89,13 +89,6 @@ answers:
   result: compliant
   observation: Enterprise SaaS subscription operated entirely by third-party vendor.
 - requirement: hosting
-  question: Is the SaaS vendor ISO/IEC 27001 or SOC 2 Type II certified?
-  answer: Yes - The SaaS vendor holds an active ISO/IEC 27001 certification or SOC
-    2 Type II report
-  result: compliant
-  observation: SaaS vendor holds active ISO/IEC 27001 certification and annual SOC
-    2 Type II attestation.
-- requirement: hosting
   question: Can you answer the Application Security Baseline track (SSO federation, administrative MFA, and Role-Based Access Control [RBAC]), or does somebody else have to?
   answer: I can answer this track
   result: compliant
@@ -140,6 +133,13 @@ answers:
   result: compliant
   observation: Executed Master Subscription Agreement with legally binding Security
     Schedule.
+- requirement: saas_contract_compliance
+  question: Is the SaaS vendor ISO/IEC 27001 or SOC 2 Type II certified?
+  answer: Yes - The SaaS vendor holds an active ISO/IEC 27001 certification or SOC
+    2 Type II report
+  result: compliant
+  observation: SaaS vendor holds active ISO/IEC 27001 certification and annual SOC
+    2 Type II attestation.
 - requirement: saas_confidentiality_and_data_protection
   question: Does the contract require vendor personnel to sign confidentiality agreements
     (NDAs) and restrict access to customer data (e.g. requiring client approval before

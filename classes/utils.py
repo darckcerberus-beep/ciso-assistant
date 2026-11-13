@@ -644,3 +644,50 @@ def print_run_summary(initial_counts: dict[str, int], final_counts: dict[str, in
             continue
 
         log(f"- {key}: {final_counts[key]} (changed: {delta:+d})")
+
+
+def format_audit_name(
+    app_name: str,
+    framework_name: str | None = None,
+    framework_ref: str | None = None,
+) -> str:
+    """Format compliance assessment (audit) display name according to enterprise convention:
+    'Assessment of <app_name> with <framework_label> framework'.
+
+    Examples:
+        format_audit_name("Mirakl", "Application Security Assessment Framework (AppSec)")
+        -> "Assessment of Mirakl with AppSec framework"
+
+        format_audit_name("App-Secure-Core", "Multi-level DPP")
+        -> "Assessment of App-Secure-Core with Multi-level DPP framework"
+
+        format_audit_name("Mirakl", "AppSec")
+        -> "Assessment of Mirakl with AppSec framework"
+    """
+    app_clean = (app_name or "").strip()
+    fw_str = (framework_name or framework_ref or "").strip()
+
+    if not fw_str:
+        return f"Assessment of {app_clean}" if app_clean else "Compliance Assessment"
+
+    # Extract short acronym/name in trailing parentheses if present, e.g.
+    # "Application Security Assessment Framework (AppSec)" -> "AppSec"
+    # "Application Security Assessment Framework (AppSec - Manual IG)" -> "AppSec - Manual IG"
+    import re
+    match = re.search(r'\(([^)]+)\)\s*$', fw_str)
+    if match:
+        fw_label = match.group(1).strip()
+    else:
+        if framework_ref and framework_ref.lower() in ("appsec", "appsec_manual") and "appsec" in fw_str.lower():
+            fw_label = "AppSec"
+        else:
+            fw_label = fw_str
+
+    # Ensure "framework" is appended cleanly without duplication
+    if not fw_label.lower().endswith("framework"):
+        fw_label = f"{fw_label} framework"
+
+    if not app_clean:
+        return f"Assessment with {fw_label}"
+
+    return f"Assessment of {app_clean} with {fw_label}"

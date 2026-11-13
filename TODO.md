@@ -1293,6 +1293,103 @@ Enhanced track delegation and respondent designation to be fully framework-drive
   - Added `test_custom_framework_ig_delegate_answer_definition`: verifies 100% framework-driven resolution on arbitrary custom framework models.
   - Full test suite: **318 tests passing (0 failures, 0 errors, OK)**.
 
+---
+
+## 48. Relocation of SaaS Vendor Certification and Uncertified Track Delegation to SaaS Chapter (Option A)
+
+**Date**: November 13, 2026  
+**Status**: [COMPLETED] Option A Fully Implemented  
+**Branch**: `main`  
+**Test Suite**: All 328 automated unit tests pass (`python3 -m unittest discover tests`).
+
+### 1. Architectural Motivation & Rationalization
+- **Problem**: In the initial profiling node (`hosting`) in Chapter 1, respondents who selected SaaS delivery (`hosting:q1:c3`) were immediately asked whether they can answer the SaaS Application Track (`hosting:q9`), but were also asked whether the SaaS vendor was ISO/IEC 27001 or SOC 2 Type II certified (`hosting:q3`) and whether they can answer the Uncertified SaaS Vendor Track (`hosting:q10`). If the respondent does not know how to answer the SaaS Application Track and needs to delegate it (`hosting:q9 = c2`), they will not know whether the SaaS vendor is certified, forcing them to answer or guess prematurely in Chapter 1.
+- **Solution (Option A)**:
+  - Relocate the SaaS vendor certification question (`Is the SaaS vendor ISO/IEC 27001 or SOC 2 Type II certified?`) from `hosting` in Chapter 1 to `saas_audit_and_compliance` (`q3`) in Chapter 10 under the `saas_app` Implementation Group.
+  - Relocate the conditional `saas_uncertified` delegation question (`Can you answer the Uncertified SaaS Vendor Track...` + `_delegate` text field) from `hosting` to `saas_audit_and_compliance` (`q4` and `q4_delegate`), triggered via intra-node `depends_on` when `saas_audit_and_compliance:q3` is answered *"No"*.
+  - Keep `hosting` strictly focused on high-level application delivery (`q1`), network exposure (`q2`), and primary track routing/delegation (`q4` through `q9` + `_delegate` text fields).
+  - The `saas_uncertified` implementation group trigger rule in `implementation_groups_dependencies` now triggers on `saas_audit_and_compliance:q3:c2` (Source IG: `saas_app`).
+  - The `delegate_answer` definition for `saas_uncertified` in both `appsec` and `appsec_manual` now points to `urn:intuitem:risk:req_node:<fw>:saas_audit_and_compliance:q4_delegate`.
+
+### 2. Framework Versioning & Implementation
+- [`YML/appsec.yml`](file:///home/python/ciso-assistant/YML/appsec.yml): Incremented to **`version: 45`** (`publication_date: 2026-11-13`).
+  - Removed `hosting:q3`, `hosting:q10`, and `hosting:q10_delegate`. `hosting` now contains 14 questions.
+  - Added `saas_audit_and_compliance:q3` (certification), `q4` (uncertified track readiness on `c1`), and `q4_delegate` (assignee text).
+  - Updated `implementation_groups_dependencies` rule `dep_saas_uncertified` target question to `saas_audit_and_compliance:q3`.
+  - Updated `saas_uncertified` `delegate_answer` to `saas_audit_and_compliance:q4_delegate`.
+- [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml): Incremented to **`version: 29`** (`publication_date: 2026-11-13`).
+  - Identical synchronization as `appsec.yml`.
+
+### 3. Test Data & Example Suite Synchronization
+- Updated all 6 SaaS application profiles in [`test_data/`](file:///home/python/ciso-assistant/test_data/):
+  - `app_manual_saas_certified.yml`: Removed certification answer from `hosting`, added answer under `saas_audit_and_compliance`.
+  - `app_manual_saas_uncertified.yml`: Removed certification and delegation answers from `hosting`, added under `saas_audit_and_compliance` (`q3`, `q4`, `q4_delegate`).
+  - `app_appsec_saas_certified.yml`: Updated answers under `saas_audit_and_compliance`.
+  - `app_appsec_saas_uncertified.yml`: Updated answers under `saas_audit_and_compliance`.
+  - `app_appsec_hybrid_saas.yml`: Updated answers under `saas_audit_and_compliance`.
+  - `app_appsec_secure_api.yml`: Updated answers under `saas_audit_and_compliance`.
+
+### 4. Automated Testing & Verification
+- [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py):
+  - Updated `hosting` question count assertion to 14.
+  - Asserted `hosting:q3`, `hosting:q10`, and `hosting:q10_delegate` are not in `hosting`.
+  - Asserted `saas_audit_and_compliance` contains `q3`, `q4`, and `q4_delegate` with valid `depends_on` and `select_implementation_groups`.
+  - Updated `saas_uncertified` `delegate_answer` verification.
+- [`tests/test_implementation_groups.py`](file:///home/python/ciso-assistant/tests/test_implementation_groups.py):
+  - Updated `saas_uncert_answers` test fixture to pass `saas_audit_and_compliance:q3`.
+  - Updated question count assertions in `hosting` (14) and `saas_audit_and_compliance` (5).
+  - Verified active question routing across all 6 application profiles.
+- Documentation synchronized across:
+  - [`docs/appsec_manual_conditional_ig_graph.md`](file:///home/python/ciso-assistant/docs/appsec_manual_conditional_ig_graph.md)
+  - [`docs/appsec_policy_applicability_matrix.md`](file:///home/python/ciso-assistant/docs/appsec_policy_applicability_matrix.md)
+  - [`docs/appsec_questions_cases.md`](file:///home/python/ciso-assistant/docs/appsec_questions_cases.md)
+- Full regression test run: **328 passed, 0 failed (100% pass rate)**.
+
+---
+
+## 49. Consolidation of SaaS Contract & Third-Party Certifications (ISO 27001 / SOC 2) in SaaS Contract Compliance Node
+
+**Date**: November 13, 2026  
+**Status**: [COMPLETED] Contract and Certification Questions Consolidated  
+**Branch**: `main`  
+**Test Suite**: All 328 automated unit tests pass (`python3 -m unittest discover tests`).
+
+### 1. Architectural Motivation & Rationalization
+- **Problem**: Previously, the question regarding SaaS contract execution was in `saas_contract_compliance` (Requirement 0 of Chapter 10), while the third-party certification question (ISO 27001 / SOC 2 Type II) was in `saas_audit_and_compliance` (Section 19 of Chapter 10). Placing certification in Section 19 meant that respondents were forced to navigate through 15 detailed uncertified assessment sections before reaching the question determining whether the vendor was certified. Furthermore, anyone answering the SaaS track ("someone who can answer detailed questions about the SaaS") knows upfront whether the SaaS service has an executed contract and whether the vendor is certified.
+- **Solution**:
+  - Relocated the SaaS vendor certification question (`q2`: *"Is the SaaS vendor ISO/IEC 27001 or SOC 2 Type II certified?"*) directly into **`saas_contract_compliance`** alongside the contract execution question (`q1`: *"Is there a signed SaaS contract and binding Security Schedule?"*).
+  - Relocated the conditional `saas_uncertified` delegation question (`q3`: *"Can you answer the Uncertified SaaS Vendor Track..."*) and the delegate text field (`q3_delegate`) into `saas_contract_compliance`, triggered via intra-node `depends_on` when `saas_contract_compliance:q2` is answered *"No"*.
+  - Streamlined **`saas_audit_and_compliance`** to evaluate contractual Right to Audit (`q1`, 50 points) and Independent Penetration Testing Governance (`q2`, 50 points), cleanly totaling 100 points without mixing certification routing logic.
+  - Updated `implementation_groups_dependencies` rule `dep_saas_uncertified` to trigger on `saas_contract_compliance:q2:c2`.
+  - Updated `saas_uncertified` `delegate_answer` to `urn:intuitem:risk:req_node:<fw>:saas_contract_compliance:q3_delegate`.
+
+### 2. Framework Versioning & Implementation
+- [`YML/appsec.yml`](file:///home/python/ciso-assistant/YML/appsec.yml): Incremented to **`version: 46`** (`publication_date: 2026-11-13`).
+- [`YML/appsec_manual.yml`](file:///home/python/ciso-assistant/YML/appsec_manual.yml): Incremented to **`version: 30`** (`publication_date: 2026-11-13`).
+
+### 3. Test Data & Example Suite Synchronization
+- Updated all 6 SaaS application profiles in [`test_data/`](file:///home/python/ciso-assistant/test_data/):
+  - `app_appsec_saas_certified.yml`: Moved certification answer to `saas_contract_compliance`.
+  - `app_appsec_saas_uncertified.yml`: Moved certification and delegation answers to `saas_contract_compliance`.
+  - `app_manual_saas_certified.yml`: Moved certification answer to `saas_contract_compliance`.
+  - `app_manual_saas_uncertified.yml`: Moved certification and delegation answers to `saas_contract_compliance`.
+  - `app_appsec_hybrid_saas.yml`: Moved certification and delegation answers to `saas_contract_compliance`.
+  - `app_appsec_secure_api.yml`: Moved certification answer to `saas_contract_compliance`.
+
+### 4. Automated Testing & Verification
+- [`tests/test_yaml_integrity.py`](file:///home/python/ciso-assistant/tests/test_yaml_integrity.py):
+  - Verified `saas_contract_compliance` contains `q1` (contract), `q2` (certification), `q3` (uncertified track readiness on `c1`), and `q3_delegate`.
+  - Verified `saas_audit_and_compliance` contains exactly 2 questions (`q1`, `q2`).
+  - Verified `saas_uncertified` `delegate_answer` points to `saas_contract_compliance:q3_delegate`.
+- [`tests/test_implementation_groups.py`](file:///home/python/ciso-assistant/tests/test_implementation_groups.py):
+  - Updated `saas_uncert_answers` test fixture to pass `saas_contract_compliance:q2`.
+  - Updated question count assertions and answer assertions across all application profiles.
+- Documentation synchronized across:
+  - [`docs/appsec_manual_conditional_ig_graph.md`](file:///home/python/ciso-assistant/docs/appsec_manual_conditional_ig_graph.md)
+  - [`docs/appsec_policy_applicability_matrix.md`](file:///home/python/ciso-assistant/docs/appsec_policy_applicability_matrix.md)
+  - [`docs/appsec_questions_cases.md`](file:///home/python/ciso-assistant/docs/appsec_questions_cases.md)
+- Full regression test run: All test suites passed cleanly.
+
 
 
 

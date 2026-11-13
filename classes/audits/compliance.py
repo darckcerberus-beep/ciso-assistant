@@ -329,8 +329,12 @@ class ComplianceAssessmentDict:
 
         for framework in framework_dict.get_frameworks():
             for perimeter in perimeter_dict.get_perimeters():
-                compliance_assessment_name = f"Assessment of {framework.get_name()} in {perimeter.get_name()}"
-                if not self.check_compliance_assessment_from_name(compliance_assessment_name):
+                compliance_assessment_name = utils.format_audit_name(
+                    perimeter.get_name(),
+                    framework.get_name(),
+                    framework.get_ref_id() if hasattr(framework, "get_ref_id") else None,
+                )
+                if not self.check_compliance_assessment_from_name(compliance_assessment_name) and not self.check_compliance_assessment_from_ids(framework.get_id(), perimeter.get_id()):
                     utils.log(f"Creating compliance assessment: {compliance_assessment_name}")
                     payload = {
                         'name': compliance_assessment_name,

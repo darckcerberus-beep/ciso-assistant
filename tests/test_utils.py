@@ -74,6 +74,47 @@ class TestUtilsApiErrors(unittest.TestCase):
         self.assertEqual(result, {"error": 401, "details": {"error": "Invalid token"}})
 
 
+class TestFormatAuditName(unittest.TestCase):
+    """Test suite for format_audit_name convention."""
+
+    def test_format_audit_name_appsec_long_name(self):
+        """Verify long AppSec framework name extracts acronym and formats as requested."""
+        res = utils.format_audit_name("Mirakl", "Application Security Assessment Framework (AppSec)")
+        self.assertEqual(res, "Assessment of Mirakl with AppSec framework")
+
+    def test_format_audit_name_appsec_manual(self):
+        """Verify AppSec Manual IG framework extracts acronym/variant and formats properly."""
+        res = utils.format_audit_name("Mirakl", "Application Security Assessment Framework (AppSec - Manual IG)")
+        self.assertEqual(res, "Assessment of Mirakl with AppSec - Manual IG framework")
+
+    def test_format_audit_name_multi_level_dpp(self):
+        """Verify framework without parentheses appends framework word cleanly."""
+        res = utils.format_audit_name("App-Secure-Core", "Multi-level DPP")
+        self.assertEqual(res, "Assessment of App-Secure-Core with Multi-level DPP framework")
+
+    def test_format_audit_name_short_name(self):
+        """Verify already concise framework name formats properly."""
+        res = utils.format_audit_name("App-Demo", "AppSec")
+        self.assertEqual(res, "Assessment of App-Demo with AppSec framework")
+
+    def test_format_audit_name_already_ends_with_framework(self):
+        """Verify framework ending with framework does not duplicate the word."""
+        res = utils.format_audit_name("Portal", "NIST CSF Framework")
+        self.assertEqual(res, "Assessment of Portal with NIST CSF Framework")
+
+    def test_format_audit_name_with_ref_id_fallback(self):
+        """Verify framework_ref is used when framework_name is missing or empty."""
+        res = utils.format_audit_name("Mirakl", None, "appsec")
+        self.assertEqual(res, "Assessment of Mirakl with AppSec framework")
+
+    def test_format_audit_name_fallbacks(self):
+        """Verify missing app_name or framework_name fallbacks."""
+        self.assertEqual(utils.format_audit_name("", "AppSec"), "Assessment with AppSec framework")
+        self.assertEqual(utils.format_audit_name("Mirakl", ""), "Assessment of Mirakl")
+        self.assertEqual(utils.format_audit_name("", ""), "Compliance Assessment")
+
+
+
 if __name__ == "__main__":
     unittest.main()
 

@@ -752,7 +752,9 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         saas_uncert_answers = {
             "hosting": {
                 "q1": "SaaS (Third-party software hosted and operated by a vendor)",
-                "q3": "No - The SaaS vendor is not ISO/IEC 27001 or SOC 2 Type II certified",
+            },
+            "saas_contract_compliance": {
+                "q2": "No - The SaaS vendor is not ISO/IEC 27001 or SOC 2 Type II certified",
             },
         }
         res_saas_uncert = determine_implementation_groups_triggered_by_others("appsec_manual", answers=saas_uncert_answers)
@@ -889,10 +891,10 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         hosting_node = next(n for n in fw["requirement_nodes"] if n.get("ref_id") == "hosting")
         questions = hosting_node["questions"]
 
-        # 1. Verify hosting has 17 questions (q1-q3 profiling + q4-q10 choice questions + q4_delegate-q10_delegate text fields)
-        self.assertEqual(len(questions), 17)
+        # 1. Verify hosting has 14 questions (q1-q2 profiling + q4-q9 choice questions + q4_delegate-q9_delegate text fields)
+        self.assertEqual(len(questions), 14)
 
-        # 2. Verify each of the 7 triggered IGs has a corresponding choice question and free text delegate field
+        # 2. Verify each of the 6 triggered IGs in hosting has a corresponding choice question and free text delegate field
         expected_tracks = {
             "q4": ("baseline", ["c1", "c2", "c3"]),
             "q5": ("custom_app", ["c1"]),
@@ -900,7 +902,6 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "q7": ("infra", ["c1", "c2"]),
             "q8": ("internet_facing", ["c2"]),
             "q9": ("saas_app", ["c3"]),
-            "q10": ("saas_uncertified", ["c2"]),
         }
 
         for q_id, (track, trigger_choices) in expected_tracks.items():
@@ -929,6 +930,34 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             self.assertEqual(del_def["depends_on"]["answers"], [f"{q_urn}:c2"])
             self.assertEqual(del_def["depends_on"]["condition"], "any")
 
+        # 2b. Verify saas_contract_compliance has certification question (q2), uncertified track readiness question (q3), and delegate text field (q3_delegate)
+        saas_contract_node = next(n for n in fw["requirement_nodes"] if n.get("ref_id") == "saas_contract_compliance")
+        saas_questions = saas_contract_node["questions"]
+        q2_urn = "urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q2"
+        q3_urn = "urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q3"
+        del_saas_urn = "urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q3_delegate"
+        self.assertIn(q2_urn, saas_questions)
+        self.assertIn(q3_urn, saas_questions)
+        self.assertIn(del_saas_urn, saas_questions)
+
+        q3_saas_def = saas_questions[q3_urn]
+        self.assertIn("uncertified saas vendor track", q3_saas_def["text"].lower())
+        self.assertEqual(q3_saas_def["depends_on"]["question"], q2_urn)
+        self.assertEqual(q3_saas_def["depends_on"]["answers"], [f"{q2_urn}:c2"])
+        choices = q3_saas_def["choices"]
+        self.assertEqual(len(choices), 2)
+        self.assertEqual(choices[0]["value"], "I can answer this track")
+        self.assertEqual(choices[1]["value"], "Somebody else has to answer this track")
+
+        del_saas_def = saas_questions[del_saas_urn]
+        self.assertEqual(del_saas_def["type"], "text")
+        self.assertNotIn("choices", del_saas_def)
+        self.assertFalse(del_saas_def.get("required", True))
+        self.assertIn("who can answer", del_saas_def["text"].lower())
+        self.assertEqual(del_saas_def["depends_on"]["question"], q3_urn)
+        self.assertEqual(del_saas_def["depends_on"]["answers"], [f"{q3_urn}:c2"])
+        self.assertEqual(del_saas_def["depends_on"]["condition"], "any")
+
         # 3. Verify that across the 6 application profiles, only triggered IG questions and active delegates are answered
         case_active_q_ids = {
             "test_data/app_manual_custom_internal.yml": {"q4", "q5", "q7", "q7_delegate"},
@@ -936,7 +965,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "test_data/app_manual_cots_internal.yml": {"q4", "q6", "q7", "q7_delegate"},
             "test_data/app_manual_cots_internet.yml": {"q4", "q6", "q7", "q7_delegate", "q8", "q8_delegate"},
             "test_data/app_manual_saas_certified.yml": {"q4", "q9"},
-            "test_data/app_manual_saas_uncertified.yml": {"q4", "q9", "q10", "q10_delegate"},
+            "test_data/app_manual_saas_uncertified.yml": {"q4", "q9"},
         }
 
         all_track_and_delegate_ids = [
@@ -946,7 +975,6 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "q7", "q7_delegate",
             "q8", "q8_delegate",
             "q9", "q9_delegate",
-            "q10", "q10_delegate",
         ]
 
         for profile_path, expected_active in case_active_q_ids.items():
@@ -962,6 +990,15 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
                     self.assertIn(q_text, answered_questions, f"Expected active question {q_id} not answered in {profile_path}")
                 else:
                     self.assertNotIn(q_text, answered_questions, f"Inactive question {q_id} should not be answered in {profile_path}")
+
+        # Verify saas_contract_compliance answers for uncertified SaaS profile
+        with open("test_data/app_manual_saas_uncertified.yml", "r", encoding="utf-8") as f:
+            uncert_prof = yaml.safe_load(f)
+        saas_answers = {a["question"]: a["answer"] for a in uncert_prof.get("answers", []) if a.get("requirement") == "saas_contract_compliance"}
+        self.assertIn(q3_saas_def["text"], saas_answers)
+        self.assertEqual(saas_answers[q3_saas_def["text"]], "Somebody else has to answer this track")
+        self.assertIn(del_saas_def["text"], saas_answers)
+        self.assertIn("vendor-security@vendor.cloud", saas_answers[del_saas_def["text"]])
 
     def test_appsec_example_suite_all_6_combinations(self):
         """Verify the comprehensive application example suite testing all 6 conditional IG combinations for appsec."""

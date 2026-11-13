@@ -30,8 +30,8 @@ description: >
   before auditors manually assign relevant tracks (Custom, COTS, Infrastructure, SaaS, Internet-Facing) without
   dynamic choice triggering.
 copyright: DCME Corp
-version: 27
-publication_date: 2026-11-12
+version: 30
+publication_date: 2026-11-13
 provider: DCME Corp
 packager: DCME Corp
 common_objects_file: "YML/appsec_objects.yml"
@@ -78,7 +78,7 @@ objects:
         name: "Uncertified SaaS Vendor Track (Detailed Security Assessment)"
         ref_id: "saas_uncertified"
         description: "Detailed security and operational control requirements for SaaS applications whose vendor is not ISO/IEC 27001 or SOC 2 Type II certified (ISMS, security awareness, internal privileges, logging, workstation/mobile security, network/environment isolation, secure SDLC, web app security, penetration testing & SLAs, physical security, backup/BCP, and subcontractor management)"
-        delegate_answer: "urn:intuitem:risk:req_node:appsec_manual:hosting:q10_delegate"
+        delegate_answer: "urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q3_delegate"
       - urn: urn:intuitem:risk:ig:appsec_manual:baseline
         name: "Application Security Baseline"
         ref_id: "baseline"
@@ -140,9 +140,9 @@ objects:
 
       - target_implementation_group: "saas_uncertified"
         name: "Uncertified SaaS Vendor Track (Detailed Security Assessment)"
-        question_urn: "urn:intuitem:risk:req_node:appsec_manual:hosting:q3"
-        question_ref_id: "hosting:q3"
-        choice_urn: "urn:intuitem:risk:req_node:appsec_manual:hosting:q3:c2"
+        question_urn: "urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q2"
+        question_ref_id: "saas_contract_compliance:q2"
+        choice_urn: "urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q2:c2"
         choice_ref_id: "c2"
         choice_value: "No - The SaaS vendor is not ISO/IEC 27001 or SOC 2 Type II certified"
         prompt: "SaaS vendor is not ISO/IEC 27001 or SOC 2 Type II certified. Trigger Uncertified SaaS Vendor Track (Detailed Security Assessment)?"
@@ -477,30 +477,28 @@ objects:
         name: Application Delivery & Network Exposure
         description: >
           Determine the application delivery and hosting model (Custom software, Bought COTS, or third-party SaaS),
-          its network exposure (for self-hosted apps), SaaS vendor ISO/IEC 27001 or SOC 2 Type II certification status,
+          its network exposure (for self-hosted apps),
           and designate whether the initial respondent can answer each triggered implementation track or specify who can answer.
           Recommended respondents: Lead Application Architect or Technical Lead (delivery model), Cloud / Network Security Engineer
-          (network exposure), Vendor Risk Manager / IT Procurement (SaaS certifications), and Application Custodian / Audit Admin (track routing).
+          (network exposure), and Application Custodian / Audit Admin (track routing).
         annotation: >
-          Application delivery, hosting model, network exposure, SaaS vendor certification classification, and track assignment:
+          Application delivery, hosting model, network exposure, and track assignment:
 
           - Recommended respondent roles:
             * Primary Lead Respondent: Lead Application Architect, Technical Lead / Engineering Manager, or Application Custodian (end-to-end visibility into delivery model, software ownership, and runtime deployment).
             * Network & Edge Infrastructure Specialist: Cloud / Infrastructure Engineer or Network Security Engineer (for Q2 network exposure and subnet/VPC zoning).
-            * Vendor Risk & Compliance Specialist: Vendor Risk Manager (TPRM), IT Procurement / Legal Contact, or SaaS Application Administrator (for Q3 SaaS vendor contract, DPA, and active ISO/IEC 27001 / SOC 2 Type II certification).
-            * Track Delegation & Assignment Lead: Application Custodian or Audit Administrator (for Q4–Q10 evaluating track readiness and designating specialized co-respondents).
+            * Track Delegation & Assignment Lead: Application Custodian or Audit Administrator (for Q4–Q9 evaluating track readiness and designating specialized co-respondents).
 
           - Delivery & exposure scoping guidance:
             * Custom software created and deployed by my teams: In-house developed software where source code is written and maintained internally. Subject to internal DevSecOps (SAST, DAST, SCA/SBOM, peer code review) and self-hosted network exposure discrimination.
             * Bought software deployed by my teams: Commercial Off-The-Shelf (COTS) or vendor software package deployed on internal infrastructure. Subject to vendor security patch management, CVE tracking, deployment configuration hardening, and self-hosted network exposure discrimination.
-            * SaaS: Third-party software hosted and operated by a vendor. SaaS applications are inherently hosted on external cloud infrastructure and governed via Chapter 10 (saas_app). If the SaaS vendor is not ISO/IEC 27001 or SOC 2 Type II certified, the detailed Uncertified SaaS Vendor Track (saas_uncertified) is triggered.
+            * SaaS: Third-party software hosted and operated by a vendor. SaaS applications are inherently hosted on external cloud infrastructure and governed via Chapter 10 (saas_app). If the SaaS vendor is not ISO/IEC 27001 or SOC 2 Type II certified, the detailed Uncertified SaaS Vendor Track (saas_uncertified) is triggered during the SaaS evaluation.
             * Network exposure tier for self-hosted apps: Internal / Restricted (accessible only within corporate networks/VPN) vs Internet-facing (accessible over the public Internet, used to assign the internet_facing track).
-            * Implementation track assignment (Q4–Q10): For each triggered implementation group (track), specify whether you can answer the section directly or if somebody else has to. If somebody else has to answer, a dedicated free text form field allows designating the contact person or team (name, email address, or team) for audit assignment routing.
+            * Implementation track assignment (Q4–Q9): For each triggered implementation group (track), specify whether you can answer the section directly or if somebody else has to. If somebody else has to answer, a dedicated free text form field allows designating the contact person or team (name, email address, or team) for audit assignment routing.
         typical_evidence: >
           - Architecture design document (ADD) / System topology diagram
           - Software procurement contract, vendor license, or Git repository metadata
           - Network zoning diagram showing DMZ, perimeter firewalls, and reverse proxies
-          - SaaS vendor ISO/IEC 27001 certificate or SOC 2 Type II attestation report
         implementation_groups: ["info"]
         questions:
           urn:intuitem:risk:req_node:appsec_manual:hosting:q1:
@@ -533,25 +531,6 @@ objects:
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec_manual:hosting:q2:c2
                 value: "Internet-facing (Public Web / Mobile API)"
-                add_score: 100
-                compute_result: true
-                color: "#fd7e14"
-          urn:intuitem:risk:req_node:appsec_manual:hosting:q3:
-            type: unique_choice
-            text: "Is the SaaS vendor ISO/IEC 27001 or SOC 2 Type II certified?"
-            depends_on:
-              question: urn:intuitem:risk:req_node:appsec_manual:hosting:q1
-              answers:
-                - urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c3
-              condition: any
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec_manual:hosting:q3:c1
-                value: "Yes - The SaaS vendor holds an active ISO/IEC 27001 certification or SOC 2 Type II report"
-                add_score: 100
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec_manual:hosting:q3:c2
-                value: "No - The SaaS vendor is not ISO/IEC 27001 or SOC 2 Type II certified"
                 add_score: 100
                 compute_result: true
                 color: "#fd7e14"
@@ -714,32 +693,6 @@ objects:
               answers:
                 - urn:intuitem:risk:req_node:appsec_manual:hosting:q9:c2
               condition: any
-          urn:intuitem:risk:req_node:appsec_manual:hosting:q10:
-            type: unique_choice
-            text: "Can you answer the Uncertified SaaS Vendor Track (detailed vendor security assessment: ISMS, awareness, workstation/mobile security, network isolation, secure development, penetration testing, physical security, and subcontractor governance), or does somebody else have to?"
-            depends_on:
-              question: urn:intuitem:risk:req_node:appsec_manual:hosting:q3
-              answers:
-                - urn:intuitem:risk:req_node:appsec_manual:hosting:q3:c2
-              condition: any
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec_manual:hosting:q10:c1
-                value: "I can answer this track"
-                select_implementation_groups: ["saas_uncertified"]
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec_manual:hosting:q10:c2
-                value: "Somebody else has to answer this track"
-                color: "#17a2b8"
-          urn:intuitem:risk:req_node:appsec_manual:hosting:q10_delegate:
-            type: text
-            text: "Uncertified SaaS Vendor Track: please specify who can answer (name, email address, or team):"
-            annotation: "Designated point of contact or team responsible for completing the Uncertified SaaS Vendor Track questions."
-            required: false
-            depends_on:
-              question: urn:intuitem:risk:req_node:appsec_manual:hosting:q10
-              answers:
-                - urn:intuitem:risk:req_node:appsec_manual:hosting:q10:c2
-              condition: any
 
       # === SPLASH SCREEN: TRIGGERED IMPLEMENTATION TRACKS & DESIGNATED RESPONDENTS ===
       - urn: urn:intuitem:risk:req_node:appsec_manual:baseline_splash
@@ -749,66 +702,71 @@ objects:
         ref_id: baseline_splash
         name: "Triggered Implementation Tracks & Designated Respondents"
         description: |
-          ### Baseline Profiling Complete: Triggered Implementation Tracks
+          ### Baseline Profiling Complete: Triggered Implementation Tracks & Delegations
 
           You have completed the foundational profiling questions in **Chapter 1** covering application ownership, data classification, hosting model, and network exposure.
 
-          In this assessment workflow, your profiling answers determine which **Implementation Groups (Tracks)** become relevant. These specialized technical tracks will be assigned to the most qualified respondents.
+          In the previous section (**Application Delivery & Network Exposure**, questions **Q4 through Q9**), you were asked to determine **who can answer what** for each triggered track:
+          - Confirming whether you can answer the track directly (*"I can answer this track"*).
+          - Or designating the specialized person or team who should answer (*"Somebody else has to answer this track"* and providing their name, email address, or team).
 
           ---
 
-          ### 🎯 Implementation Groups (Tracks) Triggered by Your Profiling
+          ### 🎯 Triggered Implementation Tracks & Your Delegation Choices
 
-          | Implementation Track | Trigger Condition | Technical Scope in Audit |
-          | :--- | :--- | :--- |
-          | **Application Security Baseline (`baseline`)** | **Universal Baseline** (All Applications) | Universal Identity & Access Management: Centralized SSO federation, administrative Multi-Factor Authentication (MFA), and Role-Based Access Control (RBAC). |
-          | **Custom Software Track (`custom_app`)** | Triggered if **Custom in-house software** | Code-level session management, input validation, output encoding, debug suppression, secure SDLC, automated CI/CD security pipelines (SAST, DAST, SCA dependency scanning, and SBOM). |
-          | **Bought Software Track (`cots_app`)** | Triggered if **Bought software (COTS package)** | Deployment configuration hardening baselines, vendor security patch management SLAs, vulnerability tracking, and vendor support contracts. |
-          | **Infrastructure & Hosting Track (`infra`)** | Triggered if **Self-hosted** (Custom or COTS) | Server and hosting security: secrets vault management, encryption at rest and in transit, centralized SIEM audit logging, OS patching, and backup & disaster recovery resilience. |
-          | **SaaS Application Track (`saas_app`)** | Triggered if **Third-party SaaS** | SaaS governance and contractual security exhibits: Master SaaS Agreement (MSA), encryption, tenant isolation, admin MFA, EU data residency, audit rights (SOC 2 / ISO 27001), and 48-hour incident SLAs. |
-          | **Uncertified SaaS Vendor Track (`saas_uncertified`)** | Triggered if **SaaS vendor is NOT ISO 27001 / SOC 2 certified** | Detailed vendor operational assessment: ISMS, security awareness, workstation security, network isolation, secure SDLC, independent penetration testing, and subcontractor governance. |
-          | **Internet-Facing Track (`internet_facing`)** | Triggered if **Internet-facing** (Self-hosted) | Perimeter and edge defenses: Edge Web Application Firewall (WAF, e.g. Cloudflare, AWS WAF), anti-DDoS mitigation, automated API rate limiting/bot protection, and external penetration testing. |
-
-          ---
-
-          ### 👥 Who Will Be the Best People to Answer Each Track?
-
-          Technical security questions require direct operational and architectural knowledge. **Who should answer the indicated sections?**
-
-          Please review the recommended respondent profiles below:
-          - 🛠️ **Custom Software Track (`custom_app`)**:
-            - **Best People:** **Lead Software Engineer**, **Application Architect**, **DevSecOps Engineer**, or **Senior Developer**.
-            - *Why:* Requires hands-on knowledge of source code architecture, CI/CD pipeline configs, automated scanners (SAST/DAST/SCA), and branch protection rules.
-          - 📦 **Bought Software Track (`cots_app`)**:
-            - **Best People:** **System Administrator**, **Application Custodian**, **IT Operations Lead**, or **Software Procurement Manager**.
-            - *Why:* Requires knowledge of vendor patch deployment SLAs, package deployment hardening, and vendor support agreements.
-          - ☁️ **Infrastructure & Hosting Track (`infra`)**:
-            - **Best People:** **Cloud / DevOps Engineer**, **Infrastructure Engineer**, **Hosting Administrator**, or **Database Administrator (DBA)**.
-            - *Why:* Requires knowledge of server OS hardening, KMS/vault secrets management, TLS certificates, SIEM log forwarding, and disaster recovery procedures.
-          - 🏢 **SaaS Application Track (`saas_app`)**:
-            - **Best People:** **SaaS Application Administrator**, **Vendor Risk Manager**, **IT Procurement / Legal Contact**, or **Business Application Owner**.
-            - *Why:* Requires access to the executed Master Services Agreement (MSA), Data Processing Agreement (DPA), vendor SOC 2 / ISO reports, and tenant administration settings.
-          - 🔍 **Uncertified SaaS Vendor Track (`saas_uncertified`)**:
-            - **Best People:** **Vendor Security Officer / CISO**, **Vendor Compliance Manager**, or **Internal IT Security Auditor**.
-            - *Why:* Requires deep operational security evidence directly from the third-party SaaS provider.
-          - 🌐 **Internet-Facing Track (`internet_facing`)**:
-            - **Best People:** **Network Security Engineer**, **Cloud Edge / WAF Administrator (e.g. Cloudflare, AWS WAF)**, or **Security Operations Center (SOC)**.
-            - *Why:* Requires knowledge of edge reverse proxy rules, DDoS mitigation thresholds, API gateway rate limiting, and external penetration test findings.
-          - 🔑 **Application Security Baseline (`baseline`)**:
-            - **Best People:** **Identity & Access Management (IAM) Administrator**, **System Owner**, or **IT Security Lead**.
-            - *Why:* Evaluates enterprise identity federation (SAML/OIDC), MFA enforcement, and access governance.
+          | Implementation Track | Profiling Trigger | Routing Question Asked Before | Technical Scope in Audit |
+          | :--- | :--- | :--- | :--- |
+          | **Application Security Baseline (`baseline`)** | **Universal Baseline** (All Applications) | **Q4**: Baseline Readiness | Universal Identity & Access Management: Centralized SSO federation, administrative Multi-Factor Authentication (MFA), and Role-Based Access Control (RBAC). |
+          | **Custom Software Track (`custom_app`)** | Triggered if **Custom in-house software** | **Q5**: Custom Software Readiness | Code-level session management, input validation, output encoding, debug suppression, secure SDLC, automated CI/CD security pipelines (SAST, DAST, SCA dependency scanning, and SBOM). |
+          | **Bought Software Track (`cots_app`)** | Triggered if **Bought software (COTS package)** | **Q6**: Bought Software Readiness | Deployment configuration hardening baselines, vendor security patch management SLAs, vulnerability tracking, and vendor support contracts. |
+          | **Infrastructure & Hosting Track (`infra`)** | Triggered if **Self-hosted** (Custom or COTS) | **Q7**: Infrastructure & Hosting Readiness | Server and hosting security: secrets vault management, encryption at rest and in transit, centralized SIEM audit logging, OS patching, and backup & disaster recovery resilience. |
+          | **SaaS Application Track (`saas_app`)** | Triggered if **Third-party SaaS** | **Q9**: SaaS Application Readiness | SaaS governance and contractual security exhibits: Master SaaS Agreement (MSA), encryption, tenant isolation, admin MFA, EU data residency, audit rights (SOC 2 / ISO 27001), and 48-hour incident SLAs. Note: If the vendor lacks active ISO 27001 / SOC 2 certification, the detailed Uncertified SaaS Vendor Track (`saas_uncertified`) is routed within the SaaS track. |
+          | **Internet-Facing Track (`internet_facing`)** | Triggered if **Internet-facing** (Self-hosted) | **Q8**: Internet-Facing Readiness | Perimeter and edge defenses: Edge Web Application Firewall (WAF, e.g. Cloudflare, AWS WAF), anti-DDoS mitigation, automated API rate limiting/bot protection, and external penetration testing. |
 
           ---
 
-          ### 📋 Multi-Step Workflow & Next Steps
+          ### 👥 Reference: Recommended Specialist Roles for Each Track
 
-          > [!NOTE]
-          > **How track assignment works in this framework:**
-          > 1. **Auditor Review**: The GRC / security audit team will review the answers you provided in Chapter 1.
-          > 2. **Track Assignment**: Based on the triggered tracks identified above and your responses regarding track ownership, the audit administrator will assign each track to the designated specialists (either yourself or the specific team members identified in your observations).
-          > 3. **Follow-up Notification**: If no further questions appear immediately after this screen, your profiling phase is complete! The auditor will assign the triggered tracks, and the respective respondents will be notified to answer their sections.
+          The questions you answered regarding who can answer each track align with the specialized operational roles below:
+          - 🛠️ **Custom Software Track (`custom_app`)** *(Question Q5)*:
+            - **Recommended Respondents:** **Lead Software Engineer**, **Application Architect**, **DevSecOps Engineer**, or **Senior Developer**.
+            - *Rationale:* Requires hands-on knowledge of source code architecture, CI/CD pipeline configs, automated security scanners (SAST/DAST/SCA), and branch protection rules.
+          - 📦 **Bought Software Track (`cots_app`)** *(Question Q6)*:
+            - **Recommended Respondents:** **System Administrator**, **Application Custodian**, **IT Operations Lead**, or **Software Procurement Manager**.
+            - *Rationale:* Requires knowledge of vendor patch deployment SLAs, package deployment hardening, and vendor support agreements.
+          - ☁️ **Infrastructure & Hosting Track (`infra`)** *(Question Q7)*:
+            - **Recommended Respondents:** **Cloud / DevOps Engineer**, **Infrastructure Engineer**, **Hosting Administrator**, or **Database Administrator (DBA)**.
+            - *Rationale:* Requires knowledge of server OS hardening, KMS/vault secrets management, TLS certificates, SIEM log forwarding, and disaster recovery procedures.
+          - 🏢 **SaaS Application Track (`saas_app`)** *(Question Q9)*:
+            - **Recommended Respondents:** **SaaS Application Administrator**, **Vendor Risk Manager**, **IT Procurement / Legal Contact**, or **Business Application Owner**.
+            - *Rationale:* Requires access to the executed Master Services Agreement (MSA), Data Processing Agreement (DPA), vendor SOC 2 / ISO reports, and tenant administration settings.
+          - 🌐 **Internet-Facing Track (`internet_facing`)** *(Question Q8)*:
+            - **Recommended Respondents:** **Network Security Engineer**, **Cloud Edge / WAF Administrator (e.g. Cloudflare, AWS WAF)**, or **Security Operations Center (SOC)**.
+            - *Rationale:* Requires knowledge of edge reverse proxy rules, DDoS mitigation thresholds, API gateway rate limiting, and external penetration test findings.
+          - 🔑 **Application Security Baseline (`baseline`)** *(Question Q4)*:
+            - **Recommended Respondents:** **Identity & Access Management (IAM) Administrator**, **System Owner**, or **IT Security Lead**.
+            - *Rationale:* Evaluates enterprise identity federation (SAML/OIDC), administrative MFA enforcement, and access governance.
+
+          ---
+
+          ### 📋 What Happens Next Based on Your Delegation Answers
+
+          > [!IMPORTANT]
+          > **How your answers in Chapter 1 shape the rest of the audit:**
+          >
+          > 1. **Tracks You Confirmed You Can Answer (*"I can answer this track"*):**
+          >    - These sections remain active for you. Click **Next** to proceed and complete the corresponding technical chapters.
+          >
+          > 2. **Tracks You Delegated (*"Somebody else has to answer this track"*):**
+          >    - You do **not** need to answer these sections.
+          >    - The names, emails, or teams you designated in the delegation questions have been recorded.
+          >    - The **CISO / Security Team and the Automated Orchestrator** will use your designations to create targeted assignments for those specialists, inviting them to answer only their designated tracks.
+          >
+          > 3. **If You Delegated All Remaining Technical Tracks:**
+          >    - Your work on this initial assessment is complete! You have successfully provided the profiling foundation and routed the technical tracks to the right specialists.
+          >    - You can submit your responses now; the designated co-respondents will receive their own assignments to complete their portions.
         annotation: >
-          Transition splash screen presenting indicated implementation groups based on Chapter 1 profiling (Custom, COTS, Infrastructure, SaaS, Internet-Facing) and providing explicit guidance on designated respondent roles and orchestrator assignment workflows.
+          Transition splash screen presenting dynamically triggered implementation groups based on Chapter 1 profiling (Custom, COTS, Infrastructure, SaaS, Internet-Facing), summarizing respondent readiness and delegation choices made in questions Q4–Q10, and detailing the multi-respondent orchestration workflow.
         implementation_groups: ["info", "baseline"]
 
       # === CHAPTER 2: IDENTITY, AUTHENTICATION & ACCESS CONTROL ===
@@ -2096,24 +2054,28 @@ objects:
           continuous monitoring, 48-hour breach notification SLAs, and SIEM audit log export APIs).
         implementation_groups: ["saas_app", "saas_uncertified"]
 
-      # Requirement 0: Master SaaS Agreement Execution
+      # Requirement 0: Master SaaS Agreement Execution & Third-Party Certifications
       - urn: urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec_manual:saas_chapter
         ref_id: saas_contract_compliance
-        name: "SaaS Master Contract & Security Schedule Execution"
-        description: "Ensure a signed Master Services Agreement (MSA) and binding Security Exhibit govern the SaaS service."
+        name: "SaaS Contract & Third-Party Assurance Certification"
+        description: "Ensure a signed Master Services Agreement (MSA) and binding Security Exhibit govern the SaaS service, and verify vendor third-party security certifications (ISO/IEC 27001, SOC 2 Type II)."
         annotation: >
-          Master contractual agreement validation: Execution of a SaaS Master Services Agreement (MSA) and legally binding Security Schedule
-          governing the provider. Detailed technical requirements (audit, incident notification, IAM, confidentiality, encryption, etc.)
+          Master contractual agreement and third-party assurance validation: Execution of a SaaS Master Services Agreement (MSA) and legally
+          binding Security Schedule governing the provider, combined with verification of active ISO/IEC 27001 certification or SOC 2 Type II
+          reports. If the vendor is uncertified, the detailed Uncertified SaaS Vendor Track (saas_uncertified) is triggered for comprehensive
+          operational assessment. Detailed technical requirements (audit rights, incident notification, IAM, confidentiality, encryption, etc.)
           are evaluated within their respective thematic sections.
         typical_evidence: >
           - Executed Master Services Agreement (MSA) with attached Security Schedule / Exhibit
           - Executed Data Processing Agreement (DPA)
+          - Valid ISO/IEC 27001 certificate or SOC 2 Type II audit report issued within the last 12 months
         implementation_groups: ["saas_app"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:saas_contract
+          - urn:intuitem:risk:control:appsec:saas_third_party_assurance
         questions:
           urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q1:
             type: unique_choice
@@ -2129,6 +2091,42 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q2:
+            type: unique_choice
+            text: "Is the SaaS vendor ISO/IEC 27001 or SOC 2 Type II certified?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q2:c1
+                value: "Yes - The SaaS vendor holds an active ISO/IEC 27001 certification or SOC 2 Type II report"
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q2:c2
+                value: "No - The SaaS vendor is not ISO/IEC 27001 or SOC 2 Type II certified"
+                color: "#fd7e14"
+          urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q3:
+            type: unique_choice
+            text: "Can you answer the Uncertified SaaS Vendor Track (detailed vendor security assessment: ISMS, awareness, workstation/mobile security, network isolation, secure development, penetration testing, physical security, and subcontractor governance), or does somebody else have to?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q2
+              answers:
+                - urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q2:c2
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q3:c1
+                value: "I can answer this track"
+                select_implementation_groups: ["saas_uncertified"]
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q3:c2
+                value: "Somebody else has to answer this track"
+                color: "#17a2b8"
+          urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q3_delegate:
+            type: text
+            text: "Uncertified SaaS Vendor Track: please specify who can answer (name, email address, or team):"
+            annotation: "Designated point of contact or team responsible for completing the Uncertified SaaS Vendor Track questions."
+            required: false
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q3
+              answers:
+                - urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q3:c2
+              condition: any
 
       # Section 1: Security Governance & Policy
       - urn: urn:intuitem:risk:req_node:appsec_manual:saas_governance_and_policy
@@ -2949,7 +2947,7 @@ objects:
         parent_urn: urn:intuitem:risk:req_node:appsec_manual:saas_chapter
         ref_id: saas_audit_and_compliance
         name: "Audit Rights, Penetration Testing & Compliance Verification"
-        description: "Contractually grant the client (or an independent auditor mandated by the client) the right to audit the provider, obtain compliance evidence verifying adherence to contractual security obligations, and govern independent penetration testing of the SaaS platform."
+        description: "Verify SaaS contractual right to audit and independent penetration testing governance."
         annotation: >
           Contractual requirements:
           - Contractual client right to audit (exercisable by the client or an authorized independent third-party auditor) and obligation for the provider to supply compliance evidence and audit documentation upon request.
@@ -2960,7 +2958,6 @@ objects:
           - SaaS contractual security exhibit / schedule authorizing customer penetration testing or annual third-party penetration test executive summary attestation letter from provider
         implementation_groups: ["saas_app"]
         reference_controls:
-          - urn:intuitem:risk:control:appsec:saas_third_party_assurance
           - urn:intuitem:risk:control:appsec:regular_penetration_testing
         questions:
           urn:intuitem:risk:req_node:appsec_manual:saas_audit_and_compliance:q1:
