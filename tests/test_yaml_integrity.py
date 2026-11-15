@@ -2336,6 +2336,62 @@ class TestYamlIntegrity(unittest.TestCase):
                 self.assertEqual(len(q1_choice_urns), len(q1.get("choices", [])))
                 self.assertEqual(len(q2_choice_urns), len(q2.get("choices", [])))
 
+    def test_appsec_solution_tiering_library_integrity(self):
+        """Verify the integrity, outcomes, thresholds, and knock-outs of the AppSec Solution Tiering Quick Form."""
+        base_dir = Path(__file__).resolve().parent.parent
+        qf_path = base_dir / "YML" / "quick-form-appsec-solution-tiering.yaml"
+        self.assertTrue(qf_path.exists(), f"File missing: {qf_path}")
+
+        with open(qf_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+
+        self.assertEqual(data.get("ref_id"), "appsec-solution-tiering")
+        self.assertEqual(data.get("urn"), "urn:intuitem:risk:library:appsec-solution-tiering")
+
+        quick_forms = data.get("objects", {}).get("quick_forms", [])
+        self.assertEqual(len(quick_forms), 1, "Expected exactly 1 quick form")
+        qf = quick_forms[0]
+
+        # Target writeback
+        on_accept = qf.get("on_accept", [])
+        self.assertEqual(len(on_accept), 1)
+        self.assertEqual(on_accept[0].get("target"), "solution.tier")
+
+        # Outcomes and thresholds
+        mapping = on_accept[0].get("config", {}).get("mapping", [])
+        outcomes_by_id = {m.get("outcome"): m for m in mapping}
+        self.assertIn("inherent", outcomes_by_id)
+        self.assertIn("regulated_function", outcomes_by_id)
+        self.assertIn("single_point_of_failure", outcomes_by_id)
+        self.assertIn("critical_secrets_or_payment", outcomes_by_id)
+        self.assertIn("internet_facing_confidential", outcomes_by_id)
+        self.assertIn("large_scale_gdpr", outcomes_by_id)
+        self.assertIn("privileged_access", outcomes_by_id)
+
+        # Knock-out tiers
+        self.assertEqual(outcomes_by_id["regulated_function"]["tier"], "critical")
+        self.assertEqual(outcomes_by_id["single_point_of_failure"]["tier"], "critical")
+        self.assertEqual(outcomes_by_id["critical_secrets_or_payment"]["tier"], "critical")
+        self.assertEqual(outcomes_by_id["internet_facing_confidential"]["tier"], "important")
+        self.assertEqual(outcomes_by_id["large_scale_gdpr"]["tier"], "important")
+        self.assertEqual(outcomes_by_id["privileged_access"]["tier"], "important")
+
+        # Pages
+        pages = {p.get("ref_id"): p for p in qf.get("pages", [])}
+        self.assertEqual(set(pages.keys()), {"context", "business", "data"})
+
+        # Check all questions have unique choices and valid scores
+        for page_id, page in pages.items():
+            for q_urn, q_data in page.get("questions", {}).items():
+                choices = q_data.get("choices", [])
+                if choices:
+                    choice_urns = {c["urn"] for c in choices}
+                    self.assertEqual(len(choice_urns), len(choices), f"Duplicate choice URN in {q_urn}")
+                    if page_id in ("business", "data"):
+                        for c in choices:
+                            score = c.get("add_score")
+                            self.assertIn(score, [1, 2, 3, 4], f"Score {score} not in 1-4 for choice {c['urn']}")
+
 
 if __name__ == "__main__":
     unittest.main()

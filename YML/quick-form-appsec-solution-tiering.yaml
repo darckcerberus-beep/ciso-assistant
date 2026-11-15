@@ -1,0 +1,438 @@
+urn: urn:intuitem:risk:library:appsec-solution-tiering
+locale: en
+ref_id: appsec-solution-tiering
+name: Application Security & Criticality Tiering
+description: |
+  A comprehensive Application Security (AppSec) tiering form to classify applications and software solutions by inherent risk.
+  Evaluates business operational resilience (availability, outage tolerance, single point of failure), data classification
+  (retail records, secrets, payment data, GDPR scale), delivery model, and network exposure.
+  An accepted response writes the tier directly onto the solution with deterministic knock-out rules.
+copyright: © intuitem
+version: 1
+publication_date: 2026-11-15
+provider: custom
+packager: custom
+objects:
+  quick_forms:
+  - urn: urn:intuitem:risk:quick_form:appsec-solution-tiering
+    ref_id: appsec-solution-tiering
+    name: AppSec Application Criticality Tiering
+    description: |-
+      Tiers an application (solution) by its inherent risk across business operational resilience, data sensitivity, and attack surface exposure.
+      Calculates an inherent risk score from 1 (Low impact) to 4 (Critical) and triggers deterministic knock-outs for cardholder data (PCI-DSS),
+      production secrets, single points of failure, regulated functions, and internet-exposed sensitive services.
+    annotation: |-
+      An accepted response writes the application's tier to solution.tier:
+      - Critical: Inherent score >= 3.3, or triggered knock-outs (PCI-DSS / production secrets, single point of failure, or regulated function).
+      - Important: Inherent score >= 2.6, or triggered knock-outs (internet-facing confidential data, large-scale GDPR processing, or privileged system access).
+      - Standard: Inherent score >= 2.0.
+      - Low impact: Inherent score below 2.0.
+    ref_id_prefix: AST
+    subject_question_urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:context:question:solution
+    on_accept:
+    - target: solution.tier
+      config:
+        mapping:
+        - outcome: inherent
+          thresholds:
+          - tier: critical
+            min: 3.3
+          - tier: important
+            min: 2.6
+          - tier: standard
+            min: 2.0
+          - tier: low-impact
+        - outcome: regulated_function
+          tier: critical
+        - outcome: single_point_of_failure
+          tier: critical
+        - outcome: critical_secrets_or_payment
+          tier: critical
+        - outcome: internet_facing_confidential
+          tier: important
+        - outcome: large_scale_gdpr
+          tier: important
+        - outcome: privileged_access
+          tier: important
+    scores_definition:
+      min: 0
+      max: 4
+      aggregation: pages_mean
+    outcomes_definition:
+    - ref_id: business
+      label: Business and operational resilience impact
+      kind: number
+      expression: pages["business"].score
+      translations:
+        fr:
+          label: Impact métier et résilience opérationnelle
+    - ref_id: data
+      label: Data classification and sensitivity
+      kind: number
+      expression: pages["data"].score
+      translations:
+        fr:
+          label: Classification et sensibilité des données
+    - ref_id: inherent
+      label: Inherent risk
+      kind: number
+      expression: 'values.business > values.data ? values.business : values.data'
+      translations:
+        fr:
+          label: Risque intrinsèque
+    - ref_id: regulated_function
+      label: Regulated critical function
+      color: '#dc2626'
+      expression: '"context:question:regulated:choice:yes" in answers["context:question:regulated"].selected_choices'
+      translations:
+        fr:
+          label: Fonction critique réglementée
+    - ref_id: single_point_of_failure
+      label: Single point of failure (SPOF)
+      color: '#dc2626'
+      expression: '"business:question:b1:choice:stops" in answers["business:question:b1"].selected_choices && "business:question:b3:choice:sole" in answers["business:question:b3"].selected_choices'
+      translations:
+        fr:
+          label: Point de défaillance unique
+    - ref_id: critical_secrets_or_payment
+      label: Payment cardholder data or root credentials
+      color: '#dc2626'
+      expression: '"data:question:d1:choice:secrets" in answers["data:question:d1"].selected_choices'
+      translations:
+        fr:
+          label: Données bancaires (PCI) ou secrets d'administration
+    - ref_id: internet_facing_confidential
+      label: Internet-facing service with confidential data
+      color: '#ea580c'
+      expression: '"context:question:exposure:choice:internet" in answers["context:question:exposure"].selected_choices && ("data:question:d1:choice:confidential" in answers["data:question:d1"].selected_choices || "data:question:d1:choice:secrets" in answers["data:question:d1"].selected_choices)'
+      translations:
+        fr:
+          label: Service exposé à Internet avec données confidentielles
+    - ref_id: large_scale_gdpr
+      label: Large-scale personal data processing
+      color: '#ea580c'
+      expression: '"data:question:d3:choice:large" in answers["data:question:d3"].selected_choices'
+      translations:
+        fr:
+          label: Traitement de données personnelles à grande échelle
+    - ref_id: privileged_access
+      label: Privileged or production infrastructure access
+      color: '#ea580c'
+      expression: '"data:question:d4:choice:privileged" in answers["data:question:d4"].selected_choices'
+      translations:
+        fr:
+          label: Accès à privilèges ou infrastructure de production
+    pages:
+    - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:context
+      ref_id: context
+      name: Application Profile & Delivery Context
+      questions:
+        urn:intuitem:risk:qf_page:appsec-solution-tiering:context:question:solution:
+          type: object_reference
+          text: Target Application / Solution
+          config:
+            model: solution
+          translations:
+            fr:
+              text: Application / Solution cible
+        urn:intuitem:risk:qf_page:appsec-solution-tiering:context:question:delivery_model:
+          type: unique_choice
+          text: What is the delivery and hosting model of the application?
+          choices:
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:context:question:delivery_model:choice:custom
+            value: Custom in-house software (built and deployed by internal teams)
+            translations:
+              fr:
+                value: Logiciel sur mesure développé en interne
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:context:question:delivery_model:choice:cots
+            value: Commercial off-the-shelf software (COTS deployed internally)
+            translations:
+              fr:
+                value: Progiciel du commerce (COTS hébergé en interne)
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:context:question:delivery_model:choice:saas
+            value: SaaS (Third-party vendor hosted and operated)
+            translations:
+              fr:
+                value: SaaS (opéré et hébergé par un fournisseur tiers)
+          translations:
+            fr:
+              text: Quel est le modèle de livraison et d'hébergement de l'application ?
+        urn:intuitem:risk:qf_page:appsec-solution-tiering:context:question:exposure:
+          type: unique_choice
+          text: What is the network exposure of the application?
+          choices:
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:context:question:exposure:choice:internal
+            value: Internal / Restricted corporate network only
+            translations:
+              fr:
+                value: Réseau interne d'entreprise / restreint uniquement
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:context:question:exposure:choice:internet
+            value: Internet-facing (Public Web, Customer Portal, or Public API)
+            translations:
+              fr:
+                value: Exposé à Internet (Web public, portail client ou API publique)
+          translations:
+            fr:
+              text: Quelle est l'exposition réseau de l'application ?
+        urn:intuitem:risk:qf_page:appsec-solution-tiering:context:question:regulated:
+          type: unique_choice
+          text: Does the application support a regulated critical function (e.g. DORA critical function, NIS2 essential service, or PCI-DSS CDE)?
+          choices:
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:context:question:regulated:choice:yes
+            value: 'Yes'
+            translations:
+              fr:
+                value: Oui
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:context:question:regulated:choice:no
+            value: 'No'
+            translations:
+              fr:
+                value: Non
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:context:question:regulated:choice:unsure
+            value: Unsure / Under Review
+            translations:
+              fr:
+                value: À vérifier
+          translations:
+            fr:
+              text: L'application soutient-elle une fonction critique réglementée (ex. DORA, NIS2, PCI-DSS) ?
+      translations:
+        fr:
+          name: Profil et contexte de déploiement
+    - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:business
+      ref_id: business
+      name: Operational Resilience & Availability
+      aggregation: mean
+      questions:
+        urn:intuitem:risk:qf_page:appsec-solution-tiering:business:question:b1:
+          type: unique_choice
+          text: If this application experiences an unplanned outage, what is the business impact?
+          choices:
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:business:question:b1:choice:negligible
+            value: Negligible / Informational impact
+            add_score: 1
+            translations:
+              fr:
+                value: Impact négligeable
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:business:question:b1:choice:workaround
+            value: Minor friction; manual procedures or workarounds exist
+            add_score: 2
+            translations:
+              fr:
+                value: Gêne mineure; des procédures manuelles existent
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:business:question:b1:choice:disruption
+            value: Significant disruption to core business or warehouse operations
+            add_score: 3
+            translations:
+              fr:
+                value: Perturbation significative des opérations ou de la logistique
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:business:question:b1:choice:stops
+            value: Severe stoppage of customer checkout, ordering, or revenue generation
+            add_score: 4
+            translations:
+              fr:
+                value: Arrêt critique des commandes, du paiement ou des ventes
+          translations:
+            fr:
+              text: Si l'application subit une panne imprévue, quel est l'impact métier ?
+        urn:intuitem:risk:qf_page:appsec-solution-tiering:business:question:b2:
+          type: unique_choice
+          text: What is the maximum tolerable downtime (Recovery Time Objective)?
+          choices:
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:business:question:b2:choice:month
+            value: More than a month (low operational dependency)
+            add_score: 1
+            translations:
+              fr:
+                value: Plus d'un mois
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:business:question:b2:choice:weeks
+            value: One week to one month
+            add_score: 2
+            translations:
+              fr:
+                value: D'une semaine à un mois
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:business:question:b2:choice:days
+            value: One day to one week
+            add_score: 3
+            translations:
+              fr:
+                value: D'un jour à une semaine
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:business:question:b2:choice:hours
+            value: Under 24 hours / Real-time availability required
+            add_score: 4
+            translations:
+              fr:
+                value: Moins de 24 heures / Haute disponibilité temps réel
+          translations:
+            fr:
+              text: Quelle est la durée maximale d'interruption admissible (RTO) ?
+        urn:intuitem:risk:qf_page:appsec-solution-tiering:business:question:b3:
+          type: unique_choice
+          text: Is this application an architectural Single Point of Failure (SPOF) or hard to replace?
+          choices:
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:business:question:b3:choice:easy
+            value: High redundancy; alternate services or hot failover available
+            add_score: 1
+            translations:
+              fr:
+                value: Haute redondance; basculement immédiat disponible
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:business:question:b3:choice:weeks
+            value: Moderate redundancy; reconfiguration takes days to weeks
+            add_score: 2
+            translations:
+              fr:
+                value: Redondance modérée; basculement possible en quelques jours
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:business:question:b3:choice:months
+            value: Difficult to replace; switching takes several months
+            add_score: 3
+            translations:
+              fr:
+                value: Remplacement difficile; migration de plusieurs mois
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:business:question:b3:choice:sole
+            value: Single Point of Failure (SPOF); no alternative exists without extensive re-engineering
+            add_score: 4
+            translations:
+              fr:
+                value: Point de défaillance unique (SPOF); aucune alternative
+          translations:
+            fr:
+              text: Cette application constitue-t-elle un point de défaillance unique (SPOF) ?
+      translations:
+        fr:
+          name: Résilience opérationnelle et disponibilité
+    - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:data
+      ref_id: data
+      name: Data Classification & Exposure
+      aggregation: mean
+      questions:
+        urn:intuitem:risk:qf_page:appsec-solution-tiering:data:question:d1:
+          type: unique_choice
+          text: What is the highest data classification handled by the application?
+          choices:
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:data:question:d1:choice:public
+            value: Level 0 - Public storefront, marketing, catalog & public retail pricing
+            add_score: 1
+            translations:
+              fr:
+                value: Niveau 0 - Données publiques, catalogue produit et prix publics
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:data:question:d1:choice:internal
+            value: Level 1 - Internal retail operations, SOPs, and aggregated reporting
+            add_score: 2
+            translations:
+              fr:
+                value: Niveau 1 - Données internes, procédures et reporting agrégé
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:data:question:d1:choice:confidential
+            value: Level 2 - Confidential commercial contracts, customer order histories, contact PII
+            add_score: 3
+            translations:
+              fr:
+                value: Niveau 2 - Données confidentielles clients, commandes et contrats
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:data:question:d1:choice:secrets
+            value: Level 3 - Cardholder data (PCI-DSS), bank accounts, root credentials, API secrets
+            add_score: 4
+            translations:
+              fr:
+                value: Niveau 3 - Données bancaires (PCI), comptes, secrets et clés maîtres
+          translations:
+            fr:
+              text: Quel est le niveau maximal de classification des données traitées ?
+        urn:intuitem:risk:qf_page:appsec-solution-tiering:data:question:d2:
+          type: unique_choice
+          text: What would be the adverse impact if this application's data were breached or disclosed?
+          choices:
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:data:question:d2:choice:negligible
+            value: Negligible / Zero organizational harm
+            add_score: 1
+            translations:
+              fr:
+                value: Négligeable / Aucun préjudice
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:data:question:d2:choice:minor
+            value: Minor operational friction; no external regulatory or customer impact
+            add_score: 2
+            translations:
+              fr:
+                value: Friction mineure; aucun impact réglementaire ou client
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:data:question:d2:choice:severe
+            value: Moderate to severe harm; commercial dispute, customer churn, or standard regulatory scrutiny
+            add_score: 3
+            translations:
+              fr:
+                value: Préjudice modéré à sévère; litiges commerciaux, perte de clients
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:data:question:d2:choice:catastrophic
+            value: Catastrophic impact; card brand fines, systemic loss of trust, or existential statutory penalties
+            add_score: 4
+            translations:
+              fr:
+                value: Impact catastrophique; amendes de régulation, perte de confiance systémique
+          translations:
+            fr:
+              text: Quel serait l'impact d'une fuite ou compromission des données ?
+        urn:intuitem:risk:qf_page:appsec-solution-tiering:data:question:d3:
+          type: unique_choice
+          text: What is the scope and volume of personal data (GDPR) handled?
+          choices:
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:data:question:d3:choice:none
+            value: No personal data
+            add_score: 1
+            translations:
+              fr:
+                value: Aucune donnée personnelle
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:data:question:d3:choice:low
+            value: Low volume (under 1,000 employees or users)
+            add_score: 2
+            translations:
+              fr:
+                value: Faible volume (moins de 1 000 personnes)
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:data:question:d3:choice:medium
+            value: Medium volume (1,000 to 100,000 customer accounts)
+            add_score: 3
+            translations:
+              fr:
+                value: Volume moyen (1 000 à 100 000 comptes clients)
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:data:question:d3:choice:large
+            value: Large-scale (>100,000 individuals, or sensitive financial/HR records)
+            add_score: 4
+            translations:
+              fr:
+                value: Grande échelle (>100 000 personnes ou données RH/financières)
+          translations:
+            fr:
+              text: Quel est le volume et la portée des données personnelles (RGPD) ?
+        urn:intuitem:risk:qf_page:appsec-solution-tiering:data:question:d4:
+          type: unique_choice
+          text: What level of access does the application hold across corporate networks and datastores?
+          choices:
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:data:question:d4:choice:none
+            value: Sandboxed / isolated with no backend or database access
+            add_score: 1
+            translations:
+              fr:
+                value: Isolé / aucun accès aux bases de données ou au réseau interne
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:data:question:d4:choice:standard
+            value: Standard application-level database or restricted API access
+            add_score: 2
+            translations:
+              fr:
+                value: Accès applicatif standard ou API restreinte
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:data:question:d4:choice:wide
+            value: Broad cross-service API access or shared enterprise database access
+            add_score: 3
+            translations:
+              fr:
+                value: Accès API étendu inter-services ou base de données partagée
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:data:question:d4:choice:privileged
+            value: Privileged administrative access, direct cloud control plane, or internal network bridge
+            add_score: 4
+            translations:
+              fr:
+                value: Accès administrateur privilégié, plan de contrôle cloud ou pont réseau
+          translations:
+            fr:
+              text: De quel niveau d'accès réseau et système l'application dispose-t-elle ?
+      translations:
+        fr:
+          name: Classification et exposition des données
+translations:
+  fr:
+    name: Criticité et classification AppSec des solutions
+    description: Formulaire d'évaluation de la criticité des applications selon la résilience métier, la classification des données et l'exposition réseau.

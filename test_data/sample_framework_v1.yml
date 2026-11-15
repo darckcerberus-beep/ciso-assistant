@@ -1,0 +1,78 @@
+urn: urn:intuitem:risk:library:sample-baseline
+locale: en
+ref_id: sample-baseline
+name: Sample Security Baseline
+description: Minimal security baseline framework demonstrating versioning and updates
+copyright: intuitem
+version: 1
+publication_date: '2026-11-15'
+provider: Demo
+packager: Demo
+objects:
+  framework:
+    urn: urn:intuitem:risk:framework:sample-baseline
+    ref_id: sample-baseline
+    name: Sample Security Baseline
+    description: Minimal baseline for demonstration
+    min_score: 0
+    max_score: 100
+    requirement_nodes:
+    - urn: urn:intuitem:risk:req_node:sample-baseline:ac
+      assessable: false
+      depth: 1
+      ref_id: AC
+      name: Access Control
+    - urn: urn:intuitem:risk:req_node:sample-baseline:ac.01
+      assessable: true
+      depth: 2
+      parent_urn: urn:intuitem:risk:req_node:sample-baseline:ac
+      ref_id: AC.01
+      name: Multi-Factor Authentication
+      description: Enforce multi-factor authentication for user access.
+      questions:
+        urn:intuitem:risk:req_node:sample-baseline:ac.01:q1:
+          type: unique_choice
+          text: Is Multi-Factor Authentication (MFA) enforced for all accounts?
+          choices:
+          - urn: urn:intuitem:risk:req_node:sample-baseline:ac.01:q1:c1
+            value: Yes - Enforced for all
+            add_score: 100
+            compute_result: true
+            color: '#28a745'
+          - urn: urn:intuitem:risk:req_node:sample-baseline:ac.01:q1:c2
+            value: No - Password only
+            add_score: 0
+            compute_result: true
+            color: '#dc3545'
+    - urn: urn:intuitem:risk:req_node:sample-baseline:bk
+      assessable: false
+      depth: 1
+      ref_id: BK
+      name: Backup and Resilience
+    - urn: urn:intuitem:risk:req_node:sample-baseline:bk.01
+      assessable: true
+      depth: 2
+      parent_urn: urn:intuitem:risk:req_node:sample-baseline:bk
+      ref_id: BK.01
+      name: Automated Backups
+      description: Regular automated data backups must be performed.
+      questions:
+        urn:intuitem:risk:req_node:sample-baseline:bk.01:q1:
+          type: unique_choice
+          text: What is the backup frequency for production data?
+          choices:
+          - urn: urn:intuitem:risk:req_node:sample-baseline:bk.01:q1:c1
+            value: Daily automated backups
+            add_score: 100
+            compute_result: true
+            color: '#28a745'
+          - urn: urn:intuitem:risk:req_node:sample-baseline:bk.01:q1:c2
+            value: Weekly or ad-hoc
+            add_score: 50
+            compute_result: true
+            color: '#ffc107'
+          - urn: urn:intuitem:risk:req_node:sample-baseline:bk.01:q1:c3
+            value: No regular backups
+            add_score: 0
+            compute_result: true
+            color: '#dc3545'

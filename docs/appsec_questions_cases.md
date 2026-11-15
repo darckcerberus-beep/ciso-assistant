@@ -4,9 +4,10 @@
 > Below is both a **Quick Reference Table** and a **Detailed Breakdown** by Chapter and Requirement Node.
 
 ## Table of Contents
-- [1. Situations & Cases Definitions](#1-situations--cases-definitions)
-- [2. Quick Reference Matrix (All 82 Questions)](#2-quick-reference-matrix)
-- [3. Detailed Questions by Chapter](#3-detailed-questions-by-chapter)
+- [1. AppSec Assurance Pipeline & Solution Tiering Integration](#1-appsec-assurance-pipeline--solution-tiering-integration)
+- [2. Situations & Cases Definitions](#2-situations--cases-definitions)
+- [3. Quick Reference Matrix (All 82 Questions)](#3-quick-reference-matrix)
+- [4. Detailed Questions by Chapter](#4-detailed-questions-by-chapter)
   - [Application Information & Governance](#info)
   - [Identity, Authentication & Access Control](#iam_chapter)
   - [Application Vulnerability Defense & Code Hygiene](#app_defenses_chapter)
@@ -20,7 +21,56 @@
 
 ---
 
-## 1. Situations & Cases Definitions
+## 1. AppSec Assurance Pipeline & Solution Tiering Integration
+
+When treating all applications as third-party software solutions, AppSec governance is managed through a **Two-Stage Assurance Pipeline** directly integrated into CISO Assistant:
+
+```
+[Application Intake / Inventory]
+               │
+               ▼
+┌────────────────────────────────────────────────────────┐
+│ Stage 1: AppSec Solution Tiering (Quick Form)          │
+│ • Evaluates Operational Resilience (RTO, SPOF)         │
+│ • Evaluates Data Classification (Retail CIA, GDPR)     │
+│ • Evaluates Delivery Model & Network Exposure          │
+│ • Deterministic knock-outs (PCI, Secrets, SPOF)        │
+└───────────────────────────┬────────────────────────────┘
+                            │ Writes to solution.tier
+                            ▼
+               ┌────────────────────────┐
+               │    Assigned Tier?      │
+               └────────────┬───────────┘
+                            │
+       ┌────────────────────┼────────────────────┐
+       ▼                    ▼                    ▼
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│   CRITICAL   │     │  IMPORTANT   │     │ STANDARD/LOW │
+│   (Tier 1)   │     │   (Tier 2)   │     │  (Tier 3-4)  │
+└──────┬───────┘     └──────┬───────┘     └──────┬───────┘
+       │                    │                    │
+       ▼                    ▼                    ▼
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│ Full AppSec  │     │ Targeted     │     │ Baseline     │
+│ Assessment   │     │ AppSec Check │     │ Hygiene      │
+│ (All 82 Qs   │     │ (Core IAM,   │     │ (SSO, MFA,   │
+│ + Pentest +  │     │  Crypto, API,│     │  TLS, Patch, │
+│ Threat Model)│     │  SDLC & Logs)│     │  Backups)    │
+└──────────────┘     └──────────────┘     └──────────────┘
+```
+
+### Tier-Driven Assessment Scoping Matrix
+
+| Solution Tier | Triggering Criteria (Quick Form / Knock-Outs) | Assessment Scope & Governance Gates | Re-Assessment Cadence |
+| :--- | :--- | :--- | :--- |
+| **Critical** | Inherent score $\ge 3.3$, or knock-outs: PCI cardholder data, root secrets, SPOF, or regulated critical function | **Comprehensive AppSec Review**: All 82 controls across applicable delivery tracks (`custom_app`, `cots_app`, or `saas_app`), mandatory annual penetration test, formal threat model, blocking CI/CD SAST/SCA gates. | Annual (or upon major architectural release) |
+| **Important** | Inherent score $\ge 2.6$, or knock-outs: Internet-facing confidential data, large-scale GDPR (>100k subjects), or privileged system access | **Targeted AppSec Review**: Core IAM, Session Management, API security, Data Lifecycle, and automated DAST/SCA scans. | Every 18–24 months |
+| **Standard** | Inherent score $\ge 2.0$ | **Baseline Hygiene**: SSO integration, administrative MFA, TLS enforcement, OS patching, and automated backups. | On major version upgrade |
+| **Low impact** | Inherent score $< 2.0$ (internal, public data, high redundancy) | **Lightweight Verification**: Self-attestation of core hygiene; risk accepted for advanced controls. | As needed |
+
+---
+
+## 2. Situations & Cases Definitions
 
 Define or customize your operational situations/cases here for reference:
 
