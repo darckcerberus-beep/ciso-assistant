@@ -134,7 +134,7 @@ class TestTasks(unittest.TestCase):
             mock_post.assert_called_once()
             call_kwargs = mock_post.call_args[1]
             self.assertEqual(call_kwargs["method"], "POST")
-            self.assertEqual(call_kwargs["payload"]["name"], "Periodic Access Review on ApSec")
+            self.assertEqual(call_kwargs["payload"]["name"], "[Standard • Quarterly] Periodic Access Review on ApSec")
             self.assertEqual(call_kwargs["payload"]["applied_controls"], ["c-1"])
             self.assertEqual(call_kwargs["payload"]["assigned_to"], ["u-1"])
 

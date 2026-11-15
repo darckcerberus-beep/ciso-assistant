@@ -637,10 +637,10 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         self.assertNotIn("custom_app", triggered_saas)
         self.assertNotIn("cots_app", triggered_saas)
 
-    def test_appsec_manual_triggered_implementation_groups_orchestration(self):
-        """Verify that the manual AppSec framework hides non-relevant tracks and enables orchestrator-driven dynamic triggering."""
+    def test_appsec_triggered_implementation_groups_orchestration(self):
+        """Verify that the AppSec framework hides non-relevant tracks and enables orchestrator-driven dynamic triggering."""
         # 1. Initial State: Only 'info' (basic profiling) is always selectable; all dependent tracks are hidden
-        res_initial = determine_implementation_groups_triggered_by_others("appsec_manual")
+        res_initial = determine_implementation_groups_triggered_by_others("appsec")
         self.assertGreater(len(res_initial["all_groups"]), 0)
 
         always_selectable = [g["ref_id"] for g in res_initial["always_selectable_groups"]]
@@ -661,7 +661,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
 
         # Triggered map defines prompts for orchestrator
         from classes.audits.implementation_groups import get_framework_triggered_implementation_groups_map
-        trig_map = get_framework_triggered_implementation_groups_map("appsec_manual")
+        trig_map = get_framework_triggered_implementation_groups_map("appsec")
         self.assertIn("custom_app", trig_map)
         self.assertIn("cots_app", trig_map)
         self.assertIn("infra", trig_map)
@@ -676,7 +676,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
                 "q2": "Internet-facing (Public Web / Mobile API)",
             },
         }
-        res_custom = determine_implementation_groups_triggered_by_others("appsec_manual", answers=custom_answers)
+        res_custom = determine_implementation_groups_triggered_by_others("appsec", answers=custom_answers)
 
         triggered_custom = [g["ref_id"] for g in res_custom["triggered_groups"]]
         visible_custom = [g["ref_id"] for g in res_custom["visible_groups"]]
@@ -709,7 +709,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
                 "q2": "Internal / Restricted Network only",
             },
         }
-        res_cots = determine_implementation_groups_triggered_by_others("appsec_manual", answers=cots_answers)
+        res_cots = determine_implementation_groups_triggered_by_others("appsec", answers=cots_answers)
         triggered_cots = [g["ref_id"] for g in res_cots["triggered_groups"]]
         hidden_cots = [g["ref_id"] for g in res_cots["hidden_groups"]]
 
@@ -726,7 +726,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
                 "q3": "Yes - The SaaS vendor holds an active ISO/IEC 27001 certification or SOC 2 Type II report",
             },
         }
-        res_saas = determine_implementation_groups_triggered_by_others("appsec_manual", answers=saas_answers)
+        res_saas = determine_implementation_groups_triggered_by_others("appsec", answers=saas_answers)
         triggered_saas = [g["ref_id"] for g in res_saas["triggered_groups"]]
         hidden_saas = [g["ref_id"] for g in res_saas["hidden_groups"]]
         visible_saas = [g["ref_id"] for g in res_saas["visible_groups"]]
@@ -757,7 +757,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
                 "q2": "No - The SaaS vendor is not ISO/IEC 27001 or SOC 2 Type II certified",
             },
         }
-        res_saas_uncert = determine_implementation_groups_triggered_by_others("appsec_manual", answers=saas_uncert_answers)
+        res_saas_uncert = determine_implementation_groups_triggered_by_others("appsec", answers=saas_uncert_answers)
         triggered_saas_uncert = [g["ref_id"] for g in res_saas_uncert["triggered_groups"]]
         hidden_saas_uncert = [g["ref_id"] for g in res_saas_uncert["hidden_groups"]]
         visible_saas_uncert = [g["ref_id"] for g in res_saas_uncert["visible_groups"]]
@@ -778,11 +778,11 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         import yaml
         from tests.test_application_scenarios import ApplicationRiskSimulator
 
-        with open("YML/appsec_manual.yml", "r", encoding="utf-8") as f:
+        with open("YML/appsec.yml", "r", encoding="utf-8") as f:
             fw_doc = yaml.safe_load(f)
         fw = fw_doc["objects"]["framework"]
         nodes_by_ref = {n["ref_id"]: n for n in fw["requirement_nodes"] if n.get("assessable")}
-        simulator = ApplicationRiskSimulator("YML/appsec_manual.yml")
+        simulator = ApplicationRiskSimulator("YML/appsec.yml")
 
         expected_cases = {
             "test_data/app_manual_custom_internal.yml": {
@@ -844,7 +844,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
 
                 # 1. Implementation Group Scoping
                 dep_info = determine_implementation_groups_triggered_by_others(
-                    "appsec_manual",
+                    "appsec",
                     yaml_path=file_path,
                 )
                 vis_refs = {g["ref_id"] for g in dep_info["visible_groups"]}
@@ -882,10 +882,10 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
                         f"Scenario '{sc_name}' evaluated but its likelihood requirement '{lh_node_ref}' is not answered in {file_path}",
                     )
 
-    def test_appsec_manual_respondent_questions_per_triggered_ig(self):
-        """Verify that appsec_manual framework asks the initial respondent if they can answer each triggered IG or if somebody else has to."""
+    def test_appsec_respondent_questions_per_triggered_ig(self):
+        """Verify that appsec framework asks the initial respondent if they can answer each triggered IG or if somebody else has to."""
         import yaml
-        with open("YML/appsec_manual.yml", "r", encoding="utf-8") as f:
+        with open("YML/appsec.yml", "r", encoding="utf-8") as f:
             fw_doc = yaml.safe_load(f)
         fw = fw_doc["objects"]["framework"]
         hosting_node = next(n for n in fw["requirement_nodes"] if n.get("ref_id") == "hosting")
@@ -905,7 +905,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         }
 
         for q_id, (track, trigger_choices) in expected_tracks.items():
-            q_urn = f"urn:intuitem:risk:req_node:appsec_manual:hosting:{q_id}"
+            q_urn = f"urn:intuitem:risk:req_node:appsec:hosting:{q_id}"
             self.assertIn(q_urn, questions)
             q_def = questions[q_urn]
             text = q_def["text"]
@@ -919,7 +919,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             self.assertEqual(c2_val, "Somebody else has to answer this track")
 
             # Check delegate free text form field
-            del_urn = f"urn:intuitem:risk:req_node:appsec_manual:hosting:{q_id}_delegate"
+            del_urn = f"urn:intuitem:risk:req_node:appsec:hosting:{q_id}_delegate"
             self.assertIn(del_urn, questions)
             del_def = questions[del_urn]
             self.assertEqual(del_def["type"], "text")
@@ -933,9 +933,9 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         # 2b. Verify saas_contract_compliance has certification question (q2), uncertified track readiness question (q3), and delegate text field (q3_delegate)
         saas_contract_node = next(n for n in fw["requirement_nodes"] if n.get("ref_id") == "saas_contract_compliance")
         saas_questions = saas_contract_node["questions"]
-        q2_urn = "urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q2"
-        q3_urn = "urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q3"
-        del_saas_urn = "urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q3_delegate"
+        q2_urn = "urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q2"
+        q3_urn = "urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q3"
+        del_saas_urn = "urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q3_delegate"
         self.assertIn(q2_urn, saas_questions)
         self.assertIn(q3_urn, saas_questions)
         self.assertIn(del_saas_urn, saas_questions)
@@ -984,7 +984,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             answered_questions = {a["question"] for a in hosting_answers}
 
             for q_id in all_track_and_delegate_ids:
-                q_urn = f"urn:intuitem:risk:req_node:appsec_manual:hosting:{q_id}"
+                q_urn = f"urn:intuitem:risk:req_node:appsec:hosting:{q_id}"
                 q_text = questions[q_urn]["text"]
                 if q_id in expected_active:
                     self.assertIn(q_text, answered_questions, f"Expected active question {q_id} not answered in {profile_path}")
@@ -1117,7 +1117,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         - When respondent answers 'Somebody else has to answer this track' (c2): CISO Assistant does not trigger the IG,
           leaving it in pending_dependencies with the delegate's contact information populated for orchestrator assignment.
         """
-        for fw_ref in ["appsec", "appsec_manual"]:
+        for fw_ref in ["appsec"]:
             with self.subTest(framework=fw_ref):
                 # Scenario: Custom software hosted internally.
                 # Respondent can answer baseline (q4) and custom_app (q5),
@@ -1193,7 +1193,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         2. is_directly_assignable is set to False (teams cannot be directly assigned as user accounts).
         3. suggestion_type is 'team_or_role'.
         """
-        for fw_ref in ["appsec", "appsec_manual"]:
+        for fw_ref in ["appsec"]:
             with self.subTest(framework=fw_ref):
                 answers = [
                     {

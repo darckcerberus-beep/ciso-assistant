@@ -446,7 +446,7 @@ class TestYamlIntegrity(unittest.TestCase):
                 splash_ref_ids = [n.get("ref_id") for n in splash_nodes]
                 expected_splash_ref_ids = (
                     ["instructions_splash", "baseline_splash", "thank_you_splash"]
-                    if fw["ref_id"] in ("appsec", "appsec_manual")
+                    if fw["ref_id"] == "appsec"
                     else ["instructions_splash", "thank_you_splash"]
                 )
                 self.assertEqual(
@@ -1198,15 +1198,6 @@ class TestYamlIntegrity(unittest.TestCase):
             self.assertNotIn("baseline", groups, f"{ref_id} must not include baseline group")
             self.assertNotIn("saas_app", groups, f"{ref_id} must not include saas_app group")
 
-        manual_fw = next((fw for fw in self.frameworks if fw["ref_id"] == "appsec_manual"), None)
-        if manual_fw:
-            for ref_id in perimeter_reqs:
-                node = manual_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec_manual:{ref_id}")
-                self.assertIsNotNone(node, f"Perimeter node {ref_id} missing in appsec_manual")
-                groups = node.get("implementation_groups", [])
-                self.assertIn("internet_facing", groups, f"{ref_id} missing internet_facing group in appsec_manual")
-                self.assertNotIn("baseline", groups, f"{ref_id} must not include baseline group in appsec_manual")
-                self.assertNotIn("saas_app", groups, f"{ref_id} must not include saas_app group in appsec_manual")
 
         # Verify parent crypto_chapter is scoped to infra and excludes saas_app and baseline
         crypto_chapter = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:crypto_chapter")
@@ -1459,7 +1450,7 @@ class TestYamlIntegrity(unittest.TestCase):
 
     def test_appsec_file_upload_controls(self):
         """Verify file upload security controls under custom_app implementation group with gating question."""
-        for fw_ref in ["appsec", "appsec_manual"]:
+        for fw_ref in ["appsec"]:
             fw = next((f for f in self.frameworks if f["ref_id"] == fw_ref), None)
             if not fw:
                 continue
@@ -1508,13 +1499,13 @@ class TestYamlIntegrity(unittest.TestCase):
                     c_urn = choice.get("urn", "")
                     self.assertTrue(":c1" in c_urn or ":c2" in c_urn, f"Choice URN {c_urn} does not follow standard taxonomy")
 
-    def test_appsec_manual_structure_and_scoping(self):
-        """Ensure AppSec Manual variant triggers IGs on c1, leaves assignment in orchestrator on c2, and scopes Chapter 1 to info group."""
-        manual_fw = next((fw for fw in self.frameworks if fw["ref_id"] == "appsec_manual"), None)
-        self.assertIsNotNone(manual_fw, "appsec_manual framework not found in catalog")
+    def test_appsec_structure_and_scoping(self):
+        """Ensure AppSec triggers IGs on c1, leaves assignment in orchestrator on c2, and scopes Chapter 1 to info group."""
+        appsec_fw = next((fw for fw in self.frameworks if fw["ref_id"] == "appsec"), None)
+        self.assertIsNotNone(appsec_fw, "appsec framework not found in catalog")
 
         # 1. Implementation groups: info is default_selected, baseline is not
-        ig_defs = manual_fw["ig_defs_by_ref"]
+        ig_defs = appsec_fw["ig_defs_by_ref"]
         self.assertIn("info", ig_defs)
         self.assertTrue(ig_defs["info"].get("default_selected", False))
         self.assertIn("baseline", ig_defs)
@@ -1524,15 +1515,15 @@ class TestYamlIntegrity(unittest.TestCase):
 
         # 2. In merged model, choice c1 triggers IG in CISO Assistant, choice c2 leaves it in orchestrator
         ig_choice_map = {
-            "urn:intuitem:risk:req_node:appsec_manual:hosting:q4:c1": ["baseline"],
-            "urn:intuitem:risk:req_node:appsec_manual:hosting:q5:c1": ["custom_app"],
-            "urn:intuitem:risk:req_node:appsec_manual:hosting:q6:c1": ["cots_app"],
-            "urn:intuitem:risk:req_node:appsec_manual:hosting:q7:c1": ["infra"],
-            "urn:intuitem:risk:req_node:appsec_manual:hosting:q8:c1": ["internet_facing"],
-            "urn:intuitem:risk:req_node:appsec_manual:hosting:q9:c1": ["saas_app"],
-            "urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q3:c1": ["saas_uncertified"],
+            "urn:intuitem:risk:req_node:appsec:hosting:q4:c1": ["baseline"],
+            "urn:intuitem:risk:req_node:appsec:hosting:q5:c1": ["custom_app"],
+            "urn:intuitem:risk:req_node:appsec:hosting:q6:c1": ["cots_app"],
+            "urn:intuitem:risk:req_node:appsec:hosting:q7:c1": ["infra"],
+            "urn:intuitem:risk:req_node:appsec:hosting:q8:c1": ["internet_facing"],
+            "urn:intuitem:risk:req_node:appsec:hosting:q9:c1": ["saas_app"],
+            "urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q3:c1": ["saas_uncertified"],
         }
-        for n_urn, node in manual_fw["req_nodes"].items():
+        for n_urn, node in appsec_fw["req_nodes"].items():
             for q_key, q in node.get("questions", {}).items():
                 for c in q.get("choices", []):
                     urn = c.get("urn")
@@ -1546,7 +1537,7 @@ class TestYamlIntegrity(unittest.TestCase):
                         self.assertNotIn(
                             "select_implementation_groups",
                             c,
-                            f"Choice {urn} in appsec_manual must not have select_implementation_groups",
+                            f"Choice {urn} in appsec must not have select_implementation_groups",
                         )
 
         # 3. Chapter 1 profiling questions are scoped to info group
@@ -1558,81 +1549,81 @@ class TestYamlIntegrity(unittest.TestCase):
             "hosting",
         ]
         for ref_id in chapter1_nodes:
-            node = manual_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec_manual:{ref_id}")
-            self.assertIsNotNone(node, f"Node {ref_id} missing in appsec_manual")
+            node = appsec_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec:{ref_id}")
+            self.assertIsNotNone(node, f"Node {ref_id} missing in appsec")
             self.assertEqual(
                 node.get("implementation_groups"),
                 ["info"],
-                f"Node {ref_id} in appsec_manual must be scoped to ['info']",
+                f"Node {ref_id} in appsec must be scoped to ['info']",
             )
 
-        # In appsec_manual, hosting node contains hosting model (q1), network exposure (q2),
+        # In appsec, hosting node contains hosting model (q1), network exposure (q2),
         # respondent assignment questions for each triggered implementation group (q4-q9),
         # and conditional free text delegate form fields for designating assignees (q4_delegate - q9_delegate)
-        hosting_node = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:hosting")
-        self.assertIsNotNone(hosting_node, "Node hosting missing in appsec_manual")
+        hosting_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:hosting")
+        self.assertIsNotNone(hosting_node, "Node hosting missing in appsec")
         self.assertEqual(len(hosting_node.get("questions", {})), 14)
-        self.assertNotIn("urn:intuitem:risk:req_node:appsec_manual:hosting:q3", hosting_node.get("questions", {}))
-        self.assertNotIn("urn:intuitem:risk:req_node:appsec_manual:hosting:q10", hosting_node.get("questions", {}))
-        self.assertNotIn("urn:intuitem:risk:req_node:appsec_manual:hosting:q10_delegate", hosting_node.get("questions", {}))
+        self.assertNotIn("urn:intuitem:risk:req_node:appsec:hosting:q3", hosting_node.get("questions", {}))
+        self.assertNotIn("urn:intuitem:risk:req_node:appsec:hosting:q10", hosting_node.get("questions", {}))
+        self.assertNotIn("urn:intuitem:risk:req_node:appsec:hosting:q10_delegate", hosting_node.get("questions", {}))
 
-        q2_manual = hosting_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec_manual:hosting:q2")
-        self.assertIsNotNone(q2_manual)
-        dep_manual = q2_manual.get("depends_on", {})
-        self.assertEqual(dep_manual.get("question"), "urn:intuitem:risk:req_node:appsec_manual:hosting:q1")
-        self.assertIn("urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c1", dep_manual.get("answers", []))
-        self.assertIn("urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c2", dep_manual.get("answers", []))
-        self.assertNotIn("urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c3", dep_manual.get("answers", []))
+        q2 = hosting_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:hosting:q2")
+        self.assertIsNotNone(q2)
+        dep = q2.get("depends_on", {})
+        self.assertEqual(dep.get("question"), "urn:intuitem:risk:req_node:appsec:hosting:q1")
+        self.assertIn("urn:intuitem:risk:req_node:appsec:hosting:q1:c1", dep.get("answers", []))
+        self.assertIn("urn:intuitem:risk:req_node:appsec:hosting:q1:c2", dep.get("answers", []))
+        self.assertNotIn("urn:intuitem:risk:req_node:appsec:hosting:q1:c3", dep.get("answers", []))
 
         # Verify respondent assignment questions for each triggered IG in hosting (q4 to q9) and delegate text fields
         expected_ig_questions = {
             "q4": {
                 "track": "baseline",
-                "dep_q": "urn:intuitem:risk:req_node:appsec_manual:hosting:q1",
+                "dep_q": "urn:intuitem:risk:req_node:appsec:hosting:q1",
                 "dep_answers": [
-                    "urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c1",
-                    "urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c2",
-                    "urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c3",
+                    "urn:intuitem:risk:req_node:appsec:hosting:q1:c1",
+                    "urn:intuitem:risk:req_node:appsec:hosting:q1:c2",
+                    "urn:intuitem:risk:req_node:appsec:hosting:q1:c3",
                 ],
             },
             "q5": {
                 "track": "custom_app",
-                "dep_q": "urn:intuitem:risk:req_node:appsec_manual:hosting:q1",
-                "dep_answers": ["urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c1"],
+                "dep_q": "urn:intuitem:risk:req_node:appsec:hosting:q1",
+                "dep_answers": ["urn:intuitem:risk:req_node:appsec:hosting:q1:c1"],
             },
             "q6": {
                 "track": "cots_app",
-                "dep_q": "urn:intuitem:risk:req_node:appsec_manual:hosting:q1",
-                "dep_answers": ["urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c2"],
+                "dep_q": "urn:intuitem:risk:req_node:appsec:hosting:q1",
+                "dep_answers": ["urn:intuitem:risk:req_node:appsec:hosting:q1:c2"],
             },
             "q7": {
                 "track": "infra",
-                "dep_q": "urn:intuitem:risk:req_node:appsec_manual:hosting:q1",
+                "dep_q": "urn:intuitem:risk:req_node:appsec:hosting:q1",
                 "dep_answers": [
-                    "urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c1",
-                    "urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c2",
+                    "urn:intuitem:risk:req_node:appsec:hosting:q1:c1",
+                    "urn:intuitem:risk:req_node:appsec:hosting:q1:c2",
                 ],
             },
             "q8": {
                 "track": "internet_facing",
-                "dep_q": "urn:intuitem:risk:req_node:appsec_manual:hosting:q2",
-                "dep_answers": ["urn:intuitem:risk:req_node:appsec_manual:hosting:q2:c2"],
+                "dep_q": "urn:intuitem:risk:req_node:appsec:hosting:q2",
+                "dep_answers": ["urn:intuitem:risk:req_node:appsec:hosting:q2:c2"],
             },
             "q9": {
                 "track": "saas_app",
-                "dep_q": "urn:intuitem:risk:req_node:appsec_manual:hosting:q1",
-                "dep_answers": ["urn:intuitem:risk:req_node:appsec_manual:hosting:q1:c3"],
+                "dep_q": "urn:intuitem:risk:req_node:appsec:hosting:q1",
+                "dep_answers": ["urn:intuitem:risk:req_node:appsec:hosting:q1:c3"],
             },
         }
 
         for q_id, q_info in expected_ig_questions.items():
-            q_urn = f"urn:intuitem:risk:req_node:appsec_manual:hosting:{q_id}"
+            q_urn = f"urn:intuitem:risk:req_node:appsec:hosting:{q_id}"
             q_obj = hosting_node.get("questions", {}).get(q_urn)
-            self.assertIsNotNone(q_obj, f"Question {q_urn} missing in appsec_manual hosting node")
+            self.assertIsNotNone(q_obj, f"Question {q_urn} missing in appsec hosting node")
             self.assertIn("somebody else", q_obj.get("text", "").lower())
-            dep = q_obj.get("depends_on", {})
-            self.assertEqual(dep.get("question"), q_info["dep_q"])
-            self.assertEqual(dep.get("answers", []), q_info["dep_answers"])
+            dep_obj = q_obj.get("depends_on", {})
+            self.assertEqual(dep_obj.get("question"), q_info["dep_q"])
+            self.assertEqual(dep_obj.get("answers", []), q_info["dep_answers"])
             choices = q_obj.get("choices", [])
             self.assertEqual(len(choices), 2)
             c1_val = choices[0].get("value")
@@ -1641,9 +1632,9 @@ class TestYamlIntegrity(unittest.TestCase):
             self.assertEqual(c2_val, "Somebody else has to answer this track")
 
             # Check corresponding conditional free text delegate form field
-            del_urn = f"urn:intuitem:risk:req_node:appsec_manual:hosting:{q_id}_delegate"
+            del_urn = f"urn:intuitem:risk:req_node:appsec:hosting:{q_id}_delegate"
             del_obj = hosting_node.get("questions", {}).get(del_urn)
-            self.assertIsNotNone(del_obj, f"Delegate question {del_urn} missing in appsec_manual hosting node")
+            self.assertIsNotNone(del_obj, f"Delegate question {del_urn} missing in appsec hosting node")
             self.assertEqual(del_obj.get("type"), "text")
             self.assertNotIn("choices", del_obj)
             self.assertFalse(del_obj.get("required", True))
@@ -1653,96 +1644,93 @@ class TestYamlIntegrity(unittest.TestCase):
             self.assertEqual(del_dep.get("answers"), [f"{q_urn}:c2"])
             self.assertEqual(del_dep.get("condition"), "any")
 
-        # Verify saas_contract_compliance node in appsec_manual has q1 (contract), q2 (certification), q3 (saas_uncertified readiness), and q3_delegate
-        saas_contract_manual = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance")
-        self.assertIsNotNone(saas_contract_manual)
-        q2_m = saas_contract_manual.get("questions", {}).get("urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q2")
-        self.assertIsNotNone(q2_m)
-        q3_m = saas_contract_manual.get("questions", {}).get("urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q3")
-        self.assertIsNotNone(q3_m)
-        self.assertEqual(q3_m.get("depends_on", {}).get("question"), "urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q2")
-        self.assertEqual(q3_m.get("depends_on", {}).get("answers"), ["urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q2:c2"])
-        q3_m_choices = q3_m.get("choices", [])
-        self.assertEqual(len(q3_m_choices), 2)
-        self.assertEqual(q3_m_choices[0].get("value"), "I can answer this track")
-        self.assertEqual(q3_m_choices[1].get("value"), "Somebody else has to answer this track")
-        q3_m_del = saas_contract_manual.get("questions", {}).get("urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q3_delegate")
-        self.assertIsNotNone(q3_m_del)
-        self.assertEqual(q3_m_del.get("type"), "text")
-        self.assertNotIn("choices", q3_m_del)
-        self.assertFalse(q3_m_del.get("required", True))
-        self.assertEqual(q3_m_del.get("depends_on", {}).get("question"), "urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q3")
-        self.assertEqual(q3_m_del.get("depends_on", {}).get("answers"), ["urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance:q3:c2"])
+        # Verify saas_contract_compliance node in appsec has q1 (contract), q2 (certification), q3 (saas_uncertified readiness), and q3_delegate
+        saas_contract = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:saas_contract_compliance")
+        self.assertIsNotNone(saas_contract)
+        q2_sc = saas_contract.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q2")
+        self.assertIsNotNone(q2_sc)
+        q3_sc = saas_contract.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q3")
+        self.assertIsNotNone(q3_sc)
+        self.assertEqual(q3_sc.get("depends_on", {}).get("question"), "urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q2")
+        self.assertEqual(q3_sc.get("depends_on", {}).get("answers"), ["urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q2:c2"])
+        q3_choices = q3_sc.get("choices", [])
+        self.assertEqual(len(q3_choices), 2)
+        self.assertEqual(q3_choices[0].get("value"), "I can answer this track")
+        self.assertEqual(q3_choices[1].get("value"), "Somebody else has to answer this track")
+        q3_del = saas_contract.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q3_delegate")
+        self.assertIsNotNone(q3_del)
+        self.assertEqual(q3_del.get("type"), "text")
+        self.assertNotIn("choices", q3_del)
+        self.assertFalse(q3_del.get("required", True))
+        self.assertEqual(q3_del.get("depends_on", {}).get("question"), "urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q3")
+        self.assertEqual(q3_del.get("depends_on", {}).get("answers"), ["urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q3:c2"])
 
-        # Verify that in both appsec and appsec_manual, each triggered IG definition specifies delegate_answer
-        appsec_fw = next((fw for fw in self.frameworks if fw["ref_id"] == "appsec"), None)
-        self.assertIsNotNone(appsec_fw, "appsec framework not found in catalog")
-        for fw_key, fw_data in [("appsec", appsec_fw), ("appsec_manual", manual_fw)]:
-            ig_defs = fw_data["ig_defs_by_ref"]
-            for q_id, q_info in expected_ig_questions.items():
-                track_ref = q_info["track"]
-                self.assertIn(track_ref, ig_defs, f"Track {track_ref} missing in {fw_key} ig_defs")
-                expected_del_urn = f"urn:intuitem:risk:req_node:{fw_key}:hosting:{q_id}_delegate"
-                self.assertEqual(
-                    ig_defs[track_ref].get("delegate_answer"),
-                    expected_del_urn,
-                    f"IG '{track_ref}' in {fw_key} must specify delegate_answer={expected_del_urn}",
-                )
-            # Verify saas_uncertified delegate_answer points to saas_audit_and_compliance:q4_delegate
-            self.assertIn("saas_uncertified", ig_defs)
-            expected_saas_uncert_del = f"urn:intuitem:risk:req_node:{fw_key}:saas_contract_compliance:q3_delegate"
+        # Verify that in appsec, each triggered IG definition specifies delegate_answer
+        ig_defs = appsec_fw["ig_defs_by_ref"]
+        for q_id, q_info in expected_ig_questions.items():
+            track_ref = q_info["track"]
+            self.assertIn(track_ref, ig_defs, f"Track {track_ref} missing in appsec ig_defs")
+            expected_del_urn = f"urn:intuitem:risk:req_node:appsec:hosting:{q_id}_delegate"
             self.assertEqual(
-                ig_defs["saas_uncertified"].get("delegate_answer"),
-                expected_saas_uncert_del,
-                f"IG 'saas_uncertified' in {fw_key} must specify delegate_answer={expected_saas_uncert_del}",
+                ig_defs[track_ref].get("delegate_answer"),
+                expected_del_urn,
+                f"IG '{track_ref}' in appsec must specify delegate_answer={expected_del_urn}",
             )
+        # Verify saas_uncertified delegate_answer points to saas_contract_compliance:q3_delegate
+        self.assertIn("saas_uncertified", ig_defs)
+        expected_saas_uncert_del = "urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q3_delegate"
+        self.assertEqual(
+            ig_defs["saas_uncertified"].get("delegate_answer"),
+            expected_saas_uncert_del,
+            f"IG 'saas_uncertified' in appsec must specify delegate_answer={expected_saas_uncert_del}",
+        )
 
-        # Validate edge_network_protection requirement node in appsec_manual is scoped to internet_facing track
-        edge_manual = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:edge_network_protection")
-        self.assertIsNotNone(edge_manual, "edge_network_protection missing in appsec_manual")
-        self.assertEqual(edge_manual.get("implementation_groups"), ["internet_facing"])
-        q1_edge_manual = edge_manual.get("questions", {}).get("urn:intuitem:risk:req_node:appsec_manual:edge_network_protection:q1")
-        self.assertIsNotNone(q1_edge_manual, "edge_network_protection:q1 missing in appsec_manual")
-        self.assertIn("cloudflare", q1_edge_manual.get("text", "").lower())
-        q1_choices_manual = {c["urn"]: c for c in q1_edge_manual.get("choices", [])}
-        self.assertEqual(len(q1_choices_manual), 2)
-        cf_manual_yes = q1_choices_manual["urn:intuitem:risk:req_node:appsec_manual:edge_network_protection:q1:c1"]
-        cf_manual_no = q1_choices_manual["urn:intuitem:risk:req_node:appsec_manual:edge_network_protection:q1:c2"]
-        self.assertEqual(cf_manual_yes["add_score"], 100)
-        self.assertTrue(cf_manual_yes["compute_result"])
-        self.assertEqual(cf_manual_yes["value"], "Yes")
-        self.assertEqual(cf_manual_no["add_score"], 0)
-        self.assertFalse(cf_manual_no["compute_result"])
-        self.assertEqual(cf_manual_no["value"], "No")
+        # Validate edge_network_protection requirement node in appsec is scoped to internet_facing track
+        edge_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:edge_network_protection")
+        self.assertIsNotNone(edge_node, "edge_network_protection missing in appsec")
+        self.assertEqual(edge_node.get("implementation_groups"), ["internet_facing"])
+        q1_edge = edge_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:edge_network_protection:q1")
+        self.assertIsNotNone(q1_edge, "edge_network_protection:q1 missing in appsec")
+        self.assertIn("cloudflare", q1_edge.get("text", "").lower())
+        q1_choices = {c["urn"]: c for c in q1_edge.get("choices", [])}
+        self.assertEqual(len(q1_choices), 2)
+        cf_yes = q1_choices["urn:intuitem:risk:req_node:appsec:edge_network_protection:q1:c1"]
+        cf_no = q1_choices["urn:intuitem:risk:req_node:appsec:edge_network_protection:q1:c2"]
+        self.assertEqual(cf_yes["add_score"], 100)
+        self.assertTrue(cf_yes["compute_result"])
+        self.assertEqual(cf_yes["value"], "Yes")
+        self.assertEqual(cf_no["add_score"], 0)
+        self.assertFalse(cf_no["compute_result"])
+        self.assertEqual(cf_no["value"], "No")
 
         # network_exposure is no longer a standalone node
-        self.assertNotIn("urn:intuitem:risk:req_node:appsec_manual:network_exposure", manual_fw["req_nodes"])
+        self.assertNotIn("urn:intuitem:risk:req_node:appsec:network_exposure", appsec_fw["req_nodes"])
 
         # 4. Total requirement nodes (61) and scenarios (44)
-        self.assertEqual(len(manual_fw["req_nodes"]), 61)
-        self.assertEqual(len(manual_fw["scenarios"]), 44)
-        self.assertEqual(len(manual_fw["threats"]), 9)
-        self.assertEqual(len(manual_fw["vulns"]), 18)
-        self.assertEqual(len(manual_fw["ref_ctrls"]), 26)
+        self.assertEqual(len(appsec_fw["req_nodes"]), 61)
+        self.assertEqual(len(appsec_fw["scenarios"]), 44)
+        self.assertEqual(len(appsec_fw["threats"]), 9)
+        self.assertEqual(len(appsec_fw["vulns"]), 18)
+        self.assertEqual(len(appsec_fw["ref_ctrls"]), 26)
 
         # 5. Universal IAM nodes are grouped under the 'baseline' track
         for ref_id in ["authentication_and_mfa", "access_control_and_rbac"]:
-            node = manual_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec_manual:{ref_id}")
-            self.assertIsNotNone(node, f"Node {ref_id} missing in appsec_manual")
+            node = appsec_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec:{ref_id}")
+            self.assertIsNotNone(node, f"Node {ref_id} missing in appsec")
             self.assertEqual(
                 node.get("implementation_groups"),
                 ["baseline"],
-                f"Node {ref_id} in appsec_manual must be scoped to ['baseline']",
+                f"Node {ref_id} in appsec must be scoped to ['baseline']",
             )
 
         # 6. COTS requirements & SaaS contractual vs "is effectively done" checks
-        cots_hardening = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:cots_deployment_hardening")
-        self.assertIsNotNone(cots_hardening, "cots_deployment_hardening missing in appsec_manual")
+        cots_hardening = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:cots_deployment_hardening")
+        self.assertIsNotNone(cots_hardening, "cots_deployment_hardening missing in appsec")
         self.assertEqual(cots_hardening.get("implementation_groups"), ["cots_app"])
         self.assertEqual(len(cots_hardening.get("questions", {})), 3)
 
-        os_patching = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:os_patching")
-        self.assertIsNotNone(os_patching, "os_patching missing in appsec_manual")
+        os_patching = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:os_patching")
+        self.assertIsNotNone(os_patching, "os_patching missing in appsec")
         self.assertEqual(os_patching.get("implementation_groups"), ["infra"])
         self.assertEqual(len(os_patching.get("questions", {})), 3)
 
@@ -1757,45 +1745,45 @@ class TestYamlIntegrity(unittest.TestCase):
             "os_patching",
         ]
         for ref_id in infra_nodes:
-            node = manual_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec_manual:{ref_id}")
-            self.assertIsNotNone(node, f"Node {ref_id} missing in appsec_manual")
+            node = appsec_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec:{ref_id}")
+            self.assertIsNotNone(node, f"Node {ref_id} missing in appsec")
             self.assertEqual(
                 node.get("implementation_groups"),
                 ["infra"],
-                f"Node {ref_id} in appsec_manual must be scoped to ['infra']",
+                f"Node {ref_id} in appsec must be scoped to ['infra']",
             )
 
-        manual_de = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:data_exchange")
-        self.assertIsNotNone(manual_de, "data_exchange missing in appsec_manual")
-        self.assertEqual(manual_de.get("implementation_groups"), ["custom_app", "cots_app"])
-        self.assertEqual(len(manual_de.get("questions", {})), 2)
+        data_ex = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:data_exchange")
+        self.assertIsNotNone(data_ex, "data_exchange missing in appsec")
+        self.assertEqual(data_ex.get("implementation_groups"), ["custom_app", "cots_app"])
+        self.assertEqual(len(data_ex.get("questions", {})), 2)
 
-        self.assertNotIn("urn:intuitem:risk:req_node:appsec_manual:saas_penetration_testing", manual_fw["req_nodes"])
-        saas_contract = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:saas_contract_compliance")
-        self.assertIsNotNone(saas_contract, "saas_contract_compliance missing in appsec_manual")
+        self.assertNotIn("urn:intuitem:risk:req_node:appsec:saas_penetration_testing", appsec_fw["req_nodes"])
+        saas_contract = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:saas_contract_compliance")
+        self.assertIsNotNone(saas_contract, "saas_contract_compliance missing in appsec")
         self.assertEqual(saas_contract.get("implementation_groups"), ["saas_app"])
         self.assertEqual(len(saas_contract.get("questions", {})), 4)
 
-        saas_audit = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:saas_audit_and_compliance")
-        self.assertIsNotNone(saas_audit, "saas_audit_and_compliance missing in appsec_manual")
+        saas_audit = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:saas_audit_and_compliance")
+        self.assertIsNotNone(saas_audit, "saas_audit_and_compliance missing in appsec")
         self.assertEqual(saas_audit.get("implementation_groups"), ["saas_app"])
         self.assertEqual(len(saas_audit.get("questions", {})), 2)
 
-        saas_sla = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:saas_vulnerability_remediation_sla")
-        self.assertIsNotNone(saas_sla, "saas_vulnerability_remediation_sla missing in appsec_manual")
+        saas_sla = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:saas_vulnerability_remediation_sla")
+        self.assertIsNotNone(saas_sla, "saas_vulnerability_remediation_sla missing in appsec")
         self.assertEqual(saas_sla.get("implementation_groups"), ["saas_uncertified"])
         self.assertEqual(len(saas_sla.get("questions", {})), 1)
 
-        saas_pci = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:saas_pci_dss")
-        self.assertIsNotNone(saas_pci, "saas_pci_dss missing in appsec_manual")
+        saas_pci = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:saas_pci_dss")
+        self.assertIsNotNone(saas_pci, "saas_pci_dss missing in appsec")
         self.assertEqual(saas_pci.get("implementation_groups"), ["saas_app"])
         self.assertEqual(len(saas_pci.get("questions", {})), 3)
 
-        hosted_pentest = manual_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec_manual:penetration_testing_and_vulnerability_management")
-        self.assertIsNotNone(hosted_pentest, "penetration_testing_and_vulnerability_management missing in appsec_manual")
+        hosted_pentest = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management")
+        self.assertIsNotNone(hosted_pentest, "penetration_testing_and_vulnerability_management missing in appsec")
         self.assertEqual(hosted_pentest.get("implementation_groups"), ["internet_facing"])
         self.assertEqual(len(hosted_pentest.get("questions", {})), 1)
-        q1_pentest = hosted_pentest.get("questions", {}).get("urn:intuitem:risk:req_node:appsec_manual:penetration_testing_and_vulnerability_management:q1")
+        q1_pentest = hosted_pentest.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management:q1")
         self.assertIsNotNone(q1_pentest)
         self.assertIn("bug bounty", q1_pentest.get("text", "").lower())
         q1_yes = next(c for c in q1_pentest.get("choices", []) if c.get("value") == "Yes")
@@ -1828,7 +1816,7 @@ class TestYamlIntegrity(unittest.TestCase):
             "saas_subcontractor_management",
         }
 
-        for fw_ref in ["appsec", "appsec_manual"]:
+        for fw_ref in ["appsec"]:
             fw = next((f for f in self.frameworks if f["ref_id"] == fw_ref), None)
             self.assertIsNotNone(fw, f"{fw_ref} missing")
 
@@ -1886,7 +1874,7 @@ class TestYamlIntegrity(unittest.TestCase):
             self.assertIn(key, common_objs, f"Missing {key} in common objects file")
             self.assertGreater(len(common_objs[key]), 0, f"Common objects {key} cannot be empty")
 
-        for fw_ref in ["appsec", "appsec_manual"]:
+        for fw_ref in ["appsec"]:
             fw = next((f for f in self.frameworks if f["ref_id"] == fw_ref), None)
             self.assertIsNotNone(fw, f"{fw_ref} framework missing")
             # Verify raw YAML does NOT define non-framework objects directly under objects
@@ -1903,7 +1891,7 @@ class TestYamlIntegrity(unittest.TestCase):
 
     def test_appsec_intra_node_prerequisites(self):
         """Verify intra-node question prerequisite dependencies in appsec and appsec_manual."""
-        for fw_ref in ["appsec", "appsec_manual"]:
+        for fw_ref in ["appsec"]:
             fw = next((f for f in self.frameworks if f["ref_id"] == fw_ref), None)
             self.assertIsNotNone(fw, f"{fw_ref} framework missing")
 
@@ -1953,7 +1941,7 @@ class TestYamlIntegrity(unittest.TestCase):
 
     def test_appsec_gdpr_profiling_and_saas_questions(self):
         """Verify GDPR data type and volume questions in info chapter and GDPR compliance question in saas_chapter."""
-        for fw_ref in ["appsec", "appsec_manual"]:
+        for fw_ref in ["appsec"]:
             fw = next((f for f in self.frameworks if f["ref_id"] == fw_ref), None)
             self.assertIsNotNone(fw, f"{fw_ref} framework missing")
 
@@ -2062,7 +2050,7 @@ class TestYamlIntegrity(unittest.TestCase):
     def test_appsec_phase1_scoring_and_standardized_choices(self):
         """Verify Phase 1 improvements: non_prod_data rebalanced, stakeholder_identification weights,
         data_destruction Yes/No choice ordering, and security_event_logging:q2 rephrasing."""
-        for fw_ref in ["appsec", "appsec_manual"]:
+        for fw_ref in ["appsec"]:
             fw = next((f for f in self.frameworks if f["ref_id"] == fw_ref), None)
             self.assertIsNotNone(fw, f"{fw_ref} framework missing")
 
@@ -2153,7 +2141,7 @@ class TestYamlIntegrity(unittest.TestCase):
         """Verify Phase 2 improvements: Hybrid Auth (4 choices, 40+30+30=100), stateless token session management,
         and 50+50 splits across backup_and_disaster_recovery, owasp_top_10_defenses, code_review_and_ci_cd_integrity,
         and api_security_and_rate_limiting."""
-        for fw_ref in ["appsec", "appsec_manual"]:
+        for fw_ref in ["appsec"]:
             fw = next((f for f in self.frameworks if f["ref_id"] == fw_ref), None)
             self.assertIsNotNone(fw, f"{fw_ref} framework missing")
 
@@ -2259,7 +2247,7 @@ class TestYamlIntegrity(unittest.TestCase):
           is mapped to at least one scenario via 'likelihood').
         - All 44 scenarios have valid likelihood and impact foreign keys.
         """
-        for fw_ref in ["appsec", "appsec_manual"]:
+        for fw_ref in ["appsec"]:
             fw = next((f for f in self.frameworks if f["ref_id"] == fw_ref), None)
             self.assertIsNotNone(fw, f"Framework {fw_ref} missing")
 
@@ -2293,7 +2281,7 @@ class TestYamlIntegrity(unittest.TestCase):
 
     def test_appsec_application_description_screen(self):
         """Verify the presence, structure, questions, and profiling scoping of the application_description screen."""
-        for fw_ref in ["appsec", "appsec_manual"]:
+        for fw_ref in ["appsec"]:
             with self.subTest(framework=fw_ref):
                 fw = next((f for f in self.frameworks if f["ref_id"] == fw_ref), None)
                 self.assertIsNotNone(fw, f"Framework {fw_ref} missing")
