@@ -438,6 +438,22 @@
             </div>
           </div>
 
+          <!-- Solution Criticality Tier (Stage 1 Intake & Governance Policy) -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="block text-xs font-medium text-slate-300">Solution Criticality Tier</label>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 font-medium">Assurance & SLAs</span>
+            </div>
+            <select id="audit-tier-select" class="w-full px-3.5 py-2 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white focus:outline-none focus:border-brand-500 transition">
+              <option value="critical" selected>Critical (Rank 4 • 82 Controls • Mandatory Pentest • Critical SLA: 7d)</option>
+              <option value="important">Important (Rank 3 • Core Controls • Automated DAST/SCA • Critical SLA: 14d)</option>
+              <option value="standard">Standard (Rank 2 • Security Hygiene Baseline • Critical SLA: 30d)</option>
+              <option value="low-impact">Low-Impact (Rank 1 • Minimal Hygiene Self-Attestation)</option>
+              <option value="">Untiered (Auto-derive tier from Chapter 1 answers)</option>
+            </select>
+            <p class="text-[11px] text-slate-500 mt-1">Sets <code>solution.tier</code> in CISO Assistant and attaches governance policies, finding remediation SLAs, and assessment scoping.</p>
+          </div>
+
           <!-- Implementation Groups Selection (Initial Profiling Stage) -->
           <div id="audit-ig-container" class="hidden space-y-2 p-3.5 bg-surface-800/40 border border-slate-700/60 rounded-lg">
             <div class="flex items-center justify-between">
@@ -1927,12 +1943,16 @@
       const igCheckboxes = document.querySelectorAll("#audit-ig-checkboxes input[type='checkbox']:checked");
       const selectedIgs = Array.from(igCheckboxes).map(cb => cb.value);
 
+      const tierSelect = document.getElementById("audit-tier-select");
+      const selectedTier = tierSelect ? tierSelect.value.trim() : null;
+
       const payload = {
         app_name: document.getElementById("audit-app-name").value.trim(),
         user_email: document.getElementById("audit-user-email").value.trim(),
         first_name: document.getElementById("audit-user-first").value.trim(),
         last_name: document.getElementById("audit-user-last").value.trim(),
         is_third_party: document.getElementById("audit-user-tprm").checked,
+        tier: selectedTier || null,
         framework: selectedFw,
         domain: selectedDomain || null,
         implementation_groups: selectedIgs.length > 0 ? selectedIgs : null,

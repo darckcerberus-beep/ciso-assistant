@@ -51,6 +51,7 @@ except ImportError:
     HAS_FLASK = False
 
 from classes import utils
+from classes.audits.implementation_groups import get_tier_governance_policy
 from classes.examples_manager import (
     EXAMPLE_FOLDER_NAME,
     FRAMEWORK_CATALOG,
@@ -817,6 +818,8 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
         is_third_party = bool(payload.get("is_third_party", True))
         framework = payload.get("framework", "").strip()
         target_domain = payload.get("domain")
+        tier = payload.get("tier")
+        tier_note = payload.get("tier_note")
 
         if not user_email or "@" not in user_email:
             return jsonify({"error": "A valid 'user_email' is required."}), 400
@@ -862,8 +865,14 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
                 framework_ref_or_name=target_fw_ref,
                 domain_name=target_domain,
                 implementation_groups=implementation_groups,
+                tier=tier,
+                tier_note=tier_note,
             )
             print(f"     [OK] Application: {res.get('app_name')}")
+            if res.get("solution_tier"):
+                gov = res.get("governance_policy") or {}
+                sla = gov.get("remediation_sla_critical_days")
+                print(f"     [OK] Solution Tier: {res['solution_tier'].upper()} (Critical SLA: {sla}d)")
             print(f"     [OK] Domain: {res.get('domain_name')}")
             print(f"     [OK] Assigned User: {res.get('user_email')} (User Created: {res.get('user_created')})")
             print(f"     [OK] Perimeter: {res.get('perimeter_id')}")
@@ -1004,6 +1013,137 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
             return jsonify({"error": str(e)}), 400
         except Exception as e:
             LOGGER.error(f"Error assigning implementation groups: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    # -----------------------------------------------------------------------
+    # Solution Criticality Tiering Endpoints
+    # -----------------------------------------------------------------------
+
+    @app.route("/api/solutions/tiers", methods=["GET"])
+    def api_get_tiers():
+        """List all available solution tiers and governance policies."""
+        try:
+            tiers = manager.get_tiers()
+            for t in tiers:
+                key = t.get("key") or t.get("name")
+                t["governance_policy"] = get_tier_governance_policy(key)
+            return jsonify({"success": True, "tiers": tiers})
+        except Exception as e:
+            LOGGER.error(f"Error fetching tiers: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/solutions/<path:app_name>/tier", methods=["GET", "POST"])
+    def api_manage_solution_tier(app_name: str):
+        """Get or update/assess the solution tier for an application."""
+        if request.method == "GET":
+            try:
+                tier = manager.get_solution_tier(app_name)
+                gov = get_tier_governance_policy(tier)
+                return jsonify({
+                    "success": True,
+                    "app_name": app_name,
+                    "tier": tier,
+                    "governance_policy": gov,
+                })
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+
+        # POST
+        payload = request.get_json(silent=True) or {}
+        tier = payload.get("tier")
+        answers = payload.get("answers") or payload.get("tiering_answers")
+
+        try:
+            if answers:
+                # Run assessment
+                res = manager.assess_appsec_solution_tier(
+                    app_name,
+                    tiering_answers=answers,
+                    auto_sign_off=payload.get("auto_sign_off", True),
+                )
+                invalidate_status_cache()
+                return jsonify({
+                    "success": True,
+                    "message": f"Successfully assessed solution tier: {res['final_tier'].upper()}",
+                    "data": res,
+                })
+            elif tier:
+                # Direct tier assignment
+                res = manager.set_solution_tier(app_name, tier, note=payload.get("note", "Assigned via API"))
+                invalidate_status_cache()
+                return jsonify({
+                    "success": True,
+                    "message": f"Successfully updated solution tier to {tier.upper()}",
+                    "data": res,
+                })
+            else:
+                return jsonify({"error": "Either 'tier' or 'answers' must be provided in request body."}), 400
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            LOGGER.error(f"Error updating tier for {app_name}: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    # -----------------------------------------------------------------------
+    # Solution Tiering Intake & Questionnaire Assignment Endpoints
+    # -----------------------------------------------------------------------
+
+    @app.route("/api/tiering/forms", methods=["GET"])
+    def api_get_tiering_forms():
+        """Get available solution tiering quick forms."""
+        try:
+            forms = manager.get_tiering_quick_forms()
+            return jsonify({"success": True, "forms": forms})
+        except Exception as e:
+            LOGGER.error(f"Error fetching tiering quick forms: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/tiering/responses", methods=["GET"])
+    def api_get_tiering_responses():
+        """List active and historical solution tiering questionnaire responses."""
+        try:
+            responses = manager.get_tiering_responses()
+            return jsonify({"success": True, "responses": responses})
+        except Exception as e:
+            LOGGER.error(f"Error fetching tiering responses: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/tiering/assign", methods=["POST"])
+    def api_assign_tiering():
+        """Assign an AppSec Solution Tiering questionnaire to a solution & respondent user."""
+        payload = request.get_json() or {}
+        app_name = payload.get("app_name", "").strip()
+        user_email = payload.get("user_email", "").strip().lower()
+        first_name = payload.get("first_name", "").strip()
+        last_name = payload.get("last_name", "").strip()
+        due_date = payload.get("due_date")
+        form_id = payload.get("form_id")
+        tier_note = payload.get("tier_note")
+
+        if not app_name:
+            return jsonify({"error": "Missing required field: 'app_name'"}), 400
+        if not user_email:
+            return jsonify({"error": "Missing required field: 'user_email'"}), 400
+
+        try:
+            res = manager.assign_tiering_questionnaire(
+                app_name=app_name,
+                user_email=user_email,
+                first_name=first_name,
+                last_name=last_name,
+                due_date=due_date,
+                form_id=form_id,
+                tier_note=tier_note,
+            )
+            return jsonify({
+                "success": True,
+                "message": f"Successfully assigned tiering questionnaire to {user_email} for '{app_name}'",
+                "assignment": res,
+            })
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            LOGGER.error(f"Error assigning tiering questionnaire for {app_name}: {e}")
             return jsonify({"error": str(e)}), 500
 
     # -----------------------------------------------------------------------

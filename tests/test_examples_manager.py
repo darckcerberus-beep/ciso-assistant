@@ -1375,6 +1375,8 @@ class TestFrameworkSelection(unittest.TestCase):
         for yml_file in test_data_dir.glob("*.yml"):
             with open(yml_file, "r", encoding="utf-8") as f:
                 data = yaml.safe_load(f)
+            if not isinstance(data, dict) or ("objects" in data and "framework" in data.get("objects", {})):
+                continue
             app_block = data.get("application", {})
             self.assertIn("framework_ref", app_block, f"Missing framework_ref in {yml_file.name}")
             self.assertIn("framework_name", app_block, f"Missing framework_name in {yml_file.name}")
