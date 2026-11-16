@@ -906,6 +906,9 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
         """Inspect or update implementation groups for an audit."""
         if request.method == "GET":
             try:
+                force = request.args.get("refresh", "").lower() in ("1", "true")
+                if force:
+                    manager._init_data(force_reload=True)
                 info = manager.get_audit_implementation_groups(app_name)
                 return jsonify(info)
             except ValueError as e:

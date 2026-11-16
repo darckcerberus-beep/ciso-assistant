@@ -1272,7 +1272,7 @@
       if (btn) btn.classList.add("animate-spin");
 
       try {
-        const res = await fetch("/api/status");
+        const res = await fetch("/api/status?refresh=1");
         const data = await res.json();
         APP_STATE.connected = data.connected;
         APP_STATE.applications = data.applications || [];
@@ -2164,7 +2164,7 @@
       openModal("manage-groups-modal");
 
       try {
-        const res = await fetch(`/api/audits/${encodeURIComponent(appName)}/implementation-groups`);
+        const res = await fetch(`/api/audits/${encodeURIComponent(appName)}/implementation-groups?refresh=1`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to load audit implementation groups");
         CURRENT_AUDIT_DATA = data;

@@ -376,6 +376,7 @@ class TestExamplesManagerImplementationGroups(unittest.TestCase):
         mock_ra2 = MagicMock(get_id=MagicMock(return_value="ra-2"), json_object={"implementation_groups": ["custom_app"]})
 
         mock_req_assessments = MagicMock()
+        mock_req_assessments.get_requirement_assessment_id_list_for_groups.return_value = ["ra-2"]
         mock_req_assessments.get_requirement_assessment_id_list_from_compliance_assessment_id.return_value = ["ra-1", "ra-2"]
         mock_req_assessments.get_requirement_assessments.return_value = {"ra-1": mock_ra1, "ra-2": mock_ra2}
 
