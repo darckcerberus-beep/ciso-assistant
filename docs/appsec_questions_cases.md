@@ -1,12 +1,12 @@
 # Application Security Assessment (appsec.yml) — Questions & Applicability Cases
-> **Purpose**: This file catalogs all 82 questions defined in `YML/appsec.yml`.
+> **Purpose**: This file catalogs all 91 questions defined in `YML/appsec.yml`.
 > You can use this document to specify which requirements and questions apply to which situations/cases.
 > Below is both a **Quick Reference Table** and a **Detailed Breakdown** by Chapter and Requirement Node.
 
 ## Table of Contents
 - [1. AppSec Assurance Pipeline & Solution Tiering Integration](#1-appsec-assurance-pipeline--solution-tiering-integration)
 - [2. Situations & Cases Definitions](#2-situations--cases-definitions)
-- [3. Quick Reference Matrix (All 82 Questions)](#3-quick-reference-matrix)
+- [3. Quick Reference Matrix (All 91 Questions)](#3-quick-reference-matrix)
 - [4. Detailed Questions by Chapter](#4-detailed-questions-by-chapter)
   - [Application Information & Governance](#info)
   - [Identity, Authentication & Access Control](#iam_chapter)
@@ -120,6 +120,15 @@ Define or customize your operational situations/cases here for reference:
 | 11 | Identity, Authentication & Access Control | `access_control_and_rbac` | `q1` | Have you defined roles and permissions for the application? (Is access controlled ... | `baseline` | **All applications** (Baseline - RBAC least privilege) |
 | 12 | Identity, Authentication & Access Control | `access_control_and_rbac` | `q2` | Is the application integrated with the enterprise Identity Governance and Administ... | `baseline` | **All applications** (Baseline - SailPoint IGA integration) |
 | 13 | Identity, Authentication & Access Control | `access_control_and_rbac` | `q3` | Are user entitlements and privileged permissions reviewed and recertified on a per... | `baseline` | **All applications** (Baseline - Periodic recertifications) |
+| 13a | Identity, Authentication & Access Control | `external_provider_extranets` | `q1` | Do internal personnel or contractors access external provider extranets (such as carrier portals, freight/logistics platforms, or vendor web applications)? | `baseline` | **All applications** (Gating check - External Provider Extranets) |
+| 13b | Identity, Authentication & Access Control | `external_provider_extranets` | `q2` | Given that tenant segregation is impossible by design, does the architecture enforce account-level compartmentalization, data minimization, and tracking masking? | `baseline` | All applications (if extranets accessed - Architecture, data minimization & compartmentalization, +15 pts) |
+| 13c | Identity, Authentication & Access Control | `external_provider_extranets` | `q3` | Does the provider extranet support enterprise Identity Provider (IdP) federation via standard protocols (SAML 2.0 or OIDC SSO)? | `baseline` | All applications (if extranets accessed - Enterprise SSO federation, +15 pts) |
+| 13d | Identity, Authentication & Access Control | `external_provider_extranets` | `q4` | Is Multi-Factor Authentication (MFA) strictly enforced for all user and administrative access to the provider extranet? | `baseline` | All applications (if extranets accessed - Mandatory MFA enforcement, +15 pts) |
+| 13e | Identity, Authentication & Access Control | `external_provider_extranets` | `q5` | How is user access deprovisioned when an employee leaves, and does the provider extranet support automated deprovisioning (SCIM 2.0)? | `baseline` | All applications (if extranets accessed - Automated JML / SCIM deprovisioning, +10 pts) |
+| 13f | Identity, Authentication & Access Control | `external_provider_extranets` | `q6` | Are individual named user accounts strictly required and enforced, with prohibition of shared/generic team logins? | `baseline` | All applications (if extranets accessed - Individual attribution & no shared accounts, +15 pts) |
+| 13g | Identity, Authentication & Access Control | `external_provider_extranets` | `q7` | Does the provider extranet enforce granular Role-Based Access Control (RBAC) to restrict user permissions to least privilege? | `baseline` | All applications (if extranets accessed - Granular RBAC least privilege, +10 pts) |
+| 13h | Identity, Authentication & Access Control | `external_provider_extranets` | `q8` | How is admin access governed, and how are single-admin / SPOF risks mitigated on platforms allowing only one master admin? | `baseline` | All applications (if extranets accessed - Admin account governance, single-admin PAM vaulting & break-glass, +10 pts) |
+| 13i | Identity, Authentication & Access Control | `external_provider_extranets` | `q9` | Are administrative privileges strictly separated from routine operational tasks (booking, label generation, tracking)? | `baseline` | All applications (if extranets accessed - Separation of administrative and operational duties, +10 pts) |
 | 14 | Identity, Authentication & Access Control | `session_management` | `q1` | Are session identifiers and API bearer tokens cryptographically secure, protected in transit/storage, and invalidated upon logout, expiration, or inactivity? | `custom_app` | Custom applications and APIs (+100 pts) |
 | 15 | Application Vulnerability Defense & Code Hygiene | `owasp_top_10_defenses` | `q1` | Are server-side input validation and parameterized queries/ORMs enforced to prevent injection flaws (SQLi, command injection, SSRF)? | `custom_app` | Custom applications (+50 pts) |
 | 15b | Application Vulnerability Defense & Code Hygiene | `owasp_top_10_defenses` | `q2` | Are context-aware output encoding, security headers (CSP), and generic production error handlers enforced to prevent XSS and stack-trace leakage? | `custom_app` | Custom applications (+50 pts) |
@@ -445,6 +454,110 @@ Action - All apps must use RBAC and IGA for my employees, ask for all apps (Put 
   - `No` (0 pts)
 - **Applicable Cases / Situations**:
   - [x] **All applications** (Baseline - Periodic recertifications)
+
+#### Node: External Provider & Carrier Extranets Architecture & IAM (`external_provider_extranets`)
+- **Implementation Groups**: `baseline`
+- **Description**: Evaluate external provider extranets (e.g. carrier portals, logistics platforms) where platform tenant segregation is impossible by design, focusing on data minimization, public tracking exposure controls, account-level compartmentalization, enterprise SSO, mandatory MFA, user lifecycle governance, and administrative account security (including single-admin platform constraints and break-glass procedures).
+
+##### Q13a. `external_provider_extranets:q1`
+- **URN**: `urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1`
+- **Question**: Do internal personnel or contractors access external provider extranets (such as carrier portals, freight/logistics platforms, or vendor web applications) to perform business operations?
+- **Type**: `unique_choice`
+- **Choices & Scoring**:
+  - `No - Internal personnel do not access external provider extranets for this application or operational workflow` (100 pts, compute_result: true)
+  - `Yes - Internal personnel access third-party provider extranets or carrier portals` (0 pts, compute_result: false)
+- **Applicable Cases / Situations**:
+  - [x] **All applications** (Gating check - External Provider Extranets)
+
+##### Q13b. `external_provider_extranets:q2`
+- **URN**: `urn:intuitem:risk:req_node:appsec:external_provider_extranets:q2`
+- **Question**: Given that platform-wide tenant segregation is impossible by design in shared carrier networks, does the extranet architecture enforce account-level compartmentalization, public tracking data masking, and strict data minimization (prohibiting storage of sensitive PII, trade secrets, or payment data) alongside TLS 1.2+ encrypted transport?
+- **Type**: `unique_choice`
+- **Conditional Dependency (`depends_on`)**: `{'question': 'urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1', 'answers': ['...:c2'], 'condition': 'any'}`
+- **Choices & Scoring**:
+  - `Yes - Account-level authorization protects corporate records/invoices, strict data minimization is enforced (no PII/secrets submitted), public tracking lookups mask recipient/commercial details, and transport is encrypted via TLS 1.2+` (15 pts, compute_result: true)
+  - `No - Sensitive PII or commercial secrets are submitted to the shared extranet, public tracking exposes unmasked recipient/invoice details, or account authorization boundaries are unverified` (0 pts)
+- **Applicable Cases / Situations**:
+  - [x] All applications (If extranets accessed - Architecture, Data Minimization & Compartmentalization)
+
+##### Q13c. `external_provider_extranets:q3`
+- **URN**: `urn:intuitem:risk:req_node:appsec:external_provider_extranets:q3`
+- **Question**: Does the provider extranet support enterprise Identity Provider (IdP) federation via standard protocols (SAML 2.0 or OIDC), enabling Single Sign-On (SSO) with corporate credentials for internal personnel?
+- **Type**: `unique_choice`
+- **Conditional Dependency (`depends_on`)**: `{'question': 'urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1', 'answers': ['...:c2'], 'condition': 'any'}`
+- **Choices & Scoring**:
+  - `Yes - Full enterprise IdP federation (SAML 2.0 / OIDC SSO), eliminating siloed local passwords and centralizing authentication` (15 pts, compute_result: true)
+  - `No - Personnel must create and maintain separate local credentials directly on the provider extranet` (0 pts)
+- **Applicable Cases / Situations**:
+  - [x] All applications (If extranets accessed - Enterprise SSO Federation)
+
+##### Q13d. `external_provider_extranets:q4`
+- **URN**: `urn:intuitem:risk:req_node:appsec:external_provider_extranets:q4`
+- **Question**: Is Multi-Factor Authentication (MFA) strictly enforced for all user and administrative access to the provider extranet (via enterprise IdP Conditional Access or provider-enforced authenticator apps / WebAuthn)?
+- **Type**: `unique_choice`
+- **Conditional Dependency (`depends_on`)**: `{'question': 'urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1', 'answers': ['...:c2'], 'condition': 'any'}`
+- **Choices & Scoring**:
+  - `Yes - Mandatory MFA is enforced for all logins (via corporate IdP Conditional Access or provider-mandated TOTP / push / FIDO2)` (15 pts, compute_result: true)
+  - `No - Single-factor (password-only) login is permitted or MFA is optional/unsupported` (0 pts)
+- **Applicable Cases / Situations**:
+  - [x] All applications (If extranets accessed - Mandatory MFA Enforcement)
+
+##### Q13e. `external_provider_extranets:q5`
+- **URN**: `urn:intuitem:risk:req_node:appsec:external_provider_extranets:q5`
+- **Question**: How is user access deprovisioned when an employee or contractor leaves the organization or changes role, and does the provider extranet support automated deprovisioning (e.g. SCIM 2.0, JIT, or automated IdP account suspension) to prevent orphaned accounts?
+- **Type**: `unique_choice`
+- **Conditional Dependency (`depends_on`)**: `{'question': 'urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1', 'answers': ['...:c2'], 'condition': 'any'}`
+- **Choices & Scoring**:
+  - `Automated: Deprovisioning is instant via SCIM 2.0 or federated IdP deactivation (departing personnel immediately lose extranet access)` (10 pts, compute_result: true)
+  - `Partially managed: Manual offboarding ticket process with documented periodic access reviews and account reconciliations` (5 pts, compute_result: true)
+  - `Unmanaged: Accounts remain active indefinitely until manually noticed, with no systematic offboarding or access reviews (high orphan account risk)` (0 pts)
+- **Applicable Cases / Situations**:
+  - [x] All applications (If extranets accessed - Automated JML / SCIM Deprovisioning)
+
+##### Q13f. `external_provider_extranets:q6`
+- **URN**: `urn:intuitem:risk:req_node:appsec:external_provider_extranets:q6`
+- **Question**: Are individual named user accounts strictly required and enforced for all personnel accessing the extranet, with explicit prohibition and technical prevention of shared or generic team logins (e.g., 'shipping@company.com' or 'logistics-ops')?
+- **Type**: `unique_choice`
+- **Conditional Dependency (`depends_on`)**: `{'question': 'urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1', 'answers': ['...:c2'], 'condition': 'any'}`
+- **Choices & Scoring**:
+  - `Yes - Every user has an individually assigned named account with individual attribution in audit trails; shared team accounts are strictly prohibited` (15 pts, compute_result: true)
+  - `No - Team members share common credentials or generic accounts to log into the provider extranet` (0 pts)
+- **Applicable Cases / Situations**:
+  - [x] All applications (If extranets accessed - Individual Named Accounts & Prohibit Shared Credentials)
+
+##### Q13g. `external_provider_extranets:q7`
+- **URN**: `urn:intuitem:risk:req_node:appsec:external_provider_extranets:q7`
+- **Question**: Does the provider extranet enforce granular Role-Based Access Control (RBAC) to restrict user permissions to the minimum necessary for their business function (e.g., separating shipping booking, tracking, financial/invoicing data, and administrative configuration)?
+- **Type**: `unique_choice`
+- **Conditional Dependency (`depends_on`)**: `{'question': 'urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1', 'answers': ['...:c2'], 'condition': 'any'}`
+- **Choices & Scoring**:
+  - `Yes - Granular RBAC profiles restrict user permissions by role (e.g. shipping dispatcher, billing analyst, read-only viewer, administrator)` (10 pts, compute_result: true)
+  - `No - All users share broad, all-inclusive permissions or have administrative privileges by default` (0 pts)
+- **Applicable Cases / Situations**:
+  - [x] All applications (If extranets accessed - Granular RBAC Least Privilege)
+
+##### Q13h. `external_provider_extranets:q8`
+- **URN**: `urn:intuitem:risk:req_node:appsec:external_provider_extranets:q8`
+- **Question**: How is administrative access governed on the provider extranet, and how does the organization mitigate single point of failure (SPOF) and credential-sharing risks—particularly on platforms that permit only a single master administrator account?
+- **Type**: `unique_choice`
+- **Conditional Dependency (`depends_on`)**: `{'question': 'urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1', 'answers': ['...:c2'], 'condition': 'any'}`
+- **Choices & Scoring**:
+  - `Enterprise PAM vaulting or named redundancy: Where multiple admins are supported, at least two designated named administrators exist without credential sharing; where the platform allows only one admin account, credentials and MFA seeds (TOTP/hardware key) are secured in an enterprise Privileged Access Management (PAM) vault with auditable break-glass emergency recovery procedures` (10 pts, compute_result: true)
+  - `Designated admin with documented backup: A primary administrator is designated with an identified operational backup and documented recovery process, but credentials/MFA are stored in standard password managers without formalized PAM vaulting or dual-custody break-glass controls` (5 pts, compute_result: true)
+  - `Unmanaged / Insecure sharing: The single admin account is informally shared across multiple staff, or tied exclusively to a single individual's personal device/email without backup access or emergency handover procedures (severe lockout and accountability risk)` (0 pts)
+- **Applicable Cases / Situations**:
+  - [x] All applications (If extranets accessed - Admin Account Governance, Single-Admin PAM Vaulting & Break-Glass)
+
+##### Q13i. `external_provider_extranets:q9`
+- **URN**: `urn:intuitem:risk:req_node:appsec:external_provider_extranets:q9`
+- **Question**: Are administrative privileges strictly separated from routine operational tasks, ensuring master administrator credentials are reserved for governance and configuration rather than daily shipment booking or tracking?
+- **Type**: `unique_choice`
+- **Conditional Dependency (`depends_on`)**: `{'question': 'urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1', 'answers': ['...:c2'], 'condition': 'any'}`
+- **Choices & Scoring**:
+  - `Yes - Strict separation of duties: Master admin accounts are used solely for account governance, user lifecycle management, billing setup, and security configuration; daily operational shipping, tracking, and label generation are performed using separate standard user accounts` (10 pts, compute_result: true)
+  - `No - Administrative accounts are routinely used for daily operational shipping tasks, or administrative privileges are granted broadly to day-to-day dispatch operators` (0 pts)
+- **Applicable Cases / Situations**:
+  - [x] All applications (If extranets accessed - Separation of Administrative and Operational Duties)
 
 #### Node: Secure Session Management (`session_management`)
 - **Implementation Groups**: `custom_app`

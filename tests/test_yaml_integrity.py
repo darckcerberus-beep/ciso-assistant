@@ -1408,9 +1408,9 @@ class TestYamlIntegrity(unittest.TestCase):
         avail_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:availability_classification")
         self.assertIsNone(avail_node, "availability_classification must be removed to focus on confidentiality only")
 
-        # All 44 risk scenarios route impact to data_classification
+        # All 45 risk scenarios route impact to data_classification
         scenarios = {s["ref_id"]: s for s in appsec_fw["scenarios"].values()}
-        self.assertEqual(len(scenarios), 44)
+        self.assertEqual(len(scenarios), 45)
         for sc_ref, sc in scenarios.items():
             self.assertEqual(
                 sc.get("impact"),
@@ -1706,9 +1706,9 @@ class TestYamlIntegrity(unittest.TestCase):
         # network_exposure is no longer a standalone node
         self.assertNotIn("urn:intuitem:risk:req_node:appsec:network_exposure", appsec_fw["req_nodes"])
 
-        # 4. Total requirement nodes (61) and scenarios (44)
-        self.assertEqual(len(appsec_fw["req_nodes"]), 61)
-        self.assertEqual(len(appsec_fw["scenarios"]), 44)
+        # 4. Total requirement nodes (62) and scenarios (45)
+        self.assertEqual(len(appsec_fw["req_nodes"]), 62)
+        self.assertEqual(len(appsec_fw["scenarios"]), 45)
         self.assertEqual(len(appsec_fw["threats"]), 9)
         self.assertEqual(len(appsec_fw["vulns"]), 18)
         self.assertEqual(len(appsec_fw["ref_ctrls"]), 26)
@@ -2239,17 +2239,17 @@ class TestYamlIntegrity(unittest.TestCase):
         """Verify that Phase 3 Point 2 connects all assessable security requirements to risk scenarios.
 
         Asserts:
-        - Exactly 44 risk scenarios exist in both AppSec and AppSec Manual.
+        - Exactly 45 risk scenarios exist in AppSec.
         - Zero assessable security requirement nodes are unlinked (every assessable security node
           is mapped to at least one scenario via 'likelihood').
-        - All 44 scenarios have valid likelihood and impact foreign keys.
+        - All 45 scenarios have valid likelihood and impact foreign keys.
         """
         for fw_ref in ["appsec"]:
             fw = next((f for f in self.frameworks if f["ref_id"] == fw_ref), None)
             self.assertIsNotNone(fw, f"Framework {fw_ref} missing")
 
             scenarios = fw["scenarios"]
-            self.assertEqual(len(scenarios), 44, f"Framework {fw_ref} must have 44 risk scenarios")
+            self.assertEqual(len(scenarios), 45, f"Framework {fw_ref} must have 45 risk scenarios")
 
             # Collect all likelihood target nodes
             linked_req_urns = {s.get("likelihood") for s in scenarios.values() if s.get("likelihood")}
@@ -2265,7 +2265,7 @@ class TestYamlIntegrity(unittest.TestCase):
                 )
             }
 
-            self.assertEqual(len(assessable_sec_nodes), 44, f"Expected 44 assessable security nodes in {fw_ref}")
+            self.assertEqual(len(assessable_sec_nodes), 45, f"Expected 45 assessable security nodes in {fw_ref}")
 
             unlinked_nodes = [
                 ref_id for ref_id in assessable_sec_nodes
@@ -2376,6 +2376,74 @@ class TestYamlIntegrity(unittest.TestCase):
                         for c in choices:
                             score = c.get("add_score")
                             self.assertIn(score, [1, 2, 3, 4], f"Score {score} not in 1-4 for choice {c['urn']}")
+
+    def test_appsec_external_provider_extranets(self):
+        """Verify external provider extranets (e.g. carrier portals) requirement node, questions, and IAM checks."""
+        appsec_fw = next((fw for fw in self.frameworks if fw["ref_id"] == "appsec"), None)
+        self.assertIsNotNone(appsec_fw, "appsec framework missing")
+
+        extranet_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:external_provider_extranets")
+        self.assertIsNotNone(extranet_node, "external_provider_extranets requirement node missing in appsec")
+        self.assertEqual(extranet_node.get("parent_urn"), "urn:intuitem:risk:req_node:appsec:iam_chapter")
+        self.assertEqual(extranet_node.get("implementation_groups"), ["baseline"])
+        self.assertTrue(extranet_node.get("assessable"))
+
+        # Verify all 9 questions exist
+        questions = extranet_node.get("questions", {})
+        self.assertEqual(len(questions), 9, "external_provider_extranets must define exactly 9 questions")
+
+        q1 = questions.get("urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1")
+        self.assertIsNotNone(q1, "Gating question q1 missing")
+        self.assertEqual(len(q1.get("choices", [])), 2)
+        q1_c1 = next(c for c in q1["choices"] if c["urn"].endswith(":c1"))
+        q1_c2 = next(c for c in q1["choices"] if c["urn"].endswith(":c2"))
+        self.assertEqual(q1_c1["add_score"], 100)
+        self.assertTrue(q1_c1["compute_result"])
+        self.assertEqual(q1_c2["add_score"], 0)
+        self.assertFalse(q1_c2["compute_result"])
+
+        # Questions q2-q9 must depend on q1:c2
+        dependent_scores = []
+        for q_idx in range(2, 10):
+            q_urn = f"urn:intuitem:risk:req_node:appsec:external_provider_extranets:q{q_idx}"
+            q_obj = questions.get(q_urn)
+            self.assertIsNotNone(q_obj, f"Question {q_urn} missing")
+            dep = q_obj.get("depends_on", {})
+            self.assertEqual(dep.get("question"), "urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1")
+            self.assertEqual(dep.get("answers"), ["urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1:c2"])
+            top_choice = next(c for c in q_obj.get("choices", []) if c.get("compute_result"))
+            dependent_scores.append(top_choice.get("add_score", 0))
+
+        self.assertEqual(sum(dependent_scores), 100, "Compliant scores across q2-q9 must sum to 100")
+
+        # Specific assertions for admin account governance (q8) and separation of duties (q9)
+        q8 = questions.get("urn:intuitem:risk:req_node:appsec:external_provider_extranets:q8")
+        self.assertIn("admin", q8["text"].lower())
+        self.assertEqual(len(q8["choices"]), 3)
+        self.assertEqual(q8["choices"][0]["add_score"], 10)
+        self.assertEqual(q8["choices"][1]["add_score"], 5)
+        self.assertEqual(q8["choices"][2]["add_score"], 0)
+
+        q9 = questions.get("urn:intuitem:risk:req_node:appsec:external_provider_extranets:q9")
+        self.assertIn("administrative", q9["text"].lower())
+        self.assertEqual(len(q9["choices"]), 2)
+        self.assertEqual(q9["choices"][0]["add_score"], 10)
+        self.assertEqual(q9["choices"][1]["add_score"], 0)
+
+        # Verify linked risk scenario
+        scenario = appsec_fw["scenarios"].get("urn:intuitem:risk:scenario:appsec:carrier_extranet_compromise")
+        self.assertIsNotNone(scenario, "carrier_extranet_compromise risk scenario missing")
+        self.assertEqual(scenario.get("likelihood"), "urn:intuitem:risk:req_node:appsec:external_provider_extranets")
+        self.assertEqual(scenario.get("impact"), "urn:intuitem:risk:req_node:appsec:data_classification")
+
+        # Verify functional category in application_description:q1
+        app_desc_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:application_description")
+        self.assertIsNotNone(app_desc_node)
+        q1_app = app_desc_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:application_description:q1")
+        self.assertIsNotNone(q1_app)
+        c7 = next((c for c in q1_app.get("choices", []) if "c7" in c.get("urn", "")), None)
+        self.assertIsNotNone(c7, "Choice c7 missing in application_description:q1")
+        self.assertIn("carrier", c7.get("value", "").lower())
 
 
 if __name__ == "__main__":
