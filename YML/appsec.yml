@@ -31,7 +31,7 @@ description: >
   applications, external provider extranets (such as carrier portals), and SaaS solutions
   whose security controls are defined with a contract and certified via third-party audit reports.
 copyright: DCME Corp
-version: 48
+version: 52
 publication_date: 2026-11-17
 provider: DCME Corp
 packager: DCME Corp
@@ -84,6 +84,11 @@ objects:
         ref_id: "baseline"
         description: "Core application security baseline requirements applicable to all applications (Governance, Profiling, Authentication & Access Control)"
         delegate_answer: "urn:intuitem:risk:req_node:appsec:hosting:q4_delegate"
+      - urn: urn:intuitem:risk:ig:appsec:extranet
+        name: "External Provider Extranet Track"
+        ref_id: "extranet"
+        description: "Requirements for external provider and carrier extranets (Architecture & data minimization, enterprise SSO, MFA, SCIM lifecycle, named accounts, RBAC, single-admin PAM vaulting, and separation of duties)"
+        delegate_answer: "urn:intuitem:risk:req_node:appsec:hosting:q10_delegate"
       - urn: urn:intuitem:risk:ig:appsec:internet_facing
         name: "Internet-Facing Application Track"
         ref_id: "internet_facing"
@@ -182,6 +187,15 @@ objects:
         choice_ref_id: "c3"
         choice_value: "SaaS (Third-party software hosted and operated by a vendor)"
         prompt: "Trigger Core Application Security Baseline?"
+
+      - target_implementation_group: "extranet"
+        name: "External Provider Extranet Track"
+        question_urn: "urn:intuitem:risk:req_node:appsec:hosting:q1"
+        question_ref_id: "hosting:q1"
+        choice_urn: "urn:intuitem:risk:req_node:appsec:hosting:q1:c4"
+        choice_ref_id: "c4"
+        choice_value: "Extranet (External provider or carrier platform hosted by a partner/vendor)"
+        prompt: "Application is an external provider or carrier extranet. Trigger External Provider Extranet Track?"
 
     # ====================================================================
     # REQUIREMENT NODES - Hierarchical assessment structure
@@ -480,7 +494,7 @@ objects:
         ref_id: hosting
         name: Application Delivery & Network Exposure
         description: >
-          Determine the application delivery and hosting model (Custom software, Bought COTS, or third-party SaaS),
+          Determine the application delivery and hosting model (Custom software, Bought COTS, third-party SaaS, or Extranet),
           its network exposure (for self-hosted apps),
           and designate whether the initial respondent can answer each triggered implementation track or specify who can answer.
           Recommended respondents: Lead Application Architect or Technical Lead (delivery model), Cloud / Network Security Engineer
@@ -497,6 +511,7 @@ objects:
             * Custom software created and deployed by my teams: In-house developed software where source code is written and maintained internally. Subject to internal DevSecOps (SAST, DAST, SCA/SBOM, peer code review) and self-hosted network exposure discrimination.
             * Bought software deployed by my teams: Commercial Off-The-Shelf (COTS) or vendor software package deployed on internal infrastructure. Subject to vendor security patch management, CVE tracking, deployment configuration hardening, and self-hosted network exposure discrimination.
             * SaaS: Third-party software hosted and operated by a vendor. SaaS applications are inherently hosted on external cloud infrastructure and governed via Chapter 10 (saas_app). If the SaaS vendor is not ISO/IEC 27001 or SOC 2 Type II certified, the detailed Uncertified SaaS Vendor Track (saas_uncertified) is triggered during the SaaS evaluation.
+            * Extranet: External provider extranet or carrier platform hosted by a partner, carrier, or third-party logistics provider. Unlike SaaS, tenant segregation is impossible by design in shared logistics networks; evaluated via external provider extranet architecture, data minimization, public tracking exposure controls, and IAM governance.
             * Network exposure tier for self-hosted apps: Internal / Restricted (accessible only within corporate networks/VPN) vs Internet-facing (accessible over the public Internet, used to assign the internet_facing track).
             * Implementation track assignment (Q4–Q9): For each triggered implementation group (track), specify whether you can answer the section directly or if somebody else has to. If somebody else has to answer, a dedicated free text form field allows designating the contact person or team (name, email address, or team) for audit assignment routing.
         typical_evidence: >
@@ -518,6 +533,9 @@ objects:
               - urn: urn:intuitem:risk:req_node:appsec:hosting:q1:c3
                 value: "SaaS (Third-party software hosted and operated by a vendor)"
                 color: "#17a2b8"
+              - urn: urn:intuitem:risk:req_node:appsec:hosting:q1:c4
+                value: "Extranet (External provider or carrier platform hosted by a partner/vendor)"
+                color: "#e83e8c"
           urn:intuitem:risk:req_node:appsec:hosting:q2:
             type: unique_choice
             text: "What is the network exposure of the application?"
@@ -697,6 +715,32 @@ objects:
               answers:
                 - urn:intuitem:risk:req_node:appsec:hosting:q9:c2
               condition: any
+          urn:intuitem:risk:req_node:appsec:hosting:q10:
+            type: unique_choice
+            text: "Can you answer the External Provider Extranet Track (carrier extranet architecture, account compartmentalization, SSO federation, mandatory MFA, user deprovisioning, named accounts, RBAC, single-admin platform governance, and separation of duties), or does somebody else have to?"
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec:hosting:q1
+              answers:
+                - urn:intuitem:risk:req_node:appsec:hosting:q1:c4
+              condition: any
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:hosting:q10:c1
+                value: "I can answer this track"
+                select_implementation_groups: ["extranet"]
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:hosting:q10:c2
+                value: "Somebody else has to answer this track"
+                color: "#17a2b8"
+          urn:intuitem:risk:req_node:appsec:hosting:q10_delegate:
+            type: text
+            text: "External Provider Extranet Track: please specify who can answer (name, email address, or team):"
+            annotation: "Designated point of contact or team responsible for completing the External Provider Extranet Track questions."
+            required: false
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec:hosting:q10
+              answers:
+                - urn:intuitem:risk:req_node:appsec:hosting:q10:c2
+              condition: any
 
       # === SPLASH SCREEN: TRIGGERED IMPLEMENTATION TRACKS & DESIGNATED RESPONDENTS ===
       - urn: urn:intuitem:risk:req_node:appsec:baseline_splash
@@ -710,7 +754,7 @@ objects:
 
           You have completed the foundational profiling questions in **Chapter 1** covering application ownership, data classification, hosting model, and network exposure.
 
-          In the previous section (**Application Delivery & Network Exposure**, questions **Q4 through Q9**), you were asked to determine **who can answer what** for each triggered track:
+          In the previous section (**Application Delivery & Network Exposure**, questions **Q4 through Q10**), you were asked to determine **who can answer what** for each triggered track:
           - Confirming whether you can answer the track directly (*"I can answer this track"*).
           - Or designating the specialized person or team who should answer (*"Somebody else has to answer this track"* and providing their name, email address, or team).
 
@@ -720,12 +764,13 @@ objects:
 
           | Implementation Track | Profiling Trigger | Routing Question Asked Before | Technical Scope in Audit |
           | :--- | :--- | :--- | :--- |
-          | **Application Security Baseline (`baseline`)** | **Universal Baseline** (All Applications) | **Q4**: Baseline Readiness | Universal Identity & Access Management: Centralized SSO federation, administrative Multi-Factor Authentication (MFA), and Role-Based Access Control (RBAC). |
+          | **Application Security Baseline (`baseline`)** | Triggered if **Custom, COTS, or SaaS software** | **Q4**: Baseline Readiness | Core Enterprise Identity & Access Management: Centralized SSO federation, administrative Multi-Factor Authentication (MFA), local account password hygiene, enterprise IGA (SailPoint) integration, and Role-Based Access Control (RBAC). Excluded for Extranets where specialized extranet IAM is enforced. |
           | **Custom Software Track (`custom_app`)** | Triggered if **Custom in-house software** | **Q5**: Custom Software Readiness | Code-level session management, input validation, output encoding, debug suppression, secure SDLC, automated CI/CD security pipelines (SAST, DAST, SCA dependency scanning, and SBOM). |
           | **Bought Software Track (`cots_app`)** | Triggered if **Bought software (COTS package)** | **Q6**: Bought Software Readiness | Deployment configuration hardening baselines, vendor security patch management SLAs, vulnerability tracking, and vendor support contracts. |
           | **Infrastructure & Hosting Track (`infra`)** | Triggered if **Self-hosted** (Custom or COTS) | **Q7**: Infrastructure & Hosting Readiness | Server and hosting security: secrets vault management, encryption at rest and in transit, centralized SIEM audit logging, OS patching, and backup & disaster recovery resilience. |
           | **SaaS Application Track (`saas_app`)** | Triggered if **Third-party SaaS** | **Q9**: SaaS Application Readiness | SaaS governance and contractual security exhibits: Master SaaS Agreement (MSA), encryption, tenant isolation, admin MFA, EU data residency, audit rights (SOC 2 / ISO 27001), and 48-hour incident SLAs. Note: If the vendor lacks active ISO 27001 / SOC 2 certification, the detailed Uncertified SaaS Vendor Track (`saas_uncertified`) is routed within the SaaS track. |
           | **Internet-Facing Track (`internet_facing`)** | Triggered if **Internet-facing** (Self-hosted) | **Q8**: Internet-Facing Readiness | Perimeter and edge defenses: Edge Web Application Firewall (WAF, e.g. Cloudflare, AWS WAF), anti-DDoS mitigation, automated API rate limiting/bot protection, and external penetration testing. |
+          | **External Provider Extranet Track (`extranet`)** | Triggered if **Extranet / Carrier platform** | **Q10**: Extranet Readiness | External provider platform security architecture, account-level compartmentalization, strict data minimization, public tracking data masking, enterprise SSO, mandatory MFA, automated SCIM deprovisioning, prohibition of shared accounts, granular RBAC, single-admin PAM vaulting & break-glass, and separation of administrative and operational duties. |
 
           ---
 
@@ -750,6 +795,9 @@ objects:
           - 🔑 **Application Security Baseline (`baseline`)** *(Question Q4)*:
             - **Recommended Respondents:** **Identity & Access Management (IAM) Administrator**, **System Owner**, or **IT Security Lead**.
             - *Rationale:* Evaluates enterprise identity federation (SAML/OIDC), administrative MFA enforcement, and access governance.
+          - 🚚 **External Provider Extranet Track (`extranet`)** *(Question Q10)*:
+            - **Recommended Respondents:** **Logistics / Supply Chain Application Owner**, **Carrier Integration Specialist**, **External Vendor Security Manager**, or **Enterprise IAM Administrator**.
+            - *Rationale:* Evaluates provider extranet architecture (account-level compartmentalization, public tracking data masking), enterprise SSO/MFA federation, SCIM user deprovisioning, named attribution, single-admin PAM vaulting, and operational duty separation.
 
           ---
 
@@ -770,8 +818,8 @@ objects:
           >    - Your work on this initial assessment is complete! You have successfully provided the profiling foundation and routed the technical tracks to the right specialists.
           >    - You can submit your responses now; the designated co-respondents will receive their own assignments to complete their portions.
         annotation: >
-          Transition splash screen presenting dynamically triggered implementation groups based on Chapter 1 profiling (Custom, COTS, Infrastructure, SaaS, Internet-Facing), summarizing respondent readiness and delegation choices made in questions Q4–Q10, and detailing the multi-respondent orchestration workflow.
-        implementation_groups: ["info", "baseline"]
+          Transition splash screen presenting dynamically triggered implementation groups based on Chapter 1 profiling (Custom, COTS, Infrastructure, SaaS, Internet-Facing, Extranet), summarizing respondent readiness and delegation choices made in questions Q4–Q10, and detailing the multi-respondent orchestration workflow.
+        implementation_groups: ["info", "baseline", "extranet"]
 
       # === CHAPTER 2: IDENTITY, AUTHENTICATION & ACCESS CONTROL ===
       - urn: urn:intuitem:risk:req_node:appsec:iam_chapter
@@ -783,7 +831,7 @@ objects:
         annotation: >
           Comprehensive IAM controls aligned with OWASP ASVS V2 (Authentication) and V4 (Access Control),
           including enterprise identity governance for third-party external provider extranets (such as carrier portals).
-        implementation_groups: ["baseline", "custom_app"]
+        implementation_groups: ["baseline", "extranet", "custom_app"]
 
       # Requirement: Centralized Identity, Authentication & MFA
       - urn: urn:intuitem:risk:req_node:appsec:authentication_and_mfa
@@ -881,12 +929,12 @@ objects:
         name: "Authorization, RBAC, IGA & Access Recertifications"
         description: "Enforce least privilege via granular RBAC/ABAC, integrate with enterprise Identity Governance & Administration (SailPoint), and perform periodic access recertifications."
         annotation: >
-          Enforces server-side object-level and function-level access control on every request (preventing BOLA, IDOR, and privilege escalation), with enterprise IGA (SailPoint) and periodic entitlement recertifications across all applications.
+          Enforces server-side object-level and function-level access control on every request (preventing BOLA, IDOR, and privilege escalation), with enterprise IGA (SailPoint) and periodic entitlement recertifications across all applications (including external provider and carrier extranets).
         typical_evidence: >
           - RBAC matrix detailing roles and permissions
           - Enterprise IGA / SailPoint onboarding configuration and application connector setup
           - Periodic User Access Review (UAR) and entitlement recertification campaign sign-offs in SailPoint
-        implementation_groups: ["baseline"]
+        implementation_groups: ["baseline", "extranet"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:enforce_least_privilege_rbac
         questions:
@@ -949,9 +997,9 @@ objects:
           Specific security architecture, data governance, and Identity & Access Management (IAM) controls for third-party external provider extranets (such as carrier portals, shipping networks, freight forwarders, and logistics platforms) accessed by internal personnel:
           - Architectural Context: In carrier and transport logistics extranets, multi-tenant database isolation is impossible by design because carriers operate shared, collaborative operational logistics networks where parcel tracking numbers, routing hops, and waybills are processed across shared platforms and public lookup interfaces.
           - Architectural & Exposure Controls: Because platform-level tenant segregation is impossible, security governance must enforce strict corporate account-level compartmentalization (preventing cross-account access or IDOR on order history and billing), strict data minimization (prohibiting submission of customer PII, trade secrets, or cardholder payment data onto the shared carrier network), masking of sensitive recipient details on public tracking lookups, and TLS 1.2+ encrypted transport.
-          - Enterprise SSO & Identity Federation: Assesses whether the external extranet supports enterprise Identity Provider (IdP) federation via SAML 2.0 / OIDC, ensuring centralized authentication and eliminating siloed local passwords.
-          - Multi-Factor Authentication (MFA): Verifies mandatory MFA for all user logins (via corporate IdP Conditional Access or provider-enforced authenticator apps / WebAuthn), strictly prohibiting password-only access.
-          - User Lifecycle & Automated Deprovisioning: Evaluates automated deprovisioning (SCIM 2.0 or federated IdP sync) to immediately terminate extranet access upon employee offboarding or role change, mitigating orphaned account risks.
+          - Enterprise SSO & Identity Federation (Entra ID): Assesses enterprise IdP federation via Microsoft Entra ID (SAML 2.0 / OIDC SSO). When Entra ID SSO is active, Multi-Factor Authentication (MFA) is enforced by design via corporate Conditional Access, and auto-deprovisioning of leavers is inherently guaranteed upon corporate account deactivation or unassignment.
+          - Multi-Factor Authentication (MFA) Compensating Control: When Microsoft Entra ID SSO is unsupported by the provider, verifies whether the provider platform natively enforces mandatory MFA for all logins (authenticator apps / WebAuthn / FIDO2 / TOTP).
+          - User Lifecycle & Deprovisioning Compensating Control: When Microsoft Entra ID SSO is unsupported, evaluates user lifecycle offboarding procedures, recognizing automated SCIM 2.0 / API deprovisioning or SailPoint disconnected application governance (ticket SLA, periodic access reviews, and account reconciliations) to mitigate orphaned account risks.
           - Prohibition of Shared / Generic Accounts: Mandates individual named accounts and technically prohibits shared/team credentials (e.g., 'shipping@company.com') ensuring complete individual attribution in audit logs.
           - Granular Role-Based Access Control (RBAC): Enforces the principle of least privilege, separating operational booking, payment/invoicing, sensitive client data viewing, and tenant administration.
           - Administrative Account Governance & Single-Admin Constraints: Addresses the common platform constraint where carrier extranets allow only one master administrator account per client. Evaluates whether single-admin credentials and MFA seeds (TOTP/hardware token) are securely vaulted in an enterprise Privileged Access Management (PAM) system with documented emergency break-glass recovery to prevent both single-point-of-failure lockouts and unmanaged credential sharing. Where multi-admin is supported, verifies that at least two designated named administrators exist without credential sharing.
@@ -967,179 +1015,140 @@ objects:
           - RBAC entitlement matrix illustrating separation of duties between operational shipping, billing, and admin privileges
           - Enterprise Privileged Access Management (PAM) vault entry, secret checkout logs, or break-glass procedure documentation for single-admin provider accounts
           - Administrative access policy establishing separation between master admin governance accounts and standard dispatch user accounts
-        implementation_groups: ["baseline"]
+        implementation_groups: ["extranet"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:centralized_identity_sso
           - urn:intuitem:risk:control:appsec:enforce_mfa_and_strong_auth
           - urn:intuitem:risk:control:appsec:enforce_least_privilege_rbac
-        vulnerabilities:
-          - urn:intuitem:risk:vulnerability:appsec:weak_authentication_controls
-          - urn:intuitem:risk:vulnerability:appsec:broken_authorization_rbac
         questions:
           urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1:
             type: unique_choice
-            text: "Do internal personnel or contractors access external provider extranets (such as carrier portals, freight/logistics platforms, or vendor web applications) to perform business operations?"
+            text: "Given that platform-wide tenant segregation is impossible by design in shared carrier networks, does the extranet architecture enforce account-level compartmentalization, public tracking data masking, and strict data minimization (prohibiting storage of sensitive PII, trade secrets, or payment data) alongside TLS 1.2+ encrypted transport?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1:c1
-                value: "No - Internal personnel do not access external provider extranets for this application or operational workflow"
-                add_score: 100
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1:c2
-                value: "Yes - Internal personnel access third-party provider extranets or carrier portals"
-                add_score: 0
-                compute_result: false
-                color: "#fd7e14"
-          urn:intuitem:risk:req_node:appsec:external_provider_extranets:q2:
-            type: unique_choice
-            text: "Given that platform-wide tenant segregation is impossible by design in shared carrier networks, does the extranet architecture enforce account-level compartmentalization, public tracking data masking, and strict data minimization (prohibiting storage of sensitive PII, trade secrets, or payment data) alongside TLS 1.2+ encrypted transport?"
-            depends_on:
-              question: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1
-              answers: ["urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1:c2"]
-              condition: any
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q2:c1
                 value: "Yes - Account-level authorization protects corporate records/invoices, strict data minimization is enforced (no PII/secrets submitted), public tracking lookups mask recipient/commercial details, and transport is encrypted via TLS 1.2+"
                 add_score: 15
                 compute_result: true
                 color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q2:c2
+              - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1:c2
                 value: "No - Sensitive PII or commercial secrets are submitted to the shared extranet, public tracking exposes unmasked recipient/invoice details, or account authorization boundaries are unverified"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:external_provider_extranets:q2:
+            type: unique_choice
+            text: "Does the provider extranet support enterprise Identity Provider (IdP) federation via Microsoft Entra ID (Azure AD SAML 2.0 or OIDC), enabling Single Sign-On (SSO) with corporate credentials for internal personnel (inherently enforcing Multi-Factor Authentication by design and auto-deprovisioning of leavers upon corporate account deactivation)?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q2:c1
+                value: "Yes - Full enterprise IdP federation via Microsoft Entra ID (SAML 2.0 / OIDC SSO), inherently enforcing MFA by design via Conditional Access and auto-deprovisioning leavers upon corporate account deactivation"
+                add_score: 40
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q2:c2
+                value: "No - Provider extranet does not support enterprise SSO; internal personnel must maintain separate portal credentials directly on the partner platform (triggers requirement for partner-level MFA and manual/SailPoint deprovisioning governance)"
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
           urn:intuitem:risk:req_node:appsec:external_provider_extranets:q3:
             type: unique_choice
-            text: "Does the provider extranet support enterprise Identity Provider (IdP) federation via standard protocols (SAML 2.0 or OIDC), enabling Single Sign-On (SSO) with corporate credentials for internal personnel?"
+            text: "When Microsoft Entra ID SSO is not supported, is Multi-Factor Authentication (MFA) strictly enforced on the provider extranet (via provider-mandated TOTP authenticator apps, FIDO2/WebAuthn, or push notifications) for all user and administrative access?"
             depends_on:
-              question: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1
-              answers: ["urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1:c2"]
+              question: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q2
+              answers:
+                - "urn:intuitem:risk:req_node:appsec:external_provider_extranets:q2:c2"
               condition: any
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q3:c1
-                value: "Yes - Full enterprise IdP federation (SAML 2.0 / OIDC SSO), eliminating siloed local passwords and centralizing authentication"
+                value: "Yes - Mandatory MFA is strictly enforced on the provider platform for all user and admin accounts (via provider-mandated TOTP / FIDO2 / WebAuthn / push)"
                 add_score: 15
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q3:c2
-                value: "No - Personnel must create and maintain separate local credentials directly on the provider extranet"
+                value: "No - Single-factor (password-only) login is permitted or MFA is optional/unsupported on the partner platform"
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
           urn:intuitem:risk:req_node:appsec:external_provider_extranets:q4:
             type: unique_choice
-            text: "Is Multi-Factor Authentication (MFA) strictly enforced for all user and administrative access to the provider extranet (via enterprise IdP Conditional Access or provider-enforced authenticator apps / WebAuthn)?"
+            text: "When Microsoft Entra ID SSO is not supported, how is user access deprovisioned when an employee or contractor leaves the organization or changes role to prevent orphaned accounts on the partner platform?"
             depends_on:
-              question: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1
-              answers: ["urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1:c2"]
+              question: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q2
+              answers:
+                - "urn:intuitem:risk:req_node:appsec:external_provider_extranets:q2:c2"
               condition: any
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q4:c1
-                value: "Yes - Mandatory MFA is enforced for all logins (via corporate IdP Conditional Access or provider-mandated TOTP / push / FIDO2)"
-                add_score: 15
+                value: "Automated: Deprovisioning is automated via partner SCIM 2.0 or user lifecycle API connector (departing personnel immediately lose access)"
+                add_score: 10
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q4:c2
-                value: "No - Single-factor (password-only) login is permitted or MFA is optional/unsupported"
+                value: "Partially managed: SailPoint disconnected application workflow or manual offboarding ticket process with documented periodic access reviews and account reconciliations"
+                add_score: 5
+                compute_result: true
+                color: "#ffc107"
+              - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q4:c3
+                value: "Unmanaged: Accounts remain active indefinitely until manually noticed, with no systematic offboarding or access reviews (high orphan account risk)"
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
           urn:intuitem:risk:req_node:appsec:external_provider_extranets:q5:
             type: unique_choice
-            text: "How is user access deprovisioned when an employee or contractor leaves the organization or changes role, and does the provider extranet support automated deprovisioning (e.g. SCIM 2.0, JIT, or automated IdP account suspension) to prevent orphaned accounts?"
-            depends_on:
-              question: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1
-              answers: ["urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1:c2"]
-              condition: any
+            text: "Are individual named user accounts strictly required and enforced for all personnel accessing the extranet, with explicit prohibition and technical prevention of shared or generic team logins (e.g., 'shipping@company.com' or 'logistics-ops')?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q5:c1
-                value: "Automated: Deprovisioning is instant via SCIM 2.0 or federated IdP deactivation (departing personnel immediately lose extranet access)"
-                add_score: 10
+                value: "Yes - Every user has an individually assigned named account with individual attribution in audit trails; shared team accounts are strictly prohibited"
+                add_score: 15
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q5:c2
-                value: "Partially managed: Manual offboarding ticket process with documented periodic access reviews and account reconciliations"
-                add_score: 5
-                compute_result: true
-                color: "#ffc107"
-              - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q5:c3
-                value: "Unmanaged: Accounts remain active indefinitely until manually noticed, with no systematic offboarding or access reviews (high orphan account risk)"
+                value: "No - Team members share common credentials or generic accounts to log into the provider extranet"
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
           urn:intuitem:risk:req_node:appsec:external_provider_extranets:q6:
             type: unique_choice
-            text: "Are individual named user accounts strictly required and enforced for all personnel accessing the extranet, with explicit prohibition and technical prevention of shared or generic team logins (e.g., 'shipping@company.com' or 'logistics-ops')?"
-            depends_on:
-              question: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1
-              answers: ["urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1:c2"]
-              condition: any
+            text: "Does the provider extranet enforce granular Role-Based Access Control (RBAC) to restrict user permissions to the minimum necessary for their business function (e.g., separating shipping booking, tracking, financial/invoicing data, and administrative configuration)?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q6:c1
-                value: "Yes - Every user has an individually assigned named account with individual attribution in audit trails; shared team accounts are strictly prohibited"
-                add_score: 15
+                value: "Yes - Granular RBAC profiles restrict user permissions by role (e.g. shipping dispatcher, billing analyst, read-only viewer, administrator)"
+                add_score: 10
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q6:c2
-                value: "No - Team members share common credentials or generic accounts to log into the provider extranet"
+                value: "No - All users share broad, all-inclusive permissions or have administrative privileges by default"
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
           urn:intuitem:risk:req_node:appsec:external_provider_extranets:q7:
             type: unique_choice
-            text: "Does the provider extranet enforce granular Role-Based Access Control (RBAC) to restrict user permissions to the minimum necessary for their business function (e.g., separating shipping booking, tracking, financial/invoicing data, and administrative configuration)?"
-            depends_on:
-              question: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1
-              answers: ["urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1:c2"]
-              condition: any
+            text: "How is administrative access governed on the provider extranet, and how does the organization mitigate single point of failure (SPOF) and credential-sharing risks—particularly on platforms that permit only a single master administrator account?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q7:c1
-                value: "Yes - Granular RBAC profiles restrict user permissions by role (e.g. shipping dispatcher, billing analyst, read-only viewer, administrator)"
+                value: "Enterprise PAM vaulting or named redundancy: Where multiple admins are supported, at least two designated named administrators exist without credential sharing; where the platform allows only one admin account, credentials and MFA seeds (TOTP/hardware key) are secured in an enterprise Privileged Access Management (PAM) vault with auditable break-glass emergency recovery procedures"
                 add_score: 10
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q7:c2
-                value: "No - All users share broad, all-inclusive permissions or have administrative privileges by default"
+                value: "Designated admin with documented backup: A primary administrator is designated with an identified operational backup and documented recovery process, but credentials/MFA are stored in standard password managers without formalized PAM vaulting or dual-custody break-glass controls"
+                add_score: 5
+                compute_result: true
+                color: "#ffc107"
+              - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q7:c3
+                value: "Unmanaged / Insecure sharing: The single admin account is informally shared across multiple staff, or tied exclusively to a single individual's personal device/email without backup access or emergency handover procedures (severe lockout and accountability risk)"
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
           urn:intuitem:risk:req_node:appsec:external_provider_extranets:q8:
             type: unique_choice
-            text: "How is administrative access governed on the provider extranet, and how does the organization mitigate single point of failure (SPOF) and credential-sharing risks—particularly on platforms that permit only a single master administrator account?"
-            depends_on:
-              question: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1
-              answers: ["urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1:c2"]
-              condition: any
+            text: "Are administrative privileges strictly separated from routine operational tasks, ensuring master administrator credentials are reserved for governance and configuration rather than daily shipment booking or tracking?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q8:c1
-                value: "Enterprise PAM vaulting or named redundancy: Where multiple admins are supported, at least two designated named administrators exist without credential sharing; where the platform allows only one admin account, credentials and MFA seeds (TOTP/hardware key) are secured in an enterprise Privileged Access Management (PAM) vault with auditable break-glass emergency recovery procedures"
-                add_score: 10
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q8:c2
-                value: "Designated admin with documented backup: A primary administrator is designated with an identified operational backup and documented recovery process, but credentials/MFA are stored in standard password managers without formalized PAM vaulting or dual-custody break-glass controls"
-                add_score: 5
-                compute_result: true
-                color: "#ffc107"
-              - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q8:c3
-                value: "Unmanaged / Insecure sharing: The single admin account is informally shared across multiple staff, or tied exclusively to a single individual's personal device/email without backup access or emergency handover procedures (severe lockout and accountability risk)"
-                add_score: 0
-                compute_result: false
-                color: "#dc3545"
-          urn:intuitem:risk:req_node:appsec:external_provider_extranets:q9:
-            type: unique_choice
-            text: "Are administrative privileges strictly separated from routine operational tasks, ensuring master administrator credentials are reserved for governance and configuration rather than daily shipment booking or tracking?"
-            depends_on:
-              question: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1
-              answers: ["urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1:c2"]
-              condition: any
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q9:c1
                 value: "Yes - Strict separation of duties: Master admin accounts are used solely for account governance, user lifecycle management, billing setup, and security configuration; daily operational shipping, tracking, and label generation are performed using separate standard user accounts"
                 add_score: 10
                 compute_result: true
                 color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q9:c2
+              - urn: urn:intuitem:risk:req_node:appsec:external_provider_extranets:q8:c2
                 value: "No - Administrative accounts are routinely used for daily operational shipping tasks, or administrative privileges are granted broadly to day-to-day dispatch operators"
                 add_score: 0
                 compute_result: false
@@ -3333,7 +3342,7 @@ objects:
           > **Note:** If your application architecture, hosting model, or exposure profile changes in the future, please re-evaluate this assessment.
         annotation: >
           Concluding splash screen expressing gratitude to the respondent and detailing subsequent compliance verification, risk assessment, and remediation workflows.
-        implementation_groups: ["info", "baseline", "custom_app", "cots_app", "saas_app", "saas_uncertified", "internet_facing", "infra"]
+        implementation_groups: ["info", "baseline", "custom_app", "cots_app", "saas_app", "saas_uncertified", "internet_facing", "infra", "extranet"]
 
 # ============================================================================
 # AUDIT CONFIGURATION

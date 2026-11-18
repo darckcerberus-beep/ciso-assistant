@@ -25,13 +25,18 @@ def _match_choice(choice: dict[str, Any], answer_val: Any) -> bool:
 
     if c_urn and norm_ans == c_urn:
         return True
+    if c_urn and norm_ans.startswith("urn:"):
+        # Both choice and answer are full URNs and did not match exactly
+        return False
     if c_ref and norm_ans == c_ref:
         return True
     if c_val and norm_ans == c_val:
         return True
-    if c_ref and norm_ans.endswith(f":{c_ref}"):
-        return True
     if c_val and (norm_ans.startswith(c_val) or c_val.startswith(norm_ans)):
+        return True
+    if c_urn and ":" in norm_ans and c_urn.endswith(f":{norm_ans}"):
+        return True
+    if not c_urn and c_ref and norm_ans.endswith(f":{c_ref}"):
         return True
     return False
 
@@ -41,31 +46,39 @@ def _get_node_choices(node: dict[str, Any], q_key: str | None = None) -> list[di
     if not isinstance(node, dict):
         return []
     questions = node.get("questions", {})
-    q_items = questions.values() if isinstance(questions, dict) else (questions if isinstance(questions, list) else [])
+    if isinstance(questions, dict):
+        q_entries = [(str(k), v) for k, v in questions.items() if isinstance(v, dict)]
+    elif isinstance(questions, list):
+        q_entries = [(str(v.get("urn") or v.get("ref_id") or ""), v) for v in questions if isinstance(v, dict)]
+    else:
+        q_entries = []
 
     if q_key:
         norm_q = str(q_key).strip().lower()
-        for q in q_items:
-            if not isinstance(q, dict):
-                continue
+        for q_dict_key, q in q_entries:
+            q_k_low = q_dict_key.strip().lower()
             q_ref = str(q.get("ref_id", "")).strip().lower()
-            q_urn = str(q.get("urn", "")).strip().lower()
+            q_urn = str(q.get("urn", "") or (q_dict_key if ":" in q_dict_key else "")).strip().lower()
             q_text = str(q.get("text", "")).strip().lower()
             if (
-                norm_q == q_ref
-                or norm_q == q_urn
-                or norm_q == q_text
+                (q_k_low and norm_q == q_k_low)
+                or (q_ref and norm_q == q_ref)
+                or (q_urn and norm_q == q_urn)
+                or (q_text and norm_q == q_text)
                 or (q_ref and norm_q.endswith(f":{q_ref}"))
-                or (q_ref and norm_q.endswith(q_ref))
-                or (q_urn and norm_q in q_urn)
-                or (q_text and (norm_q in q_text or q_text in norm_q))
+                or (q_urn and q_urn.endswith(f":{norm_q}"))
+                or (q_k_low and q_k_low.endswith(f":{norm_q}"))
+                or (q_text and len(norm_q) > 10 and (norm_q in q_text or q_text in norm_q))
             ):
                 return [c for c in q.get("choices", []) if isinstance(c, dict)]
+        # If q_key is a specific question identifier/URN that did not match (e.g. text-only or unknown),
+        # do not bleed choices from unrelated questions in the same node.
+        if ":" in norm_q or re.match(r"^q\d+", norm_q):
+            return []
 
     all_choices: list[dict[str, Any]] = []
-    for q in q_items:
-        if isinstance(q, dict):
-            all_choices.extend([c for c in q.get("choices", []) if isinstance(c, dict)])
+    for _, q in q_entries:
+        all_choices.extend([c for c in q.get("choices", []) if isinstance(c, dict)])
     return all_choices
 
 
@@ -87,28 +100,50 @@ def _check_dep_match(
 
     if matched_choice:
         mc_urn = str(matched_choice.get("urn", "")).strip().lower()
-        if dep_q_urn and (mc_urn == dep_q_urn or mc_urn.startswith(f"{dep_q_urn}:")):
-            q_matched = True
-        elif dep_q_ref and (
-            f":{dep_q_ref}:" in mc_urn
-            or mc_urn.endswith(f":{dep_q_ref}")
-            or mc_urn.startswith(f"{dep_q_ref}:")
-        ):
-            q_matched = True
+        if mc_urn:
+            if dep_q_urn and (mc_urn == dep_q_urn or mc_urn.startswith(f"{dep_q_urn}:")):
+                q_matched = True
+            elif dep_q_ref and (
+                f":{dep_q_ref}:" in mc_urn
+                or mc_urn.endswith(f":{dep_q_ref}")
+                or mc_urn.startswith(f"{dep_q_ref}:")
+            ):
+                q_matched = True
+            else:
+                # Matched choice URN authoritatively belongs to a different question
+                return False
 
     if not q_matched:
-        if dep_q_urn and (norm_q == dep_q_urn or norm_q in dep_q_urn or dep_q_urn in norm_q):
+        effective_req = norm_req if (norm_req and norm_req != norm_q) else ""
+        if dep_q_urn and (
+            norm_q == dep_q_urn
+            or norm_q.startswith(f"{dep_q_urn}:")
+            or (norm_q and ":" in norm_q and dep_q_urn.endswith(f":{norm_q}"))
+            or (effective_req and norm_q and (
+                f"{effective_req}:{norm_q}" == dep_q_urn
+                or dep_q_urn.endswith(f":{effective_req}:{norm_q}")
+            ))
+            or (not effective_req and norm_q and ":" not in norm_q and dep_q_urn.endswith(f":{norm_q}"))
+        ):
             q_matched = True
         elif dep_q_ref and (
             norm_q == dep_q_ref
             or norm_q.endswith(f":{dep_q_ref}")
-            or norm_q.endswith(dep_q_ref)
-            or (norm_req and f"{norm_req}:{norm_q}".endswith(dep_q_ref))
+            or (effective_req and norm_q and (
+                f"{effective_req}:{norm_q}" == dep_q_ref
+                or f"{effective_req}:{norm_q}".endswith(f":{dep_q_ref}")
+            ))
         ):
             q_matched = True
-        elif dep_q_text and (norm_q == dep_q_text or norm_q in dep_q_text or dep_q_text in norm_q):
+        elif dep_q_text and norm_q and (
+            norm_q == dep_q_text
+            or (len(norm_q) > 10 and (norm_q in dep_q_text or dep_q_text in norm_q))
+        ):
             q_matched = True
-        elif not q_ident and dep_q_ref and norm_req and (norm_req in dep_q_ref or dep_q_ref in norm_req):
+        elif not norm_q and dep_q_ref and norm_req and (
+            norm_req == dep_q_ref
+            or dep_q_ref.startswith(f"{norm_req}:")
+        ):
             q_matched = True
 
     if not q_matched:
@@ -121,12 +156,13 @@ def _check_dep_match(
         mc_urn = str(matched_choice.get("urn", "")).strip().lower()
         mc_val = str(matched_choice.get("value", "")).strip().lower()
         mc_ref = str(matched_choice.get("ref_id", "")).strip().lower()
-        if dep_c_urn and mc_urn == dep_c_urn:
-            return True
-        if dep_c_val and (mc_val == dep_c_val or dep_c_val in mc_val or mc_val in dep_c_val):
-            return True
+        if dep_c_urn and mc_urn:
+            return mc_urn == dep_c_urn
         if dep_c_urn and mc_ref and dep_c_urn.endswith(f":{mc_ref}"):
             return True
+        if dep_c_val and mc_val and (mc_val == dep_c_val or dep_c_val in mc_val or mc_val in dep_c_val):
+            return True
+        return False
 
     temp_c = {"urn": dep.get("choice_urn"), "value": dep.get("choice_value"), "ref_id": dep.get("choice_ref_id")}
     return _match_choice(temp_c, ans_val)
@@ -854,7 +890,8 @@ def determine_implementation_groups_triggered_by_others(
         for ra in req_list:
             ra_ref = ""
             if isinstance(ra, dict):
-                ra_ref = str(ra.get("ref_id") or "").strip().lower()
+                req_obj = ra.get("requirement") if isinstance(ra.get("requirement"), dict) else {}
+                ra_ref = str(ra.get("ref_id") or req_obj.get("ref_id") or "").strip().lower()
             else:
                 for method_name in ("get_ref_id", "get_requirement_ref_id"):
                     m = getattr(ra, method_name, None)
@@ -873,7 +910,8 @@ def determine_implementation_groups_triggered_by_others(
 
             ra_urn = ""
             if isinstance(ra, dict):
-                ra_urn = str(ra.get("urn") or "").strip().lower()
+                req_obj = ra.get("requirement") if isinstance(ra.get("requirement"), dict) else {}
+                ra_urn = str(ra.get("urn") or req_obj.get("urn") or "").strip().lower()
             else:
                 m = getattr(ra, "get_urn", None)
                 if callable(m):
@@ -1537,6 +1575,8 @@ def map_tiering_answers_to_audit_answers(tiering_answers: dict[str, Any]) -> dic
                 choice_ref = "c2"
             elif "saas" in val_str or ":c3" in val_str:
                 choice_ref = "c3"
+            elif "extranet" in val_str or ":c4" in val_str:
+                choice_ref = "c4"
             else:
                 choice_ref = None
 
@@ -1690,6 +1730,17 @@ def map_tiering_answers_to_audit_answers(tiering_answers: dict[str, Any]) -> dic
             answers["urn:intuitem:risk:req_node:appsec_manual:hosting:q9_delegate"] = str(val).strip()
             answers["hosting:q9_delegate"] = str(val).strip()
 
+        # Extranet track (q10)
+        if "extranet_readiness" in key_str or ("extranet" in key_str and ("ready" in key_str or "answer" in key_str)):
+            c_ref = "c1" if ("self" in val_str or ":c1" in val_str or "i can" in val_str) else "c2"
+            answers["urn:intuitem:risk:req_node:appsec:hosting:q10"] = f"urn:intuitem:risk:req_node:appsec:hosting:q10:{c_ref}"
+            answers["urn:intuitem:risk:req_node:appsec_manual:hosting:q10"] = f"urn:intuitem:risk:req_node:appsec_manual:hosting:q10:{c_ref}"
+            answers["hosting:q10"] = c_ref
+        elif "extranet_delegate" in key_str and val:
+            answers["urn:intuitem:risk:req_node:appsec:hosting:q10_delegate"] = str(val).strip()
+            answers["urn:intuitem:risk:req_node:appsec_manual:hosting:q10_delegate"] = str(val).strip()
+            answers["hosting:q10_delegate"] = str(val).strip()
+
     return answers
 
 
@@ -1748,6 +1799,8 @@ def map_audit_answers_to_tiering_answers(audit_answers: dict[str, Any] | list[An
                 tiering["delivery_model"] = "cots"
             elif ":c3" in v_str or "saas" in v_str or "cloud" in v_str or v_str == "c3":
                 tiering["delivery_model"] = "saas"
+            elif ":c4" in v_str or "extranet" in v_str or v_str == "c4":
+                tiering["delivery_model"] = "extranet"
 
         # 2. Exposure (hosting:q2)
         if "hosting:q2" in k_str or "exposure" in k_str or ("hosting" in k_str and "q2" in k_str):

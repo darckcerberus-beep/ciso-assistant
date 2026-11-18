@@ -563,6 +563,7 @@ class TestYamlIntegrity(unittest.TestCase):
                 "Custom software created and deployed by my teams (In-house development)",
                 "Bought software deployed by my teams (COTS / Vendor package)",
                 "SaaS (Third-party software hosted and operated by a vendor)",
+                "Extranet (External provider or carrier platform hosted by a partner/vendor)",
             ],
         )
 
@@ -684,10 +685,10 @@ class TestYamlIntegrity(unittest.TestCase):
         if not appsec_fw:
             return
 
-        # 1. In merged model, hosting questions q4-q9 dynamically trigger IGs when respondent can self-answer (c1)
+        # 1. In merged model, hosting questions q4-q10 dynamically trigger IGs when respondent can self-answer (c1)
         hosting_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:hosting")
         self.assertIsNotNone(hosting_node, "hosting node missing in AppSec")
-        self.assertEqual(len(hosting_node.get("questions", {})), 14)
+        self.assertEqual(len(hosting_node.get("questions", {})), 16)
         q1_hosting = hosting_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:hosting:q1")
         self.assertIsNotNone(q1_hosting)
         saas_choice = next(c for c in q1_hosting["choices"] if c["urn"] == "urn:intuitem:risk:req_node:appsec:hosting:q1:c3")
@@ -718,11 +719,12 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertIn("urn:intuitem:risk:req_node:appsec:hosting:q1:c1", dep.get("answers", []))
         self.assertIn("urn:intuitem:risk:req_node:appsec:hosting:q1:c2", dep.get("answers", []))
         self.assertNotIn("urn:intuitem:risk:req_node:appsec:hosting:q1:c3", dep.get("answers", []))
+        self.assertNotIn("urn:intuitem:risk:req_node:appsec:hosting:q1:c4", dep.get("answers", []))
 
         # Validate SaaS vendor ISO 27001 / SOC 2 certification is evaluated in saas_contract_compliance (saas_app)
         self.assertNotIn("urn:intuitem:risk:req_node:appsec:hosting:q3", hosting_node.get("questions", {}))
-        self.assertNotIn("urn:intuitem:risk:req_node:appsec:hosting:q10", hosting_node.get("questions", {}))
-        self.assertNotIn("urn:intuitem:risk:req_node:appsec:hosting:q10_delegate", hosting_node.get("questions", {}))
+        self.assertIn("urn:intuitem:risk:req_node:appsec:hosting:q10", hosting_node.get("questions", {}))
+        self.assertIn("urn:intuitem:risk:req_node:appsec:hosting:q10_delegate", hosting_node.get("questions", {}))
 
         saas_contract_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:saas_contract_compliance")
         self.assertIsNotNone(saas_contract_node)
@@ -988,20 +990,23 @@ class TestYamlIntegrity(unittest.TestCase):
         q1 = hosting_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:hosting:q1")
         self.assertIsNotNone(q1)
         choices = q1.get("choices", [])
-        self.assertEqual(len(choices), 3)
+        self.assertEqual(len(choices), 4)
 
         custom_choice = next((c for c in choices if "custom software" in c.get("value", "").lower()), None)
         bought_choice = next((c for c in choices if "bought software" in c.get("value", "").lower()), None)
         saas_choice = next((c for c in choices if "saas" in c.get("value", "").lower()), None)
+        extranet_choice = next((c for c in choices if "extranet" in c.get("value", "").lower()), None)
 
         self.assertIsNotNone(custom_choice, "Custom software choice missing in hosting:q1")
         self.assertIsNotNone(bought_choice, "Bought software (COTS) choice missing in hosting:q1")
         self.assertIsNotNone(saas_choice, "SaaS choice missing in hosting:q1")
+        self.assertIsNotNone(extranet_choice, "Extranet choice missing in hosting:q1")
 
         # In merged model, q1 profiling choices do not directly trigger IGs
         self.assertEqual(custom_choice.get("select_implementation_groups", []), [])
         self.assertEqual(bought_choice.get("select_implementation_groups", []), [])
         self.assertEqual(saas_choice.get("select_implementation_groups", []), [])
+        self.assertEqual(extranet_choice.get("select_implementation_groups", []), [])
 
         # Instead, questions q4-q9 trigger the respective IGs on choice c1
         hosting_questions = hosting_node.get("questions", {})
@@ -1129,12 +1134,15 @@ class TestYamlIntegrity(unittest.TestCase):
         # Universal IAM requirements are grouped under the baseline track
         iam_ch = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:iam_chapter")
         self.assertIsNotNone(iam_ch)
-        self.assertEqual(iam_ch.get("implementation_groups"), ["baseline", "custom_app"])
+        self.assertEqual(iam_ch.get("implementation_groups"), ["baseline", "extranet", "custom_app"])
 
-        for ref_id in ["authentication_and_mfa", "access_control_and_rbac"]:
-            node = appsec_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec:{ref_id}")
-            self.assertIsNotNone(node, f"Universal IAM node {ref_id} missing in appsec")
-            self.assertEqual(node.get("implementation_groups"), ["baseline"], f"{ref_id} must be scoped to ['baseline']")
+        auth_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:authentication_and_mfa")
+        self.assertIsNotNone(auth_node, "Universal IAM node authentication_and_mfa missing in appsec")
+        self.assertEqual(auth_node.get("implementation_groups"), ["baseline"], "authentication_and_mfa must be scoped to ['baseline']")
+
+        rbac_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:access_control_and_rbac")
+        self.assertIsNotNone(rbac_node, "Universal IAM node access_control_and_rbac missing in appsec")
+        self.assertEqual(rbac_node.get("implementation_groups"), ["baseline", "extranet"], "access_control_and_rbac must be scoped to ['baseline', 'extranet']")
 
         # Self-hosted infrastructure requirements apply strictly to infra
         self_hosted_infra_reqs = [
@@ -1521,6 +1529,7 @@ class TestYamlIntegrity(unittest.TestCase):
             "urn:intuitem:risk:req_node:appsec:hosting:q7:c1": ["infra"],
             "urn:intuitem:risk:req_node:appsec:hosting:q8:c1": ["internet_facing"],
             "urn:intuitem:risk:req_node:appsec:hosting:q9:c1": ["saas_app"],
+            "urn:intuitem:risk:req_node:appsec:hosting:q10:c1": ["extranet"],
             "urn:intuitem:risk:req_node:appsec:saas_contract_compliance:q3:c1": ["saas_uncertified"],
         }
         for n_urn, node in appsec_fw["req_nodes"].items():
@@ -1558,14 +1567,14 @@ class TestYamlIntegrity(unittest.TestCase):
             )
 
         # In appsec, hosting node contains hosting model (q1), network exposure (q2),
-        # respondent assignment questions for each triggered implementation group (q4-q9),
-        # and conditional free text delegate form fields for designating assignees (q4_delegate - q9_delegate)
+        # respondent assignment questions for each triggered implementation group (q4-q10),
+        # and conditional free text delegate form fields for designating assignees (q4_delegate - q10_delegate)
         hosting_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:hosting")
         self.assertIsNotNone(hosting_node, "Node hosting missing in appsec")
-        self.assertEqual(len(hosting_node.get("questions", {})), 14)
+        self.assertEqual(len(hosting_node.get("questions", {})), 16)
         self.assertNotIn("urn:intuitem:risk:req_node:appsec:hosting:q3", hosting_node.get("questions", {}))
-        self.assertNotIn("urn:intuitem:risk:req_node:appsec:hosting:q10", hosting_node.get("questions", {}))
-        self.assertNotIn("urn:intuitem:risk:req_node:appsec:hosting:q10_delegate", hosting_node.get("questions", {}))
+        self.assertIn("urn:intuitem:risk:req_node:appsec:hosting:q10", hosting_node.get("questions", {}))
+        self.assertIn("urn:intuitem:risk:req_node:appsec:hosting:q10_delegate", hosting_node.get("questions", {}))
 
         q2 = hosting_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:hosting:q2")
         self.assertIsNotNone(q2)
@@ -1574,8 +1583,9 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertIn("urn:intuitem:risk:req_node:appsec:hosting:q1:c1", dep.get("answers", []))
         self.assertIn("urn:intuitem:risk:req_node:appsec:hosting:q1:c2", dep.get("answers", []))
         self.assertNotIn("urn:intuitem:risk:req_node:appsec:hosting:q1:c3", dep.get("answers", []))
+        self.assertNotIn("urn:intuitem:risk:req_node:appsec:hosting:q1:c4", dep.get("answers", []))
 
-        # Verify respondent assignment questions for each triggered IG in hosting (q4 to q9) and delegate text fields
+        # Verify respondent assignment questions for each triggered IG in hosting (q4 to q10) and delegate text fields
         expected_ig_questions = {
             "q4": {
                 "track": "baseline",
@@ -1613,6 +1623,11 @@ class TestYamlIntegrity(unittest.TestCase):
                 "track": "saas_app",
                 "dep_q": "urn:intuitem:risk:req_node:appsec:hosting:q1",
                 "dep_answers": ["urn:intuitem:risk:req_node:appsec:hosting:q1:c3"],
+            },
+            "q10": {
+                "track": "extranet",
+                "dep_q": "urn:intuitem:risk:req_node:appsec:hosting:q1",
+                "dep_answers": ["urn:intuitem:risk:req_node:appsec:hosting:q1:c4"],
             },
         }
 
@@ -1714,14 +1729,13 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertEqual(len(appsec_fw["ref_ctrls"]), 26)
 
         # 5. Universal IAM nodes are grouped under the 'baseline' track
-        for ref_id in ["authentication_and_mfa", "access_control_and_rbac"]:
-            node = appsec_fw["req_nodes"].get(f"urn:intuitem:risk:req_node:appsec:{ref_id}")
-            self.assertIsNotNone(node, f"Node {ref_id} missing in appsec")
-            self.assertEqual(
-                node.get("implementation_groups"),
-                ["baseline"],
-                f"Node {ref_id} in appsec must be scoped to ['baseline']",
-            )
+        auth_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:authentication_and_mfa")
+        self.assertIsNotNone(auth_node, "Node authentication_and_mfa missing in appsec")
+        self.assertEqual(auth_node.get("implementation_groups"), ["baseline"])
+
+        rbac_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:access_control_and_rbac")
+        self.assertIsNotNone(rbac_node, "Node access_control_and_rbac missing in appsec")
+        self.assertEqual(rbac_node.get("implementation_groups"), ["baseline", "extranet"])
 
         # 6. COTS requirements & SaaS contractual vs "is effectively done" checks
         cots_hardening = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:cots_deployment_hardening")
@@ -2385,50 +2399,59 @@ class TestYamlIntegrity(unittest.TestCase):
         extranet_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:external_provider_extranets")
         self.assertIsNotNone(extranet_node, "external_provider_extranets requirement node missing in appsec")
         self.assertEqual(extranet_node.get("parent_urn"), "urn:intuitem:risk:req_node:appsec:iam_chapter")
-        self.assertEqual(extranet_node.get("implementation_groups"), ["baseline"])
+        self.assertEqual(extranet_node.get("implementation_groups"), ["extranet"])
         self.assertTrue(extranet_node.get("assessable"))
 
-        # Verify all 9 questions exist
+        # Verify all 8 direct questions exist
         questions = extranet_node.get("questions", {})
-        self.assertEqual(len(questions), 9, "external_provider_extranets must define exactly 9 questions")
+        self.assertEqual(len(questions), 8, "external_provider_extranets must define exactly 8 questions")
 
-        q1 = questions.get("urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1")
-        self.assertIsNotNone(q1, "Gating question q1 missing")
-        self.assertEqual(len(q1.get("choices", [])), 2)
-        q1_c1 = next(c for c in q1["choices"] if c["urn"].endswith(":c1"))
-        q1_c2 = next(c for c in q1["choices"] if c["urn"].endswith(":c2"))
-        self.assertEqual(q1_c1["add_score"], 100)
-        self.assertTrue(q1_c1["compute_result"])
-        self.assertEqual(q1_c2["add_score"], 0)
-        self.assertFalse(q1_c2["compute_result"])
+        # Verify conditional dependencies: q3 (MFA) and q4 (deprovisioning) depend on q2:c2 (No SSO)
+        q2 = questions.get("urn:intuitem:risk:req_node:appsec:external_provider_extranets:q2")
+        q3 = questions.get("urn:intuitem:risk:req_node:appsec:external_provider_extranets:q3")
+        q4 = questions.get("urn:intuitem:risk:req_node:appsec:external_provider_extranets:q4")
+        self.assertIsNotNone(q2)
+        self.assertIsNotNone(q3)
+        self.assertIsNotNone(q4)
 
-        # Questions q2-q9 must depend on q1:c2
-        dependent_scores = []
-        for q_idx in range(2, 10):
-            q_urn = f"urn:intuitem:risk:req_node:appsec:external_provider_extranets:q{q_idx}"
-            q_obj = questions.get(q_urn)
-            self.assertIsNotNone(q_obj, f"Question {q_urn} missing")
-            dep = q_obj.get("depends_on", {})
-            self.assertEqual(dep.get("question"), "urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1")
-            self.assertEqual(dep.get("answers"), ["urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1:c2"])
-            top_choice = next(c for c in q_obj.get("choices", []) if c.get("compute_result"))
-            dependent_scores.append(top_choice.get("add_score", 0))
+        for dep_q in [q3, q4]:
+            dep = dep_q.get("depends_on", {})
+            self.assertEqual(dep.get("question"), "urn:intuitem:risk:req_node:appsec:external_provider_extranets:q2")
+            self.assertIn("urn:intuitem:risk:req_node:appsec:external_provider_extranets:q2:c2", dep.get("answers", []))
 
-        self.assertEqual(sum(dependent_scores), 100, "Compliant scores across q2-q9 must sum to 100")
+        # Branch 1 (Entra ID SSO): q2 awards 40 pts (SSO + MFA by design + auto-deprovisioning of leavers)
+        # Total score: q1 (15) + q2 (40) + q5 (15) + q6 (10) + q7 (10) + q8 (10) = 100
+        q1_score = questions["urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1"]["choices"][0]["add_score"]
+        q2_sso_score = q2["choices"][0]["add_score"]
+        self.assertEqual(q2_sso_score, 40)
+        q5_score = questions["urn:intuitem:risk:req_node:appsec:external_provider_extranets:q5"]["choices"][0]["add_score"]
+        q6_score = questions["urn:intuitem:risk:req_node:appsec:external_provider_extranets:q6"]["choices"][0]["add_score"]
+        q7_score = questions["urn:intuitem:risk:req_node:appsec:external_provider_extranets:q7"]["choices"][0]["add_score"]
+        q8_score = questions["urn:intuitem:risk:req_node:appsec:external_provider_extranets:q8"]["choices"][0]["add_score"]
+        self.assertEqual(q1_score + q2_sso_score + q5_score + q6_score + q7_score + q8_score, 100)
 
-        # Specific assertions for admin account governance (q8) and separation of duties (q9)
+        # Branch 2 (No SSO): q2 awards 0 pts; compensating MFA (q3: 15) and deprovisioning (q4: 10) are evaluated
+        q2_no_sso_score = q2["choices"][1]["add_score"]
+        self.assertEqual(q2_no_sso_score, 0)
+        q3_mfa_score = q3["choices"][0]["add_score"]
+        self.assertEqual(q3_mfa_score, 15)
+        q4_deprovision_score = q4["choices"][0]["add_score"]
+        self.assertEqual(q4_deprovision_score, 10)
+        self.assertEqual(q1_score + q2_no_sso_score + q3_mfa_score + q4_deprovision_score + q5_score + q6_score + q7_score + q8_score, 85)
+
+        # Specific assertions for admin account governance (q7) and separation of duties (q8)
+        q7 = questions.get("urn:intuitem:risk:req_node:appsec:external_provider_extranets:q7")
+        self.assertIn("admin", q7["text"].lower())
+        self.assertEqual(len(q7["choices"]), 3)
+        self.assertEqual(q7["choices"][0]["add_score"], 10)
+        self.assertEqual(q7["choices"][1]["add_score"], 5)
+        self.assertEqual(q7["choices"][2]["add_score"], 0)
+
         q8 = questions.get("urn:intuitem:risk:req_node:appsec:external_provider_extranets:q8")
-        self.assertIn("admin", q8["text"].lower())
-        self.assertEqual(len(q8["choices"]), 3)
+        self.assertIn("administrative", q8["text"].lower())
+        self.assertEqual(len(q8["choices"]), 2)
         self.assertEqual(q8["choices"][0]["add_score"], 10)
-        self.assertEqual(q8["choices"][1]["add_score"], 5)
-        self.assertEqual(q8["choices"][2]["add_score"], 0)
-
-        q9 = questions.get("urn:intuitem:risk:req_node:appsec:external_provider_extranets:q9")
-        self.assertIn("administrative", q9["text"].lower())
-        self.assertEqual(len(q9["choices"]), 2)
-        self.assertEqual(q9["choices"][0]["add_score"], 10)
-        self.assertEqual(q9["choices"][1]["add_score"], 0)
+        self.assertEqual(q8["choices"][1]["add_score"], 0)
 
         # Verify linked risk scenario
         scenario = appsec_fw["scenarios"].get("urn:intuitem:risk:scenario:appsec:carrier_extranet_compromise")

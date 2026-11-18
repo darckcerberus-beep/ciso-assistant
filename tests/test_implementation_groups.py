@@ -601,6 +601,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         self.assertIn("saas_app", hidden)
         self.assertIn("saas_uncertified", hidden)
         self.assertIn("internet_facing", hidden)
+        self.assertIn("extranet", hidden)
 
         # 1. Custom software (hosting:q1:c1) triggers custom_app, infra, and baseline
         res_custom = determine_implementation_groups_triggered_by_others(
@@ -613,6 +614,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         self.assertIn("baseline", triggered_custom)
         self.assertNotIn("cots_app", triggered_custom)
         self.assertNotIn("saas_app", triggered_custom)
+        self.assertNotIn("extranet", triggered_custom)
 
         # 2. COTS software (hosting:q1:c2) triggers cots_app, infra, and baseline
         res_cots = determine_implementation_groups_triggered_by_others(
@@ -625,6 +627,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         self.assertIn("baseline", triggered_cots)
         self.assertNotIn("custom_app", triggered_cots)
         self.assertNotIn("saas_app", triggered_cots)
+        self.assertNotIn("extranet", triggered_cots)
 
         # 3. SaaS software (hosting:q1:c3) triggers saas_app and baseline, and does NOT trigger infra
         res_saas = determine_implementation_groups_triggered_by_others(
@@ -637,6 +640,20 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         self.assertNotIn("infra", triggered_saas)
         self.assertNotIn("custom_app", triggered_saas)
         self.assertNotIn("cots_app", triggered_saas)
+        self.assertNotIn("extranet", triggered_saas)
+
+        # 4. Extranet platform (hosting:q1:c4) triggers extranet, and does NOT trigger baseline, custom_app, cots_app, infra, or saas_app
+        res_extranet = determine_implementation_groups_triggered_by_others(
+            "appsec",
+            answers={"hosting": {"q1": "Extranet (External provider or carrier platform hosted by a partner/vendor)"}},
+        )
+        triggered_extranet = [g["ref_id"] for g in res_extranet["triggered_groups"]]
+        self.assertIn("extranet", triggered_extranet)
+        self.assertNotIn("baseline", triggered_extranet)
+        self.assertNotIn("infra", triggered_extranet)
+        self.assertNotIn("custom_app", triggered_extranet)
+        self.assertNotIn("cots_app", triggered_extranet)
+        self.assertNotIn("saas_app", triggered_extranet)
 
     def test_appsec_triggered_implementation_groups_orchestration(self):
         """Verify that the AppSec framework hides non-relevant tracks and enables orchestrator-driven dynamic triggering."""
@@ -659,6 +676,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         self.assertIn("saas_uncertified", hidden)
         self.assertIn("baseline", hidden)
         self.assertIn("internet_facing", hidden)
+        self.assertIn("extranet", hidden)
 
         # Triggered map defines prompts for orchestrator
         from classes.audits.implementation_groups import get_framework_triggered_implementation_groups_map
@@ -669,6 +687,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         self.assertIn("saas_app", trig_map)
         self.assertIn("saas_uncertified", trig_map)
         self.assertIn("internet_facing", trig_map)
+        self.assertIn("extranet", trig_map)
 
         # 2. Answers Provided: Custom Software + Internet-Facing
         custom_answers = {
@@ -789,7 +808,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "test_data/app_manual_custom_internal.yml": {
                 "name": "App-Manual-Custom-Internal",
                 "visible_igs": {"info", "baseline", "custom_app", "infra"},
-                "hidden_igs": {"cots_app", "internet_facing", "saas_app", "saas_uncertified"},
+                "hidden_igs": {"cots_app", "internet_facing", "saas_app", "saas_uncertified", "extranet"},
                 "node_count": 22,
                 "scenario_count": 19,
                 "excluded_scenario_count": 25,
@@ -797,7 +816,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "test_data/app_manual_custom_internet.yml": {
                 "name": "App-Manual-Custom-Internet",
                 "visible_igs": {"info", "baseline", "custom_app", "infra", "internet_facing"},
-                "hidden_igs": {"cots_app", "saas_app", "saas_uncertified"},
+                "hidden_igs": {"cots_app", "saas_app", "saas_uncertified", "extranet"},
                 "node_count": 25,
                 "scenario_count": 21,
                 "excluded_scenario_count": 23,
@@ -805,7 +824,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "test_data/app_manual_cots_internal.yml": {
                 "name": "App-Manual-COTS-Internal",
                 "visible_igs": {"info", "baseline", "cots_app", "infra"},
-                "hidden_igs": {"custom_app", "internet_facing", "saas_app", "saas_uncertified"},
+                "hidden_igs": {"custom_app", "internet_facing", "saas_app", "saas_uncertified", "extranet"},
                 "node_count": 18,
                 "scenario_count": 15,
                 "excluded_scenario_count": 29,
@@ -813,7 +832,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "test_data/app_manual_cots_internet.yml": {
                 "name": "App-Manual-COTS-Internet",
                 "visible_igs": {"info", "baseline", "cots_app", "infra", "internet_facing"},
-                "hidden_igs": {"custom_app", "saas_app", "saas_uncertified"},
+                "hidden_igs": {"custom_app", "saas_app", "saas_uncertified", "extranet"},
                 "node_count": 21,
                 "scenario_count": 17,
                 "excluded_scenario_count": 27,
@@ -821,7 +840,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "test_data/app_manual_saas_certified.yml": {
                 "name": "App-Manual-SaaS-Certified",
                 "visible_igs": {"info", "baseline", "saas_app"},
-                "hidden_igs": {"custom_app", "cots_app", "infra", "internet_facing", "saas_uncertified"},
+                "hidden_igs": {"custom_app", "cots_app", "infra", "internet_facing", "saas_uncertified", "extranet"},
                 "node_count": 13,
                 "scenario_count": 10,
                 "excluded_scenario_count": 34,
@@ -829,7 +848,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "test_data/app_manual_saas_uncertified.yml": {
                 "name": "App-Manual-SaaS-Uncertified",
                 "visible_igs": {"info", "baseline", "saas_app", "saas_uncertified"},
-                "hidden_igs": {"custom_app", "cots_app", "infra", "internet_facing"},
+                "hidden_igs": {"custom_app", "cots_app", "infra", "internet_facing", "extranet"},
                 "node_count": 27,
                 "scenario_count": 24,
                 "excluded_scenario_count": 20,
@@ -892,10 +911,10 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         hosting_node = next(n for n in fw["requirement_nodes"] if n.get("ref_id") == "hosting")
         questions = hosting_node["questions"]
 
-        # 1. Verify hosting has 14 questions (q1-q2 profiling + q4-q9 choice questions + q4_delegate-q9_delegate text fields)
-        self.assertEqual(len(questions), 14)
+        # 1. Verify hosting has 16 questions (q1-q2 profiling + q4-q10 choice questions + q4_delegate-q10_delegate text fields)
+        self.assertEqual(len(questions), 16)
 
-        # 2. Verify each of the 6 triggered IGs in hosting has a corresponding choice question and free text delegate field
+        # 2. Verify each of the 7 triggered IGs in hosting has a corresponding choice question and free text delegate field
         expected_tracks = {
             "q4": ("baseline", ["c1", "c2", "c3"]),
             "q5": ("custom_app", ["c1"]),
@@ -903,6 +922,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "q7": ("infra", ["c1", "c2"]),
             "q8": ("internet_facing", ["c2"]),
             "q9": ("saas_app", ["c3"]),
+            "q10": ("extranet", ["c4"]),
         }
 
         for q_id, (track, trigger_choices) in expected_tracks.items():
@@ -1017,7 +1037,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "test_data/app_appsec_custom_internal.yml": {
                 "name": "App-AppSec-Custom-Internal",
                 "visible_igs": {"info", "baseline", "custom_app", "infra"},
-                "hidden_igs": {"cots_app", "internet_facing", "saas_app", "saas_uncertified"},
+                "hidden_igs": {"cots_app", "internet_facing", "saas_app", "saas_uncertified", "extranet"},
                 "node_count": 22,
                 "scenario_count": 19,
                 "excluded_scenario_count": 25,
@@ -1025,7 +1045,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "test_data/app_appsec_custom_internet.yml": {
                 "name": "App-AppSec-Custom-Internet",
                 "visible_igs": {"info", "baseline", "custom_app", "infra", "internet_facing"},
-                "hidden_igs": {"cots_app", "saas_app", "saas_uncertified"},
+                "hidden_igs": {"cots_app", "saas_app", "saas_uncertified", "extranet"},
                 "node_count": 25,
                 "scenario_count": 21,
                 "excluded_scenario_count": 23,
@@ -1033,7 +1053,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "test_data/app_appsec_cots_internal.yml": {
                 "name": "App-AppSec-COTS-Internal",
                 "visible_igs": {"info", "baseline", "cots_app", "infra"},
-                "hidden_igs": {"custom_app", "internet_facing", "saas_app", "saas_uncertified"},
+                "hidden_igs": {"custom_app", "internet_facing", "saas_app", "saas_uncertified", "extranet"},
                 "node_count": 18,
                 "scenario_count": 15,
                 "excluded_scenario_count": 29,
@@ -1041,7 +1061,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "test_data/app_appsec_cots_internet.yml": {
                 "name": "App-AppSec-COTS-Internet",
                 "visible_igs": {"info", "baseline", "cots_app", "infra", "internet_facing"},
-                "hidden_igs": {"custom_app", "saas_app", "saas_uncertified"},
+                "hidden_igs": {"custom_app", "saas_app", "saas_uncertified", "extranet"},
                 "node_count": 21,
                 "scenario_count": 17,
                 "excluded_scenario_count": 27,
@@ -1049,7 +1069,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "test_data/app_appsec_saas_certified.yml": {
                 "name": "App-AppSec-SaaS-Certified",
                 "visible_igs": {"info", "baseline", "saas_app"},
-                "hidden_igs": {"custom_app", "cots_app", "infra", "internet_facing", "saas_uncertified"},
+                "hidden_igs": {"custom_app", "cots_app", "infra", "internet_facing", "saas_uncertified", "extranet"},
                 "node_count": 13,
                 "scenario_count": 10,
                 "excluded_scenario_count": 34,
@@ -1057,7 +1077,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "test_data/app_appsec_saas_uncertified.yml": {
                 "name": "App-AppSec-SaaS-Uncertified",
                 "visible_igs": {"info", "baseline", "saas_app", "saas_uncertified"},
-                "hidden_igs": {"custom_app", "cots_app", "infra", "internet_facing"},
+                "hidden_igs": {"custom_app", "cots_app", "infra", "internet_facing", "extranet"},
                 "node_count": 27,
                 "scenario_count": 24,
                 "excluded_scenario_count": 20,
@@ -1300,6 +1320,58 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
         self.assertEqual(dep_email["suggested_assignee"], "blue.lead@corp.internal")
         self.assertTrue(dep_email["is_directly_assignable"])
         self.assertEqual(dep_email["suggestion_type"], "user_email")
+
+    def test_extranet_q10_does_not_falsely_match_q1_dependencies(self):
+        """Regression test: hosting:q10:c1/c2 must never substring-match hosting:q1:c1/c2 triggers."""
+        # Case 1: Extranet delegated (q1=c4, q10=c2, q10_delegate=rpignard@redoute.fr) via raw API ca_reqs
+        ca_reqs_delegated = [
+            {
+                "requirement": {
+                    "ref_id": "hosting",
+                    "urn": "urn:intuitem:risk:req_node:appsec:hosting",
+                },
+                "answers": {
+                    "urn:intuitem:risk:req_node:appsec:hosting:q1": "urn:intuitem:risk:req_node:appsec:hosting:q1:c4",
+                    "urn:intuitem:risk:req_node:appsec:hosting:q10": "urn:intuitem:risk:req_node:appsec:hosting:q10:c2",
+                    "urn:intuitem:risk:req_node:appsec:hosting:q10_delegate": "rpignard@redoute.fr",
+                },
+            }
+        ]
+        res_del = determine_implementation_groups_triggered_by_others(
+            "appsec",
+            active_groups=["Application information & Governance"],
+            ca_reqs=ca_reqs_delegated,
+        )
+        cand_targets = [d["target_implementation_group"] for d in res_del["candidate_dependencies"]]
+        pend_targets = [d["target_implementation_group"] for d in res_del["pending_dependencies"]]
+        self.assertEqual(cand_targets, ["extranet"], f"Expected only extranet, got {cand_targets}")
+        self.assertEqual(pend_targets, ["extranet"], f"Expected only extranet pending, got {pend_targets}")
+        self.assertEqual(res_del["pending_dependencies"][0].get("suggestion"), "rpignard@redoute.fr")
+
+        # Case 2: Extranet self-answered (q1=c4, q10=c1) must not trigger custom_app, infra, or baseline
+        ca_reqs_self = [
+            {
+                "requirement": {
+                    "ref_id": "hosting",
+                    "urn": "urn:intuitem:risk:req_node:appsec:hosting",
+                },
+                "answers": {
+                    "urn:intuitem:risk:req_node:appsec:hosting:q1": "urn:intuitem:risk:req_node:appsec:hosting:q1:c4",
+                    "urn:intuitem:risk:req_node:appsec:hosting:q10": "urn:intuitem:risk:req_node:appsec:hosting:q10:c1",
+                },
+            }
+        ]
+        res_self = determine_implementation_groups_triggered_by_others(
+            "appsec",
+            active_groups=["Application information & Governance"],
+            ca_reqs=ca_reqs_self,
+        )
+        self.assertEqual(
+            [d["target_implementation_group"] for d in res_self["candidate_dependencies"]],
+            ["extranet"],
+        )
+        self.assertEqual(res_self["pending_dependencies"], [])
+        self.assertIn("extranet", res_self["ciso_assistant_triggered_ref_ids"])
 
 if __name__ == "__main__":
     unittest.main()
