@@ -12,9 +12,11 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from classes.audits.implementation_groups import (
+    evaluate_security_by_design_knockouts,
     filter_implementation_groups_by_tier,
     get_tier_governance_policy,
     map_tiering_answers_to_hosting_answers,
+    map_tiering_answers_to_audit_answers,
 )
 from classes.examples_manager import ExamplesManager
 
@@ -60,6 +62,27 @@ class TestSolutionTieringGovernance(unittest.TestCase):
         self.assertEqual(policy["tier"], "critical")
         policy_low = get_tier_governance_policy(1)
         self.assertEqual(policy_low["tier"], "low-impact")
+
+    def test_sbd_governance_policy_attributes(self):
+        crit = get_tier_governance_policy("critical")
+        self.assertEqual(crit["sbd_review_level"], "deep_sar")
+        self.assertEqual(crit["sbd_gate_action"], "mandatory_pre_prod_approval")
+        self.assertFalse(crit["sbd_fast_track_eligible"])
+
+        imp = get_tier_governance_policy("important")
+        self.assertEqual(imp["sbd_review_level"], "standard_sbd")
+        self.assertEqual(imp["sbd_gate_action"], "standard_cab_sec_review")
+        self.assertFalse(imp["sbd_fast_track_eligible"])
+
+        std = get_tier_governance_policy("standard")
+        self.assertEqual(std["sbd_review_level"], "automated_guardrails")
+        self.assertEqual(std["sbd_gate_action"], "automated_guardrails_check")
+        self.assertTrue(std["sbd_fast_track_eligible"])
+
+        low = get_tier_governance_policy("low-impact")
+        self.assertEqual(low["sbd_review_level"], "fast_track")
+        self.assertEqual(low["sbd_gate_action"], "peer_review_only")
+        self.assertTrue(low["sbd_fast_track_eligible"])
 
 
 class TestImplementationGroupFiltering(unittest.TestCase):
@@ -157,6 +180,16 @@ class TestTieringToHostingMapping(unittest.TestCase):
         self.assertEqual(mapped.get("data_classification:q2"), "c1")
         self.assertEqual(mapped.get("data_classification:q3"), "c1")
         self.assertIsNone(mapped.get("data_classification:q4"))
+
+    def test_infra_delivery_model_mapping(self):
+        answers = {
+            "delivery": "infra",
+            "exposure": "internal",
+        }
+        mapped = map_tiering_answers_to_audit_answers(answers)
+        self.assertEqual(mapped.get("hosting:q1"), "c2")
+        self.assertEqual(mapped.get("hosting:q2"), "c1")
+        self.assertEqual(mapped.get("hosting:q7"), "c1")
 
     def test_track_readiness_and_delegation_mapping(self):
         from classes.audits.implementation_groups import map_tiering_answers_to_audit_answers
@@ -614,6 +647,236 @@ class TestTieringAssignmentManagerAndRoutes(unittest.TestCase):
         self.assertEqual(payload["schedule"]["interval"], 1)
         self.assertEqual(payload["applied_controls"], ["ctrl-123"])
 
+
+class TestSecurityByDesignIntake(unittest.TestCase):
+    """Test Security by Design (SbD) intake knock-outs (KO-1 to KO-6) and triage decisions."""
+
+    def test_knockout_ko1_public_exposure(self):
+        res = evaluate_security_by_design_knockouts({"ko1": "yes"})
+        self.assertTrue(res["requires_sbd"])
+        self.assertEqual(res["review_level"], "standard_sbd")
+        self.assertEqual(res["gate_action"], "standard_cab_sec_review")
+        self.assertFalse(res["fast_track_eligible"])
+        triggered_ids = [k["id"] for k in res["triggered_knockouts"]]
+        self.assertIn("KO-1", triggered_ids)
+
+    def test_knockout_ko2_core_iam(self):
+        res = evaluate_security_by_design_knockouts({"core_iam": "yes"})
+        self.assertTrue(res["requires_sbd"])
+        self.assertEqual(res["review_level"], "deep_sar")
+        self.assertEqual(res["gate_action"], "mandatory_pre_prod_approval")
+        self.assertFalse(res["fast_track_eligible"])
+        triggered_ids = [k["id"] for k in res["triggered_knockouts"]]
+        self.assertIn("KO-2", triggered_ids)
+
+    def test_knockout_ko3_network_boundary(self):
+        res = evaluate_security_by_design_knockouts({"network_boundary": "yes"})
+        self.assertTrue(res["requires_sbd"])
+        self.assertEqual(res["review_level"], "standard_sbd")
+        triggered_ids = [k["id"] for k in res["triggered_knockouts"]]
+        self.assertIn("KO-3", triggered_ids)
+
+    def test_knockout_ko4_sensitive_data(self):
+        res = evaluate_security_by_design_knockouts({"d1": "secrets"})
+        self.assertTrue(res["requires_sbd"])
+        self.assertEqual(res["review_level"], "deep_sar")
+        triggered_ids = [k["id"] for k in res["triggered_knockouts"]]
+        self.assertIn("KO-4", triggered_ids)
+
+    def test_knockout_ko5_third_party(self):
+        res = evaluate_security_by_design_knockouts({"third_party": "yes"})
+        self.assertTrue(res["requires_sbd"])
+        self.assertEqual(res["review_level"], "standard_sbd")
+        triggered_ids = [k["id"] for k in res["triggered_knockouts"]]
+        self.assertIn("KO-5", triggered_ids)
+
+    def test_knockout_ko6_spof(self):
+        res = evaluate_security_by_design_knockouts({"b1": "stops", "b3": "sole"})
+        self.assertTrue(res["requires_sbd"])
+        self.assertEqual(res["review_level"], "standard_sbd")
+        triggered_ids = [k["id"] for k in res["triggered_knockouts"]]
+        self.assertIn("KO-6", triggered_ids)
+
+    def test_fast_track_eligible_when_no_knockouts(self):
+        res = evaluate_security_by_design_knockouts({
+            "exposure": "internal",
+            "d1": "public",
+            "b1": "minor",
+            "b3": "commodity",
+        })
+        self.assertFalse(res["requires_sbd"])
+        self.assertEqual(res["review_level"], "fast_track")
+        self.assertEqual(res["gate_action"], "peer_review_only")
+        self.assertTrue(res["fast_track_eligible"])
+        self.assertEqual(len(res["triggered_knockouts"]), 0)
+
+    @patch.object(ExamplesManager, "set_solution_tier")
+    @patch.object(ExamplesManager, "find_target_framework", return_value="appsec")
+    def test_assess_security_by_design_deep_sar(self, mock_fw, mock_set_tier):
+        manager = ExamplesManager()
+        result = manager.assess_security_by_design(
+            "Test-IAM-Core",
+            change_answers={"ko2": "yes", "delivery": "custom", "exposure": "internal"},
+            auto_sign_off=False,
+        )
+        self.assertTrue(result["requires_sbd_check"])
+        self.assertEqual(result["review_level"], "deep_sar")
+        self.assertEqual(result["gate_action"], "mandatory_pre_prod_approval")
+        self.assertIn("Deep Security Architecture Review", result["sbd_decision"])
+        self.assertFalse(result["fast_track_eligible"])
+
+    @patch.object(ExamplesManager, "set_solution_tier")
+    @patch.object(ExamplesManager, "find_target_framework", return_value="appsec")
+    def test_assess_security_by_design_fast_track(self, mock_fw, mock_set_tier):
+        manager = ExamplesManager()
+        result = manager.assess_security_by_design(
+            "Test-Internal-Tool",
+            change_answers={
+                "initiative_type": "change",
+                "exposure": "internal",
+                "d1": "public",
+                "d2": "negligible",
+                "d3": "none",
+                "d4": "standard",
+                "b1": "minor",
+                "b2": "no target",
+                "b3": "commodity",
+            },
+            auto_sign_off=False,
+        )
+        self.assertFalse(result["requires_sbd_check"])
+        self.assertEqual(result["review_level"], "fast_track")
+        self.assertEqual(result["gate_action"], "peer_review_only")
+        self.assertTrue(result["fast_track_eligible"])
+        self.assertEqual(result["evaluation_nature"], "change")
+        self.assertIn("Fast-Track Standard Change", result["sbd_decision"])
+
+    def test_initiative_type_mapping(self):
+        answers = {
+            "initiative_type": "new_app",
+            "delivery": "custom",
+            "exposure": "internal",
+        }
+        mapped = map_tiering_answers_to_audit_answers(answers)
+        self.assertEqual(mapped.get("business_project_scope:q0"), "c1")
+        self.assertEqual(mapped.get("initiative_type"), "c1")
+
+    def test_map_audit_answers_to_tiering_sbd_knockouts(self):
+        from classes.audits.implementation_groups import map_audit_answers_to_tiering_answers
+        audit_answers = {
+            "business_project_scope": {
+                "urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q0": "urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q0:c1",
+                "urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q3": "urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q3:c3",
+            },
+            "data_classification_profiling": {
+                "urn:intuitem:risk:req_node:infra-sbd:data_classification_profiling:q1": "urn:intuitem:risk:req_node:infra-sbd:data_classification_profiling:q1:c4",
+                "urn:intuitem:risk:req_node:infra-sbd:data_classification_profiling:q2": "urn:intuitem:risk:req_node:infra-sbd:data_classification_profiling:q2:c1",
+            },
+            "operational_criticality_intake": {
+                "urn:intuitem:risk:req_node:infra-sbd:operational_criticality_intake:q1": "urn:intuitem:risk:req_node:infra-sbd:operational_criticality_intake:q1:c1",
+            },
+            "knockout_assessment": {
+                "urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q1": "urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q1:c1",
+                "urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q2": "urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q2:c2",
+                "urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q3": "urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q3:c2",
+                "urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q4": "urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q4:c1",
+                "urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q5": "urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q5:c2",
+                "urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q6": "urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q6:c1",
+            },
+        }
+        mapped = map_audit_answers_to_tiering_answers(audit_answers)
+        self.assertEqual(mapped.get("initiative_type"), "new_app")
+        self.assertEqual(mapped.get("delivery_model"), "saas")
+        self.assertEqual(mapped.get("d1"), "secrets")
+        self.assertEqual(mapped.get("d3"), "large")
+        self.assertEqual(mapped.get("b1"), "stops")
+        self.assertEqual(mapped.get("b3"), "sole")
+        self.assertEqual(mapped.get("ko1"), "yes")
+        self.assertEqual(mapped.get("ko2"), "no")
+        self.assertEqual(mapped.get("ko3"), "no")
+        self.assertEqual(mapped.get("ko4"), "yes")
+        self.assertEqual(mapped.get("ko5"), "no")
+        self.assertEqual(mapped.get("ko6"), "yes")
+
+    def test_map_audit_answers_to_tiering_appsec_merged_sbd_knockouts(self):
+        from classes.audits.implementation_groups import map_audit_answers_to_tiering_answers
+        audit_answers = {
+            "business_project_scope": {
+                "urn:intuitem:risk:req_node:appsec:business_project_scope:q0": "urn:intuitem:risk:req_node:appsec:business_project_scope:q0:c2",
+                "urn:intuitem:risk:req_node:appsec:business_project_scope:q3": "urn:intuitem:risk:req_node:appsec:business_project_scope:q3:c2",
+            },
+            "data_classification": {
+                "urn:intuitem:risk:req_node:appsec:data_classification:q1": "urn:intuitem:risk:req_node:appsec:data_classification:q1:c4",
+                "urn:intuitem:risk:req_node:appsec:data_classification:q2": "urn:intuitem:risk:req_node:appsec:data_classification:q2:c3",
+                "urn:intuitem:risk:req_node:appsec:data_classification:q3": "urn:intuitem:risk:req_node:appsec:data_classification:q3:c3",
+                "urn:intuitem:risk:req_node:appsec:data_classification:q4": "urn:intuitem:risk:req_node:appsec:data_classification:q4:c3",
+            },
+            "operational_criticality_intake": {
+                "urn:intuitem:risk:req_node:appsec:operational_criticality_intake:q1": "urn:intuitem:risk:req_node:appsec:operational_criticality_intake:q1:c1",
+            },
+            "knockout_assessment": {
+                "urn:intuitem:risk:req_node:appsec:knockout_assessment:q1": "urn:intuitem:risk:req_node:appsec:knockout_assessment:q1:c2",
+                "urn:intuitem:risk:req_node:appsec:knockout_assessment:q2": "urn:intuitem:risk:req_node:appsec:knockout_assessment:q2:c1",
+                "urn:intuitem:risk:req_node:appsec:knockout_assessment:q3": "urn:intuitem:risk:req_node:appsec:knockout_assessment:q3:c2",
+                "urn:intuitem:risk:req_node:appsec:knockout_assessment:q4": "urn:intuitem:risk:req_node:appsec:knockout_assessment:q4:c2",
+                "urn:intuitem:risk:req_node:appsec:knockout_assessment:q5": "urn:intuitem:risk:req_node:appsec:knockout_assessment:q5:c2",
+                "urn:intuitem:risk:req_node:appsec:knockout_assessment:q6": "urn:intuitem:risk:req_node:appsec:knockout_assessment:q6:c2",
+            },
+        }
+        mapped = map_audit_answers_to_tiering_answers(audit_answers)
+        self.assertEqual(mapped.get("initiative_type"), "change")
+        self.assertEqual(mapped.get("delivery_model"), "cots")
+        self.assertEqual(mapped.get("d1"), "secrets")
+        self.assertEqual(mapped.get("d2"), "severe")
+        self.assertEqual(mapped.get("d3"), "large")
+        self.assertEqual(mapped.get("b1"), "stops")
+        self.assertEqual(mapped.get("b3"), "sole")
+        self.assertEqual(mapped.get("ko1"), "no")
+        self.assertEqual(mapped.get("ko2"), "yes")
+        self.assertEqual(mapped.get("ko3"), "no")
+        self.assertEqual(mapped.get("ko4"), "no")
+        self.assertEqual(mapped.get("ko5"), "no")
+        self.assertEqual(mapped.get("ko6"), "no")
+
+    @patch.object(ExamplesManager, "create_application_for_audit")
+    def test_create_sbd_assessment(self, mock_create):
+        mock_create.return_value = {
+            "app_name": "App-SbD-Test",
+            "user_email": "biz@example.com",
+            "compliance_assessment_id": "test-ca-123",
+            "compliance_assessment_name": "Assessment of App-SbD-Test with SbD",
+            "direct_url": "https://ciso-assistant.siege.red/",
+        }
+        manager = ExamplesManager()
+        res = manager.create_sbd_assessment("App-SbD-Test", "biz@example.com")
+        mock_create.assert_called_once_with(
+            app_name="App-SbD-Test",
+            user_email="biz@example.com",
+            first_name="",
+            last_name="",
+            is_third_party=True,
+            framework_ref_or_name="appsec",
+            domain_name=None,
+            implementation_groups=None,
+        )
+        self.assertIn("message", res)
+        self.assertEqual(res["compliance_assessment_id"], "test-ca-123")
+
+    @patch.object(ExamplesManager, "extract_tiering_answers_from_compliance_assessment", return_value={})
+    @patch.object(ExamplesManager, "get_sbd_assessment_status")
+    def test_assess_security_by_design_awaiting_submission(self, mock_status, mock_extract):
+        mock_status.return_value = {
+            "exists": True,
+            "has_answers": False,
+            "compliance_assessment_id": "ca-pending-123",
+            "compliance_assessment_name": "Assessment of App-Pending with SbD",
+        }
+        manager = ExamplesManager()
+        res = manager.assess_security_by_design("App-Pending")
+        self.assertFalse(res["has_answers"])
+        self.assertEqual(res["status"], "awaiting_submission")
+        self.assertIn("Pending Submission", res["sbd_decision"])
+        self.assertEqual(res["review_level"], "pending")
 
 
 if __name__ == "__main__":

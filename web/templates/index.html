@@ -93,6 +93,10 @@
         <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
         <span>Dashboard & Inventory</span>
       </button>
+      <button onclick="switchTab('sbd')" id="tab-btn-sbd" class="tab-btn flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap transition">
+        <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+        <span>Security by Design (SbD)</span>
+      </button>
       <button onclick="switchTab('domains')" id="tab-btn-domains" class="tab-btn flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap transition">
         <i data-lucide="folder-tree" class="w-4 h-4 text-purple-400"></i>
         <span>Domains & Folders</span>
@@ -196,10 +200,36 @@
         </div>
       </div>
 
+      <!-- SbD Intake & Gating Banner -->
+      <div class="bg-gradient-to-r from-emerald-950/70 via-surface-900 to-indigo-950/50 border border-emerald-500/30 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
+        <div class="flex items-center space-x-3.5">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0 shadow-sm">
+            <i data-lucide="shield-check" class="w-5 h-5 text-emerald-400"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="text-xs font-bold text-white uppercase tracking-wider">Security by Design (SbD) Intake & Gating</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">Active</span>
+            </div>
+            <p class="text-xs text-slate-300 mt-0.5">Evaluate change modifications or greenfield apps with 6-point knock-out gating, automatic tiering, and governance policies.</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-2 shrink-0">
+          <button onclick="switchTab('sbd')" class="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center space-x-2 transition shadow-md shadow-emerald-600/20">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            <span>Open SbD Intake Triage</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Action Toolbar & Filters -->
       <div class="bg-surface-900 border border-slate-800 p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <!-- Action Buttons -->
         <div class="flex flex-wrap items-center gap-2.5">
+          <button onclick="switchTab('sbd')" class="px-3.5 py-2 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 font-medium text-xs flex items-center space-x-2 transition">
+            <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+            <span>SbD Gating Triage</span>
+          </button>
           <button onclick="confirmProvisionAll()" class="px-3.5 py-2 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-medium text-xs flex items-center space-x-2 transition shadow-md shadow-brand-600/20">
             <i data-lucide="rocket" class="w-4 h-4"></i>
             <span>Provision ALL Examples</span>
@@ -247,6 +277,7 @@
                 <th class="py-3 px-4">Application</th>
                 <th class="py-3 px-4">Domain</th>
                 <th class="py-3 px-4">Framework</th>
+                <th class="py-3 px-4">Tier & SbD</th>
                 <th class="py-3 px-4">Lifecycle Status</th>
                 <th class="py-3 px-4">Audit Progress</th>
                 <th class="py-3 px-4">Risk Scenarios</th>
@@ -258,7 +289,7 @@
             </thead>
             <tbody id="applications-table-body" class="divide-y divide-slate-800/80">
               <tr>
-                <td colspan="11" class="py-8 text-center text-slate-500">
+                <td colspan="12" class="py-8 text-center text-slate-500">
                   <div class="flex flex-col items-center justify-center space-y-2">
                     <i data-lucide="loader" class="w-6 h-6 animate-spin text-brand-500"></i>
                     <span>Loading application status from CISO Assistant...</span>
@@ -366,8 +397,197 @@
     </div>
 
     <!-- --------------------------------------------------------------------- -->
-    <!-- TAB 2: AUDIT DEMO INTAKE (Workflow 4)                                 -->
+    <!-- TAB: SECURITY BY DESIGN (SbD) INTAKE & GATING                         -->
     <!-- --------------------------------------------------------------------- -->
+    <div id="tab-sbd" class="hidden space-y-6">
+      <div class="bg-surface-900 border border-slate-800 rounded-xl p-6 shadow-lg max-w-5xl mx-auto space-y-6">
+        <!-- Header -->
+        <div class="border-b border-slate-800 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+              <i data-lucide="shield-check" class="w-5 h-5 text-emerald-400"></i>
+            </div>
+            <div>
+              <h2 class="text-base font-bold text-white">Security by Design (SbD) Orchestration Console</h2>
+              <p class="text-xs text-slate-400 mt-0.5">Intake questionnaires are answered natively by business and engineering respondents inside CISO Assistant.</p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2 shrink-0">
+            <a href="https://ciso-assistant.siege.red/" target="_blank" rel="noopener noreferrer" class="px-3.5 py-2 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center space-x-1.5 transition">
+              <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+              <span>Open CISO Assistant ↗</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Two Column Architecture: Step 1 (Assign) & Step 2 (Evaluate) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          <!-- STEP 1: Assign SbD Questionnaire in CISO Assistant -->
+          <div class="p-5 rounded-xl bg-surface-950 border border-slate-800 flex flex-col justify-between space-y-4">
+            <div class="space-y-4">
+              <div class="flex items-center space-x-2">
+                <span class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center justify-center">1</span>
+                <h3 class="text-sm font-bold text-white">Assign SbD Form in CISO Assistant</h3>
+              </div>
+              <p class="text-xs text-slate-400">
+                Provisions the perimeter, asset, and compliance assessment under unified framework <code class="text-emerald-400 font-mono">appsec</code> in CISO Assistant with <strong>0% answers</strong>. The respondent answers questions directly in CISO Assistant.
+              </p>
+
+              <!-- App Name Input -->
+              <div class="space-y-1.5">
+                <label class="block text-xs font-semibold text-slate-300">Target Application / Initiative Name</label>
+                <div class="flex gap-2">
+                  <select id="sbd-assign-app-select" onchange="onSbdAssignAppSelectChange()" class="flex-1 px-3 py-2 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white focus:outline-none focus:border-brand-500">
+                    <option value="">-- Choose Existing or Enter Below --</option>
+                  </select>
+                </div>
+                <input type="text" id="sbd-assign-app-name" placeholder="e.g. MondialRelay-V2 or Payment-Gateway" class="w-full px-3 py-2 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
+              </div>
+
+              <!-- Respondent Email -->
+              <div class="space-y-1.5">
+                <label class="block text-xs font-semibold text-slate-300">Respondent User Email</label>
+                <input type="email" id="sbd-assign-email" placeholder="e.g. business.owner@example.com" class="w-full px-3 py-2 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
+                <p class="text-[11px] text-slate-500">The business sponsor, product owner, or tech lead who will log into CISO Assistant to fill out the form.</p>
+              </div>
+
+              <!-- Domain / Folder -->
+              <div class="space-y-1.5">
+                <label class="block text-xs font-semibold text-slate-300">Target Domain / Folder</label>
+                <input type="text" id="sbd-assign-domain" value="Examples" class="w-full px-3 py-2 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
+              </div>
+            </div>
+
+            <!-- Action Button & Assignment Link Display -->
+            <div class="pt-4 border-t border-slate-800/80 space-y-3">
+              <button onclick="submitAssignSbd()" id="btn-assign-sbd" class="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center space-x-2 transition shadow-lg shadow-emerald-600/20">
+                <i data-lucide="user-plus" class="w-4 h-4"></i>
+                <span>Assign SbD Assessment in CISO Assistant</span>
+              </button>
+
+              <!-- Assignment Feedback Box (Hidden until assigned) -->
+              <div id="sbd-assigned-box" class="hidden p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-emerald-300 flex items-center space-x-1.5">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+                    <span>Assigned in CISO Assistant (0% Complete)</span>
+                  </span>
+                </div>
+                <div class="text-[11px] text-slate-300" id="sbd-assigned-details"></div>
+                <div class="pt-1">
+                  <a id="sbd-assigned-link" href="https://ciso-assistant.siege.red/" target="_blank" rel="noopener noreferrer" class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow">
+                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                    <span>Open & Answer in CISO Assistant ↗</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 2: Evaluate Answers from CISO Assistant -->
+          <div class="p-5 rounded-xl bg-surface-950 border border-slate-800 flex flex-col justify-between space-y-4">
+            <div class="space-y-4">
+              <div class="flex items-center space-x-2">
+                <span class="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-bold flex items-center justify-center">2</span>
+                <h3 class="text-sm font-bold text-white">Evaluate Completed SbD Answers</h3>
+              </div>
+              <p class="text-xs text-slate-400">
+                Queries CISO Assistant for the submitted requirement assessment answers, evaluates the 6 knock-outs (KO-1 to KO-6), calculates the criticality tier, and maps governance policies & SLAs.
+              </p>
+
+              <!-- Target App Select -->
+              <div class="space-y-1.5">
+                <label class="block text-xs font-semibold text-slate-300">Select Application / Perimeter</label>
+                <select id="sbd-eval-app-select" onchange="onSbdEvalAppSelectChange()" class="w-full px-3 py-2 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white focus:outline-none focus:border-brand-500">
+                  <option value="">-- Select an Application to Evaluate --</option>
+                </select>
+              </div>
+
+              <!-- Live Status Pill -->
+              <div id="sbd-live-status-box" class="p-3 rounded-lg bg-surface-900 border border-slate-800 space-y-1 text-xs">
+                <div class="text-[10px] text-slate-500 uppercase font-mono">CISO Assistant Status</div>
+                <div id="sbd-live-status-text" class="text-slate-300 font-medium">Select an application above to check assessment status...</div>
+              </div>
+            </div>
+
+            <!-- Action Button -->
+            <div class="pt-4 border-t border-slate-800/80">
+              <button onclick="submitEvaluateSbd()" id="btn-eval-sbd" class="w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center justify-center space-x-2 transition shadow-lg shadow-brand-600/20">
+                <i data-lucide="sparkles" class="w-4 h-4"></i>
+                <span>Fetch Answers & Run SbD Gating</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Evaluation Results Card -->
+        <div id="sbd-result-card" class="hidden border border-slate-700 bg-surface-950 p-6 rounded-xl space-y-5">
+          <!-- Pending submission banner (shown if 0 answers) -->
+          <div id="sbd-res-pending-banner" class="hidden p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-2">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="alert-circle" class="w-5 h-5 text-amber-400 shrink-0"></i>
+              <h4 class="text-xs font-bold text-amber-300">Awaiting Submission in CISO Assistant</h4>
+            </div>
+            <p id="sbd-res-pending-msg" class="text-xs text-slate-300 leading-relaxed"></p>
+            <div class="pt-1">
+              <a href="https://ciso-assistant.siege.red/" target="_blank" rel="noopener noreferrer" class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-md bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition shadow">
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                <span>Open CISO Assistant to Answer Questionnaire ↗</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Evaluation Report (shown when answered) -->
+          <div id="sbd-res-content" class="space-y-4">
+            <!-- Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-800 pb-3 gap-2">
+              <div>
+                <div class="text-[11px] text-slate-400 font-mono uppercase" id="sbd-res-scope">CHANGE EVALUATION</div>
+                <h3 class="text-base font-bold text-white mt-0.5" id="sbd-res-decision">Gating Decision</h3>
+              </div>
+              <div id="sbd-res-tier-badge">
+                <span class="px-3 py-1 rounded text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">IMPORTANT</span>
+              </div>
+            </div>
+
+            <!-- Gating Action & Review Level -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+              <div class="p-3 bg-surface-900 border border-slate-800 rounded-lg">
+                <div class="text-slate-500 text-[10px] uppercase font-mono">Review Level</div>
+                <div id="sbd-res-review-level" class="text-white font-bold mt-1 text-sm">-</div>
+              </div>
+              <div class="p-3 bg-surface-900 border border-slate-800 rounded-lg">
+                <div class="text-slate-500 text-[10px] uppercase font-mono">Gate Action</div>
+                <div id="sbd-res-gate-action" class="text-white font-bold mt-1 text-sm">-</div>
+              </div>
+              <div class="p-3 bg-surface-900 border border-slate-800 rounded-lg">
+                <div class="text-slate-500 text-[10px] uppercase font-mono">Fast-Track Eligible</div>
+                <div id="sbd-res-fast-track" class="text-white font-bold mt-1 text-sm">-</div>
+              </div>
+            </div>
+
+            <!-- Knockouts Triggered -->
+            <div class="space-y-1.5 text-xs">
+              <div class="text-slate-400 font-semibold">Triggered Knock-Out Gates:</div>
+              <div id="sbd-res-knockouts" class="space-y-1"></div>
+            </div>
+
+            <!-- Governance SLAs & Scoped Tracks -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs border-t border-slate-800/80 pt-3">
+              <div>
+                <div class="text-slate-400 font-semibold mb-1">Governance Profile & SLAs:</div>
+                <ul class="text-slate-300 space-y-1" id="sbd-res-governance"></ul>
+              </div>
+              <div>
+                <div class="text-slate-400 font-semibold mb-1">Recommended Technical Tracks:</div>
+                <div id="sbd-res-tracks" class="flex flex-wrap gap-1.5"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div id="tab-audit-demo" class="hidden space-y-6">
       <div class="bg-surface-900 border border-slate-800 rounded-xl p-6 shadow-lg max-w-3xl mx-auto">
         <div class="border-b border-slate-800 pb-4 mb-6">
@@ -1208,6 +1428,75 @@
     </div>
   </div>
 
+  <!-- Security by Design (SbD) Modal -->
+  <div id="sbd-modal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-surface-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-5 my-8">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+            <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">Security by Design (SbD) Orchestration</h3>
+            <p id="sbd-modal-subtitle" class="text-[11px] text-slate-400 font-mono">Target: App-Name</p>
+          </div>
+        </div>
+        <button onclick="closeModal('sbd-modal')" class="text-slate-400 hover:text-white transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Native CISO Assistant Note -->
+      <div class="p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-lg text-xs text-slate-300 leading-relaxed">
+        <strong>Native CISO Assistant Intake:</strong> The SbD questionnaire is completed by the assigned respondent inside CISO Assistant (<code class="text-emerald-400 font-mono">appsec</code>). The orchestrator evaluates the completed answers against deterministic gating knock-outs (KO-1 to KO-6).
+      </div>
+
+      <!-- Live Status in CISO Assistant -->
+      <div id="modal-sbd-status-box" class="p-3.5 rounded-lg bg-surface-950 border border-slate-800 space-y-1.5 text-xs">
+        <div class="text-[10px] text-slate-500 uppercase font-mono">Assessment Status in CISO Assistant</div>
+        <div id="modal-sbd-status-text" class="text-slate-300 font-medium">Checking live status...</div>
+      </div>
+
+      <!-- Assign section (if not yet created) -->
+      <div id="modal-sbd-assign-section" class="hidden space-y-3 p-3.5 rounded-xl bg-surface-950 border border-slate-800">
+        <label class="block text-xs font-semibold text-slate-300">Assign to Respondent User Email</label>
+        <div class="flex gap-2">
+          <input type="email" id="modal-sbd-assign-email" placeholder="e.g. respondent@example.com" class="flex-1 px-3 py-1.5 text-xs rounded-lg bg-surface-800 border border-slate-700 text-white focus:outline-none focus:border-brand-500">
+          <button onclick="submitModalAssignSbd()" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition shadow flex items-center space-x-1.5">
+            <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+            <span>Assign in CISO Assistant</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
+        <button onclick="closeModal('sbd-modal')" class="px-3.5 py-1.5 rounded-lg bg-surface-800 hover:bg-slate-700 text-slate-300 text-xs">Close</button>
+        <div class="flex items-center space-x-2">
+          <a id="modal-sbd-portal-link" href="https://ciso-assistant.siege.red/" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center space-x-1.5 transition">
+            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+            <span>Open in CISO Assistant ↗</span>
+          </a>
+          <button onclick="submitModalSbdEvaluation()" id="btn-modal-eval-sbd" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition shadow-lg shadow-brand-600/20 flex items-center space-x-1.5">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            <span>Evaluate Submitted Answers</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live result in modal -->
+      <div id="modal-sbd-result" class="hidden p-4 rounded-xl bg-surface-950 border border-slate-800 space-y-2.5 text-xs">
+        <div class="flex items-center justify-between">
+          <span id="modal-sbd-decision" class="font-bold text-white text-sm">-</span>
+          <span id="modal-sbd-tier" class="px-2 py-0.5 rounded font-bold text-[10px]">-</span>
+        </div>
+        <div class="text-[11px] text-slate-300" id="modal-sbd-gate">-</div>
+        <div class="text-[11px] text-slate-400" id="modal-sbd-sla">-</div>
+        <div id="modal-sbd-kos" class="space-y-1 pt-1"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div id="toast-container" class="fixed top-20 right-6 z-50 flex flex-col space-y-2 pointer-events-none"></div>
 
@@ -1253,11 +1542,12 @@
         activeBtn.classList.add("border-brand-500", "text-brand-400");
       }
 
-      ['dashboard', 'domains', 'audit-demo', 'generate-risks', 'offline-sim', 'backups', 'tools'].forEach(id => {
+      ['dashboard', 'sbd', 'domains', 'audit-demo', 'generate-risks', 'offline-sim', 'backups', 'tools'].forEach(id => {
         const el = document.getElementById(`tab-${id}`);
         if (el) el.classList.toggle("hidden", id !== tabId);
       });
 
+      if (tabId === 'sbd') initSbdTab();
       if (tabId === 'domains') renderDomainsView();
       if (tabId === 'backups') loadBackups();
       if (tabId === 'offline-sim') runOfflineSimulation();
@@ -1272,7 +1562,9 @@
       if (btn) btn.classList.add("animate-spin");
 
       try {
-        const res = await fetch("/api/status?refresh=1");
+        const statusUrl = notify ? "/api/status?refresh=1" : "/api/status";
+        const res = await fetch(statusUrl);
+        if (!res.ok) throw new Error("API returned status " + res.status);
         const data = await res.json();
         APP_STATE.connected = data.connected;
         APP_STATE.applications = data.applications || [];
@@ -1415,6 +1707,29 @@
           ? `<span class="px-2 py-0.5 rounded bg-rose-500/15 text-rose-400 font-bold border border-rose-500/30">${app.findings_count}</span>`
           : `<span class="text-slate-500">0</span>`;
 
+        // Solution Tier & SbD Badge
+        let tierCol = `<span class="text-slate-500 font-mono text-[11px]">-</span>`;
+        if (app.solution_tier) {
+          const t = app.solution_tier.toLowerCase();
+          const tName = app.solution_tier.toUpperCase();
+          let tColor = "bg-slate-800 text-slate-400 border-slate-700";
+          if (t === "critical") tColor = "bg-rose-500/15 text-rose-400 border-rose-500/30";
+          else if (t === "important") tColor = "bg-amber-500/15 text-amber-300 border-amber-500/30";
+          else if (t === "standard") tColor = "bg-cyan-500/15 text-cyan-300 border-cyan-500/30";
+          else if (t === "low-impact") tColor = "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
+
+          const sla = app.governance_policy?.remediation_sla_critical_days;
+          const slaBadge = sla ? `<div class="text-[9px] text-slate-500 font-mono">Critical SLA: ${sla}d</div>` : "";
+          tierCol = `
+            <div class="space-y-0.5">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${tColor}">${tName}</span>
+              ${slaBadge}
+            </div>
+          `;
+        } else if (app.solution_id || app.exists) {
+          tierCol = `<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-surface-800 text-slate-500 border border-slate-700/60">UNTIERED</span>`;
+        }
+
         tr.innerHTML = `
           <td class="py-3 px-4 text-slate-500 font-mono">${idx + 1}</td>
           <td class="py-3 px-4">
@@ -1441,6 +1756,7 @@
               return `<div class="space-y-0.5">${fwBadge}${igBadge}</div>`;
             })()}
           </td>
+          <td class="py-3 px-4">${tierCol}</td>
           <td class="py-3 px-4">${statusBadge}</td>
           <td class="py-3 px-4">${auditProgress}</td>
           <td class="py-3 px-4">${risksCol}</td>
@@ -1459,6 +1775,10 @@
                   Create
                 </button>
               ` : `
+                <button onclick="openSbdModal('${app.name}')" class="px-2 py-1 rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-[11px] font-medium transition inline-flex items-center space-x-1" title="Security by Design (SbD) Intake & Gating Assessment">
+                  <i data-lucide="shield-check" class="w-3 h-3 text-emerald-400"></i>
+                  <span>SbD Gate</span>
+                </button>
                 ${app.compliance_assessment_id ? `
                 ${(app.unassigned_requirements_count > 0 || (app.audit_answered && app.answered_requirements_count < app.total_requirements_count)) ? `
                 <button onclick="openManageGroupsModal('${app.name}', 'assign')" class="px-2 py-1 rounded bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 text-[11px] font-medium transition inline-flex items-center space-x-1 shadow-sm" title="Assign Triggered Implementation Tracks to Respondent">
@@ -1888,6 +2208,34 @@
             diagFwList.appendChild(catLi);
           });
         }
+      }
+
+      // SbD Dropdowns
+      const sbdAssignSelect = document.getElementById("sbd-assign-app-select");
+      if (sbdAssignSelect) {
+        const cur = sbdAssignSelect.value;
+        sbdAssignSelect.innerHTML = `<option value="">-- Choose Existing or Enter Below --</option>`;
+        (APP_STATE.applications || []).forEach(app => {
+          const opt = document.createElement("option");
+          opt.value = app.name;
+          opt.innerText = app.name;
+          sbdAssignSelect.appendChild(opt);
+        });
+        if (cur) sbdAssignSelect.value = cur;
+      }
+
+      const sbdEvalSelect = document.getElementById("sbd-eval-app-select");
+      if (sbdEvalSelect) {
+        const cur = sbdEvalSelect.value;
+        sbdEvalSelect.innerHTML = `<option value="">-- Select an Application to Evaluate --</option>`;
+        (APP_STATE.applications || []).filter(a => a.exists).forEach(app => {
+          const opt = document.createElement("option");
+          opt.value = app.name;
+          const tText = app.solution_tier ? ` [${app.solution_tier.toUpperCase()}]` : "";
+          opt.innerText = `${app.name}${tText}`;
+          sbdEvalSelect.appendChild(opt);
+        });
+        if (cur) sbdEvalSelect.value = cur;
       }
     }
 
@@ -3183,6 +3531,369 @@
         toast.classList.add("opacity-0", "translate-y-2");
         setTimeout(() => toast.remove(), 300);
       }, 4000);
+    }
+
+    // -----------------------------------------------------------------------
+    // Security by Design (SbD) & Solution Tiering Controllers
+    // -----------------------------------------------------------------------
+    function initSbdTab() {
+      const select = document.getElementById("sbd-app-select");
+      if (!select) return;
+      const currentVal = select.value;
+      select.innerHTML = '<option value="">-- Select an Application / Perimeter --</option>';
+
+      (APP_STATE.applications || []).forEach(app => {
+        const opt = document.createElement("option");
+        opt.value = app.name;
+        const tierTag = app.solution_tier ? ` [Tier: ${app.solution_tier.toUpperCase()}]` : "";
+        opt.innerText = `${app.name}${tierTag}`;
+        select.appendChild(opt);
+      });
+
+      if (currentVal) select.value = currentVal;
+    }
+
+    function onSbdAssignAppSelectChange() {
+      const select = document.getElementById("sbd-assign-app-select");
+      const nameInput = document.getElementById("sbd-assign-app-name");
+      if (select && select.value && nameInput) {
+        nameInput.value = select.value;
+      }
+    }
+
+    async function onSbdEvalAppSelectChange() {
+      const select = document.getElementById("sbd-eval-app-select");
+      const statusText = document.getElementById("sbd-live-status-text");
+      const appName = select?.value;
+      if (!appName) {
+        if (statusText) statusText.innerText = "Select an application above to check assessment status...";
+        return;
+      }
+
+      if (statusText) statusText.innerText = "Checking live CISO Assistant status...";
+      try {
+        const res = await fetch(`/api/sbd/status/${encodeURIComponent(appName)}`);
+        const data = await res.json();
+        if (data.success && data.data) {
+          const s = data.data;
+          if (!s.exists) {
+            statusText.innerHTML = `<span class="text-amber-400 font-bold">Not yet assigned in CISO Assistant.</span> Use Step 1 to assign the form.`;
+          } else if (!s.has_answers) {
+            statusText.innerHTML = `<span class="text-amber-400 font-bold">Assigned (0% answered).</span> Form has not been completed by respondent yet.`;
+          } else {
+            statusText.innerHTML = `<span class="text-emerald-400 font-bold">Answers Submitted (${s.answered_requirements}/${s.total_requirements}).</span> Ready for SbD gating evaluation.`;
+          }
+        }
+      } catch (e) {
+        if (statusText) statusText.innerText = "Ready to evaluate.";
+      }
+    }
+
+    async function submitAssignSbd() {
+      const appName = document.getElementById("sbd-assign-app-name").value.trim();
+      const email = document.getElementById("sbd-assign-email").value.trim();
+      const domain = document.getElementById("sbd-assign-domain").value.trim() || "Examples";
+
+      if (!appName) {
+        showToast("Please enter an application / initiative name", "warning");
+        return;
+      }
+      if (!email) {
+        showToast("Please enter the respondent user email", "warning");
+        return;
+      }
+
+      const btn = document.getElementById("btn-assign-sbd");
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Provisioning in CISO Assistant...</span>`;
+        lucide.createIcons();
+      }
+
+      try {
+        const res = await fetch("/api/sbd/assign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            app_name: appName,
+            user_email: email,
+            domain_name: domain,
+          }),
+        });
+        const data = await res.json();
+        if (!data.success) {
+          showToast(data.error || "Failed to assign SbD assessment", "error");
+          return;
+        }
+
+        const box = document.getElementById("sbd-assigned-box");
+        box.classList.remove("hidden");
+        document.getElementById("sbd-assigned-details").innerHTML = `
+          <div>• Application: <span class="text-white font-semibold">${data.data.app_name}</span></div>
+          <div>• Assigned Respondent: <span class="text-emerald-300 font-mono">${data.data.user_email}</span></div>
+          <div>• Assessment ID: <span class="text-slate-400 font-mono text-[10px]">${data.data.compliance_assessment_id || '-'}</span></div>
+        `;
+        const link = document.getElementById("sbd-assigned-link");
+        if (link && data.data.direct_url) {
+          link.href = data.data.direct_url;
+        }
+
+        showToast(`SbD Assessment for '${appName}' assigned to ${email}`, "success");
+        refreshAll(false);
+      } catch (err) {
+        showToast("Error: " + err.message, "error");
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<i data-lucide="user-plus" class="w-4 h-4"></i><span>Assign SbD Assessment in CISO Assistant</span>`;
+          lucide.createIcons();
+        }
+      }
+    }
+
+    async function submitEvaluateSbd() {
+      const select = document.getElementById("sbd-eval-app-select");
+      const appName = select ? select.value.trim() : "";
+      if (!appName) {
+        showToast("Please select an application to evaluate", "warning");
+        return;
+      }
+
+      const btn = document.getElementById("btn-eval-sbd");
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Querying CISO Assistant...</span>`;
+        lucide.createIcons();
+      }
+
+      try {
+        const res = await fetch("/api/sbd/evaluate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ app_name: appName }),
+        });
+        const data = await res.json();
+        if (!data.success) {
+          showToast(data.error || "Evaluation failed", "error");
+          return;
+        }
+
+        renderSbdResultCard(data.data);
+        if (data.data.has_answers === false || data.data.status === "awaiting_submission") {
+          showToast("Assessment awaiting respondent submission in CISO Assistant", "warning");
+        } else {
+          showToast(`SbD Evaluation Complete: ${data.data.criticality_tier.toUpperCase()}`, "success");
+        }
+        refreshAll(false);
+      } catch (err) {
+        showToast("Error: " + err.message, "error");
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4"></i><span>Fetch Answers & Run SbD Gating</span>`;
+          lucide.createIcons();
+        }
+      }
+    }
+
+    function renderSbdResultCard(data) {
+      const card = document.getElementById("sbd-result-card");
+      card.classList.remove("hidden");
+
+      const pendingBanner = document.getElementById("sbd-res-pending-banner");
+      const content = document.getElementById("sbd-res-content");
+
+      if (data.has_answers === false || data.status === "awaiting_submission") {
+        pendingBanner.classList.remove("hidden");
+        content.classList.add("hidden");
+        document.getElementById("sbd-res-pending-msg").innerText = data.message || "Assessment has not been completed by respondent yet.";
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        lucide.createIcons();
+        return;
+      }
+
+      pendingBanner.classList.add("hidden");
+      content.classList.remove("hidden");
+
+      document.getElementById("sbd-res-scope").innerText = (data.evaluation_label || data.evaluation_nature || "Change").toUpperCase();
+      document.getElementById("sbd-res-decision").innerText = data.sbd_decision || "-";
+
+      const tierBadge = document.getElementById("sbd-res-tier-badge");
+      const tier = (data.criticality_tier || "standard").toUpperCase();
+      let tColor = "bg-amber-500/20 text-amber-300 border-amber-500/30";
+      if (tier === "CRITICAL") tColor = "bg-rose-500/20 text-rose-300 border-rose-500/30";
+      else if (tier === "STANDARD") tColor = "bg-cyan-500/20 text-cyan-300 border-cyan-500/30";
+      else if (tier === "LOW-IMPACT") tColor = "bg-emerald-500/20 text-emerald-300 border-emerald-500/30";
+      tierBadge.innerHTML = `<span class="px-3 py-1 rounded text-xs font-bold border ${tColor}">${tier}</span>`;
+
+      document.getElementById("sbd-res-review-level").innerText = (data.review_level || "-").toUpperCase();
+      document.getElementById("sbd-res-gate-action").innerText = data.gate_action || "-";
+      document.getElementById("sbd-res-fast-track").innerText = data.fast_track_eligible ? "YES (Peer Review Only)" : "NO (Security Gate Required)";
+
+      // Knockouts
+      const koList = document.getElementById("sbd-res-knockouts");
+      const kos = data.triggered_knockouts || [];
+      if (kos.length === 0) {
+        koList.innerHTML = `<div class="text-slate-500 text-[11px]">None triggered — Clean operational baseline.</div>`;
+      } else {
+        koList.innerHTML = kos.map(k => `
+          <div class="p-2 rounded bg-surface-900 border border-slate-800 flex items-start justify-between">
+            <div>
+              <span class="font-bold text-rose-300">[${k.id}] ${k.name}</span>:
+              <span class="text-slate-400 text-[11px]">${k.description}</span>
+            </div>
+            <span class="px-1.5 py-0.2 rounded text-[10px] uppercase font-bold bg-rose-500/20 text-rose-300">${k.severity}</span>
+          </div>
+        `).join("");
+      }
+
+      // Governance Profile
+      const govEl = document.getElementById("sbd-res-governance");
+      const gov = data.governance_policy || {};
+      govEl.innerHTML = `
+        <li>• Audit Depth: <span class="font-bold text-white">${gov.audit_depth || 'standard'}</span></li>
+        <li>• Pentest Mandatory: <span class="font-bold text-white">${gov.pentest_required ? 'YES' : 'NO'}</span></li>
+        <li>• Critical Finding SLA: <span class="font-bold text-rose-400">${gov.remediation_sla_critical_days || 30} days</span></li>
+        <li>• High Finding SLA: <span class="font-bold text-amber-400">${gov.remediation_sla_high_days || 60} days</span></li>
+      `;
+
+      // Tracks
+      const trackEl = document.getElementById("sbd-res-tracks");
+      const tracks = data.recommended_implementation_groups || [];
+      if (tracks.length === 0) {
+        trackEl.innerHTML = `<span class="text-slate-500 text-[11px]">Baseline</span>`;
+      } else {
+        trackEl.innerHTML = tracks.map(t => `<span class="px-2 py-0.5 rounded text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">${t}</span>`).join("");
+      }
+
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      lucide.createIcons();
+    }
+
+    let CURRENT_MODAL_APP = "";
+    async function openSbdModal(appName) {
+      CURRENT_MODAL_APP = appName;
+      document.getElementById("sbd-modal-subtitle").innerText = `Target: ${appName}`;
+      document.getElementById("modal-sbd-result").classList.add("hidden");
+
+      const statusBox = document.getElementById("modal-sbd-status-text");
+      const assignSec = document.getElementById("modal-sbd-assign-section");
+      const evalBtn = document.getElementById("btn-modal-eval-sbd");
+      statusBox.innerText = "Checking live status in CISO Assistant...";
+      assignSec.classList.add("hidden");
+      evalBtn.disabled = false;
+
+      openModal("sbd-modal");
+      lucide.createIcons();
+
+      try {
+        const res = await fetch(`/api/sbd/status/${encodeURIComponent(appName)}`);
+        const data = await res.json();
+        if (data.success && data.data) {
+          const s = data.data;
+          if (!s.exists) {
+            statusBox.innerHTML = `<span class="text-amber-400 font-bold">Not yet assigned in CISO Assistant.</span>`;
+            assignSec.classList.remove("hidden");
+            evalBtn.disabled = true;
+          } else if (!s.has_answers) {
+            statusBox.innerHTML = `<span class="text-amber-400 font-bold">Assigned in CISO Assistant (0% Complete).</span> Respondent has not submitted answers yet.`;
+          } else {
+            statusBox.innerHTML = `<span class="text-emerald-400 font-bold">Answers Submitted in CISO Assistant (${s.answered_requirements}/${s.total_requirements}).</span> Ready for gating evaluation.`;
+          }
+        }
+      } catch (err) {
+        statusBox.innerText = "Ready to evaluate.";
+      }
+    }
+
+    async function submitModalAssignSbd() {
+      if (!CURRENT_MODAL_APP) return;
+      const email = document.getElementById("modal-sbd-assign-email").value.trim();
+      if (!email) {
+        showToast("Please enter respondent user email", "warning");
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/sbd/assign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            app_name: CURRENT_MODAL_APP,
+            user_email: email,
+          }),
+        });
+        const data = await res.json();
+        if (!data.success) {
+          showToast(data.error || "Assignment failed", "error");
+          return;
+        }
+
+        showToast(`SbD assessment for '${CURRENT_MODAL_APP}' assigned to ${email}`, "success");
+        openSbdModal(CURRENT_MODAL_APP);
+        refreshAll(false);
+      } catch (err) {
+        showToast("Error: " + err.message, "error");
+      }
+    }
+
+    async function submitModalSbdEvaluation() {
+      if (!CURRENT_MODAL_APP) return;
+      const btn = document.getElementById("btn-modal-eval-sbd");
+      if (btn) btn.disabled = true;
+
+      try {
+        const res = await fetch("/api/sbd/evaluate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ app_name: CURRENT_MODAL_APP }),
+        });
+        const data = await res.json();
+        if (!data.success) {
+          showToast(data.error || "Evaluation failed", "error");
+          return;
+        }
+
+        const resBox = document.getElementById("modal-sbd-result");
+        resBox.classList.remove("hidden");
+
+        if (data.data.has_answers === false || data.data.status === "awaiting_submission") {
+          document.getElementById("modal-sbd-decision").innerText = "Pending Submission in CISO Assistant";
+          const tierEl = document.getElementById("modal-sbd-tier");
+          tierEl.innerText = "PENDING";
+          tierEl.className = "px-2 py-0.5 rounded font-bold text-[10px] bg-amber-500/20 text-amber-300";
+          document.getElementById("modal-sbd-gate").innerText = data.data.message || "Respondent needs to answer the form inside CISO Assistant.";
+          document.getElementById("modal-sbd-sla").innerText = "Please complete the form at https://ciso-assistant.siege.red/";
+          document.getElementById("modal-sbd-kos").innerHTML = "";
+          showToast("Assessment awaiting answers in CISO Assistant", "warning");
+          return;
+        }
+
+        document.getElementById("modal-sbd-decision").innerText = data.data.sbd_decision;
+        const tier = (data.data.criticality_tier || "standard").toUpperCase();
+        const tierEl = document.getElementById("modal-sbd-tier");
+        tierEl.innerText = tier;
+        tierEl.className = "px-2 py-0.5 rounded font-bold text-[10px] " + (tier === "CRITICAL" ? "bg-rose-500/20 text-rose-300" : (tier === "IMPORTANT" ? "bg-amber-500/20 text-amber-300" : "bg-cyan-500/20 text-cyan-300"));
+        document.getElementById("modal-sbd-gate").innerText = `Gate Action: ${data.data.gate_action} (Review: ${data.data.review_level})`;
+        const gov = data.data.governance_policy || {};
+        document.getElementById("modal-sbd-sla").innerText = `Remediation SLA: Critical ${gov.remediation_sla_critical_days || 30}d | High ${gov.remediation_sla_high_days || 60}d`;
+
+        const kos = data.data.triggered_knockouts || [];
+        const koDiv = document.getElementById("modal-sbd-kos");
+        if (kos.length > 0) {
+          koDiv.innerHTML = kos.map(k => `<span class="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-500/20 text-rose-300 mr-1">${k.id}: ${k.name}</span>`).join("");
+        } else {
+          koDiv.innerHTML = `<span class="text-slate-500 text-[10px]">No knock-outs triggered.</span>`;
+        }
+
+        showToast(`SbD Evaluation: ${tier}`, "success");
+        refreshAll(false);
+      } catch (err) {
+        showToast("Error: " + err.message, "error");
+      } finally {
+        if (btn) btn.disabled = false;
+        lucide.createIcons();
+      }
     }
   </script>
 </body>

@@ -1416,9 +1416,9 @@ class TestYamlIntegrity(unittest.TestCase):
         avail_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:availability_classification")
         self.assertIsNone(avail_node, "availability_classification must be removed to focus on confidentiality only")
 
-        # All 45 risk scenarios route impact to data_classification
+        # All risk scenarios route impact to data_classification
         scenarios = {s["ref_id"]: s for s in appsec_fw["scenarios"].values()}
-        self.assertEqual(len(scenarios), 45)
+        self.assertEqual(len(scenarios), 57)
         for sc_ref, sc in scenarios.items():
             self.assertEqual(
                 sc.get("impact"),
@@ -1721,12 +1721,12 @@ class TestYamlIntegrity(unittest.TestCase):
         # network_exposure is no longer a standalone node
         self.assertNotIn("urn:intuitem:risk:req_node:appsec:network_exposure", appsec_fw["req_nodes"])
 
-        # 4. Total requirement nodes (62) and scenarios (45)
-        self.assertEqual(len(appsec_fw["req_nodes"]), 62)
-        self.assertEqual(len(appsec_fw["scenarios"]), 45)
-        self.assertEqual(len(appsec_fw["threats"]), 9)
-        self.assertEqual(len(appsec_fw["vulns"]), 18)
-        self.assertEqual(len(appsec_fw["ref_ctrls"]), 26)
+        # 4. Total requirement nodes (79) and scenarios (57) in merged AppSec & SbD framework
+        self.assertEqual(len(appsec_fw["req_nodes"]), 79)
+        self.assertEqual(len(appsec_fw["scenarios"]), 57)
+        self.assertEqual(len(appsec_fw["threats"]), 16)
+        self.assertEqual(len(appsec_fw["vulns"]), 27)
+        self.assertEqual(len(appsec_fw["ref_ctrls"]), 38)
 
         # 5. Universal IAM nodes are grouped under the 'baseline' track
         auth_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:authentication_and_mfa")
@@ -2263,23 +2263,24 @@ class TestYamlIntegrity(unittest.TestCase):
             self.assertIsNotNone(fw, f"Framework {fw_ref} missing")
 
             scenarios = fw["scenarios"]
-            self.assertEqual(len(scenarios), 45, f"Framework {fw_ref} must have 45 risk scenarios")
+            self.assertEqual(len(scenarios), 57, f"Framework {fw_ref} must have 57 risk scenarios")
 
             # Collect all likelihood target nodes
             linked_req_urns = {s.get("likelihood") for s in scenarios.values() if s.get("likelihood")}
             linked_req_refs = {urn.split(":")[-1] for urn in linked_req_urns if urn}
 
-            # Assessable nodes excluding profiling nodes (data_classification, hosting, application_description)
+            # Assessable nodes excluding profiling nodes (data_classification, hosting, application_description, intake & gating)
             # and edge_network_protection (infrastructure reverse proxy control requirement)
             req_nodes = fw["req_nodes"]
             assessable_sec_nodes = {
                 ref_id: rn for urn, rn in req_nodes.items()
                 if rn.get("assessable") and (ref_id := rn.get("ref_id")) not in (
-                    "data_classification", "hosting", "application_description", "edge_network_protection"
+                    "data_classification", "hosting", "application_description", "edge_network_protection",
+                    "business_project_scope", "operational_criticality_intake", "knockout_assessment"
                 )
             }
 
-            self.assertEqual(len(assessable_sec_nodes), 45, f"Expected 45 assessable security nodes in {fw_ref}")
+            self.assertEqual(len(assessable_sec_nodes), 57, f"Expected 57 assessable security nodes in {fw_ref}")
 
             unlinked_nodes = [
                 ref_id for ref_id in assessable_sec_nodes

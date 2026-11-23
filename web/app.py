@@ -407,8 +407,9 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
     # Status & Inventory Endpoints
     # -----------------------------------------------------------------------
 
-    _status_cache: dict[str, Any] = {"time": 0.0, "data": None}
+    _status_cache: dict[str, Any] = {"time": 0.0, "data": None, "refreshing": False}
     _status_lock = threading.Lock()
+    _status_cv = threading.Condition(_status_lock)
 
     def invalidate_status_cache():
         with _status_lock:
@@ -424,97 +425,129 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
 
         now = time.time()
         with _status_lock:
-            if not force and wait_sec == 0 and _status_cache["data"] and (now - _status_cache["time"] < 4.0):
+            # 1. Return cached data immediately if fresh (TTL: 30s) and not forced
+            if not force and wait_sec == 0 and _status_cache["data"] and (now - _status_cache["time"] < 30.0):
                 return jsonify(_status_cache["data"])
 
-        connected, conn_msg = manager.test_connection()
-        if not connected:
-            return jsonify({
-                "connected": False,
+            # 2. If another thread is actively refreshing:
+            # Return current cached data if available rather than blocking the worker
+            if _status_cache.get("refreshing"):
+                if _status_cache["data"]:
+                    return jsonify(_status_cache["data"])
+                _status_cv.wait(timeout=15.0)
+                if _status_cache["data"]:
+                    return jsonify(_status_cache["data"])
+
+            # 3. Mark refreshing so parallel requests don't duplicate remote calls
+            _status_cache["refreshing"] = True
+
+        try:
+            connected, conn_msg = manager.test_connection()
+            if not connected:
+                fail_payload = {
+                    "connected": False,
+                    "message": conn_msg,
+                    "base_url": utils.BASE_URL,
+                    "folder_name": target_folder,
+                    "applications": [],
+                    "installed_frameworks": [],
+                    "available_frameworks": manager.get_available_frameworks(installed_only=False),
+                    "catalog_frameworks": FRAMEWORK_CATALOG,
+                    "catalog": manager.get_example_applications(),
+                    "domains": [],
+                    "summary": {
+                        "total_catalog": len(manager.get_example_applications()),
+                        "total_domains": 0,
+                        "deployed": 0,
+                        "completed_audits": 0,
+                        "total_risks": 0,
+                        "total_controls": 0,
+                        "total_findings": 0,
+                    },
+                }
+                with _status_lock:
+                    _status_cache["time"] = time.time()
+                    _status_cache["data"] = fail_payload
+                return jsonify(fail_payload)
+
+            if wait_sec > 0:
+                time.sleep(wait_sec)
+
+            try:
+                status_list = manager.get_status(wait_seconds=0)
+            except Exception as e:
+                LOGGER.error(f"Error querying status: {e}")
+                status_list = []
+
+            try:
+                installed_fws = manager.get_installed_frameworks()
+            except Exception as e:
+                LOGGER.error(f"Error querying frameworks: {e}")
+                installed_fws = []
+
+            catalog_apps = manager.get_example_applications()
+
+            # Query all organizational domains in CISO Assistant
+            domains_list = []
+            try:
+                raw_domains = manager.get_domains()
+                domains_list = [
+                    {
+                        "id": d.get_id(),
+                        "name": d.get_name(),
+                        "description": getattr(d, "get_description", lambda: "")(),
+                        "parent_folder": getattr(d, "get_parent_folder", lambda: None)(),
+                    }
+                    for d in raw_domains
+                ]
+            except Exception as e:
+                LOGGER.warning(f"Error querying domains: {e}")
+
+            # Compute aggregate metrics
+            deployed_apps = [s for s in status_list if s.get("exists")]
+            completed_audits = sum(
+                1 for s in deployed_apps
+                if s.get("audit_answered")
+                and (s.get("audit_completion_pct", 0) >= 100 or s.get("compliance_status") == "completed")
+            )
+            partial_audits = sum(
+                1 for s in deployed_apps
+                if s.get("answered_requirements_count", 0) > 0 and s.get("audit_completion_pct", 0) < 100
+            )
+            total_risks = sum(s.get("risk_scenarios_count", 0) for s in deployed_apps)
+            total_controls = sum(s.get("applied_controls_count", 0) for s in deployed_apps)
+            total_findings = sum(s.get("findings_count", 0) for s in deployed_apps)
+
+            payload = {
+                "connected": True,
                 "message": conn_msg,
                 "base_url": utils.BASE_URL,
                 "folder_name": target_folder,
-                "applications": [],
-                "installed_frameworks": [],
+                "applications": status_list,
+                "installed_frameworks": installed_fws,
                 "available_frameworks": manager.get_available_frameworks(installed_only=False),
                 "catalog_frameworks": FRAMEWORK_CATALOG,
-                "catalog": manager.get_example_applications(),
-                "domains": [],
+                "catalog": catalog_apps,
+                "domains": domains_list,
                 "summary": {
-                    "total_catalog": len(manager.get_example_applications()),
-                    "total_domains": 0,
-                    "deployed": 0,
-                    "completed_audits": 0,
-                    "total_risks": 0,
-                    "total_controls": 0,
-                    "total_findings": 0,
+                    "total_catalog": len(catalog_apps),
+                    "total_domains": len(domains_list),
+                    "deployed": len(deployed_apps),
+                    "completed_audits": completed_audits,
+                    "partial_audits": partial_audits,
+                    "total_risks": total_risks,
+                    "total_controls": total_controls,
+                    "total_findings": total_findings,
                 },
-            })
-
-        if wait_sec > 0:
-            time.sleep(wait_sec)
-
-        status_list = manager.get_status(wait_seconds=0)
-        installed_fws = manager.get_installed_frameworks()
-        catalog_apps = manager.get_example_applications()
-
-        # Query all organizational domains in CISO Assistant
-        domains_list = []
-        try:
-            raw_domains = manager.get_domains()
-            domains_list = [
-                {
-                    "id": d.get_id(),
-                    "name": d.get_name(),
-                    "description": getattr(d, "get_description", lambda: "")(),
-                    "parent_folder": getattr(d, "get_parent_folder", lambda: None)(),
-                }
-                for d in raw_domains
-            ]
-        except Exception as e:
-            LOGGER.warning(f"Error querying domains: {e}")
-
-        # Compute aggregate metrics
-        deployed_apps = [s for s in status_list if s.get("exists")]
-        completed_audits = sum(
-            1 for s in deployed_apps
-            if s.get("audit_answered")
-            and (s.get("audit_completion_pct", 0) >= 100 or s.get("compliance_status") == "completed")
-        )
-        partial_audits = sum(
-            1 for s in deployed_apps
-            if s.get("answered_requirements_count", 0) > 0 and s.get("audit_completion_pct", 0) < 100
-        )
-        total_risks = sum(s.get("risk_scenarios_count", 0) for s in deployed_apps)
-        total_controls = sum(s.get("applied_controls_count", 0) for s in deployed_apps)
-        total_findings = sum(s.get("findings_count", 0) for s in deployed_apps)
-
-        payload = {
-            "connected": True,
-            "message": conn_msg,
-            "base_url": utils.BASE_URL,
-            "folder_name": target_folder,
-            "applications": status_list,
-            "installed_frameworks": installed_fws,
-            "available_frameworks": manager.get_available_frameworks(installed_only=False),
-            "catalog_frameworks": FRAMEWORK_CATALOG,
-            "catalog": catalog_apps,
-            "domains": domains_list,
-            "summary": {
-                "total_catalog": len(catalog_apps),
-                "total_domains": len(domains_list),
-                "deployed": len(deployed_apps),
-                "completed_audits": completed_audits,
-                "partial_audits": partial_audits,
-                "total_risks": total_risks,
-                "total_controls": total_controls,
-                "total_findings": total_findings,
-            },
-        }
-        with _status_lock:
-            _status_cache["time"] = time.time()
-            _status_cache["data"] = payload
-        return jsonify(payload)
+            }
+            with _status_lock:
+                _status_cache["time"] = time.time()
+                _status_cache["data"] = payload
+            return jsonify(payload)
+        finally:
+            with _status_lock:
+                _status_cache["refreshing"] = False
+                _status_cv.notify_all()
 
     @app.route("/api/domains", methods=["GET", "POST"])
     def api_domains():
@@ -1085,6 +1118,115 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
             return jsonify({"error": str(e)}), 400
         except Exception as e:
             LOGGER.error(f"Error updating tier for {app_name}: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/sbd/assign", methods=["POST"])
+    def api_assign_sbd():
+        """Create and assign a Security by Design (SbD) intake assessment inside CISO Assistant."""
+        payload = request.get_json(silent=True) or {}
+        app_name = payload.get("app_name")
+        user_email = payload.get("user_email")
+        if not app_name:
+            return jsonify({"error": "'app_name' is required in request body."}), 400
+        if not user_email:
+            return jsonify({"error": "'user_email' is required in request body."}), 400
+
+        domain_name = payload.get("domain_name")
+        first_name = payload.get("first_name", "")
+        last_name = payload.get("last_name", "")
+        groups = payload.get("implementation_groups")
+
+        try:
+            res = manager.create_sbd_assessment(
+                app_name=app_name,
+                user_email=user_email,
+                first_name=first_name,
+                last_name=last_name,
+                domain_name=domain_name,
+                implementation_groups=groups,
+            )
+            invalidate_status_cache()
+            return jsonify({
+                "success": True,
+                "message": f"SbD Assessment for '{app_name}' created in CISO Assistant and assigned to '{user_email}'.",
+                "data": res,
+            })
+        except Exception as e:
+            LOGGER.error(f"Error assigning SbD assessment for {app_name}: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/sbd/status/<path:app_name>", methods=["GET"])
+    def api_sbd_status(app_name: str):
+        """Check live SbD assessment status in CISO Assistant."""
+        try:
+            res = manager.get_sbd_assessment_status(app_name)
+            return jsonify({"success": True, "data": res})
+        except Exception as e:
+            LOGGER.error(f"Error checking SbD status for {app_name}: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/sbd/evaluate", methods=["POST"])
+    @app.route("/api/sbd/assess", methods=["POST"])
+    def api_assess_sbd():
+        """Run Security by Design (SbD) intake and gating triage evaluation."""
+        payload = request.get_json(silent=True) or {}
+        app_name = payload.get("app_name")
+        if not app_name:
+            return jsonify({"error": "'app_name' is required in request body."}), 400
+
+        answers = payload.get("answers") or payload.get("change_answers") or None
+        auto_sign_off = payload.get("auto_sign_off", True)
+
+        try:
+            res = manager.assess_security_by_design(
+                app_name,
+                change_answers=answers,
+                auto_sign_off=auto_sign_off,
+            )
+            invalidate_status_cache()
+            return jsonify({
+                "success": True,
+                "message": f"SbD Evaluation Complete: {res.get('sbd_decision', 'Evaluated')}",
+                "data": res,
+            })
+        except Exception as e:
+            LOGGER.error(f"Error evaluating Security by Design for {app_name}: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/solutions/<path:app_name>/sbd", methods=["GET", "POST"])
+    def api_solution_sbd(app_name: str):
+        """Get or evaluate Security by Design gating policy for an application/change."""
+        if request.method == "GET":
+            try:
+                tier = manager.get_solution_tier(app_name)
+                gov = get_tier_governance_policy(tier)
+                return jsonify({
+                    "success": True,
+                    "app_name": app_name,
+                    "tier": tier,
+                    "governance_policy": gov,
+                })
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+
+        payload = request.get_json(silent=True) or {}
+        answers = payload.get("answers") or payload.get("change_answers") or {}
+        auto_sign_off = payload.get("auto_sign_off", True)
+
+        try:
+            res = manager.assess_security_by_design(
+                app_name,
+                change_answers=answers,
+                auto_sign_off=auto_sign_off,
+            )
+            invalidate_status_cache()
+            return jsonify({
+                "success": True,
+                "message": f"SbD Evaluation Complete: {res['sbd_decision']}",
+                "data": res,
+            })
+        except Exception as e:
+            LOGGER.error(f"Error evaluating Security by Design for {app_name}: {e}")
             return jsonify({"error": str(e)}), 500
 
     # -----------------------------------------------------------------------

@@ -25,6 +25,7 @@ from classes.audits.finding import FindingDict, FindingsAssessmentDict
 from classes.audits.implementation_groups import (
     add_default_implementation_groups,
     determine_implementation_groups_triggered_by_others,
+    evaluate_security_by_design_knockouts,
     filter_implementation_groups_by_tier,
     get_framework_implementation_groups,
     get_framework_implementation_groups_dependencies,
@@ -160,7 +161,7 @@ class ExamplesManager:
                 "task_template_dict": TaskTemplateDict,
                 "task_dict": TaskDict,
             }
-            with ThreadPoolExecutor(max_workers=8) as executor:
+            with ThreadPoolExecutor(max_workers=3) as executor:
                 futures = {k: executor.submit(cls) for k, cls in constructors.items()}
                 self.data = {k: f.result() for k, f in futures.items()}
             self.data["framework_file"] = FrameworkFile(str(self.framework_yaml))
@@ -3248,7 +3249,7 @@ class ExamplesManager:
 
         if audit_answers:
             mapped = map_audit_answers_to_tiering_answers(audit_answers)
-            if any(k in mapped for k in ("d1", "d2", "delivery_model", "exposure")):
+            if any(k in mapped for k in ("d1", "d2", "delivery_model", "exposure", "ko1", "ko2", "ko3", "ko4", "ko5", "ko6", "initiative_type")):
                 return mapped
 
         # Fallback: check if example app yaml has answers
@@ -3395,6 +3396,22 @@ class ExamplesManager:
         active_candidates = [g["name"] for g in triggered_info.get("visible_groups", [])]
         recommended_groups = filter_implementation_groups_by_tier(final_tier, active_candidates, framework_id=framework)
 
+        # Security by Design (SbD) intake evaluation
+        sbd_eval = evaluate_security_by_design_knockouts(tiering_answers)
+        gov_policy = get_tier_governance_policy(final_tier)
+        if final_rank >= 3 or knock_outs:
+            sbd_eval["requires_sbd"] = True
+            if final_rank == 4 or any(k[1] == "critical" for k in knock_outs):
+                sbd_eval["review_level"] = "deep_sar"
+                sbd_eval["gate_action"] = "mandatory_pre_prod_approval"
+                sbd_eval["decision"] = "Deep Security Architecture Review (SAR) Required"
+                sbd_eval["fast_track_eligible"] = False
+            elif sbd_eval.get("review_level") == "fast_track":
+                sbd_eval["review_level"] = "standard_sbd"
+                sbd_eval["gate_action"] = "standard_cab_sec_review"
+                sbd_eval["decision"] = "Standard Security by Design Review Required"
+                sbd_eval["fast_track_eligible"] = False
+
         return {
             "app_name": app_name_or_solution_id,
             "inherent_score": round(inherent_score, 2),
@@ -3403,10 +3420,236 @@ class ExamplesManager:
             "base_tier": base_tier,
             "knock_outs": [k[0] for k in knock_outs],
             "final_tier": final_tier,
-            "governance_policy": get_tier_governance_policy(final_tier),
+            "governance_policy": gov_policy,
             "hosting_answers": hosting_answers,
             "recommended_implementation_groups": recommended_groups,
+            "sbd_evaluation": sbd_eval,
         }
+
+    def assess_security_by_design(
+        self,
+        app_name_or_solution_id: str,
+        change_answers: dict[str, Any] | str | None = None,
+        auto_sign_off: bool = True,
+    ) -> dict[str, Any]:
+        """Evaluate a change or new application against Security by Design (SbD) intake knock-outs and gating rules.
+
+        Orchestrates:
+        1. Knock-Out Gating (KO-1 to KO-6):
+           - KO-1 (Public Exposure): Direct internet access, public ingress, or external partner network access.
+           - KO-2 (Identity & Access): Modifications to IdP (Entra ID, Okta), trust boundaries, or privileged access.
+           - KO-3 (Network Boundaries): Cross-account VPC peering, direct cloud-to-onprem WAN, or core firewall rules.
+           - KO-4 (Sensitive/Regulated Data): Level 3/Secrets, PCI-DSS, GDPR >100k, or financial/health records.
+           - KO-5 (Critical Third-Party): New SaaS integration with direct API or network access to corporate assets.
+           - KO-6 (Resiliency / SPOF): Critical service interruption (>4h) with no warm standby or failover.
+        2. Tiers inherent risk (Business & Data resilience scores) and maps governance policy & SLAs.
+        3. Scopes recommended implementation groups (e.g. infra, baseline, custom_app, saas_app, extranet).
+        4. Issues gating decision:
+           - Fast-Track (Peer review only, no blocking security gate)
+           - Standard SbD (Review by AppSec/InfraSec in standard CAB)
+           - Deep SAR (Mandatory Security Architecture Review & Pre-Prod Approval)
+        """
+        if isinstance(change_answers, str):
+            ans_path = Path(change_answers)
+            if ans_path.exists():
+                with open(ans_path, "r", encoding="utf-8") as f:
+                    change_answers = yaml.safe_load(f) or {}
+            else:
+                change_answers = {}
+        elif change_answers is None:
+            change_answers = {}
+
+        if not change_answers:
+            extracted = self.extract_tiering_answers_from_compliance_assessment(app_name_or_solution_id)
+            if extracted:
+                change_answers = extracted
+            else:
+                sbd_status = self.get_sbd_assessment_status(app_name_or_solution_id)
+                if sbd_status.get("exists") and not sbd_status.get("has_answers"):
+                    return {
+                        "app_name": app_name_or_solution_id,
+                        "has_answers": False,
+                        "status": "awaiting_submission",
+                        "message": (
+                            f"Assessment for '{app_name_or_solution_id}' is assigned in CISO Assistant "
+                            f"({sbd_status.get('compliance_assessment_name')}), but questions have not been answered yet. "
+                            f"Please complete the questionnaire in CISO Assistant at {utils.BASE_URL}."
+                        ),
+                        "direct_url": f"{utils.BASE_URL}/",
+                        "compliance_assessment_id": sbd_status.get("compliance_assessment_id"),
+                        "compliance_assessment_name": sbd_status.get("compliance_assessment_name"),
+                        "evaluation_nature": "change",
+                        "evaluation_label": "Change / Application",
+                        "requires_sbd_check": False,
+                        "sbd_decision": "Pending Submission in CISO Assistant",
+                        "review_level": "pending",
+                        "gate_action": "awaiting_user_answers",
+                        "fast_track_eligible": False,
+                        "triggered_knockouts": [],
+                        "criticality_tier": "standard",
+                        "governance_policy": get_tier_governance_policy("standard"),
+                        "recommended_implementation_groups": [],
+                        "tiering_summary": {},
+                    }
+
+        # Evaluate tiering & inherent risk
+        tiering_result = self.assess_appsec_solution_tier(
+            app_name_or_solution_id,
+            tiering_answers=change_answers,
+            auto_sign_off=auto_sign_off,
+        )
+
+        sbd_eval = evaluate_security_by_design_knockouts(change_answers)
+
+        final_tier = tiering_result.get("final_tier", "standard")
+        tier_ranks = {"critical": 4, "important": 3, "standard": 2, "low-impact": 1}
+        tier_rank = tier_ranks.get(final_tier, 2)
+
+        triggered_kos = sbd_eval.get("triggered_knockouts", [])
+        has_critical_ko = any(ko.get("id") in ("KO-2", "KO-4") or ko.get("severity") == "critical" for ko in triggered_kos)
+        has_standard_ko = any(ko.get("id") in ("KO-1", "KO-3", "KO-5", "KO-6") or ko.get("severity") == "important" for ko in triggered_kos)
+
+        eval_label = sbd_eval.get("evaluation_label", "Change / Application")
+        eval_nature = sbd_eval.get("evaluation_nature", "change")
+
+        if tier_rank == 4 or has_critical_ko or any(k == "regulated_function" for k in tiering_result.get("knock_outs", [])):
+            gate_decision = f"Deep Security Architecture Review (SAR) Required for {eval_label}"
+            review_level = "deep_sar"
+            gate_action = "mandatory_pre_prod_approval"
+            requires_sbd = True
+            fast_track = False
+        elif tier_rank == 3 or has_standard_ko or len(triggered_kos) > 0 or len(tiering_result.get("knock_outs", [])) > 0:
+            gate_decision = f"Standard Security by Design Review Required for {eval_label}"
+            review_level = "standard_sbd"
+            gate_action = "standard_cab_sec_review"
+            requires_sbd = True
+            fast_track = False
+        else:
+            if eval_nature == "change":
+                gate_decision = "Fast-Track Standard Change (Peer Review Only - No Blocking Gate)"
+            elif eval_nature == "new_app":
+                gate_decision = "Standard Baseline Onboarding (Automated Guardrails Check)"
+            else:
+                gate_decision = "Fast-Track Eligible (Peer Review Only)"
+            review_level = "fast_track"
+            gate_action = "peer_review_only" if eval_nature != "new_app" else "automated_guardrails_check"
+            requires_sbd = False
+            fast_track = True
+
+        return {
+            "app_name": app_name_or_solution_id,
+            "has_answers": True,
+            "status": "evaluated",
+            "evaluation_nature": eval_nature,
+            "evaluation_label": eval_label,
+            "requires_sbd_check": requires_sbd,
+            "sbd_decision": gate_decision,
+            "review_level": review_level,
+            "gate_action": gate_action,
+            "fast_track_eligible": fast_track,
+            "triggered_knockouts": triggered_kos,
+            "criticality_tier": final_tier,
+            "inherent_score": tiering_result.get("inherent_score"),
+            "governance_policy": tiering_result.get("governance_policy"),
+            "recommended_implementation_groups": tiering_result.get("recommended_implementation_groups", []),
+            "tiering_summary": tiering_result,
+        }
+
+    def get_sbd_assessment_status(self, app_name_or_ca_id: str) -> dict[str, Any]:
+        """Check whether an SbD compliance assessment exists in CISO Assistant and if answers have been submitted."""
+        target = str(app_name_or_ca_id).strip()
+        data = self._init_data()
+        compliance_dict = data.get("compliance_assessment_dict")
+        perimeter_dict = data.get("perimeter_dict")
+        if not compliance_dict:
+            return {"exists": False, "app_name": target}
+
+        all_cas = compliance_dict.get_compliance_assessments() if hasattr(compliance_dict, "get_compliance_assessments") else {}
+        ca_obj = None
+        if target in all_cas:
+            ca_obj = all_cas[target]
+
+        if not ca_obj and perimeter_dict:
+            perm_id = perimeter_dict.get_id_from_name(target)
+            for ca in all_cas.values():
+                if ca.get_id() == target or ca.get_name() == target or (perm_id and ca.get_perimeter_id() == perm_id):
+                    ca_obj = ca
+                    break
+
+        if not ca_obj:
+            target_lower = target.lower()
+            for ca in all_cas.values():
+                if target_lower in ca.get_name().lower():
+                    ca_obj = ca
+                    break
+
+        if not ca_obj:
+            return {"exists": False, "app_name": target}
+
+        req_assessments = getattr(compliance_dict, "requirement_assessments", None)
+        if req_assessments and hasattr(req_assessments, "reload") and callable(req_assessments.reload):
+            try:
+                req_assessments.reload()
+            except Exception:
+                pass
+
+        ra_ids = req_assessments.get_requirement_assessment_id_list_from_compliance_assessment_id(ca_obj.get_id()) if req_assessments else []
+        all_ras = req_assessments.get_requirement_assessments() or {} if req_assessments else {}
+
+        answered_count = 0
+        total_count = len(ra_ids)
+        for rid in ra_ids:
+            ra = all_ras.get(rid)
+            if not ra:
+                continue
+            r_answers = ra.get_answers() if hasattr(ra, "get_answers") else (ra.get("answers") if isinstance(ra, dict) else {})
+            if isinstance(r_answers, dict) and any(v is not None for v in r_answers.values()):
+                answered_count += 1
+
+        return {
+            "exists": True,
+            "app_name": target,
+            "compliance_assessment_id": ca_obj.get_id(),
+            "compliance_assessment_name": ca_obj.get_name(),
+            "framework_id": ca_obj.get_framework_id() if hasattr(ca_obj, "get_framework_id") else None,
+            "status": ca_obj.get_status() if hasattr(ca_obj, "get_status") else "in_progress",
+            "total_requirements": total_count,
+            "answered_requirements": answered_count,
+            "has_answers": answered_count > 0,
+            "direct_url": f"{utils.BASE_URL}/",
+        }
+
+    def create_sbd_assessment(
+        self,
+        app_name: str,
+        user_email: str,
+        first_name: str = "",
+        last_name: str = "",
+        domain_name: str | None = None,
+        implementation_groups: list[str] | None = None,
+        framework_ref_or_name: str = "appsec",
+    ) -> dict[str, Any]:
+        """Create and assign a Security by Design (SbD) assessment in CISO Assistant.
+
+        Leaves questions completely UNANSWERED (0% completion) so the assigned business
+        or engineering respondent completes the questionnaire inside CISO Assistant.
+        Defaults to the unified 'appsec' framework (incorporating both SbD and AppSec).
+        """
+        res = self.create_application_for_audit(
+            app_name=app_name,
+            user_email=user_email,
+            first_name=first_name,
+            last_name=last_name,
+            is_third_party=True,
+            framework_ref_or_name=framework_ref_or_name,
+            domain_name=domain_name,
+            implementation_groups=implementation_groups,
+        )
+        res["message"] = (
+            f"Security by Design assessment for '{app_name}' successfully provisioned in CISO Assistant "
+            f"and assigned to '{user_email}'. Respondent should complete the form at {utils.BASE_URL}/"
+        )
+        return res
 
     def generate_controls_and_risks_for_application(
         self,

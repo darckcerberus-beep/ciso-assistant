@@ -1,0 +1,1442 @@
+# ============================================================================
+# Security by Design Framework (SbD) - Business & Infrastructure Assurance
+# ============================================================================
+# This YAML file defines a comprehensive Security by Design (SbD) evaluation
+# framework designed for BOTH Business Teams (Product Owners, Business Sponsors)
+# and Infrastructure / Cloud Engineering Teams.
+#
+# Key Features:
+# - Stage 1: Business Intake & Gating (Accessible to non-technical business users)
+#     * Project Scope, Ownership, Business Purpose, and Delivery Model (SaaS vs Cloud/Infra)
+#     * Business Data Classification (Public, Internal, Confidential, Secret) & GDPR/PII
+#     * Operational Criticality, Downtime Tolerance (RTO), and Single Point of Failure
+#     * 6 Deterministic Knock-Out Criteria (Fast-Track vs Security Review)
+#     * Technical Delegation mechanism (Business owners delegate infra checks)
+# - Stage 2: Dual-Track Technical Reviews:
+#     * Business / SaaS Track (business_sbd): Third-party vendor SOC 2/ISO, DPA, data residency, SSO/MFA
+#     * Infrastructure & Cloud Track (infra_sbd): Perimeter WAF, IAM, KMS storage, secrets, containers, SIEM, DR
+#     * Deep Architecture Review Track (deep_sar): High-criticality threat modeling & SecOps sign-off
+# - Relational Risk Objects (7 Threats, 9 Vulnerabilities, 12 Controls, 7 Scenarios)
+# ============================================================================
+
+urn: urn:intuitem:risk:library:infra-sbd
+locale: en
+ref_id: "infra-sbd"
+name: "Security by Design Framework (SbD) — Business & Infrastructure"
+description: >
+  Unified Security by Design (SbD) framework for both business project sponsors and
+  infrastructure teams. Provides an accessible business intake and triage gating filter,
+  automated fast-tracking for low-risk changes, a dedicated SaaS/vendor due diligence track
+  for business teams, and deep technical cloud security tracks for infrastructure engineers.
+copyright: DCME Corp
+version: 4
+publication_date: 2026-11-23
+provider: DCME Corp
+packager: DCME Corp
+
+objects:
+
+  # ========================================================================
+  # THREATS - Enterprise Threat Landscape (Business & Infrastructure)
+  # ========================================================================
+  threats:
+    - urn: urn:intuitem:risk:threat:infra-sbd:threat_public_exposure
+      ref_id: threat_public_exposure
+      name: Unauthorized Internet Exposure & Perimeter Infiltration
+      description: >
+        An external threat actor discovers and exploits exposed cloud endpoints, open ingress ports,
+        or unprotected load balancers lacking WAF and DDoS mitigation to gain an initial foothold.
+    - urn: urn:intuitem:risk:threat:infra-sbd:threat_iam_escalation
+      ref_id: threat_iam_escalation
+      name: Cloud IAM Privilege Escalation & Lateral Movement
+      description: >
+        An attacker exploits overly permissive IAM roles, long-lived access keys, or unsegmented network
+        routes to escalate privileges and move laterally across cloud accounts and environments.
+    - urn: urn:intuitem:risk:threat:infra-sbd:threat_data_breach
+      ref_id: threat_data_breach
+      name: Cloud Storage Public Exposure & Unencrypted Data Exfiltration
+      description: >
+        Sensitive or confidential business data is accessed or exfiltrated due to misconfigured storage
+        public access policies, missing KMS encryption, or improper test data replication.
+    - urn: urn:intuitem:risk:threat:infra-sbd:threat_secret_leak
+      ref_id: threat_secret_leak
+      name: Hardcoded Secrets Compromise & API Key Abuse
+      description: >
+        Database credentials, API tokens, or encryption keys committed to code repositories, scripts,
+        or exposed in plaintext runtime variables are harvested and abused by malicious actors.
+    - urn: urn:intuitem:risk:threat:infra-sbd:threat_ransomware_outage
+      ref_id: threat_ransomware_outage
+      name: Ransomware Destruction & Unrecoverable Outage
+      description: >
+        A catastrophic operational failure, malicious insider, or ransomware actor compromises cloud
+        infrastructure and deletes mutable backup snapshots, causing prolonged business interruption.
+    - urn: urn:intuitem:risk:threat:infra-sbd:threat_vendor_breach
+      ref_id: threat_vendor_breach
+      name: Third-Party SaaS Vendor Breach & Data Leakage
+      description: >
+        A third-party software vendor or cloud provider suffers a security breach or configuration error,
+        exposing company tenant data or customer records entrusted to their platform.
+    - urn: urn:intuitem:risk:threat:infra-sbd:threat_gdpr_noncompliance
+      ref_id: threat_gdpr_noncompliance
+      name: Privacy Non-Compliance & Unlawful International Data Transfers
+      description: >
+        Personal data (GDPR/PII) is transferred or stored without an adequate Data Protection Agreement (DPA),
+        cross-border transfer safeguards, or necessary regulatory privacy measures.
+
+  # ========================================================================
+  # VULNERABILITIES - Weaknesses (Governance & Technical)
+  # ========================================================================
+  vulnerabilities:
+    - urn: urn:intuitem:risk:vulnerability:infra-sbd:vuln_open_ingress
+      ref_id: vuln_open_ingress
+      name: Unrestricted Ingress & Missing Perimeter WAF
+      description: Ingress security groups open to 0.0.0.0/0 without WAF inspection or IP allowlisting.
+    - urn: urn:intuitem:risk:vulnerability:infra-sbd:vuln_static_keys
+      ref_id: vuln_static_keys
+      name: Long-Lived Static IAM Credentials & Overly Permissive Policies
+      description: Workloads using static API access keys or IAM policies with wildcard actions and resources.
+    - urn: urn:intuitem:risk:vulnerability:infra-sbd:vuln_unencrypted_storage
+      ref_id: vuln_unencrypted_storage
+      name: Unencrypted Storage Volumes & Missing Public Access Blocks
+      description: Cloud storage buckets or block volumes provisioned without KMS encryption or public access blocks.
+    - urn: urn:intuitem:risk:vulnerability:infra-sbd:vuln_git_secrets
+      ref_id: vuln_git_secrets
+      name: Hardcoded Secrets in IaC or Code Repositories
+      description: Secrets, API tokens, or private keys committed to Git repositories or unencrypted environment files.
+    - urn: urn:intuitem:risk:vulnerability:infra-sbd:vuln_unhardened_compute
+      ref_id: vuln_unhardened_compute
+      name: Privileged Containers & Unhardened Operating Systems
+      description: Workloads running as root, with mutable root filesystems or unpatched base OS images.
+    - urn: urn:intuitem:risk:vulnerability:infra-sbd:vuln_missing_audit
+      ref_id: vuln_missing_audit
+      name: Missing Control-Plane Telemetry & Unforwarded Audit Logs
+      description: CloudTrail, VPC Flow Logs, or K8s audit logs not centralized to SIEM with tamper-resistance.
+    - urn: urn:intuitem:risk:vulnerability:infra-sbd:vuln_unlocked_backups
+      ref_id: vuln_unlocked_backups
+      name: Mutable Backups & Lack of Tested Disaster Recovery
+      description: Single-region backups lacking immutability locks (WORM) and untested recovery runbooks.
+    - urn: urn:intuitem:risk:vulnerability:infra-sbd:vuln_uncertified_vendor
+      ref_id: vuln_uncertified_vendor
+      name: Unvetted Third-Party Vendor & Missing Security Certifications
+      description: Onboarding a software vendor without independent audit assurance (SOC 2 Type II or ISO/IEC 27001).
+    - urn: urn:intuitem:risk:vulnerability:infra-sbd:vuln_shadow_saas_auth
+      ref_id: vuln_shadow_saas_auth
+      name: Non-Federated SaaS Accounts & Missing Corporate MFA
+      description: SaaS platforms using unmanaged local passwords rather than centralized enterprise SSO with MFA.
+
+  # ========================================================================
+  # REFERENCE CONTROLS - Security Safeguards & Standards
+  # ========================================================================
+  reference_controls:
+    - urn: urn:intuitem:risk:control:infra-sbd:ctrl_perimeter_waf
+      ref_id: ctrl_perimeter_waf
+      name: Edge WAF, Anti-DDoS & Scoped Ingress Control
+      description: >
+        Enforce strict ingress security groups, front all public web endpoints with a Web Application
+        Firewall (WAF) and DDoS mitigation service, and prohibit direct unrestricted exposure.
+      category: technical
+    - urn: urn:intuitem:risk:control:infra-sbd:ctrl_workload_iam
+      ref_id: ctrl_workload_iam
+      name: Workload Identity Federation & Least Privilege
+      description: >
+        Use short-lived IAM roles / Managed Identities (IRSA, instance profiles) rather than static
+        cloud credentials, and scope IAM permissions strictly to required actions without wildcards.
+      category: technical
+    - urn: urn:intuitem:risk:control:infra-sbd:ctrl_admin_sso_mfa
+      ref_id: ctrl_admin_sso_mfa
+      name: Zero-Trust Administrative Access & Phishing-Resistant MFA
+      description: >
+        Enforce administrative infrastructure access via centralized SSO with MFA and audited session
+        proxies (e.g. AWS SSM Session Manager, Azure Bastion, Teleport). Prohibit public SSH/RDP.
+      category: technical
+    - urn: urn:intuitem:risk:control:infra-sbd:ctrl_data_kms_encryption
+      ref_id: ctrl_data_kms_encryption
+      name: KMS Storage Encryption & Public Access Prevention
+      description: >
+        Mandate KMS encryption at rest for all storage volumes, databases, and object stores, and enforce
+        account-level and resource-level public access blocks.
+      category: technical
+    - urn: urn:intuitem:risk:control:infra-sbd:ctrl_secrets_vault
+      ref_id: ctrl_secrets_vault
+      name: Centralized Secrets Vaulting & Runtime Injection
+      description: >
+        Store all credentials and certificates in dedicated Secrets Managers (Vault, AWS Secrets Manager,
+        Key Vault) with dynamic runtime injection and automated rotation.
+      category: technical
+    - urn: urn:intuitem:risk:control:infra-sbd:ctrl_iac_scanning
+      ref_id: ctrl_iac_scanning
+      name: Automated IaC Linting & Policy as Code Gates
+      description: >
+        Enforce 100% Infrastructure-as-Code provisioning with mandatory CI/CD static security analysis
+        (Checkov, Trivy, tfsec) blocking critical misconfigurations before merge.
+      category: technical
+    - urn: urn:intuitem:risk:control:infra-sbd:ctrl_container_hardening
+      ref_id: ctrl_container_hardening
+      name: Container Hardening & CIS Benchmark Alignment
+      description: >
+        Run containers as non-root, enforce read-only root filesystems, drop unnecessary Linux capabilities,
+        and build from hardened, regularly patched CIS-compliant base images.
+      category: technical
+    - urn: urn:intuitem:risk:control:infra-sbd:ctrl_audit_siem
+      ref_id: ctrl_audit_siem
+      name: Centralized Control-Plane Logging & Immutable SIEM Forwarding
+      description: >
+        Capture all cloud management activity, network flow logs, and workload audit logs, forwarding them
+        to a centralized SIEM with immutable Write-Once-Read-Many (WORM) storage.
+      category: technical
+    - urn: urn:intuitem:risk:control:infra-sbd:ctrl_resilience_dr
+      ref_id: ctrl_resilience_dr
+      name: Multi-AZ Resilience & Immutable Ransomware-Proof Backups
+      description: >
+        Design resilient multi-AZ/multi-region architectures, maintain immutable backups with object lock,
+        and validate automated restore runbooks at regular intervals.
+      category: procedure
+    - urn: urn:intuitem:risk:control:infra-sbd:ctrl_vendor_agent_governance
+      ref_id: ctrl_vendor_agent_governance
+      name: Third-Party Host Agent & Supply Chain Governance
+      description: >
+        Verify cryptographic signatures and supply chain provenance for third-party host agents, daemons,
+        and vendor SaaS API integrations before deploying to infrastructure.
+      category: process
+    - urn: urn:intuitem:risk:control:infra-sbd:ctrl_vendor_due_diligence
+      ref_id: ctrl_vendor_due_diligence
+      name: Vendor Security Exhibit, SOC 2 / ISO Assurance & DPA
+      description: >
+        Mandate independent third-party audit reports (SOC 2 Type II or ISO/IEC 27001), signed Data
+        Protection Agreements (DPA), and verified EU data residency before contracting SaaS providers.
+      category: process
+    - urn: urn:intuitem:risk:control:infra-sbd:ctrl_saas_sso_mfa
+      ref_id: ctrl_saas_sso_mfa
+      name: Enterprise SSO Federation & MFA for Business SaaS
+      description: >
+        Mandate corporate SAML/OIDC Single Sign-On (SSO) federation and enforce Multi-Factor Authentication
+        (MFA) for all employee access to business SaaS solutions.
+      category: technical
+
+  # ========================================================================
+  # RISK SCENARIOS - Relational Risk Modeling
+  # ========================================================================
+  risk_scenarios:
+    - urn: urn:intuitem:risk:risk_scenario:infra-sbd:scenario_public_takeover
+      ref_id: scenario_public_takeover
+      name: Exploitation of Unprotected Public Cloud Endpoints
+      description: >
+        An attacker identifies an unhardened public endpoint or open security group, bypassing network
+        defenses and compromising the underlying workload.
+      threats:
+        - "urn:intuitem:risk:threat:infra-sbd:threat_public_exposure"
+      vulnerabilities:
+        - "urn:intuitem:risk:vulnerability:infra-sbd:vuln_open_ingress"
+      reference_controls:
+        - "urn:intuitem:risk:control:infra-sbd:ctrl_perimeter_waf"
+    - urn: urn:intuitem:risk:risk_scenario:infra-sbd:scenario_cloud_escalation
+      ref_id: scenario_cloud_escalation
+      name: Cloud Account Compromise via Overly Permissive IAM Roles
+      description: >
+        A compromised workload or leaked IAM credential allows an adversary to assume high-privilege
+        roles and pivot laterally across production accounts.
+      threats:
+        - "urn:intuitem:risk:threat:infra-sbd:threat_iam_escalation"
+      vulnerabilities:
+        - "urn:intuitem:risk:vulnerability:infra-sbd:vuln_static_keys"
+      reference_controls:
+        - "urn:intuitem:risk:control:infra-sbd:ctrl_workload_iam"
+        - "urn:intuitem:risk:control:infra-sbd:ctrl_admin_sso_mfa"
+    - urn: urn:intuitem:risk:risk_scenario:infra-sbd:scenario_sensitive_leak
+      ref_id: scenario_sensitive_leak
+      name: Public Disclosure of Confidential Data via Misconfigured Storage
+      description: >
+        Inadvertent public bucket access or missing at-rest encryption results in unauthorized access
+        or public harvesting of sensitive customer or business records.
+      threats:
+        - "urn:intuitem:risk:threat:infra-sbd:threat_data_breach"
+      vulnerabilities:
+        - "urn:intuitem:risk:vulnerability:infra-sbd:vuln_unencrypted_storage"
+      reference_controls:
+        - "urn:intuitem:risk:control:infra-sbd:ctrl_data_kms_encryption"
+    - urn: urn:intuitem:risk:risk_scenario:infra-sbd:scenario_secret_compromise
+      ref_id: scenario_secret_compromise
+      name: Production Credential Harvested from Code Repositories
+      description: >
+        Production database passwords or administrative tokens committed to Git or IaC templates
+        are exposed and leveraged to access core databases.
+      threats:
+        - "urn:intuitem:risk:threat:infra-sbd:threat_secret_leak"
+      vulnerabilities:
+        - "urn:intuitem:risk:vulnerability:infra-sbd:vuln_git_secrets"
+      reference_controls:
+        - "urn:intuitem:risk:control:infra-sbd:ctrl_secrets_vault"
+        - "urn:intuitem:risk:control:infra-sbd:ctrl_iac_scanning"
+    - urn: urn:intuitem:risk:risk_scenario:infra-sbd:scenario_ransomware_wiping
+      ref_id: scenario_ransomware_wiping
+      name: Infrastructure Ransomware Encryption & Backup Snapshot Deletion
+      description: >
+        Ransomware compromises administrator credentials, encrypts production resources, and purges
+        unprotected backup snapshots, preventing disaster recovery.
+      threats:
+        - "urn:intuitem:risk:threat:infra-sbd:threat_ransomware_outage"
+      vulnerabilities:
+        - "urn:intuitem:risk:vulnerability:infra-sbd:vuln_unlocked_backups"
+      reference_controls:
+        - "urn:intuitem:risk:control:infra-sbd:ctrl_resilience_dr"
+        - "urn:intuitem:risk:control:infra-sbd:ctrl_admin_sso_mfa"
+    - urn: urn:intuitem:risk:risk_scenario:infra-sbd:scenario_vendor_data_breach
+      ref_id: scenario_vendor_data_breach
+      name: Third-Party SaaS Provider Compromise Exposing Enterprise Data
+      description: >
+        A software vendor or SaaS platform processing confidential company data suffers a security incident,
+        resulting in unauthorized disclosure of corporate assets or customer PII.
+      threats:
+        - "urn:intuitem:risk:threat:infra-sbd:threat_vendor_breach"
+        - "urn:intuitem:risk:threat:infra-sbd:threat_gdpr_noncompliance"
+      vulnerabilities:
+        - "urn:intuitem:risk:vulnerability:infra-sbd:vuln_uncertified_vendor"
+      reference_controls:
+        - "urn:intuitem:risk:control:infra-sbd:ctrl_vendor_due_diligence"
+    - urn: urn:intuitem:risk:risk_scenario:infra-sbd:scenario_shadow_saas_compromise
+      ref_id: scenario_shadow_saas_compromise
+      name: Account Hijacking on Third-Party SaaS via Weak Unmanaged Passwords
+      description: >
+        An employee's account on a business SaaS tool is compromised via credential stuffing due to lack
+        of centralized enterprise SSO federation and missing mandatory MFA.
+      threats:
+        - "urn:intuitem:risk:threat:infra-sbd:threat_vendor_breach"
+      vulnerabilities:
+        - "urn:intuitem:risk:vulnerability:infra-sbd:vuln_shadow_saas_auth"
+      reference_controls:
+        - "urn:intuitem:risk:control:infra-sbd:ctrl_saas_sso_mfa"
+
+  # ========================================================================
+  # FRAMEWORK DEFINITION
+  # ========================================================================
+  framework:
+    urn: urn:intuitem:risk:framework:infra-sbd
+    ref_id: "infra-sbd"
+    name: "Security by Design Framework (SbD) — Business & Infrastructure"
+    description: "Enterprise Security by Design assessment framework tailored for both Business Project Sponsors and Infrastructure / Platform Teams."
+
+    # Implementation groups define assessment tracks
+    implementation_groups_definition:
+      - urn: urn:intuitem:risk:ig:infra-sbd:info
+        name: "Stage 1: Intake Gating & Business Profiling"
+        ref_id: "info"
+        description: "General project profiling, data sensitivity, and knock-out criteria. Accessible to all business and technical users."
+        default_selected: true
+      - urn: urn:intuitem:risk:ig:infra-sbd:fast_track
+        name: "Fast-Track Standard Changes"
+        ref_id: "fast_track"
+        description: "Pre-approved operational changes subject to automated guardrails without manual review."
+      - urn: urn:intuitem:risk:ig:infra-sbd:business_sbd
+        name: "Stage 2: Business & SaaS Vendor Security Track"
+        ref_id: "business_sbd"
+        description: "Due diligence requirements for business software, third-party SaaS tools, vendor compliance, and data residency."
+      - urn: urn:intuitem:risk:ig:infra-sbd:infra_sbd
+        name: "Stage 2: Infrastructure & Cloud Platform Track"
+        ref_id: "infra_sbd"
+        description: "Technical infrastructure, cloud hosting, network, IAM, and container security requirements."
+        delegate_answer: "urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q4_delegate"
+      - urn: urn:intuitem:risk:ig:infra-sbd:deep_sar
+        name: "Stage 2: Deep Security Architecture Review (SAR)"
+        ref_id: "deep_sar"
+        description: "Comprehensive architectural review, formal threat modeling, and dedicated SecOps sign-off for critical workloads."
+
+    # Implementation group dependencies driven by intake answers
+    implementation_groups_dependencies:
+      - target_implementation_group: "business_sbd"
+        name: "Trigger Business SaaS Track from SaaS Delivery Model"
+        question_urn: "urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q3"
+        question_ref_id: "business_project_scope:q3"
+        choice_urn: "urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q3:c1"
+        choice_ref_id: "c1"
+        choice_value: "Third-Party SaaS Platform (Hosted and operated by vendor, e.g. Salesforce, Workday, Notion)"
+        prompt: "Solution is a third-party SaaS tool. Trigger Business & SaaS Vendor Security Track?"
+
+      - target_implementation_group: "infra_sbd"
+        name: "Trigger Infra Track from Cloud Infrastructure Change"
+        question_urn: "urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q3"
+        question_ref_id: "business_project_scope:q3"
+        choice_urn: "urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q3:c4"
+        choice_ref_id: "c4"
+        choice_value: "Cloud Infrastructure / Platform Change (VMs, Kubernetes, network, databases)"
+        prompt: "Solution involves cloud infrastructure. Trigger Infrastructure & Cloud Platform Track?"
+
+      - target_implementation_group: "infra_sbd"
+        name: "Trigger Infra Track from Public Exposure Knock-Out"
+        question_urn: "urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q1"
+        question_ref_id: "knockout_assessment:q1"
+        choice_urn: "urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q1:c1"
+        choice_ref_id: "c1"
+        choice_value: "Yes"
+        prompt: "Change introduces public Internet exposure. Trigger Infrastructure & Cloud Platform Track?"
+
+      - target_implementation_group: "deep_sar"
+        name: "Trigger Deep SAR from Core IAM Knock-Out"
+        question_urn: "urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q2"
+        question_ref_id: "knockout_assessment:q2"
+        choice_urn: "urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q2:c1"
+        choice_ref_id: "c1"
+        choice_value: "Yes"
+        prompt: "Change modifies core administrative IAM or cross-account trusts. Trigger Deep Security Architecture Review?"
+
+      - target_implementation_group: "infra_sbd"
+        name: "Trigger Infra Track from Network Boundary Knock-Out"
+        question_urn: "urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q3"
+        question_ref_id: "knockout_assessment:q3"
+        choice_urn: "urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q3:c1"
+        choice_ref_id: "c1"
+        choice_value: "Yes"
+        prompt: "Change alters network perimeters, peerings, or transit routing. Trigger Infrastructure & Cloud Platform Track?"
+
+      - target_implementation_group: "deep_sar"
+        name: "Trigger Deep SAR from Sensitive Data Knock-Out"
+        question_urn: "urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q4"
+        question_ref_id: "knockout_assessment:q4"
+        choice_urn: "urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q4:c1"
+        choice_ref_id: "c1"
+        choice_value: "Yes"
+        prompt: "Change stores or processes regulated/confidential data or root secrets. Trigger Deep Security Architecture Review?"
+
+      - target_implementation_group: "business_sbd"
+        name: "Trigger Business Track from Third-Party Integration Knock-Out"
+        question_urn: "urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q5"
+        question_ref_id: "knockout_assessment:q5"
+        choice_urn: "urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q5:c1"
+        choice_ref_id: "c1"
+        choice_value: "Yes"
+        prompt: "Change deploys third-party SaaS or vendor integrations. Trigger Business & SaaS Vendor Security Track?"
+
+      - target_implementation_group: "deep_sar"
+        name: "Trigger Deep SAR from Single Point of Failure Knock-Out"
+        question_urn: "urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q6"
+        question_ref_id: "knockout_assessment:q6"
+        choice_urn: "urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q6:c1"
+        choice_ref_id: "c1"
+        choice_value: "Yes"
+        prompt: "Change introduces a business-critical Single Point of Failure. Trigger Deep Security Architecture Review?"
+
+    # ====================================================================
+    # REQUIREMENT NODES
+    # ====================================================================
+    requirement_nodes:
+
+      # === INTRODUCTORY SPLASH SCREEN ===
+      - urn: urn:intuitem:risk:req_node:infra-sbd:instructions_splash
+        assessable: false
+        display_mode: splash
+        depth: 1
+        ref_id: instructions_splash
+        name: "Security by Design (SbD) - Instructions & Guidance"
+        description: |
+          ### Welcome to the Security by Design (SbD) Assessment!
+
+          This assessment supports **both Business Teams** (introducing new tools, SaaS subscriptions, or digital initiatives) and **Technical Infrastructure Teams** (deploying cloud, platform, or network changes).
+
+          #### How to complete this assessment:
+          1. **Stage 1 (Business & Project Intake):** Complete the initial profiling questions in Chapter 1. Business teams do not need deep technical knowledge to answer this section.
+          2. **Triage & Routing:** Based on your delivery model and data sensitivity, CISO Assistant automatically assigns the relevant review track:
+             - **Fast-Track Changes:** Routine operational changes with no knock-out risks are pre-approved immediately.
+             - **Business / SaaS Track:** For commercial SaaS tools, covering vendor due diligence, GDPR DPA, and corporate SSO.
+             - **Infrastructure & Cloud Track:** For self-hosted cloud, Kubernetes, and network changes (business owners can easily delegate this to technical leads).
+             - **Deep Architecture Review:** For mission-critical workloads processing confidential/regulated data.
+          3. **Save and Delegate:** You can complete your section and designate technical leads for the infrastructure controls.
+        annotation: Introductory guidance for business project sponsors and infrastructure engineers.
+        implementation_groups: ["info"]
+
+      # === CHAPTER 1: BUSINESS CONTEXT & INITIATIVE PROFILING ===
+      - urn: urn:intuitem:risk:req_node:infra-sbd:business_context_profiling
+        assessable: false
+        depth: 1
+        ref_id: business_context_profiling
+        name: "Chapter 1: Business Context, Project Scope & Data Profiling"
+        description: "Captures business sponsorship, project goals, delivery model, data classification, and operational impact."
+        implementation_groups: ["info"]
+
+      # Node 1.1: Business Project Scope & Delivery Model
+      - urn: urn:intuitem:risk:req_node:infra-sbd:business_project_scope
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:infra-sbd:business_context_profiling
+        ref_id: business_project_scope
+        name: "Business Initiative Scope & Delivery Model"
+        description: "Identifies the business domain, solution delivery track, and engineering delegation."
+        implementation_groups: ["info"]
+        questions:
+          urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q0:
+            type: unique_choice
+            text: "Are you evaluating a change/modification, a new application, or an existing production solution?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q0:c1
+                value: "New Application or Platform (Net-new deployment or initial onboarding)"
+                color: "#17a2b8"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q0:c2
+                value: "Change or Infrastructure Modification (Feature release, infra re-architecture, migration)"
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q0:c3
+                value: "Existing Production Application (Periodic re-assessment or posture check)"
+                color: "#6c757d"
+          urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q1:
+            type: unique_choice
+            text: "Which business department or functional domain sponsors this initiative?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q1:c1
+                value: "Commercial, Marketing & E-Commerce"
+                color: "#17a2b8"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q1:c2
+                value: "Finance, Legal, HR & Corporate Operations"
+                color: "#17a2b8"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q1:c3
+                value: "Supply Chain, Logistics & Manufacturing"
+                color: "#17a2b8"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q1:c4
+                value: "IT, Platform Engineering & Core Infrastructure"
+                color: "#17a2b8"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q1:c5
+                value: "Customer Support & Client Services"
+                color: "#17a2b8"
+          urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q2:
+            type: unique_choice
+            text: "Who are the primary intended users of this application or service?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q2:c1
+                value: "Internal employees and staff only"
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q2:c2
+                value: "External business partners, vendors, or suppliers (B2B)"
+                color: "#ffc107"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q2:c3
+                value: "External retail consumers and general public (B2C)"
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q3:
+            type: unique_choice
+            text: "What is the delivery and hosting model for this solution?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q3:c1
+                value: "Third-Party SaaS Platform (Hosted and operated by vendor, e.g. Salesforce, Workday, Notion)"
+                select_implementation_groups: ["business_sbd"]
+                color: "#17a2b8"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q3:c2
+                value: "Commercial Off-The-Shelf (COTS) software deployed on internal cloud"
+                select_implementation_groups: ["infra_sbd"]
+                color: "#ffc107"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q3:c3
+                value: "Custom software developed in-house by engineering teams"
+                select_implementation_groups: ["infra_sbd"]
+                color: "#ffc107"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q3:c4
+                value: "Cloud Infrastructure / Platform Change (VMs, Kubernetes, network, databases)"
+                select_implementation_groups: ["infra_sbd"]
+                color: "#28a745"
+          urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q4:
+            type: unique_choice
+            text: "Can you answer technical cloud and infrastructure questions, or do you need to delegate?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q4:c1
+                value: "I am a technical engineer and can answer technical infrastructure questions myself"
+                select_implementation_groups: ["infra_sbd"]
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q4:c2
+                value: "I am a business owner and need to delegate technical questions to an infrastructure lead"
+                color: "#17a2b8"
+          urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q4_delegate:
+            type: text
+            text: "Technical Delegation: Please specify the designated technical / infrastructure lead (Name, Email, or Team):"
+            required: false
+            depends_on:
+              question: urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q4
+              answers:
+                - urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q4:c2
+              condition: any
+
+      # Node 1.2: Data Classification & Privacy Profiling
+      - urn: urn:intuitem:risk:req_node:infra-sbd:data_classification_profiling
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:infra-sbd:business_context_profiling
+        ref_id: data_classification_profiling
+        name: "Data Classification & Privacy Impact Profiling"
+        description: "Evaluates business data classification and GDPR / privacy requirements."
+        implementation_groups: ["info"]
+        questions:
+          urn:intuitem:risk:req_node:infra-sbd:data_classification_profiling:q1:
+            type: unique_choice
+            text: "What is the highest data classification level processed or stored by this service?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:data_classification_profiling:q1:c1
+                value: "Public (Non-sensitive, published marketing materials, open public documentation)"
+                color: "#17a2b8"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:data_classification_profiling:q1:c2
+                value: "Internal (General internal business documents, standard operational communications)"
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:data_classification_profiling:q1:c3
+                value: "Confidential (Customer personal data / PII, commercial contracts, financial records)"
+                color: "#ffc107"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:data_classification_profiling:q1:c4
+                value: "Secret / Restricted (Payment cardholder data, root master passwords, proprietary algorithms)"
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:infra-sbd:data_classification_profiling:q2:
+            type: unique_choice
+            text: "Does this solution process personal data (PII) subject to GDPR or privacy regulations?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:data_classification_profiling:q2:c1
+                value: "Yes - Large scale customer or employee personal data (> 10,000 individuals)"
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:data_classification_profiling:q2:c2
+                value: "Yes - Limited volume personal data (standard business contact info, staff accounts)"
+                color: "#ffc107"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:data_classification_profiling:q2:c3
+                value: "No - Zero personal data processed or stored"
+                color: "#28a745"
+
+      # Node 1.3: Operational Criticality & Downtime Tolerance
+      - urn: urn:intuitem:risk:req_node:infra-sbd:operational_criticality_intake
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:infra-sbd:business_context_profiling
+        ref_id: operational_criticality_intake
+        name: "Operational Criticality & Downtime Tolerance"
+        description: "Assesses the business impact of service disruption to calibrate availability requirements."
+        implementation_groups: ["info"]
+        questions:
+          urn:intuitem:risk:req_node:infra-sbd:operational_criticality_intake:q1:
+            type: unique_choice
+            text: "What is the maximum tolerable downtime if this system suffers an unexpected outage?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:operational_criticality_intake:q1:c1
+                value: "Mission-Critical: Outage halts core business operations immediately (Tolerance < 2 hours)"
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:operational_criticality_intake:q1:c2
+                value: "Important: Substantial operational friction but business can function for up to 8 hours"
+                color: "#ffc107"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:operational_criticality_intake:q1:c3
+                value: "Standard: Disruption is inconvenient but tolerable for 24 to 48 hours"
+                color: "#28a745"
+
+      # === CHAPTER 2: INTAKE GATING & TRIAGE FILTER ===
+      - urn: urn:intuitem:risk:req_node:infra-sbd:intake_gating
+        assessable: false
+        depth: 1
+        ref_id: intake_gating
+        name: "Chapter 2: Intake Gating & Deterministic Knock-Out Criteria"
+        description: "Determines whether an SbD review is required or if the change is fast-tracked."
+        implementation_groups: ["info"]
+
+      # Node 2.1: Deterministic Knock-Out Criteria
+      - urn: urn:intuitem:risk:req_node:infra-sbd:knockout_assessment
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:infra-sbd:intake_gating
+        ref_id: knockout_assessment
+        name: "Deterministic Knock-Out Criteria (Triage Filter)"
+        description: "Evaluates the 6 mandatory knock-out criteria determining review requirements."
+        annotation: Deterministic gating questions triggering mandatory security reviews when answered affirmatively.
+        implementation_groups: ["info"]
+        questions:
+          urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q1:
+            type: unique_choice
+            text: "KO-1: Will any endpoint, IP, load balancer, API, or bucket be directly reachable from the public Internet?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q1:c1
+                value: "Yes"
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q1:c2
+                value: "No"
+                color: "#28a745"
+          urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q2:
+            type: unique_choice
+            text: "KO-2: Does this change modify root/administrative IAM policies, cross-account trusts, or SSO federation?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q2:c1
+                value: "Yes"
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q2:c2
+                value: "No"
+                color: "#28a745"
+          urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q3:
+            type: unique_choice
+            text: "KO-3: Does this introduce new VPC peerings, Transit Gateways, VPNs, or open broad ingress (0.0.0.0/0)?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q3:c1
+                value: "Yes"
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q3:c2
+                value: "No"
+                color: "#28a745"
+          urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q4:
+            type: unique_choice
+            text: "KO-4: Will this resource store, transmit, or process Confidential data, PII/GDPR, Payment data (PCI), or root secrets?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q4:c1
+                value: "Yes"
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q4:c2
+                value: "No"
+                color: "#28a745"
+          urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q5:
+            type: unique_choice
+            text: "KO-5: Does this involve deploying a third-party host agent/daemon or onboarding an external SaaS platform?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q5:c1
+                value: "Yes"
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q5:c2
+                value: "No"
+                color: "#28a745"
+          urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q6:
+            type: unique_choice
+            text: "KO-6: Is this infrastructure a Single Point of Failure (SPOF) for core business operations with an RTO < 4 hours?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q6:c1
+                value: "Yes"
+                color: "#dc3545"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:knockout_assessment:q6:c2
+                value: "No"
+                color: "#28a745"
+
+      # === CHAPTER 3: BUSINESS & SAAS VENDOR SECURITY TRACK ===
+      - urn: urn:intuitem:risk:req_node:infra-sbd:business_vendor_saas_governance
+        assessable: false
+        depth: 1
+        ref_id: business_vendor_saas_governance
+        name: "Chapter 3: Business & SaaS Vendor Security Track"
+        description: "Requirements for third-party commercial software, SaaS applications, vendor certifications, and data residency."
+        implementation_groups: ["business_sbd", "deep_sar"]
+
+      # Node 3.1: Vendor Contract & Compliance
+      - urn: urn:intuitem:risk:req_node:infra-sbd:vendor_contract_compliance
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:infra-sbd:business_vendor_saas_governance
+        ref_id: vendor_contract_compliance
+        name: "Vendor Certifications & Data Protection Exhibit (DPA)"
+        description: "Verifies third-party security certifications and GDPR contract commitments."
+        implementation_groups: ["business_sbd", "deep_sar"]
+        reference_controls:
+          - "urn:intuitem:risk:control:infra-sbd:ctrl_vendor_due_diligence"
+        vulnerabilities:
+          - "urn:intuitem:risk:vulnerability:infra-sbd:vuln_uncertified_vendor"
+        questions:
+          urn:intuitem:risk:req_node:infra-sbd:vendor_contract_compliance:q1:
+            type: unique_choice
+            text: "Does the SaaS / software vendor provide an independent security audit report (e.g. SOC 2 Type II or ISO/IEC 27001)?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:vendor_contract_compliance:q1:c1
+                value: "Yes - Valid SOC 2 Type II report or ISO 27001 certificate verified by security"
+                add_score: 50
+                compute_result: true
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:vendor_contract_compliance:q1:c2
+                value: "In progress - Vendor is undergoing audit and report will be delivered within 90 days"
+                add_score: 25
+                compute_result: true
+                color: "#ffc107"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:vendor_contract_compliance:q1:c3
+                value: "No independent audit certification available"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:infra-sbd:vendor_contract_compliance:q2:
+            type: unique_choice
+            text: "Where is company data hosted and is a Data Protection Agreement (DPA) signed?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:vendor_contract_compliance:q2:c1
+                value: "Signed DPA in place with guaranteed EU/EEA data residency"
+                add_score: 50
+                compute_result: true
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:vendor_contract_compliance:q2:c2
+                value: "Signed DPA in place with US/International hosting under Standard Contractual Clauses (SCCs)"
+                add_score: 35
+                compute_result: true
+                color: "#17a2b8"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:vendor_contract_compliance:q2:c3
+                value: "No DPA signed / vendor standard terms without regulatory privacy guarantees"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # Node 3.2: SaaS Identity & Data Governance
+      - urn: urn:intuitem:risk:req_node:infra-sbd:saas_identity_data_governance
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:infra-sbd:business_vendor_saas_governance
+        ref_id: saas_identity_data_governance
+        name: "SaaS Identity Federation & Data Exit Strategy"
+        description: "Enforces enterprise Single Sign-On (SSO) and data export/offboarding capabilities."
+        implementation_groups: ["business_sbd", "deep_sar"]
+        reference_controls:
+          - "urn:intuitem:risk:control:infra-sbd:ctrl_saas_sso_mfa"
+        vulnerabilities:
+          - "urn:intuitem:risk:vulnerability:infra-sbd:vuln_shadow_saas_auth"
+        questions:
+          urn:intuitem:risk:req_node:infra-sbd:saas_identity_data_governance:q1:
+            type: unique_choice
+            text: "How do corporate employees authenticate into the SaaS platform?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:saas_identity_data_governance:q1:c1
+                value: "Centralized Corporate SSO (SAML/OIDC) with mandatory corporate MFA enforced"
+                add_score: 50
+                compute_result: true
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:saas_identity_data_governance:q1:c2
+                value: "Individual local usernames and passwords with vendor-enforced MFA"
+                add_score: 25
+                compute_result: true
+                color: "#ffc107"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:saas_identity_data_governance:q1:c3
+                value: "Local passwords without mandatory MFA"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:infra-sbd:saas_identity_data_governance:q2:
+            type: unique_choice
+            text: "Can company data be exported in an open standard format upon contract termination?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:saas_identity_data_governance:q2:c1
+                value: "Yes - Contractually guaranteed automated data export and certified deletion upon exit"
+                add_score: 50
+                compute_result: true
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:saas_identity_data_governance:q2:c2
+                value: "No contractual data export commitments defined"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # === CHAPTER 4: NETWORK ARCHITECTURE & PERIMETER SECURITY ===
+      - urn: urn:intuitem:risk:req_node:infra-sbd:network_security
+        assessable: false
+        depth: 1
+        ref_id: network_security
+        name: "Chapter 4: Network Architecture & Perimeter Security"
+        description: "Perimeter defense, ingress WAF, anti-DDoS, egress filtering, and transport encryption."
+        implementation_groups: ["infra_sbd", "deep_sar"]
+
+      # Node 4.1: Ingress Protection & Edge Defense
+      - urn: urn:intuitem:risk:req_node:infra-sbd:perimeter_ingress_protection
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:infra-sbd:network_security
+        ref_id: perimeter_ingress_protection
+        name: "Perimeter Ingress Protection & Edge Defense"
+        description: "Enforces edge WAF inspection, DDoS mitigation, and ingress security group scoping."
+        implementation_groups: ["infra_sbd", "deep_sar"]
+        reference_controls:
+          - "urn:intuitem:risk:control:infra-sbd:ctrl_perimeter_waf"
+        vulnerabilities:
+          - "urn:intuitem:risk:vulnerability:infra-sbd:vuln_open_ingress"
+        questions:
+          urn:intuitem:risk:req_node:infra-sbd:perimeter_ingress_protection:q1:
+            type: unique_choice
+            text: "How are public ingress connections protected at the network edge?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:perimeter_ingress_protection:q1:c1
+                value: "Protected by an enterprise Web Application Firewall (WAF) and managed Anti-DDoS service (e.g. Cloudflare, AWS WAF)"
+                add_score: 50
+                compute_result: true
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:perimeter_ingress_protection:q1:c2
+                value: "Protected by IP allowlisting / strict security groups only (no WAF)"
+                add_score: 25
+                compute_result: true
+                color: "#ffc107"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:perimeter_ingress_protection:q1:c3
+                value: "Directly exposed without WAF inspection or IP filtering"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:infra-sbd:perimeter_ingress_protection:q2:
+            type: unique_choice
+            text: "Are inbound security group rules restricted to specific required ports and authorized source CIDRs?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:perimeter_ingress_protection:q2:c1
+                value: "Yes - All ingress rules are strictly scoped to minimal ports and authorized source CIDRs"
+                add_score: 50
+                compute_result: true
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:perimeter_ingress_protection:q2:c2
+                value: "No - Inbound ports are open to 0.0.0.0/0 without source restrictions"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # Node 4.2: Egress & Interconnect Security
+      - urn: urn:intuitem:risk:req_node:infra-sbd:egress_interconnect_security
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:infra-sbd:network_security
+        ref_id: egress_interconnect_security
+        name: "Egress Routing & Inter-Service Connectivity"
+        description: "Controls outbound Internet traffic, private endpoints, and transit encryption."
+        implementation_groups: ["infra_sbd", "deep_sar"]
+        reference_controls:
+          - "urn:intuitem:risk:control:infra-sbd:ctrl_perimeter_waf"
+        questions:
+          urn:intuitem:risk:req_node:infra-sbd:egress_interconnect_security:q1:
+            type: unique_choice
+            text: "How is outbound Internet traffic (egress) controlled from the workload network?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:egress_interconnect_security:q1:c1
+                value: "Filtered via outbound proxy / NAT with domain/FQDN allowlisting"
+                add_score: 50
+                compute_result: true
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:egress_interconnect_security:q1:c2
+                value: "Routed through standard NAT Gateway without domain filtering"
+                add_score: 25
+                compute_result: true
+                color: "#ffc107"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:egress_interconnect_security:q1:c3
+                value: "Direct unmonitored egress / Internet Gateway attached directly"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:infra-sbd:egress_interconnect_security:q2:
+            type: unique_choice
+            text: "Is all internal inter-service and cloud API communication encrypted in transit using TLS 1.2+?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:egress_interconnect_security:q2:c1
+                value: "Yes - Enforced via TLS 1.2+ / mTLS across all service-to-service endpoints and VPC endpoints"
+                add_score: 50
+                compute_result: true
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:egress_interconnect_security:q2:c2
+                value: "No - Plaintext internal protocols are permitted"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # === CHAPTER 5: IDENTITY & WORKLOAD ACCESS MANAGEMENT ===
+      - urn: urn:intuitem:risk:req_node:infra-sbd:iam_security
+        assessable: false
+        depth: 1
+        ref_id: iam_security
+        name: "Chapter 5: Identity & Workload Access Management (IAM & PAM)"
+        description: "Cloud IAM, workload identity federation, least privilege, administrative bastion access, and break-glass."
+        implementation_groups: ["infra_sbd", "deep_sar"]
+
+      # Node 5.1: Workload Identity & Least Privilege
+      - urn: urn:intuitem:risk:req_node:infra-sbd:workload_identity_least_privilege
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:infra-sbd:iam_security
+        ref_id: workload_identity_least_privilege
+        name: "Workload Identity & Least Privilege IAM"
+        description: "Enforces short-lived cloud machine identities and scoped IAM policies."
+        implementation_groups: ["infra_sbd", "deep_sar"]
+        reference_controls:
+          - "urn:intuitem:risk:control:infra-sbd:ctrl_workload_iam"
+        vulnerabilities:
+          - "urn:intuitem:risk:vulnerability:infra-sbd:vuln_static_keys"
+        questions:
+          urn:intuitem:risk:req_node:infra-sbd:workload_identity_least_privilege:q1:
+            type: unique_choice
+            text: "How do workloads authenticate to cloud APIs and backend resources?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:workload_identity_least_privilege:q1:c1
+                value: "Federated temporary identities (IAM Roles for Service Accounts / IRSA / Managed Identities)"
+                add_score: 50
+                compute_result: true
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:workload_identity_least_privilege:q1:c2
+                value: "Static, long-lived access keys or service account JSON key files"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:infra-sbd:workload_identity_least_privilege:q2:
+            type: unique_choice
+            text: "Are cloud IAM permission policies scoped to specific actions and resources without wildcards?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:workload_identity_least_privilege:q2:c1
+                value: "Yes - Strictly scoped least-privilege policies (no wildcard * permissions on actions/resources)"
+                add_score: 50
+                compute_result: true
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:workload_identity_least_privilege:q2:c2
+                value: "No - Policies contain broad wildcard permissions (e.g. Action: * or Resource: *)"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # Node 5.2: Administrative Access & PAM
+      - urn: urn:intuitem:risk:req_node:infra-sbd:administrative_access_pam
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:infra-sbd:iam_security
+        ref_id: administrative_access_pam
+        name: "Administrative Infrastructure Access & PAM"
+        description: "Controls engineer console and terminal access, MFA enforcement, and break-glass procedures."
+        implementation_groups: ["infra_sbd", "deep_sar"]
+        reference_controls:
+          - "urn:intuitem:risk:control:infra-sbd:ctrl_admin_sso_mfa"
+        questions:
+          urn:intuitem:risk:req_node:infra-sbd:administrative_access_pam:q1:
+            type: unique_choice
+            text: "How do engineers access and administer the underlying infrastructure (VMs, clusters, control planes)?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:administrative_access_pam:q1:c1
+                value: "Centralized identity proxy with SSO + MFA (e.g. AWS SSM Session Manager, Azure Bastion, Teleport)"
+                add_score: 50
+                compute_result: true
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:administrative_access_pam:q1:c2
+                value: "VPN with direct SSH/RDP keys"
+                add_score: 25
+                compute_result: true
+                color: "#ffc107"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:administrative_access_pam:q1:c3
+                value: "Direct SSH/RDP reachable from public IP addresses"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:infra-sbd:administrative_access_pam:q2:
+            type: unique_choice
+            text: "Is an emergency break-glass procedure documented and audited with automated SecOps alerts?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:administrative_access_pam:q2:c1
+                value: "Yes - Break-glass accounts are vaulted and trigger real-time alerts upon any use"
+                add_score: 50
+                compute_result: true
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:administrative_access_pam:q2:c2
+                value: "No documented break-glass alerting or controls"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # === CHAPTER 6: STORAGE DATA PROTECTION & ENCRYPTION ===
+      - urn: urn:intuitem:risk:req_node:infra-sbd:storage_data_protection
+        assessable: false
+        depth: 1
+        ref_id: storage_data_protection
+        name: "Chapter 6: Storage Data Protection & Encryption"
+        description: "KMS encryption at rest, storage bucket public access blocks, and lifecycle sanitization."
+        implementation_groups: ["infra_sbd", "deep_sar"]
+
+      # Node 6.1: Storage Encryption Controls
+      - urn: urn:intuitem:risk:req_node:infra-sbd:storage_encryption_controls
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:infra-sbd:storage_data_protection
+        ref_id: storage_encryption_controls
+        name: "Storage Encryption at Rest & Public Access Prevention"
+        description: "Enforces KMS encryption and public storage bucket prevention policies."
+        implementation_groups: ["infra_sbd", "deep_sar"]
+        reference_controls:
+          - "urn:intuitem:risk:control:infra-sbd:ctrl_data_kms_encryption"
+        vulnerabilities:
+          - "urn:intuitem:risk:vulnerability:infra-sbd:vuln_unencrypted_storage"
+        questions:
+          urn:intuitem:risk:req_node:infra-sbd:storage_encryption_controls:q1:
+            type: unique_choice
+            text: "How is encryption at rest enforced for storage volumes, databases, and object stores?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:storage_encryption_controls:q1:c1
+                value: "Customer-Managed KMS Keys (CMK) with automated key rotation"
+                add_score: 50
+                compute_result: true
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:storage_encryption_controls:q1:c2
+                value: "Cloud Provider Managed Default KMS Keys"
+                add_score: 30
+                compute_result: true
+                color: "#17a2b8"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:storage_encryption_controls:q1:c3
+                value: "Unencrypted storage volumes or databases"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:infra-sbd:storage_encryption_controls:q2:
+            type: unique_choice
+            text: "Are storage buckets and blob stores protected by mandatory account-level public access blocks?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:storage_encryption_controls:q2:c1
+                value: "Yes - Public access is blocked at both account/organization and resource levels"
+                add_score: 50
+                compute_result: true
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:storage_encryption_controls:q2:c2
+                value: "No - Buckets allow public read or public listing"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # === CHAPTER 7: SECRETS & KEY MANAGEMENT ===
+      - urn: urn:intuitem:risk:req_node:infra-sbd:secrets_management
+        assessable: false
+        depth: 1
+        ref_id: secrets_management
+        name: "Chapter 7: Secrets & Key Management"
+        description: "Centralized secrets vaulting, dynamic runtime injection, and credential rotation."
+        implementation_groups: ["infra_sbd", "deep_sar"]
+
+      # Node 7.1: Secrets Vaulting & Injection
+      - urn: urn:intuitem:risk:req_node:infra-sbd:secrets_vaulting_injection
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:infra-sbd:secrets_management
+        ref_id: secrets_vaulting_injection
+        name: "Centralized Secrets Vaulting & Runtime Injection"
+        description: "Enforces dedicated secrets vaults, preventing secrets from being checked into code repositories."
+        implementation_groups: ["infra_sbd", "deep_sar"]
+        reference_controls:
+          - "urn:intuitem:risk:control:infra-sbd:ctrl_secrets_vault"
+        vulnerabilities:
+          - "urn:intuitem:risk:vulnerability:infra-sbd:vuln_git_secrets"
+        questions:
+          urn:intuitem:risk:req_node:infra-sbd:secrets_vaulting_injection:q1:
+            type: unique_choice
+            text: "Where and how are production secrets (passwords, tokens, private keys) stored and managed?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:secrets_vaulting_injection:q1:c1
+                value: "Dedicated Secrets Manager / Vault (e.g. HashiCorp Vault, AWS Secrets Manager, Azure Key Vault)"
+                add_score: 50
+                compute_result: true
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:secrets_vaulting_injection:q1:c2
+                value: "CI/CD pipeline build variables or configuration files"
+                add_score: 15
+                compute_result: true
+                color: "#ffc107"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:secrets_vaulting_injection:q1:c3
+                value: "Hardcoded in source code, Dockerfiles, or unencrypted text files"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:infra-sbd:secrets_vaulting_injection:q2:
+            type: unique_choice
+            text: "Is automated or scheduled credential and certificate rotation implemented?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:secrets_vaulting_injection:q2:c1
+                value: "Yes - Automated credential/token rotation is active"
+                add_score: 50
+                compute_result: true
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:secrets_vaulting_injection:q2:c2
+                value: "No - Credentials are static without automated rotation"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # === CHAPTER 8: COMPUTE, CONTAINER & INFRASTRUCTURE HARDENING ===
+      - urn: urn:intuitem:risk:req_node:infra-sbd:compute_hardening
+        assessable: false
+        depth: 1
+        ref_id: compute_hardening
+        name: "Chapter 8: Compute, Container & Infrastructure Hardening"
+        description: "IaC policy scanning, hardened base images, and container runtime isolation."
+        implementation_groups: ["infra_sbd", "deep_sar"]
+
+      # Node 8.1: Infrastructure as Code & Policy Enforcement
+      - urn: urn:intuitem:risk:req_node:infra-sbd:iac_policy_as_code
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:infra-sbd:compute_hardening
+        ref_id: iac_policy_as_code
+        name: "Infrastructure as Code (IaC) & Policy as Code"
+        description: "Enforces 100% declarative provisioning with automated security linting gates."
+        implementation_groups: ["infra_sbd", "deep_sar"]
+        reference_controls:
+          - "urn:intuitem:risk:control:infra-sbd:ctrl_iac_scanning"
+        questions:
+          urn:intuitem:risk:req_node:infra-sbd:iac_policy_as_code:q1:
+            type: unique_choice
+            text: "Is all infrastructure provisioned via IaC and scanned in CI/CD pipelines before merge?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:iac_policy_as_code:q1:c1
+                value: "Yes - 100% IaC (Terraform/Helm) with automated pre-merge security scanners (Checkov, Trivy) blocking issues"
+                add_score: 50
+                compute_result: true
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:iac_policy_as_code:q1:c2
+                value: "IaC used without automated CI/CD security scanning gates"
+                add_score: 25
+                compute_result: true
+                color: "#ffc107"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:iac_policy_as_code:q1:c3
+                value: "Manual console provisioning / ClickOps used in production"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # Node 8.2: Compute & Container Runtime Hardening
+      - urn: urn:intuitem:risk:req_node:infra-sbd:compute_container_runtime_hardening
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:infra-sbd:compute_hardening
+        ref_id: compute_container_runtime_hardening
+        name: "Compute & Container Runtime Hardening"
+        description: "Hardened CIS base images, non-root execution, and Kubernetes security contexts."
+        implementation_groups: ["infra_sbd", "deep_sar"]
+        reference_controls:
+          - "urn:intuitem:risk:control:infra-sbd:ctrl_container_hardening"
+        vulnerabilities:
+          - "urn:intuitem:risk:vulnerability:infra-sbd:vuln_unhardened_compute"
+        questions:
+          urn:intuitem:risk:req_node:infra-sbd:compute_container_runtime_hardening:q1:
+            type: unique_choice
+            text: "Are workloads and containers configured with secure execution contexts?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:compute_container_runtime_hardening:q1:c1
+                value: "Yes - Run as non-root, read-only rootfs, dropped capabilities, and CIS-hardened base images"
+                add_score: 50
+                compute_result: true
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:compute_container_runtime_hardening:q1:c2
+                value: "Standard configuration without non-root enforcement or dropped capabilities"
+                add_score: 20
+                compute_result: true
+                color: "#ffc107"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:compute_container_runtime_hardening:q1:c3
+                value: "Containers run as root or in privileged mode (privileged: true)"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # === CHAPTER 9: TELEMETRY, LOGGING & INCIDENT DETECTION ===
+      - urn: urn:intuitem:risk:req_node:infra-sbd:telemetry_monitoring
+        assessable: false
+        depth: 1
+        ref_id: telemetry_monitoring
+        name: "Chapter 9: Telemetry, Logging & Incident Detection"
+        description: "Control-plane activity logging, SIEM integration, immutable retention, and security alerting."
+        implementation_groups: ["infra_sbd", "deep_sar"]
+
+      # Node 9.1: Audit Logging & SIEM Centralization
+      - urn: urn:intuitem:risk:req_node:infra-sbd:audit_logging_forwarding
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:infra-sbd:telemetry_monitoring
+        ref_id: audit_logging_forwarding
+        name: "Audit Logging, Centralized SIEM & Tamper Resistance"
+        description: "Ensures comprehensive audit trails and automated threat detection alerting."
+        implementation_groups: ["infra_sbd", "deep_sar"]
+        reference_controls:
+          - "urn:intuitem:risk:control:infra-sbd:ctrl_audit_siem"
+        vulnerabilities:
+          - "urn:intuitem:risk:vulnerability:infra-sbd:vuln_missing_audit"
+        questions:
+          urn:intuitem:risk:req_node:infra-sbd:audit_logging_forwarding:q1:
+            type: unique_choice
+            text: "Are cloud control-plane activity logs and network flow logs enabled and centralized?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:audit_logging_forwarding:q1:c1
+                value: "Yes - CloudTrail / Activity Logs and VPC Flow Logs are forwarded to the centralized SIEM"
+                add_score: 50
+                compute_result: true
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:audit_logging_forwarding:q1:c2
+                value: "Logs are kept locally in cloud console accounts without SIEM forwarding"
+                add_score: 20
+                compute_result: true
+                color: "#ffc107"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:audit_logging_forwarding:q1:c3
+                value: "Control-plane logging is disabled or unconfigured"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:infra-sbd:audit_logging_forwarding:q2:
+            type: unique_choice
+            text: "Are real-time security alerts configured for suspicious infrastructure modifications?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:audit_logging_forwarding:q2:c1
+                value: "Yes - Automated alerts for IAM modifications, security group changes, and root logins with 24/7 on-call"
+                add_score: 50
+                compute_result: true
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:audit_logging_forwarding:q2:c2
+                value: "No automated alerting configured"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # === CHAPTER 10: BLAST RADIUS, RESILIENCE & DISASTER RECOVERY ===
+      - urn: urn:intuitem:risk:req_node:infra-sbd:resilience_blast_radius
+        assessable: false
+        depth: 1
+        ref_id: resilience_blast_radius
+        name: "Chapter 10: Blast Radius, Resilience & Disaster Recovery"
+        description: "Account boundary isolation, multi-AZ redundancy, immutable backups, and DR recovery."
+        implementation_groups: ["infra_sbd", "deep_sar"]
+
+      # Node 10.1: Blast Radius Containment
+      - urn: urn:intuitem:risk:req_node:infra-sbd:blast_radius_containment
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:infra-sbd:resilience_blast_radius
+        ref_id: blast_radius_containment
+        name: "Blast Radius & Account Isolation"
+        description: "Restricts lateral blast radius via dedicated accounts, subscriptions, and VPC isolation."
+        implementation_groups: ["infra_sbd", "deep_sar"]
+        reference_controls:
+          - "urn:intuitem:risk:control:infra-sbd:ctrl_resilience_dr"
+        questions:
+          urn:intuitem:risk:req_node:infra-sbd:blast_radius_containment:q1:
+            type: unique_choice
+            text: "Is the infrastructure isolated in a dedicated cloud account/project to limit blast radius?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:blast_radius_containment:q1:c1
+                value: "Yes - Deployed in a dedicated account/subscription with strict network boundary isolation"
+                add_score: 50
+                compute_result: true
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:blast_radius_containment:q1:c2
+                value: "Co-located in a shared broad production account without strict VPC isolation"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # Node 10.2: High Availability & Disaster Recovery
+      - urn: urn:intuitem:risk:req_node:infra-sbd:high_availability_disaster_recovery
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:infra-sbd:resilience_blast_radius
+        ref_id: high_availability_disaster_recovery
+        name: "High Availability & Immutable Backup Resilience"
+        description: "Enforces multi-AZ architecture, ransomware-proof immutable backup locks, and restore testing."
+        implementation_groups: ["infra_sbd", "deep_sar"]
+        reference_controls:
+          - "urn:intuitem:risk:control:infra-sbd:ctrl_resilience_dr"
+        vulnerabilities:
+          - "urn:intuitem:risk:vulnerability:infra-sbd:vuln_unlocked_backups"
+        questions:
+          urn:intuitem:risk:req_node:infra-sbd:high_availability_disaster_recovery:q1:
+            type: unique_choice
+            text: "What is the high-availability and redundancy architecture of the workload?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:high_availability_disaster_recovery:q1:c1
+                value: "Multi-Availability Zone (Multi-AZ) or Multi-Region active-active failover"
+                add_score: 50
+                compute_result: true
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:high_availability_disaster_recovery:q1:c2
+                value: "Single-AZ deployment without automatic failover"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:infra-sbd:high_availability_disaster_recovery:q2:
+            type: unique_choice
+            text: "Are backups protected by immutability locks (WORM) and tested within the last 12 months?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:high_availability_disaster_recovery:q2:c1
+                value: "Yes - Automated immutable backups (Vault Lock / Object Lock) with verified restore drills"
+                add_score: 50
+                compute_result: true
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:high_availability_disaster_recovery:q2:c2
+                value: "Backups exist but are mutable and vulnerable to deletion by compromised admin accounts"
+                add_score: 20
+                compute_result: true
+                color: "#ffc107"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:high_availability_disaster_recovery:q2:c3
+                value: "No automated backups configured"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # === CHAPTER 11: THIRD-PARTY & SUPPLY CHAIN SECURITY ===
+      - urn: urn:intuitem:risk:req_node:infra-sbd:third_party_supply_chain
+        assessable: false
+        depth: 1
+        ref_id: third_party_supply_chain
+        name: "Chapter 11: Third-Party & Host Supply Chain Security"
+        description: "Third-party host agents, SaaS integrations, and container image provenance."
+        implementation_groups: ["infra_sbd", "deep_sar"]
+
+      # Node 11.1: Third-Party Agents & Vendor Integrations
+      - urn: urn:intuitem:risk:req_node:infra-sbd:third_party_agents_integrations
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:infra-sbd:third_party_supply_chain
+        ref_id: third_party_agents_integrations
+        name: "Third-Party Host Agents & SaaS Integrations"
+        description: "Validates third-party software agents and vendor cloud API access permissions."
+        implementation_groups: ["infra_sbd", "deep_sar"]
+        reference_controls:
+          - "urn:intuitem:risk:control:infra-sbd:ctrl_vendor_agent_governance"
+        questions:
+          urn:intuitem:risk:req_node:infra-sbd:third_party_agents_integrations:q1:
+            type: unique_choice
+            text: "Are third-party agents (monitoring, security, backup) cryptographically signed and vetted?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:infra-sbd:third_party_agents_integrations:q1:c1
+                value: "Yes - Signed binaries from approved vendors with least-privilege host permissions"
+                add_score: 50
+                compute_result: true
+                color: "#28a745"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:third_party_agents_integrations:q1:c2
+                value: "Not applicable - No third-party agents or external integrations deployed"
+                add_score: 50
+                compute_result: true
+                color: "#17a2b8"
+              - urn: urn:intuitem:risk:req_node:infra-sbd:third_party_agents_integrations:q1:c3
+                value: "Unverified third-party binaries or daemons installed on hosts"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # === COMPLETION SPLASH SCREEN ===
+      - urn: urn:intuitem:risk:req_node:infra-sbd:thank_you_splash
+        assessable: false
+        display_mode: splash
+        depth: 1
+        ref_id: thank_you_splash
+        name: "Assessment Completed - Thank You"
+        description: |
+          Thank you for completing the Security by Design (SbD) Assessment!
+
+          Your responses have been recorded:
+          - **Fast-Track Changes:** If all knock-out criteria were answered "No", the initiative is cleared for deployment.
+          - **Business & Vendor Due Diligence:** Completed vendor and privacy controls are linked to corporate governance registries.
+          - **Infrastructure Review:** If technical controls were delegated, notifications have been sent to your designated engineering leads.
+          - **Next Steps:** The Information Security team will review the responses and provide clearance or recommendations.
+        annotation: Concluding splash screen for Security by Design.
+        implementation_groups: ["info"]
+
+# ============================================================================
+# AUDIT CONFIGURATION
+# ============================================================================
+audit:
+  score_method: sum
+  score_visibility:
+    score:
+      auditor: "edit"
+      respondent: "hidden"
+    status:
+      auditor: "edit"
+      respondent: "hidden"
+    result:
+      auditor: "edit"
+      respondent: "hidden"
+    extended_result:
+      auditor: "edit"
+      respondent: "hidden"
+    applied_controls:
+      auditor: "edit"
+      respondent: "hidden"
+
+# ============================================================================
+# CRITICALITY MAPPING
+# ============================================================================
+criticality_mapping:
+  confidentiality:
+    urn:intuitem:risk:req_node:infra-sbd:data_classification_profiling:q1:c1: 0  # Public
+    urn:intuitem:risk:req_node:infra-sbd:data_classification_profiling:q1:c2: 1  # Internal
+    urn:intuitem:risk:req_node:infra-sbd:data_classification_profiling:q1:c3: 2  # Confidential
+    urn:intuitem:risk:req_node:infra-sbd:data_classification_profiling:q1:c4: 3  # Secret
+  integrity: {}
+  availability: {}
+
+# ============================================================================
+# TEST METADATA & INTEGRITY SPECIFICATION
+# ============================================================================
+test_metadata:
+  expected_risk_scenarios_count: 7
+  expected_threats_count: 7
+  expected_vulnerabilities_count: 9
+  expected_reference_controls_count: 12
+  expected_requirement_nodes_count: 31
+  matrix_dimensions:
+    likelihood_levels: 4
+    impact_levels: 4
+  classification_node_ref: "data_classification_profiling"
+  availability_node_ref: null

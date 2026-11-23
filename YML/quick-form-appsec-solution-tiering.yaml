@@ -8,8 +8,8 @@ description: |
   (retail records, secrets, payment data, GDPR scale), delivery model, and network exposure.
   An accepted response writes the tier directly onto the solution with deterministic knock-out rules.
 copyright: © intuitem
-version: 2
-publication_date: 2026-11-15
+version: 3
+publication_date: 2026-11-23
 provider: custom
 packager: custom
 objects:
@@ -135,6 +135,28 @@ objects:
           translations:
             fr:
               text: Application / Solution cible
+        urn:intuitem:risk:qf_page:appsec-solution-tiering:context:question:initiative_type:
+          type: unique_choice
+          text: Are you evaluating a change/modification, a new application, or an existing production solution?
+          choices:
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:context:question:initiative_type:choice:new_app
+            value: New Application or Platform (Net-new deployment or initial onboarding)
+            translations:
+              fr:
+                value: Nouvelle application ou plateforme (Déploiement initial)
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:context:question:initiative_type:choice:change
+            value: Change or Infrastructure Modification (Feature release, infra re-architecture, migration)
+            translations:
+              fr:
+                value: Changement ou modification d'infrastructure (Nouvelle version, mise à jour)
+          - urn: urn:intuitem:risk:qf_page:appsec-solution-tiering:context:question:initiative_type:choice:existing
+            value: Existing Production Application (Periodic re-assessment or posture check)
+            translations:
+              fr:
+                value: Application existante en production (Revue périodique)
+          translations:
+            fr:
+              text: Évaluez-vous un changement, une nouvelle application ou une solution existante ?
         urn:intuitem:risk:qf_page:appsec-solution-tiering:context:question:delivery_model:
           type: unique_choice
           text: What is the delivery and hosting model of the application?

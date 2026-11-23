@@ -34,6 +34,7 @@ Usage:
 
 import argparse
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -959,9 +960,14 @@ def manage_solution_tier_ui(
     print(" 1) Run AppSec Solution Tiering Assessment (Calculates score & knock-outs)")
     print(" 2) Directly assign a specific Criticality Tier (Critical / Important / Standard / Low-impact)")
     print(" 3) View Governance Policies & SLAs across all tiers")
-    act = input("Enter choice [1-3, default: 1] (or 'c' to cancel): ").strip()
+    print(" 4) Run Security by Design (SbD) Intake & Gating Check (KO-1 to KO-6)")
+    act = input("Enter choice [1-4, default: 1] (or 'c' to cancel): ").strip()
     if act.lower() in ("c", "cancel"):
         print("Operation canceled.")
+        return
+
+    if act == "4":
+        evaluate_sbd_ui(manager, app_name=app_name, answers_path=answers_path)
         return
 
     if act == "2":
@@ -1015,6 +1021,13 @@ def manage_solution_tier_ui(
 
     if not tiering_answers:
         print("\nAnswer quick tiering profiling questions (or press Enter for defaults):")
+        init_type = input(" 0. Evaluation Scope [change (1) / new_app (2) / existing (3)] [default: change]: ").strip() or "change"
+        if init_type == "1":
+            init_type = "change"
+        elif init_type == "2":
+            init_type = "new_app"
+        elif init_type == "3":
+            init_type = "existing_app"
         b1 = input(" 1. Operational Outage Impact [stops business (4) / severe disruption (3) / workarounds (2) / minor (1)] [default: stops]: ").strip() or "stops"
         b2 = input(" 2. Recovery Time Objective (RTO) [hours (4) / 1 week (3) / 1 month (2) / no target (1)] [default: hours]: ").strip() or "hours"
         b3 = input(" 3. Replaceability / SPOF [sole provider - SPOF (4) / months (3) / weeks (2) / commodity (1)] [default: sole]: ").strip() or "sole"
@@ -1026,6 +1039,7 @@ def manage_solution_tier_ui(
         reg = input(" 9. Regulated function (PCI-DSS / NIS2 essential / DORA critical) [yes/no] [default: no]: ").strip() or "no"
 
         tiering_answers = {
+            "initiative_type": init_type,
             "b1": b1, "b2": b2, "b3": b3,
             "d1": d1, "d2": d2, "d3": d3, "d4": d4,
             "exposure": exp, "regulated": reg,
@@ -1047,7 +1061,213 @@ def manage_solution_tier_ui(
     print(f"   - Audit Depth:          {gov.get('audit_depth')}")
     print(f"   - Pentest:              {'Mandatory' if gov.get('pentest_required') else 'Optional'}")
     print(f"   - Remediation SLA:      Critical: {gov.get('remediation_sla_critical_days')}d | High: {gov.get('remediation_sla_high_days')}d")
+    sbd_eval = res.get("sbd_evaluation", {})
+    if sbd_eval:
+        print(f"   - SbD Gating Decision:  {sbd_eval.get('decision')} ({sbd_eval.get('review_level')})")
+        print(f"   - Gate Action:          {sbd_eval.get('gate_action')}")
     print("=" * 60)
+
+
+def evaluate_sbd_ui(
+    manager: ExamplesManager,
+    app_name: str | None = None,
+    answers_path: str | None = None,
+):
+    """Orchestrate Security by Design (SbD) intake, assignment in CISO Assistant, and gating evaluation."""
+    ok, msg = manager.test_connection()
+    if not ok:
+        print(f"\n[ERROR] API Connection Failed: {msg}")
+        return
+
+    print("\n" + "=" * 80)
+    print("      SECURITY BY DESIGN (SbD) ORCHESTRATION & GATING")
+    print("=" * 80)
+    print("SbD intake questionnaires are answered natively inside CISO Assistant.")
+    print(f"Direct CISO Assistant Portal: {utils.BASE_URL}/")
+    print("=" * 80)
+
+    # If both app_name and answers_path are passed (e.g. from CLI or script), run evaluation directly
+    if app_name and answers_path:
+        sub_choice = "3"
+    elif app_name:
+        sub_choice = "2"
+    else:
+        print("\nSelect Action:")
+        print(" 1) Assign SbD Questionnaire in CISO Assistant to Respondent (0% complete)")
+        print(" 2) Evaluate Completed SbD Assessment from CISO Assistant (pulls live answers)")
+        print(" 3) Run Quick Offline/Local SbD Simulation (using YAML or test defaults)")
+        print(" 0) Back to Main Menu")
+        sub_choice = input("Enter choice [1-3, 0 to cancel]: ").strip()
+
+    if sub_choice in ("0", "c", "cancel"):
+        return
+
+    if sub_choice == "1":
+        # Assign in CISO Assistant
+        print("\n--- Assign SbD Assessment in CISO Assistant ---")
+        status_list = manager.get_status()
+        deployed_apps = [s for s in status_list if s.get("exists")]
+        target_app = app_name
+        if not target_app:
+            if deployed_apps:
+                print("Select existing application or enter new one:")
+                for idx, item in enumerate(deployed_apps, start=1):
+                    print(f" {idx}) {item['name']}")
+                print(f" {len(deployed_apps) + 1}) Enter new application / change name")
+                ch = input(f"Enter choice [1-{len(deployed_apps) + 1}] (or 'c' to cancel): ").strip()
+                if ch.lower() in ("c", "cancel"):
+                    return
+                if ch.isdigit() and 1 <= int(ch) <= len(deployed_apps):
+                    target_app = deployed_apps[int(ch) - 1]["name"]
+                elif ch == str(len(deployed_apps) + 1):
+                    target_app = input("Enter application / initiative name: ").strip()
+            else:
+                target_app = input("Enter application / initiative name: ").strip()
+
+        if not target_app:
+            print("Operation canceled.")
+            return
+
+        user_email = input(f"Enter respondent email for '{target_app}': ").strip()
+        if not user_email:
+            print("Operation canceled. User email is required.")
+            return
+
+        domain = input("Enter target domain/folder [default: Examples]: ").strip() or None
+
+        print(f"\nProvisioning SbD assessment in CISO Assistant for '{target_app}'...")
+        try:
+            res = manager.create_sbd_assessment(
+                app_name=target_app,
+                user_email=user_email,
+                domain_name=domain,
+            )
+            print("\n" + "=" * 80)
+            print("        SbD ASSESSMENT SUCCESSFULLY PROVISIONED IN CISO ASSISTANT")
+            print("=" * 80)
+            print(f" Application:              {res['app_name']}")
+            print(f" Assigned Respondent:      {res['user_email']}")
+            print(f" Compliance Assessment ID: {res['compliance_assessment_id']}")
+            print(f" Assessment Name:          {res['compliance_assessment_name']}")
+            print(f" Direct Portal Link:       {res.get('direct_url', utils.BASE_URL + '/')}")
+            print("\n>> The questionnaire has been created with 0% answers inside CISO Assistant.")
+            print(">> Please instruct the respondent to log in and answer the questions natively.")
+            print("=" * 80)
+        except Exception as e:
+            print(f"\n[ERROR] Failed to assign SbD assessment: {e}")
+        return
+
+    elif sub_choice == "2":
+        # Evaluate from CISO Assistant
+        print("\n--- Evaluate Completed SbD Assessment from CISO Assistant ---")
+        target_app = app_name
+        if not target_app:
+            status_list = manager.get_status()
+            deployed_apps = [s for s in status_list if s.get("exists")]
+            if not deployed_apps:
+                target_app = input("Enter application name to evaluate: ").strip()
+            else:
+                print("Select application to evaluate:")
+                for idx, item in enumerate(deployed_apps, start=1):
+                    t_str = f" [Tier: {item['solution_tier'].upper()}]" if item.get("solution_tier") else ""
+                    print(f" {idx}) {item['name']}{t_str}")
+                print(f" {len(deployed_apps) + 1}) Enter name manually")
+                ch = input(f"Enter choice [1-{len(deployed_apps) + 1}] (or 'c' to cancel): ").strip()
+                if ch.lower() in ("c", "cancel"):
+                    return
+                if ch.isdigit() and 1 <= int(ch) <= len(deployed_apps):
+                    target_app = deployed_apps[int(ch) - 1]["name"]
+                elif ch == str(len(deployed_apps) + 1):
+                    target_app = input("Enter target application name: ").strip()
+
+        if not target_app:
+            print("Operation canceled.")
+            return
+
+        print(f"\nQuerying CISO Assistant for '{target_app}' answers...")
+        res = manager.assess_security_by_design(target_app, auto_sign_off=True)
+        if not res.get("has_answers", True) and res.get("status") == "awaiting_submission":
+            print("\n" + "=" * 80)
+            print("             ASSESSMENT PENDING IN CISO ASSISTANT")
+            print("=" * 80)
+            print(f" Target Application:       {res['app_name']}")
+            print(f" Status:                   {res.get('message')}")
+            print(f" Direct Link:              {res.get('direct_url', utils.BASE_URL + '/')}")
+            print("\n>> The assessment is assigned in CISO Assistant, but questions have not been")
+            print(">> answered yet by the respondent. Once answered in CISO Assistant, re-run this check.")
+            print("=" * 80)
+            return
+
+    else:
+        # sub_choice == "3" - Offline simulation / YAML
+        print("\n--- Offline / Local SbD Simulation ---")
+        target_app = app_name or input("Enter application name: ").strip() or "App-Audit-Demo"
+        answers = {}
+        if answers_path and Path(answers_path).exists():
+            import yaml
+            try:
+                with open(answers_path, "r", encoding="utf-8") as f:
+                    loaded = yaml.safe_load(f) or {}
+                    answers = loaded.get("sbd") or loaded.get("tiering") or loaded
+            except Exception as e:
+                print(f"[!] Warning: could not parse answers from {answers_path}: {e}")
+
+        if not answers:
+            ans_file = input("Enter path to answers YAML file (or press enter for default change): ").strip()
+            if ans_file and Path(ans_file).exists():
+                import yaml
+                try:
+                    with open(ans_file, "r", encoding="utf-8") as f:
+                        loaded = yaml.safe_load(f) or {}
+                        answers = loaded.get("sbd") or loaded.get("tiering") or loaded
+                except Exception as e:
+                    print(f"[!] Warning: could not parse answers from {ans_file}: {e}")
+
+        if not answers:
+            answers = {
+                "initiative_type": "change",
+                "ko1": "no",
+                "ko2": "no",
+                "ko3": "no",
+                "ko4": "no",
+                "ko5": "no",
+                "ko6": "no",
+            }
+        res = manager.assess_security_by_design(target_app, change_answers=answers, auto_sign_off=True)
+
+    # Print evaluation report
+    print("\n" + "=" * 80)
+    print("              SECURITY BY DESIGN (SbD) GATING DECISION")
+    print("=" * 80)
+    print(f" Target Solution / Change:     {res['app_name']}")
+    print(f" Evaluation Scope:             {res.get('evaluation_label', res.get('evaluation_nature', 'Change')).upper()}")
+    print(f" Criticality Tier:             {res['criticality_tier'].upper()}")
+    print(f" SbD Review Required:          {'YES' if res['requires_sbd_check'] else 'NO (Fast-Track Eligible)'}")
+    print(f" GATING DECISION:              {res['sbd_decision']}")
+    print(f" Review Level:                 {res['review_level'].upper()}")
+    print(f" Gate Action:                  {res['gate_action']}")
+    print(f" Fast-Track Eligible:          {'YES' if res['fast_track_eligible'] else 'NO'}")
+
+    kos = res.get("triggered_knockouts", [])
+    if kos:
+        print(f"\n Knock-Outs Triggered ({len(kos)}):")
+        for ko in kos:
+            print(f"   * [{ko['id']}] {ko['name']} ({ko['severity'].upper()}): {ko['description']}")
+    else:
+        print("\n Knock-Outs Triggered:        None (Clean baseline / no blocking gates)")
+
+    gov = res.get("governance_policy", {})
+    print("\n Governance & SLA Expectations:")
+    print(f"   * Audit Depth:              {gov.get('audit_depth')}")
+    print(f"   * Pentest Mandatory:        {'YES' if gov.get('pentest_required') else 'NO'}")
+    print(f"   * CI/CD Blocking Threshold: {gov.get('cicd_blocking_threshold')}")
+    print(f"   * Critical Finding SLA:     {gov.get('remediation_sla_critical_days')} days")
+    print(f"   * High Finding SLA:         {gov.get('remediation_sla_high_days')} days")
+
+    recs = res.get("recommended_implementation_groups", [])
+    if recs:
+        print(f"   * Recommended Tracks:       {', '.join(recs)}")
+    print("=" * 80)
 
 
 def assign_tiering_questionnaire_ui(
@@ -2044,10 +2264,63 @@ def run_pipeline():
     utils.print_run_summary(initial_counts, final_counts)
 
 
+_BACKGROUND_WEB_SERVER = None
+_BACKGROUND_WEB_THREAD = None
+
+
+def is_web_server_running(host: str = "127.0.0.1", port: int = 5000) -> bool:
+    """Check if the Web UI server is active on the given host/port."""
+    import socket
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(0.3)
+    try:
+        result = sock.connect_ex((host, port))
+        return result == 0
+    finally:
+        sock.close()
+
+
+def start_background_web_server(host: str = "127.0.0.1", port: int = 5000) -> tuple[bool, str]:
+    """Start the Web UI server in a background daemon thread."""
+    global _BACKGROUND_WEB_SERVER, _BACKGROUND_WEB_THREAD
+    if is_web_server_running(host, port):
+        return True, f"Web UI server is already active at http://{host}:{port}"
+
+    try:
+        from werkzeug.serving import make_server
+        from web import create_app
+        w_app = create_app()
+        server = make_server(host, port, w_app)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        _BACKGROUND_WEB_SERVER = server
+        _BACKGROUND_WEB_THREAD = thread
+        time.sleep(0.3)
+        return True, f"Web UI server started in background at http://{host}:{port}"
+    except Exception as e:
+        return False, f"Failed to start Web UI server: {e}"
+
+
+def stop_background_web_server() -> tuple[bool, str]:
+    """Stop the background Web UI server if running in this process."""
+    global _BACKGROUND_WEB_SERVER, _BACKGROUND_WEB_THREAD
+    if _BACKGROUND_WEB_SERVER is not None:
+        try:
+            _BACKGROUND_WEB_SERVER.shutdown()
+        except Exception:
+            pass
+        _BACKGROUND_WEB_SERVER = None
+        _BACKGROUND_WEB_THREAD = None
+        return True, "Background Web UI server stopped."
+    return False, "No background Web UI server is running in this process."
+
+
 def interactive_menu(manager: ExamplesManager):
     """Run the interactive console menu for managing example applications."""
     while True:
         print_banner(manager.folder_name)
+        web_running = is_web_server_running("127.0.0.1", 5000)
+        web_label = " [ACTIVE: http://127.0.0.1:5000]" if web_running else ""
         print(" 1) List / Check Status of Examples in CISO Assistant")
         print(" 2) Create ALL Examples in CISO Assistant (Simulate Answers via API)")
         print(" 3) Create a Specific Example Application (Simulate Answers via API)")
@@ -2058,16 +2331,17 @@ def interactive_menu(manager: ExamplesManager):
         print(" 8) Run Offline Simulation (Local Preview without API)")
         print(" 9) Backup & Restore Management (Dumps, Snapshots, Restores, Listing)")
         print(" 10) Create a New Domain (Organizational Folder)")
-        print(" 11) Launch Web UI & REST API Dashboard (http://127.0.0.1:5000)")
+        print(f" 11) Launch Web UI & REST API Dashboard{web_label}")
         print(" 12) Provision / Check NIS2 - ReCyF Dedicated Domain & Assets")
         print(" 13) Select Implementation Groups for an Audit (Add / Modify Groups)")
         print(" 14) Assign Triggered Implementation Groups (Multi-Step Audit Workflow)")
         print(" 15) Manage Frameworks (Load New Frameworks & Backup Existing Data)")
-        print(" 16) Manage Application Solution Tiers (Assess & Set Tier, Scoping & SLAs)")
+        print(" 16) Security by Design (SbD) Intake & Gating Assessment (Change vs New App, KO-1..KO-6)")
+        print(" 17) Manage Application Solution Tiers (Assess & Set Tier, Scoping & SLAs)")
         print(" 0) Exit")
         print("=" * 80)
 
-        choice = input("Enter your choice [0-16]: ").strip()
+        choice = input("Enter your choice [0-17]: ").strip()
 
         if choice == "1":
             show_status(manager, wait_seconds=2.0)
@@ -2209,28 +2483,56 @@ def interactive_menu(manager: ExamplesManager):
         elif choice == "10":
             create_domain_ui(manager)
         elif choice == "11":
-            import importlib
-            import sys
-            import webbrowser
-            for mod_name in list(sys.modules.keys()):
-                if mod_name == "web" or mod_name.startswith("web."):
+            print("\n" + "=" * 80)
+            print("             CISO ASSISTANT - WEB UI DASHBOARD (http://127.0.0.1:5000)")
+            print("=" * 80)
+            web_running = is_web_server_running("127.0.0.1", 5000)
+            status_text = "ACTIVE (http://127.0.0.1:5000)" if web_running else "STOPPED"
+            print(f" Current Status: {status_text}\n")
+            if web_running:
+                print(" 1) Keep running in background & return to CLI menu [Default]")
+                print(" 2) Open Web UI in browser (http://127.0.0.1:5000)")
+                print(" 3) Stop Web UI server")
+                print(" 4) Restart Web UI server in background")
+                w_choice = input("Enter choice [1-4, default: 1]: ").strip() or "1"
+                if w_choice == "2":
+                    import webbrowser
                     try:
-                        importlib.reload(sys.modules[mod_name])
+                        webbrowser.open("http://127.0.0.1:5000")
                     except Exception:
                         pass
-            from web import create_app
-            url = "http://127.0.0.1:5000"
-            print(f"\nLaunching CISO Assistant Web UI at {url} ...")
-            print("Press Ctrl+C in this terminal to stop the Web UI and return to the menu.\n")
-            try:
-                webbrowser.open(url)
-            except Exception:
-                pass
-            try:
-                w_app = create_app()
-                w_app.run(host="127.0.0.1", port=5000, debug=False)
-            except KeyboardInterrupt:
-                print("\nWeb UI server stopped.")
+                elif w_choice == "3":
+                    stop_background_web_server()
+                    print("[OK] Web UI server stopped.")
+                elif w_choice == "4":
+                    stop_background_web_server()
+                    time.sleep(0.5)
+                    ok, msg = start_background_web_server()
+                    print(f"[{'OK' if ok else 'ERROR'}] {msg}")
+            else:
+                print(" 1) Start Web UI in Background (Keep CLI menu active) [Default]")
+                print(" 2) Run Web UI in Foreground (Blocks terminal until Ctrl+C)")
+                w_choice = input("Enter choice [1-2, default: 1]: ").strip() or "1"
+                if w_choice == "2":
+                    from web import create_app
+                    url = "http://127.0.0.1:5000"
+                    print(f"\nLaunching CISO Assistant Web UI in foreground at {url} ...")
+                    print("Press Ctrl+C in this terminal to stop the Web UI and return to the menu.\n")
+                    try:
+                        w_app = create_app()
+                        w_app.run(host="127.0.0.1", port=5000, debug=False)
+                    except KeyboardInterrupt:
+                        print("\nWeb UI server stopped.")
+                else:
+                    ok, msg = start_background_web_server()
+                    print(f"\n[{'OK' if ok else 'ERROR'}] {msg}")
+                    if ok:
+                        print("     The interactive CLI menu remains active. You can use both simultaneously!")
+                        import webbrowser
+                        try:
+                            webbrowser.open("http://127.0.0.1:5000")
+                        except Exception:
+                            pass
         elif choice == "12":
             print("\nSelect NIS2 / ReCyF action:")
             print(" 1) View NIS2 - ReCyF Domain, Perimeters & Assets Status")
@@ -2297,12 +2599,14 @@ def interactive_menu(manager: ExamplesManager):
                 force = input("Force reload if already loaded? [y/N]: ").strip().lower() == "y"
                 load_framework_ui(manager, target=f_path, backup_type=b_type, force_reload=force)
         elif choice == "16":
+            evaluate_sbd_ui(manager)
+        elif choice == "17":
             manage_solution_tier_ui(manager)
         elif choice in ("0", "q", "exit"):
             print("\nGoodbye!")
             break
         else:
-            print("\n[!] Invalid choice. Please select an option from 0 to 16.")
+            print("\n[!] Invalid choice. Please select an option from 0 to 17.")
 
         input("\nPress [Enter] to return to the menu...")
 
@@ -2409,6 +2713,21 @@ def main():
         "--assess-tier",
         metavar="APP_NAME",
         help="Run AppSec Solution Tiering questionnaire assessment to calculate tier, governance policy, and recommended implementation groups.",
+    )
+    parser.add_argument(
+        "--sbd",
+        metavar="APP_NAME",
+        help="Run Security by Design (SbD) intake triage & gating evaluation for an application or change.",
+    )
+    parser.add_argument(
+        "--assign-sbd",
+        metavar="APP_NAME",
+        help="Assign a Security by Design (SbD) intake assessment to a user in CISO Assistant (requires --user).",
+    )
+    parser.add_argument(
+        "--evaluate-sbd",
+        metavar="APP_NAME",
+        help="Pull completed SbD answers from CISO Assistant and evaluate knock-out gating, tiering, and SLAs.",
     )
     parser.add_argument(
         "--assign-tiering",
@@ -2725,6 +3044,28 @@ def main():
 
     if args.assess_tier:
         manage_solution_tier_ui(manager, app_name=args.assess_tier, answers_path=args.answers)
+        return
+
+    if args.sbd:
+        evaluate_sbd_ui(manager, app_name=args.sbd, answers_path=args.answers)
+        return
+
+    if args.evaluate_sbd:
+        evaluate_sbd_ui(manager, app_name=args.evaluate_sbd, answers_path=args.answers)
+        return
+
+    if args.assign_sbd:
+        if not args.user:
+            print("\n[ERROR] --user <EMAIL> is required when assigning an SbD assessment in CISO Assistant.")
+            print("Example: python main.py --assign-sbd App-Portal --user business-lead@example.com")
+            return
+        res = manager.create_sbd_assessment(
+            app_name=args.assign_sbd,
+            user_email=args.user,
+            domain_name=args.domain,
+        )
+        print(f"\n[SUCCESS] SbD assessment provisioned in CISO Assistant for '{args.assign_sbd}' and assigned to '{args.user}'.")
+        print(f"Direct link to CISO Assistant: {utils.BASE_URL}/")
         return
 
     if args.assign_tiering:
