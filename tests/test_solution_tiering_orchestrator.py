@@ -878,6 +878,262 @@ class TestSecurityByDesignIntake(unittest.TestCase):
         self.assertIn("Pending Submission", res["sbd_decision"])
         self.assertEqual(res["review_level"], "pending")
 
+    @patch.object(ExamplesManager, "find_solution")
+    @patch("classes.utils.get_return")
+    def test_record_fast_track_clearance_zero_audit(self, mock_get_return, mock_find_solution):
+        mock_find_solution.return_value = {
+            "id": "sol-fast-1",
+            "name": "App-Fast-Track",
+            "tier_note": "Previous note",
+        }
+        mock_get_return.return_value = {"id": "sol-fast-1"}
+
+        manager = ExamplesManager()
+        res = manager.record_fast_track_clearance(
+            "App-Fast-Track",
+            gate_decision="Fast-Track Standard Change (Peer Review Only)",
+            eval_nature="change",
+        )
+        self.assertEqual(res["clearance_status"], "FAST_TRACK_APPROVED")
+        self.assertFalse(res["audit_created"])
+        self.assertIn("SbD Fast-Track Clearance", res["note"])
+        mock_get_return.assert_called_once_with(
+            "api/solutions/sol-fast-1/",
+            method="PATCH",
+            payload={"tier_note": "Previous note | [SbD Fast-Track Clearance]: Fast-Track Standard Change (Peer Review Only) (Scope: change)"},
+        )
+
+    @patch.object(ExamplesManager, "get_sbd_assessment_status")
+    @patch.object(ExamplesManager, "_init_data")
+    @patch("classes.utils.get_return")
+    def test_update_application_audit_delta(self, mock_get_return, mock_init_data, mock_sbd_status):
+        mock_sbd_status.return_value = {
+            "exists": True,
+            "compliance_assessment_id": "ca-existing-99",
+            "compliance_assessment_name": "Assessment of App-Core with AppSec",
+        }
+        mock_ca = MagicMock()
+        mock_ca.get_id.return_value = "ca-existing-99"
+        mock_ca.get_name.return_value = "Assessment of App-Core with AppSec"
+        mock_ca.get_selected_implementation_groups.return_value = ["info", "baseline", "custom_app"]
+
+        mock_dict = MagicMock()
+        mock_dict.get_compliance_assessments.return_value = {"ca-existing-99": mock_ca}
+        mock_init_data.return_value = {"compliance_assessment_dict": mock_dict}
+        mock_get_return.return_value = {"id": "ca-existing-99"}
+
+        manager = ExamplesManager()
+        res = manager.update_application_audit_delta(
+            "App-Core",
+            delta_implementation_groups=["deep_sar", "infra_sbd"],
+        )
+        self.assertTrue(res["updated"])
+        self.assertEqual(res["compliance_assessment_id"], "ca-existing-99")
+        self.assertEqual(res["previous_implementation_groups"], ["info", "baseline", "custom_app"])
+        self.assertEqual(res["active_implementation_groups"], ["baseline", "custom_app", "deep_sar", "info", "infra_sbd"])
+        mock_get_return.assert_called_once_with(
+            "api/compliance-assessments/ca-existing-99/",
+            method="PATCH",
+            payload={"selected_implementation_groups": ["baseline", "custom_app", "deep_sar", "info", "infra_sbd"]},
+        )
+
+    @patch.object(ExamplesManager, "find_target_framework", return_value="appsec")
+    @patch.object(ExamplesManager, "set_solution_tier")
+    @patch.object(ExamplesManager, "record_fast_track_clearance")
+    def test_assess_security_by_design_fast_track_integration(self, mock_record_clr, mock_set_tier, mock_fw):
+        mock_record_clr.return_value = {
+            "clearance_status": "FAST_TRACK_APPROVED",
+            "audit_created": False,
+        }
+        answers = {
+            "initiative_type": "change",
+            "ko1": "no",
+            "ko2": "no",
+            "ko3": "no",
+            "ko4": "no",
+            "ko5": "no",
+            "ko6": "no",
+            "d1": "internal",
+            "b1": "minor",
+        }
+        manager = ExamplesManager()
+        res = manager.assess_security_by_design("App-Clean-Change", change_answers=answers, auto_sign_off=True)
+        self.assertTrue(res["fast_track_eligible"])
+        self.assertEqual(res["review_level"], "fast_track")
+        self.assertIsNotNone(res["clearance_record"])
+        self.assertEqual(res["clearance_record"]["clearance_status"], "FAST_TRACK_APPROVED")
+        mock_record_clr.assert_called_once()
+
+    @patch.object(ExamplesManager, "find_target_framework", return_value="appsec")
+    @patch.object(ExamplesManager, "set_solution_tier")
+    @patch.object(ExamplesManager, "update_application_audit_delta")
+    def test_assess_security_by_design_delta_integration(self, mock_delta_update, mock_set_tier, mock_fw):
+        mock_delta_update.return_value = {
+            "updated": True,
+            "compliance_assessment_id": "ca-123",
+            "delta_implementation_groups": ["deep_sar"],
+        }
+        answers = {
+            "initiative_type": "change",
+            "ko1": "no",
+            "ko2": "yes",  # Core IAM knockout
+            "ko3": "no",
+            "ko4": "no",
+            "ko5": "no",
+            "ko6": "no",
+        }
+        manager = ExamplesManager()
+        res = manager.assess_security_by_design("App-IAM-Change", change_answers=answers, auto_sign_off=True)
+        self.assertFalse(res["fast_track_eligible"])
+        self.assertEqual(res["review_level"], "deep_sar")
+        self.assertIsNotNone(res["delta_update"])
+        self.assertTrue(res["delta_update"]["updated"])
+        mock_delta_update.assert_called_once()
+
+
+class TestDecisionTreeMatrixConsistency(unittest.TestCase):
+    """Test decision tree matrix exhaustively covering all intake, knock-out, and audit pathways."""
+
+    def setUp(self):
+        self.manager = ExamplesManager()
+
+    @patch.object(ExamplesManager, "find_target_framework", return_value="appsec")
+    @patch.object(ExamplesManager, "set_solution_tier")
+    @patch.object(ExamplesManager, "record_fast_track_clearance")
+    def test_branch_c01_fast_track_standard_change(self, mock_clr, mock_tier, mock_fw):
+        """Branch C-01: Zero knock-outs -> Fast-Track, zero audit created."""
+        mock_clr.return_value = {"clearance_status": "FAST_TRACK_APPROVED", "audit_created": False}
+        answers = {
+            "initiative_type": "change",
+            "ko1": "no", "ko2": "no", "ko3": "no",
+            "ko4": "no", "ko5": "no", "ko6": "no",
+            "d1": "internal", "b1": "minor",
+        }
+        res = self.manager.assess_security_by_design("App-C01", change_answers=answers, auto_sign_off=True)
+        self.assertTrue(res["fast_track_eligible"])
+        self.assertEqual(res["review_level"], "fast_track")
+        self.assertEqual(res["gate_action"], "peer_review_only")
+        self.assertFalse(res["requires_sbd_check"])
+        self.assertEqual(len(res["triggered_knockouts"]), 0)
+        self.assertIsNotNone(res["clearance_record"])
+        self.assertFalse(res["clearance_record"]["audit_created"])
+
+    @patch.object(ExamplesManager, "find_target_framework", return_value="appsec")
+    @patch.object(ExamplesManager, "set_solution_tier")
+    @patch.object(ExamplesManager, "update_application_audit_delta")
+    def test_branch_c02_critical_iam_knockout(self, mock_delta, mock_tier, mock_fw):
+        """Branch C-02: KO-2 (Core IAM) -> Critical, Deep SAR, mandatory pre-prod approval."""
+        mock_delta.return_value = {"updated": True, "delta_implementation_groups": ["deep_sar"]}
+        answers = {
+            "initiative_type": "change",
+            "ko1": "no", "ko2": "yes", "ko3": "no",
+            "ko4": "no", "ko5": "no", "ko6": "no",
+        }
+        res = self.manager.assess_security_by_design("App-C02", change_answers=answers, auto_sign_off=True)
+        self.assertFalse(res["fast_track_eligible"])
+        self.assertEqual(res["review_level"], "deep_sar")
+        self.assertEqual(res["gate_action"], "mandatory_pre_prod_approval")
+        self.assertEqual(res["criticality_tier"], "critical")
+        self.assertTrue(res["requires_sbd_check"])
+
+    @patch.object(ExamplesManager, "find_target_framework", return_value="appsec")
+    @patch.object(ExamplesManager, "set_solution_tier")
+    @patch.object(ExamplesManager, "update_application_audit_delta")
+    def test_branch_c03_standard_public_exposure_knockout(self, mock_delta, mock_tier, mock_fw):
+        """Branch C-03: KO-1 (Public Ingress) -> Important, Standard SbD, CAB review."""
+        mock_delta.return_value = {"updated": True, "delta_implementation_groups": ["infra_sbd"]}
+        answers = {
+            "initiative_type": "change",
+            "ko1": "yes", "ko2": "no", "ko3": "no",
+            "ko4": "no", "ko5": "no", "ko6": "no",
+        }
+        res = self.manager.assess_security_by_design("App-C03", change_answers=answers, auto_sign_off=True)
+        self.assertFalse(res["fast_track_eligible"])
+        self.assertEqual(res["review_level"], "standard_sbd")
+        self.assertEqual(res["gate_action"], "standard_cab_sec_review")
+        self.assertEqual(res["criticality_tier"], "important")
+
+    @patch.object(ExamplesManager, "find_target_framework", return_value="appsec")
+    @patch.object(ExamplesManager, "set_solution_tier")
+    @patch.object(ExamplesManager, "update_application_audit_delta")
+    def test_branch_c04_network_boundary_knockout(self, mock_delta, mock_tier, mock_fw):
+        """Branch C-04: KO-3 (Network Boundary) -> Important, Standard SbD."""
+        mock_delta.return_value = {"updated": True, "delta_implementation_groups": ["infra_sbd"]}
+        answers = {
+            "initiative_type": "change",
+            "ko1": "no", "ko2": "no", "ko3": "yes",
+            "ko4": "no", "ko5": "no", "ko6": "no",
+        }
+        res = self.manager.assess_security_by_design("App-C04", change_answers=answers, auto_sign_off=True)
+        self.assertFalse(res["fast_track_eligible"])
+        self.assertEqual(res["review_level"], "standard_sbd")
+        self.assertEqual(res["criticality_tier"], "important")
+
+    @patch.object(ExamplesManager, "find_target_framework", return_value="appsec")
+    @patch.object(ExamplesManager, "set_solution_tier")
+    @patch.object(ExamplesManager, "update_application_audit_delta")
+    def test_branch_c05_sensitive_secrets_knockout(self, mock_delta, mock_tier, mock_fw):
+        """Branch C-05: KO-4 (Sensitive Secrets/Payment Data) -> Critical, Deep SAR."""
+        mock_delta.return_value = {"updated": True, "delta_implementation_groups": ["deep_sar"]}
+        answers = {
+            "initiative_type": "change",
+            "ko1": "no", "ko2": "no", "ko3": "no",
+            "ko4": "yes", "ko5": "no", "ko6": "no",
+        }
+        res = self.manager.assess_security_by_design("App-C05", change_answers=answers, auto_sign_off=True)
+        self.assertFalse(res["fast_track_eligible"])
+        self.assertEqual(res["review_level"], "deep_sar")
+        self.assertEqual(res["criticality_tier"], "critical")
+
+    @patch.object(ExamplesManager, "find_target_framework", return_value="appsec")
+    @patch.object(ExamplesManager, "set_solution_tier")
+    @patch.object(ExamplesManager, "update_application_audit_delta")
+    def test_branch_c06_critical_third_party_saas_knockout(self, mock_delta, mock_tier, mock_fw):
+        """Branch C-06: KO-5 (Critical 3rd Party SaaS) -> Important, Standard SbD."""
+        mock_delta.return_value = {"updated": True, "delta_implementation_groups": ["business_sbd"]}
+        answers = {
+            "initiative_type": "change",
+            "ko1": "no", "ko2": "no", "ko3": "no",
+            "ko4": "no", "ko5": "yes", "ko6": "no",
+        }
+        res = self.manager.assess_security_by_design("App-C06", change_answers=answers, auto_sign_off=True)
+        self.assertFalse(res["fast_track_eligible"])
+        self.assertEqual(res["review_level"], "standard_sbd")
+        self.assertEqual(res["criticality_tier"], "important")
+
+    @patch.object(ExamplesManager, "find_target_framework", return_value="appsec")
+    @patch.object(ExamplesManager, "set_solution_tier")
+    @patch.object(ExamplesManager, "update_application_audit_delta")
+    def test_branch_c07_spof_resilience_knockout(self, mock_delta, mock_tier, mock_fw):
+        """Branch C-07: KO-6 (SPOF Outage) -> Critical, Deep SAR."""
+        mock_delta.return_value = {"updated": True, "delta_implementation_groups": ["deep_sar"]}
+        answers = {
+            "initiative_type": "change",
+            "ko1": "no", "ko2": "no", "ko3": "no",
+            "ko4": "no", "ko5": "no", "ko6": "yes",
+        }
+        res = self.manager.assess_security_by_design("App-C07", change_answers=answers, auto_sign_off=True)
+        self.assertFalse(res["fast_track_eligible"])
+        self.assertEqual(res["review_level"], "deep_sar")
+        self.assertEqual(res["criticality_tier"], "critical")
+
+    @patch.object(ExamplesManager, "find_target_framework", return_value="appsec")
+    @patch.object(ExamplesManager, "set_solution_tier")
+    @patch.object(ExamplesManager, "update_application_audit_delta")
+    def test_branch_c08_compound_knockouts(self, mock_delta, mock_tier, mock_fw):
+        """Branch C-08: Compound KOs (KO-1 + KO-2) -> Critical dominates, Deep SAR."""
+        mock_delta.return_value = {"updated": True, "delta_implementation_groups": ["deep_sar", "infra_sbd"]}
+        answers = {
+            "initiative_type": "change",
+            "ko1": "yes", "ko2": "yes", "ko3": "no",
+            "ko4": "no", "ko5": "no", "ko6": "no",
+        }
+        res = self.manager.assess_security_by_design("App-C08", change_answers=answers, auto_sign_off=True)
+        self.assertFalse(res["fast_track_eligible"])
+        self.assertEqual(res["review_level"], "deep_sar")
+        self.assertEqual(res["criticality_tier"], "critical")
+        self.assertEqual(len(res["triggered_knockouts"]), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

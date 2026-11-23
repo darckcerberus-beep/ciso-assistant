@@ -1267,6 +1267,21 @@ def evaluate_sbd_ui(
     recs = res.get("recommended_implementation_groups", [])
     if recs:
         print(f"   * Recommended Tracks:       {', '.join(recs)}")
+
+    clr = res.get("clearance_record")
+    if clr:
+        print("\n Fast-Track Clearance Logged:")
+        print(f"   * Status:                   {clr.get('clearance_status')}")
+        print(f"   * Audit Created:            {clr.get('audit_created')} (Zero Audit Overhead)")
+        print(f"   * Solution Note:            {clr.get('note')}")
+
+    delta = res.get("delta_update")
+    if delta:
+        print("\n Living Audit Delta Update:")
+        print(f"   * Compliance Assessment:    {delta.get('compliance_assessment_name')}")
+        print(f"   * Activated Delta Tracks:   {', '.join(delta.get('delta_implementation_groups', []))}")
+        print(f"   * Total Active Tracks:      {len(delta.get('active_implementation_groups', []))}")
+
     print("=" * 80)
 
 

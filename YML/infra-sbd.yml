@@ -229,6 +229,8 @@ objects:
         - "urn:intuitem:risk:vulnerability:infra-sbd:vuln_open_ingress"
       reference_controls:
         - "urn:intuitem:risk:control:infra-sbd:ctrl_perimeter_waf"
+      likelihood: urn:intuitem:risk:req_node:infra-sbd:perimeter_ingress_protection
+      impact: urn:intuitem:risk:req_node:infra-sbd:data_classification_profiling
     - urn: urn:intuitem:risk:risk_scenario:infra-sbd:scenario_cloud_escalation
       ref_id: scenario_cloud_escalation
       name: Cloud Account Compromise via Overly Permissive IAM Roles
@@ -242,6 +244,8 @@ objects:
       reference_controls:
         - "urn:intuitem:risk:control:infra-sbd:ctrl_workload_iam"
         - "urn:intuitem:risk:control:infra-sbd:ctrl_admin_sso_mfa"
+      likelihood: urn:intuitem:risk:req_node:infra-sbd:workload_identity_least_privilege
+      impact: urn:intuitem:risk:req_node:infra-sbd:data_classification_profiling
     - urn: urn:intuitem:risk:risk_scenario:infra-sbd:scenario_sensitive_leak
       ref_id: scenario_sensitive_leak
       name: Public Disclosure of Confidential Data via Misconfigured Storage
@@ -254,6 +258,8 @@ objects:
         - "urn:intuitem:risk:vulnerability:infra-sbd:vuln_unencrypted_storage"
       reference_controls:
         - "urn:intuitem:risk:control:infra-sbd:ctrl_data_kms_encryption"
+      likelihood: urn:intuitem:risk:req_node:infra-sbd:storage_encryption_controls
+      impact: urn:intuitem:risk:req_node:infra-sbd:data_classification_profiling
     - urn: urn:intuitem:risk:risk_scenario:infra-sbd:scenario_secret_compromise
       ref_id: scenario_secret_compromise
       name: Production Credential Harvested from Code Repositories
@@ -267,6 +273,8 @@ objects:
       reference_controls:
         - "urn:intuitem:risk:control:infra-sbd:ctrl_secrets_vault"
         - "urn:intuitem:risk:control:infra-sbd:ctrl_iac_scanning"
+      likelihood: urn:intuitem:risk:req_node:infra-sbd:secrets_vaulting_injection
+      impact: urn:intuitem:risk:req_node:infra-sbd:data_classification_profiling
     - urn: urn:intuitem:risk:risk_scenario:infra-sbd:scenario_ransomware_wiping
       ref_id: scenario_ransomware_wiping
       name: Infrastructure Ransomware Encryption & Backup Snapshot Deletion
@@ -280,6 +288,8 @@ objects:
       reference_controls:
         - "urn:intuitem:risk:control:infra-sbd:ctrl_resilience_dr"
         - "urn:intuitem:risk:control:infra-sbd:ctrl_admin_sso_mfa"
+      likelihood: urn:intuitem:risk:req_node:infra-sbd:high_availability_disaster_recovery
+      impact: urn:intuitem:risk:req_node:infra-sbd:data_classification_profiling
     - urn: urn:intuitem:risk:risk_scenario:infra-sbd:scenario_vendor_data_breach
       ref_id: scenario_vendor_data_breach
       name: Third-Party SaaS Provider Compromise Exposing Enterprise Data
@@ -293,6 +303,8 @@ objects:
         - "urn:intuitem:risk:vulnerability:infra-sbd:vuln_uncertified_vendor"
       reference_controls:
         - "urn:intuitem:risk:control:infra-sbd:ctrl_vendor_due_diligence"
+      likelihood: urn:intuitem:risk:req_node:infra-sbd:vendor_contract_compliance
+      impact: urn:intuitem:risk:req_node:infra-sbd:data_classification_profiling
     - urn: urn:intuitem:risk:risk_scenario:infra-sbd:scenario_shadow_saas_compromise
       ref_id: scenario_shadow_saas_compromise
       name: Account Hijacking on Third-Party SaaS via Weak Unmanaged Passwords
@@ -305,6 +317,82 @@ objects:
         - "urn:intuitem:risk:vulnerability:infra-sbd:vuln_shadow_saas_auth"
       reference_controls:
         - "urn:intuitem:risk:control:infra-sbd:ctrl_saas_sso_mfa"
+      likelihood: urn:intuitem:risk:req_node:infra-sbd:saas_identity_data_governance
+      impact: urn:intuitem:risk:req_node:infra-sbd:data_classification_profiling
+
+  # ========================================================================
+  # RISK MATRIX
+  # ========================================================================
+  risk_matrix:
+    - urn: urn:intuitem:risk:matrix:infra-sbd
+      ref_id: risk-matrix-4x4-infra-sbd
+      name: Security by Design Risk Matrix
+      description: 4x4 Risk Matrix for Security by Design (SbD) Assessment
+      grid:
+        - [0, 0, 1, 1]
+        - [0, 1, 1, 2]
+        - [1, 1, 2, 3]
+        - [1, 2, 3, 4]
+      probability:
+        - id: 0
+          name: 1 - unlikely
+          abbreviation: "1"
+          description: The likelihood of the risk scenario is very low
+        - id: 1
+          name: 2 - rather unlikely
+          abbreviation: "2"
+          description: The likelihood of the risk scenario is low
+        - id: 2
+          name: 3 - likely
+          abbreviation: "3"
+          description: The likelihood of the risk scenario is significant
+        - id: 3
+          name: 4 - very likely
+          abbreviation: "4"
+          description: The likelihood of the risk scenario is high
+      impact:
+        - id: 0
+          name: 1 - minor
+          abbreviation: "1"
+          description: Negligible consequences for the organization
+        - id: 1
+          name: 2 - significant
+          abbreviation: "2"
+          description: Significant but limited consequences for the organization
+        - id: 2
+          name: 3 - serious
+          abbreviation: "3"
+          description: Substantial consequences for the organization
+        - id: 3
+          name: 4 - critical
+          abbreviation: "4"
+          description: Disastrous consequences for the organization
+      risk:
+        - id: 0
+          name: 1 - very low
+          abbreviation: "1"
+          hexcolor: "#D3FF4E"
+          description: very low - acceptable risk
+        - id: 1
+          name: 2 - low
+          abbreviation: "2"
+          hexcolor: "#02A45A"
+          description: low - acceptable risk
+        - id: 2
+          name: 3 - medium
+          abbreviation: "3"
+          hexcolor: "#FFA600"
+          description: medium - tolerable risk
+        - id: 3
+          name: 4 - high
+          abbreviation: "4"
+          hexcolor: "#FF1A00"
+          description: high - unacceptable risk
+        - id: 4
+          name: 5 - very high
+          abbreviation: "5"
+          hexcolor: "#C00000"
+          description: very high - unacceptable risk
 
   # ========================================================================
   # FRAMEWORK DEFINITION

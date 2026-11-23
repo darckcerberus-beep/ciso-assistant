@@ -80,10 +80,6 @@ objects:
       urn: urn:intuitem:risk:implementation_group:appsec:deep_sar
       description: Mandatory deep architectural review and pre-production sign-off for critical infrastructure, core IAM modifications,
         SPOF systems, and high-impact data.
-    - ref_id: fast_track
-      name: Fast-Track Standard Changes
-      urn: urn:intuitem:risk:implementation_group:appsec:fast_track
-      description: Fast-track lane for low-risk standard changes requiring only peer review with automated guardrails.
     - ref_id: infra_sbd
       name: 'Stage 2: Infrastructure & Cloud Platform Track (SbD)'
       urn: urn:intuitem:risk:implementation_group:appsec:infra_sbd
@@ -198,6 +194,14 @@ objects:
       choice_ref_id: c4
       choice_value: Cloud Infrastructure / Platform Change (VMs, Kubernetes, network, databases)
       prompt: Solution involves cloud infrastructure. Trigger Infrastructure & Cloud Platform Track?
+    - target_implementation_group: infra_sbd
+      name: Trigger Infra SbD Track from Public Exposure Knock-Out
+      question_urn: urn:intuitem:risk:req_node:appsec:knockout_assessment:q1
+      question_ref_id: knockout_assessment:q1
+      choice_urn: urn:intuitem:risk:req_node:appsec:knockout_assessment:q1:c1
+      choice_ref_id: c1
+      choice_value: 'Yes'
+      prompt: Change introduces public Internet exposure. Trigger Infrastructure & Cloud Platform Track?
     - target_implementation_group: infra
       name: Trigger Infra Track from Public Exposure Knock-Out
       question_urn: urn:intuitem:risk:req_node:appsec:knockout_assessment:q1
@@ -205,7 +209,7 @@ objects:
       choice_urn: urn:intuitem:risk:req_node:appsec:knockout_assessment:q1:c1
       choice_ref_id: c1
       choice_value: 'Yes'
-      prompt: Change introduces public Internet exposure. Trigger Infrastructure & Cloud Platform Track?
+      prompt: Change introduces public Internet exposure. Trigger Infrastructure & Hosting Track?
     - target_implementation_group: deep_sar
       name: Trigger Deep SAR from Core IAM Knock-Out
       question_urn: urn:intuitem:risk:req_node:appsec:knockout_assessment:q2
@@ -214,6 +218,14 @@ objects:
       choice_ref_id: c1
       choice_value: 'Yes'
       prompt: Change modifies core administrative IAM or cross-account trusts. Trigger Deep Security Architecture Review?
+    - target_implementation_group: infra_sbd
+      name: Trigger Infra SbD Track from Network Boundary Knock-Out
+      question_urn: urn:intuitem:risk:req_node:appsec:knockout_assessment:q3
+      question_ref_id: knockout_assessment:q3
+      choice_urn: urn:intuitem:risk:req_node:appsec:knockout_assessment:q3:c1
+      choice_ref_id: c1
+      choice_value: 'Yes'
+      prompt: Change alters network perimeters, peerings, or transit routing. Trigger Infrastructure & Cloud Platform Track?
     - target_implementation_group: infra
       name: Trigger Infra Track from Network Boundary Knock-Out
       question_urn: urn:intuitem:risk:req_node:appsec:knockout_assessment:q3
@@ -221,7 +233,7 @@ objects:
       choice_urn: urn:intuitem:risk:req_node:appsec:knockout_assessment:q3:c1
       choice_ref_id: c1
       choice_value: 'Yes'
-      prompt: Change alters network perimeters, peerings, or transit routing. Trigger Infrastructure & Cloud Platform Track?
+      prompt: Change alters network perimeters, peerings, or transit routing. Trigger Infrastructure & Hosting Track?
     - target_implementation_group: deep_sar
       name: Trigger Deep SAR from Sensitive Data Knock-Out
       question_urn: urn:intuitem:risk:req_node:appsec:knockout_assessment:q4

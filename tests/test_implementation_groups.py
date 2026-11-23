@@ -808,7 +808,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "test_data/app_manual_custom_internal.yml": {
                 "name": "App-Manual-Custom-Internal",
                 "visible_igs": {"info", "baseline", "custom_app", "infra"},
-                "hidden_igs": {"cots_app", "internet_facing", "saas_app", "saas_uncertified", "extranet"},
+                "hidden_igs": {"cots_app", "internet_facing", "saas_app", "saas_uncertified", "extranet", "deep_sar", "infra_sbd", "business_sbd"},
                 "node_count": 22,
                 "scenario_count": 19,
                 "excluded_scenario_count": 25,
@@ -816,7 +816,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "test_data/app_manual_custom_internet.yml": {
                 "name": "App-Manual-Custom-Internet",
                 "visible_igs": {"info", "baseline", "custom_app", "infra", "internet_facing"},
-                "hidden_igs": {"cots_app", "saas_app", "saas_uncertified", "extranet"},
+                "hidden_igs": {"cots_app", "saas_app", "saas_uncertified", "extranet", "deep_sar", "infra_sbd", "business_sbd"},
                 "node_count": 25,
                 "scenario_count": 21,
                 "excluded_scenario_count": 23,
@@ -824,7 +824,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "test_data/app_manual_cots_internal.yml": {
                 "name": "App-Manual-COTS-Internal",
                 "visible_igs": {"info", "baseline", "cots_app", "infra"},
-                "hidden_igs": {"custom_app", "internet_facing", "saas_app", "saas_uncertified", "extranet"},
+                "hidden_igs": {"custom_app", "internet_facing", "saas_app", "saas_uncertified", "extranet", "deep_sar", "infra_sbd", "business_sbd"},
                 "node_count": 18,
                 "scenario_count": 15,
                 "excluded_scenario_count": 29,
@@ -832,7 +832,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "test_data/app_manual_cots_internet.yml": {
                 "name": "App-Manual-COTS-Internet",
                 "visible_igs": {"info", "baseline", "cots_app", "infra", "internet_facing"},
-                "hidden_igs": {"custom_app", "saas_app", "saas_uncertified", "extranet"},
+                "hidden_igs": {"custom_app", "saas_app", "saas_uncertified", "extranet", "deep_sar", "infra_sbd", "business_sbd"},
                 "node_count": 21,
                 "scenario_count": 17,
                 "excluded_scenario_count": 27,
@@ -840,7 +840,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "test_data/app_manual_saas_certified.yml": {
                 "name": "App-Manual-SaaS-Certified",
                 "visible_igs": {"info", "baseline", "saas_app"},
-                "hidden_igs": {"custom_app", "cots_app", "infra", "internet_facing", "saas_uncertified", "extranet"},
+                "hidden_igs": {"custom_app", "cots_app", "infra", "internet_facing", "saas_uncertified", "extranet", "deep_sar", "infra_sbd", "business_sbd"},
                 "node_count": 13,
                 "scenario_count": 10,
                 "excluded_scenario_count": 34,
@@ -848,7 +848,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "test_data/app_manual_saas_uncertified.yml": {
                 "name": "App-Manual-SaaS-Uncertified",
                 "visible_igs": {"info", "baseline", "saas_app", "saas_uncertified"},
-                "hidden_igs": {"custom_app", "cots_app", "infra", "internet_facing", "extranet"},
+                "hidden_igs": {"custom_app", "cots_app", "infra", "internet_facing", "extranet", "deep_sar", "infra_sbd", "business_sbd"},
                 "node_count": 27,
                 "scenario_count": 24,
                 "excluded_scenario_count": 20,
@@ -1037,7 +1037,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "test_data/app_appsec_custom_internal.yml": {
                 "name": "App-AppSec-Custom-Internal",
                 "visible_igs": {"info", "baseline", "custom_app", "infra"},
-                "hidden_igs": {"cots_app", "internet_facing", "saas_app", "saas_uncertified", "extranet"},
+                "hidden_igs": {"cots_app", "internet_facing", "saas_app", "saas_uncertified", "extranet", "deep_sar", "infra_sbd", "business_sbd"},
                 "node_count": 22,
                 "scenario_count": 19,
                 "excluded_scenario_count": 25,
@@ -1045,7 +1045,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "test_data/app_appsec_custom_internet.yml": {
                 "name": "App-AppSec-Custom-Internet",
                 "visible_igs": {"info", "baseline", "custom_app", "infra", "internet_facing"},
-                "hidden_igs": {"cots_app", "saas_app", "saas_uncertified", "extranet"},
+                "hidden_igs": {"cots_app", "saas_app", "saas_uncertified", "extranet", "deep_sar", "infra_sbd", "business_sbd"},
                 "node_count": 25,
                 "scenario_count": 21,
                 "excluded_scenario_count": 23,
@@ -1053,7 +1053,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "test_data/app_appsec_cots_internal.yml": {
                 "name": "App-AppSec-COTS-Internal",
                 "visible_igs": {"info", "baseline", "cots_app", "infra"},
-                "hidden_igs": {"custom_app", "internet_facing", "saas_app", "saas_uncertified", "extranet"},
+                "hidden_igs": {"custom_app", "internet_facing", "saas_app", "saas_uncertified", "extranet", "deep_sar", "infra_sbd", "business_sbd"},
                 "node_count": 18,
                 "scenario_count": 15,
                 "excluded_scenario_count": 29,
@@ -1061,7 +1061,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "test_data/app_appsec_cots_internet.yml": {
                 "name": "App-AppSec-COTS-Internet",
                 "visible_igs": {"info", "baseline", "cots_app", "infra", "internet_facing"},
-                "hidden_igs": {"custom_app", "saas_app", "saas_uncertified", "extranet"},
+                "hidden_igs": {"custom_app", "saas_app", "saas_uncertified", "extranet", "deep_sar", "infra_sbd", "business_sbd"},
                 "node_count": 21,
                 "scenario_count": 17,
                 "excluded_scenario_count": 27,
@@ -1069,7 +1069,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "test_data/app_appsec_saas_certified.yml": {
                 "name": "App-AppSec-SaaS-Certified",
                 "visible_igs": {"info", "baseline", "saas_app"},
-                "hidden_igs": {"custom_app", "cots_app", "infra", "internet_facing", "saas_uncertified", "extranet"},
+                "hidden_igs": {"custom_app", "cots_app", "infra", "internet_facing", "saas_uncertified", "extranet", "deep_sar", "infra_sbd", "business_sbd"},
                 "node_count": 13,
                 "scenario_count": 10,
                 "excluded_scenario_count": 34,
@@ -1077,7 +1077,7 @@ class TestImplementationGroupsTriggeredByOthers(unittest.TestCase):
             "test_data/app_appsec_saas_uncertified.yml": {
                 "name": "App-AppSec-SaaS-Uncertified",
                 "visible_igs": {"info", "baseline", "saas_app", "saas_uncertified"},
-                "hidden_igs": {"custom_app", "cots_app", "infra", "internet_facing", "extranet"},
+                "hidden_igs": {"custom_app", "cots_app", "infra", "internet_facing", "extranet", "deep_sar", "infra_sbd", "business_sbd"},
                 "node_count": 27,
                 "scenario_count": 24,
                 "excluded_scenario_count": 20,

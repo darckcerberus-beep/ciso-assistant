@@ -3375,6 +3375,20 @@ class ExamplesManager:
         if d4_score == 4:
             knock_outs.append(("privileged_access", "important"))
 
+        # SbD Intake Knock-outs (KO-1 to KO-6)
+        if b_ans.get("ko2") == "yes":
+            knock_outs.append(("core_iam_modification", "critical"))
+        if b_ans.get("ko4") == "yes":
+            knock_outs.append(("sensitive_data_or_secrets", "critical"))
+        if b_ans.get("ko6") == "yes":
+            knock_outs.append(("single_point_of_failure", "critical"))
+        if b_ans.get("ko1") == "yes":
+            knock_outs.append(("public_ingress_exposure", "important"))
+        if b_ans.get("ko3") == "yes":
+            knock_outs.append(("network_perimeter_boundary", "important"))
+        if b_ans.get("ko5") == "yes":
+            knock_outs.append(("critical_third_party_saas", "important"))
+
         tier_ranks = {"critical": 4, "important": 3, "standard": 2, "low-impact": 1}
         final_rank = tier_ranks.get(base_tier, 2)
         for _, ko_tier in knock_outs:
@@ -3536,6 +3550,25 @@ class ExamplesManager:
             requires_sbd = False
             fast_track = True
 
+        clearance_record = None
+        delta_update_res = None
+        if fast_track:
+            if auto_sign_off:
+                clearance_record = self.record_fast_track_clearance(
+                    app_name_or_solution_id,
+                    gate_decision=gate_decision,
+                    eval_nature=eval_nature,
+                    inherent_score=tiering_result.get("inherent_score"),
+                )
+        elif eval_nature == "change" and auto_sign_off:
+            delta_igs = tiering_result.get("recommended_implementation_groups", [])
+            if delta_igs:
+                delta_update_res = self.update_application_audit_delta(
+                    app_name_or_solution_id,
+                    delta_implementation_groups=delta_igs,
+                    sign_off_note=gate_decision,
+                )
+
         return {
             "app_name": app_name_or_solution_id,
             "has_answers": True,
@@ -3547,6 +3580,8 @@ class ExamplesManager:
             "review_level": review_level,
             "gate_action": gate_action,
             "fast_track_eligible": fast_track,
+            "clearance_record": clearance_record,
+            "delta_update": delta_update_res,
             "triggered_knockouts": triggered_kos,
             "criticality_tier": final_tier,
             "inherent_score": tiering_result.get("inherent_score"),
@@ -3617,6 +3652,102 @@ class ExamplesManager:
             "answered_requirements": answered_count,
             "has_answers": answered_count > 0,
             "direct_url": f"{utils.BASE_URL}/",
+        }
+
+    def record_fast_track_clearance(
+        self,
+        app_name_or_solution_id: str,
+        gate_decision: str = "Fast-Track Standard Change (Peer Review Only)",
+        eval_nature: str = "change",
+        inherent_score: float | None = None,
+    ) -> dict[str, Any]:
+        """Record a fast-track SbD clearance directly on the Solution metadata with zero audit overhead."""
+        target = str(app_name_or_solution_id).strip()
+        clearance_note = f"[SbD Fast-Track Clearance]: {gate_decision} (Scope: {eval_nature})"
+        try:
+            sol = self.find_solution(target)
+            if not sol:
+                sol = self.get_or_create_solution(target)
+            sol_id = sol.get("id") if isinstance(sol, dict) else None
+            if sol_id:
+                existing_note = sol.get("tier_note") or ""
+                updated_note = f"{existing_note} | {clearance_note}".strip(" |") if existing_note else clearance_note
+                patch_payload = {
+                    "tier_note": updated_note,
+                }
+                utils.get_return(f"api/solutions/{sol_id}/", method="PATCH", payload=patch_payload)
+                utils.clear_get_all_results_cache()
+                return {
+                    "solution_id": sol_id,
+                    "solution_name": sol.get("name", target),
+                    "clearance_status": "FAST_TRACK_APPROVED",
+                    "audit_created": False,
+                    "note": updated_note,
+                }
+        except Exception as e:
+            LOGGER.warning(f"Could not update solution metadata for fast-track clearance: {e}")
+
+        return {
+            "solution_id": None,
+            "solution_name": target,
+            "clearance_status": "FAST_TRACK_APPROVED",
+            "audit_created": False,
+            "note": clearance_note,
+        }
+
+    def update_application_audit_delta(
+        self,
+        app_name_or_ca_id: str,
+        delta_implementation_groups: list[str] | set[str],
+        sign_off_note: str | None = None,
+    ) -> dict[str, Any]:
+        """Update an existing application's living compliance assessment by activating newly triggered delta tracks."""
+        target = str(app_name_or_ca_id).strip()
+        status = self.get_sbd_assessment_status(target)
+        if not status.get("exists"):
+            return {
+                "updated": False,
+                "app_name": target,
+                "message": f"No existing compliance assessment found for '{target}'. Provisioning initial audit is required.",
+            }
+
+        ca_id = status.get("compliance_assessment_id")
+        ca_name = status.get("compliance_assessment_name")
+        data = self._init_data()
+        compliance_dict = data.get("compliance_assessment_dict")
+        all_cas = compliance_dict.get_compliance_assessments() if compliance_dict and hasattr(compliance_dict, "get_compliance_assessments") else {}
+        ca_obj = all_cas.get(ca_id)
+
+        # Retrieve currently active implementation groups
+        current_igs: list[str] = []
+        if ca_obj:
+            if hasattr(ca_obj, "get_selected_implementation_groups"):
+                current_igs = list(ca_obj.get_selected_implementation_groups() or [])
+            elif hasattr(ca_obj, "compliance_assessment_json") and isinstance(ca_obj.compliance_assessment_json, dict):
+                current_igs = list(ca_obj.compliance_assessment_json.get("selected_implementation_groups", []) or [])
+
+        # Merge existing IGs with new delta IGs
+        norm_delta = [str(g).strip() for g in delta_implementation_groups if str(g).strip()]
+        merged_set = set(current_igs) | set(norm_delta)
+        merged_igs = sorted(list(merged_set))
+
+        # Patch if changed
+        if set(merged_igs) != set(current_igs):
+            patch_payload = {
+                "selected_implementation_groups": merged_igs,
+            }
+            utils.get_return(f"api/compliance-assessments/{ca_id}/", method="PATCH", payload=patch_payload)
+            utils.clear_get_all_results_cache()
+            LOGGER.info(f"Updated living audit '{ca_name}' ({ca_id}) with delta tracks: {norm_delta}. Total active tracks: {len(merged_igs)}")
+
+        return {
+            "updated": True,
+            "compliance_assessment_id": ca_id,
+            "compliance_assessment_name": ca_name,
+            "previous_implementation_groups": current_igs,
+            "active_implementation_groups": merged_igs,
+            "delta_implementation_groups": norm_delta,
+            "message": f"Living audit '{ca_name}' updated with delta tracks: {norm_delta}",
         }
 
     def create_sbd_assessment(

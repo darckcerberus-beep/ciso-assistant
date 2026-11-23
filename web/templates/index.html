@@ -584,6 +584,9 @@
                 <div id="sbd-res-tracks" class="flex flex-wrap gap-1.5"></div>
               </div>
             </div>
+
+            <!-- Action Audit / Clearance Banner -->
+            <div id="sbd-res-clearance-banner" class="hidden p-3 rounded-lg text-xs space-y-1"></div>
           </div>
         </div>
       </div>
@@ -3707,7 +3710,23 @@
         pendingBanner.classList.remove("hidden");
         content.classList.add("hidden");
         document.getElementById("sbd-res-pending-msg").innerText = data.message || "Assessment has not been completed by respondent yet.";
-        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        // Clearance & Living Audit Delta Banner
+      const clrBanner = document.getElementById("sbd-res-clearance-banner");
+      if (clrBanner) {
+        if (data.clearance_record && data.fast_track_eligible) {
+          clrBanner.className = "p-3 rounded-lg text-xs space-y-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300";
+          clrBanner.innerHTML = `<div class="font-bold flex items-center space-x-1.5"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i><span>Zero-Audit Fast-Track Clearance Logged</span></div><div class="text-[11px] text-slate-300">Fast-track clearance recorded directly on solution metadata without creating an empty compliance assessment.</div>`;
+          clrBanner.classList.remove("hidden");
+        } else if (data.delta_update && data.delta_update.updated) {
+          clrBanner.className = "p-3 rounded-lg text-xs space-y-1 bg-brand-500/10 border border-brand-500/30 text-brand-300";
+          clrBanner.innerHTML = `<div class="font-bold flex items-center space-x-1.5"><i data-lucide="refresh-cw" class="w-4 h-4 text-brand-400"></i><span>Living Audit Delta Updated</span></div><div class="text-[11px] text-slate-300">Existing audit <strong>${escapeHtml(data.delta_update.compliance_assessment_name)}</strong> updated with delta tracks: <code>${(data.delta_update.delta_implementation_groups || []).join(', ')}</code>.</div>`;
+          clrBanner.classList.remove("hidden");
+        } else {
+          clrBanner.classList.add("hidden");
+        }
+      }
+
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         lucide.createIcons();
         return;
       }
@@ -3764,6 +3783,22 @@
         trackEl.innerHTML = `<span class="text-slate-500 text-[11px]">Baseline</span>`;
       } else {
         trackEl.innerHTML = tracks.map(t => `<span class="px-2 py-0.5 rounded text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">${t}</span>`).join("");
+      }
+
+      // Clearance & Living Audit Delta Banner
+      const clrBanner = document.getElementById("sbd-res-clearance-banner");
+      if (clrBanner) {
+        if (data.clearance_record && data.fast_track_eligible) {
+          clrBanner.className = "p-3 rounded-lg text-xs space-y-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300";
+          clrBanner.innerHTML = `<div class="font-bold flex items-center space-x-1.5"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i><span>Zero-Audit Fast-Track Clearance Logged</span></div><div class="text-[11px] text-slate-300">Fast-track clearance recorded directly on solution metadata without creating an empty compliance assessment.</div>`;
+          clrBanner.classList.remove("hidden");
+        } else if (data.delta_update && data.delta_update.updated) {
+          clrBanner.className = "p-3 rounded-lg text-xs space-y-1 bg-brand-500/10 border border-brand-500/30 text-brand-300";
+          clrBanner.innerHTML = `<div class="font-bold flex items-center space-x-1.5"><i data-lucide="refresh-cw" class="w-4 h-4 text-brand-400"></i><span>Living Audit Delta Updated</span></div><div class="text-[11px] text-slate-300">Existing audit <strong>${escapeHtml(data.delta_update.compliance_assessment_name)}</strong> updated with delta tracks: <code>${(data.delta_update.delta_implementation_groups || []).join(', ')}</code>.</div>`;
+          clrBanner.classList.remove("hidden");
+        } else {
+          clrBanner.classList.add("hidden");
+        }
       }
 
       card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
