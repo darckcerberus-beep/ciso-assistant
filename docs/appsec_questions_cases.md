@@ -41,10 +41,14 @@ Define or customize your operational situations/cases here for reference:
 | # | Chapter | Requirement Node | Q ID | Question Summary | Current IGs | Applicable Cases / Situations |
 | :-: | :--- | :--- | :-: | :--- | :--- | :--- |
 | 0a | Application Information & Governance | `application_description` | `q1` | What is the primary functional domain and business purpose of the application? | `info` | All applications (Functional & business domain profiling) |
+| 0a-other | Application Information & Governance | `application_description` | `q1_other` | Please specify the primary functional domain and business purpose of the application: | `info` | Free-text field triggered when `application_description:q1 == c6` (Other) |
 | 0b | Application Information & Governance | `application_description` | `q2` | Who are the primary intended users or consumers of the application? | `info` | All applications (User audience & consumer scope profiling) |
 | 1 | Application Information & Governance | `stakeholder_identification` | `q1` | Is there a designated business contact? (Designated business owner or product spon... | `info` | All applications (Info profiling) |
+| 1b | Application Information & Governance | `stakeholder_identification` | `q1_name` | Designated business contact (name and/or email address): | `info` | Free-text field triggered when `stakeholder_identification:q1 == c1` (Yes) |
 | 2 | Application Information & Governance | `stakeholder_identification` | `q2` | Is there a designated IT contact? (Technical lead or engineer responsible for main... | `info` | All applications (Info profiling) |
+| 2b | Application Information & Governance | `stakeholder_identification` | `q2_name` | Designated IT contact (name and/or email address): | `info` | Free-text field triggered when `stakeholder_identification:q2 == c1` (Yes) |
 | 3 | Application Information & Governance | `stakeholder_identification` | `q3` | Is there a designated data owner? (Data steward or governance officer responsible ... | `info` | All applications (Info profiling) |
+| 3b | Application Information & Governance | `stakeholder_identification` | `q3_name` | Designated data owner (name and/or email address): | `info` | Free-text field triggered when `stakeholder_identification:q3 == c1` (Yes) |
 | 4 | Application Information & Governance | `stakeholder_identification` | `q4` | Is the information about stakeholders updated in LeanIX / CMDB? (Stakeholder assig... | `info` | All applications (Info profiling) |
 | 5a | Application Information & Governance | `data_classification` | `q1` | What is the primary operational data category handled? (Retail storefront, warehouse/operations, confidential customer/commercial, or critical financial/secrets) | `info` | All applications (Data classification refinement - Category) |
 | 5b | Application Information & Governance | `data_classification` | `q2` | What is the adverse impact severity of unauthorized disclosure? (Negligible, minor friction, moderate/severe, or catastrophic) | `info` | All applications (Data classification refinement - Impact severity) |
@@ -88,8 +92,7 @@ Define or customize your operational situations/cases here for reference:
 | 27 | Secure SDLC & DevSecOps Automation | `code_review_and_ci_cd_integrity` | `q1` | Are mandatory peer code reviews enforced prior to merging changes into deployment branches? | `custom_app` | Custom applications (+50 pts) |
 | 27b | Secure SDLC & DevSecOps Automation | `code_review_and_ci_cd_integrity` | `q2` | Do repository branch protection rules block direct commits, force-pushes, and failing CI status checks on deployment branches? | `custom_app` | Custom applications (+50 pts) |
 | 28 | Secure SDLC & DevSecOps Automation | `vendor_secure_development` | `q1` | Does the third-party COTS software vendor adhere to recognized secure coding stand... | `cots_app` | **COTS Only** (Vendor secure coding guidelines) |
-| 28b | API Security & Edge Protections | `edge_network_protection` | `q1` | Is inbound HTTP/HTTPS traffic routed through and protected by Cloudflare (e.g. Cloudflare reverse proxy, WAF, DDoS mitigation)? | `internet_facing` | **Self-Hosted Internet-Facing only** (Cloudflare reverse proxy & edge WAF, +100 pts) |
-| 29 | API Security & Edge Protections | `api_security_and_rate_limiting` | `q1` | Are internet-facing endpoints fronted by an Edge WAF and anti-DDoS / bot protection (e.g. Cloudflare, AWS WAF)? | `internet_facing` | **Self-Hosted Internet-Facing only** (Edge WAF & DDoS, +50 pts) |
+| 29 | API Security & Edge Protections | `api_security_and_rate_limiting` | `q1` | Is inbound HTTP/HTTPS traffic routed through an edge reverse proxy with Edge WAF, anti-DDoS, and bot protection (e.g. Cloudflare, AWS WAF & Shield)? | `internet_facing` | **Self-Hosted Internet-Facing only** (Edge reverse proxy, WAF & anti-DDoS, +50 pts) |
 | 30 | API Security & Edge Protections | `api_security_and_rate_limiting` | `q2` | Are API rate limiting, throttling, and payload size quotas enforced to prevent scraping and resource exhaustion? | `internet_facing` | **Self-Hosted Internet-Facing only** (Rate limiting & quotas, +50 pts) |
 | 31 | Data Protection & Lifecycle Governance | `data_exchange` | `q1` | Does the application exchange data externally? (e.g., transfers, automated API int... | `custom_app, cots_app` | Self-Hosted only (Custom & COTS) |
 | 32 | Data Protection & Lifecycle Governance | `data_exchange` | `q2` | Is there a data exchange contract with the appropriate confidentiality clauses? (e... | `custom_app, cots_app` | Self-Hosted only (Custom & COTS - if data exchanged) |
@@ -182,6 +185,14 @@ Define or customize your operational situations/cases here for reference:
 - **Applicable Cases / Situations**:
   - [x] All applications (Functional & business domain profiling)
 
+##### Q1-other. `application_description:q1_other`
+- **URN**: `urn:intuitem:risk:req_node:appsec:application_description:q1_other`
+- **Question**: Please specify the primary functional domain and business purpose of the application:
+- **Type**: `text`
+- **Depends On**: `application_description:q1` = `Other / Specialized Functional Purpose` (`c6`)
+- **Applicable Cases / Situations**:
+  - [x] Triggered when "Other / Specialized Functional Purpose" is selected in `application_description:q1`
+
 ##### Q2. `application_description:q2`
 - **URN**: `urn:intuitem:risk:req_node:appsec:application_description:q2`
 - **Question**: Who are the primary intended users or consumers of the application?
@@ -209,6 +220,14 @@ Action - None
 - **Applicable Cases / Situations**:
   - [x] All applications (Info profiling)
 
+##### Q1b. `stakeholder_identification:q1_name`
+- **URN**: `urn:intuitem:risk:req_node:appsec:stakeholder_identification:q1_name`
+- **Question**: Designated business contact (name and/or email address):
+- **Type**: `text`
+- **Depends On**: `stakeholder_identification:q1` = `Yes` (`c1`)
+- **Applicable Cases / Situations**:
+  - [x] Triggered when a designated business contact exists
+
 ##### Q2. `stakeholder_identification:q2`
 - **URN**: `urn:intuitem:risk:req_node:appsec:stakeholder_identification:q2`
 - **Question**: Is there a designated IT contact? (Technical lead or engineer responsible for maintenance, infrastructure, deployment, and operational support)
@@ -219,6 +238,14 @@ Action - None
 - **Applicable Cases / Situations**:
   - [x] All applications (Info profiling)
 
+##### Q2b. `stakeholder_identification:q2_name`
+- **URN**: `urn:intuitem:risk:req_node:appsec:stakeholder_identification:q2_name`
+- **Question**: Designated IT contact (name and/or email address):
+- **Type**: `text`
+- **Depends On**: `stakeholder_identification:q2` = `Yes` (`c1`)
+- **Applicable Cases / Situations**:
+  - [x] Triggered when a designated IT contact exists
+
 ##### Q3. `stakeholder_identification:q3`
 - **URN**: `urn:intuitem:risk:req_node:appsec:stakeholder_identification:q3`
 - **Question**: Is there a designated data owner? (Data steward or governance officer responsible for information classification, access authorization, and regulatory compliance)
@@ -228,6 +255,14 @@ Action - None
   - `No` (0 pts)
 - **Applicable Cases / Situations**:
   - [x] All applications (Info profiling)
+
+##### Q3b. `stakeholder_identification:q3_name`
+- **URN**: `urn:intuitem:risk:req_node:appsec:stakeholder_identification:q3_name`
+- **Question**: Designated data owner (name and/or email address):
+- **Type**: `text`
+- **Depends On**: `stakeholder_identification:q3` = `Yes` (`c1`)
+- **Applicable Cases / Situations**:
+  - [x] Triggered when a designated data owner exists
 
 ##### Q4. `stakeholder_identification:q4`
 - **URN**: `urn:intuitem:risk:req_node:appsec:stakeholder_identification:q4`
@@ -652,33 +687,19 @@ Action - For COTS, ask if vendor follows secure coding guidelines without going 
 
 *Protect application interfaces and APIs against abuse, volumetric attacks, and automated bots for self-hosted applications.*
 
-#### Node: Edge Network Protection & Inbound Reverse Proxy (`edge_network_protection`)
+#### Node: Edge Network Protection, Reverse Proxy, WAF & API Rate Limiting (`api_security_and_rate_limiting`)
 - **Implementation Groups**: `internet_facing`
-- **Description**: Ensure inbound HTTP/HTTPS traffic is routed through and protected by edge network protections (e.g. Cloudflare reverse proxy, Web Application Firewall [WAF], and DDoS mitigation). Applicable strictly to self-hosted applications exposed to the public Internet (Custom and COTS).
-
-##### Q28b. `edge_network_protection:q1`
-- **URN**: `urn:intuitem:risk:req_node:appsec:edge_network_protection:q1` / `urn:intuitem:risk:req_node:appsec_manual:edge_network_protection:q1`
-- **Question**: Is inbound HTTP/HTTPS traffic routed through and protected by Cloudflare (e.g. Cloudflare reverse proxy, Web Application Firewall [WAF], and DDoS mitigation)?
-- **Type**: `unique_choice`
-- **Choices & Scoring**:
-  - `Yes` (100 pts, compute_result: true)
-  - `No` (0 pts, compute_result: false)
-- **Applicable Cases / Situations**:
-  - [x] **Self-Hosted Internet-Facing only** (Custom & COTS with public Internet exposure)
-
-#### Node: API Gateway, Edge WAF, Rate Limiting & Bot Protection (`api_security_and_rate_limiting`)
-- **Implementation Groups**: `internet_facing`
-- **Description**: Protect exposed web and API endpoints against abusive traffic, automated bots, and volumetric attacks via an edge Web Application Firewall (WAF, e.g., Cloudflare), and automated rate limiting / throttling controls. (Applicable strictly to self-hosted applications exposed to the public Internet; excluded from the SaaS questionnaire as provider implicitly manages edge protections and rate limiting; SaaS contractual network security is evaluated under Chapter 10 Section 9).
+- **Description**: Route inbound HTTP/HTTPS traffic through an edge reverse proxy with Edge WAF, anti-DDoS, and bot protection (e.g. Cloudflare, AWS WAF & Shield), and enforce API rate limiting and throttling controls. (Applicable strictly to self-hosted applications exposed to the public Internet; excluded from the SaaS questionnaire as provider implicitly manages edge protections and rate limiting; SaaS contractual network security is evaluated under Chapter 10 Section 9).
 
 ##### Q29. `api_security_and_rate_limiting:q1`
 - **URN**: `urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting:q1`
-- **Question**: Are internet-facing endpoints fronted by an Edge WAF and anti-DDoS / bot protection (e.g. Cloudflare, AWS WAF)?
+- **Question**: Is inbound HTTP/HTTPS traffic routed through an edge reverse proxy with Edge WAF, anti-DDoS, and bot protection (e.g. Cloudflare, AWS WAF & Shield)?
 - **Type**: `unique_choice`
 - **Choices & Scoring**:
   - `Yes` (50 pts, compute_result: true)
   - `No` (0 pts)
 - **Applicable Cases / Situations**:
-  - [x] **Self-Hosted Internet-Facing only** (Edge WAF, anti-DDoS & bot protection)
+  - [x] **Self-Hosted Internet-Facing only** (Edge reverse proxy, WAF, anti-DDoS & bot protection)
 
 ##### Q30. `api_security_and_rate_limiting:q2`
 - **URN**: `urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting:q2`

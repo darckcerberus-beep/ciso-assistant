@@ -776,18 +776,20 @@ class TestYamlIntegrity(unittest.TestCase):
         self.assertEqual(q8_c1.get("select_implementation_groups"), ["internet_facing"])
         self.assertNotIn("select_implementation_groups", q8_c2)
 
-        # Validate edge_network_protection requirement node is scoped to internet_facing track
-        edge_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:edge_network_protection")
-        self.assertIsNotNone(edge_node, "edge_network_protection requirement node missing in AppSec")
-        self.assertEqual(edge_node.get("implementation_groups"), ["internet_facing"])
-        q1_edge = edge_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:edge_network_protection:q1")
-        self.assertIsNotNone(q1_edge, "edge_network_protection:q1 missing")
+        # Validate edge_network_protection was consolidated into api_security_and_rate_limiting (internet_facing track)
+        self.assertNotIn("urn:intuitem:risk:req_node:appsec:edge_network_protection", appsec_fw["req_nodes"])
+        api_edge_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting")
+        self.assertIsNotNone(api_edge_node, "api_security_and_rate_limiting requirement node missing in AppSec")
+        self.assertEqual(api_edge_node.get("implementation_groups"), ["internet_facing"])
+        q1_edge = api_edge_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting:q1")
+        self.assertIsNotNone(q1_edge, "api_security_and_rate_limiting:q1 missing")
+        self.assertIn("reverse proxy", q1_edge.get("text", "").lower())
         self.assertIn("cloudflare", q1_edge.get("text", "").lower())
         edge_choices = {c["urn"]: c for c in q1_edge.get("choices", [])}
         self.assertEqual(len(edge_choices), 2)
-        cf_yes = edge_choices["urn:intuitem:risk:req_node:appsec:edge_network_protection:q1:c1"]
-        cf_no = edge_choices["urn:intuitem:risk:req_node:appsec:edge_network_protection:q1:c2"]
-        self.assertEqual(cf_yes["add_score"], 100)
+        cf_yes = edge_choices["urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting:q1:c1"]
+        cf_no = edge_choices["urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting:q1:c2"]
+        self.assertEqual(cf_yes["add_score"], 50)
         self.assertTrue(cf_yes["compute_result"])
         self.assertEqual(cf_yes["value"], "Yes")
         self.assertEqual(cf_no["add_score"], 0)
@@ -811,7 +813,7 @@ class TestYamlIntegrity(unittest.TestCase):
         q1_saas_web = saas_web_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:saas_web_app_security:q1")
         self.assertIsNotNone(q1_saas_web)
         self.assertEqual(next(c for c in q1_saas_web["choices"] if c["value"] == "Yes")["add_score"], 100)
-        self.assertIn("tls", q1_saas_web.get("text", "").lower())
+        self.assertIn("administrative interfaces", q1_saas_web.get("text", "").lower())
 
         saas_sla_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:saas_vulnerability_remediation_sla")
         self.assertIsNotNone(saas_sla_node)
@@ -846,11 +848,10 @@ class TestYamlIntegrity(unittest.TestCase):
         saas_log_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:saas_logging_and_incidents")
         self.assertIsNotNone(saas_log_node)
         q1_log = saas_log_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:saas_logging_and_incidents:q1")
-        q2_log = saas_log_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:saas_logging_and_incidents:q2")
         self.assertIsNotNone(q1_log)
-        self.assertIsNotNone(q2_log)
+        self.assertEqual(len(saas_log_node.get("questions", {})), 1)
+        self.assertEqual(next(c for c in q1_log["choices"] if c["value"] == "Yes")["add_score"], 100)
         self.assertIn("monitoring", q1_log.get("text", "").lower())
-        self.assertIn("48 hours", q2_log.get("text", "").lower())
         self.assertIn("urn:intuitem:risk:control:appsec:saas_telemetry_and_audit_export", saas_log_node.get("reference_controls", []))
 
         # 3. Verify no questions in AppSec use data classification or criticality to skip security questions
@@ -1685,29 +1686,21 @@ class TestYamlIntegrity(unittest.TestCase):
             f"IG 'saas_uncertified' in appsec must specify delegate_answer={expected_saas_uncert_del}",
         )
 
-        # Validate edge_network_protection requirement node in appsec is scoped to internet_facing track
-        edge_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:edge_network_protection")
-        self.assertIsNotNone(edge_node, "edge_network_protection missing in appsec")
-        self.assertEqual(edge_node.get("implementation_groups"), ["internet_facing"])
-        q1_edge = edge_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:edge_network_protection:q1")
-        self.assertIsNotNone(q1_edge, "edge_network_protection:q1 missing in appsec")
+        # edge_network_protection was consolidated into api_security_and_rate_limiting
+        self.assertNotIn("urn:intuitem:risk:req_node:appsec:edge_network_protection", appsec_fw["req_nodes"])
+        api_edge_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting")
+        self.assertIsNotNone(api_edge_node, "api_security_and_rate_limiting missing in appsec")
+        self.assertEqual(api_edge_node.get("implementation_groups"), ["internet_facing"])
+        q1_edge = api_edge_node.get("questions", {}).get("urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting:q1")
+        self.assertIsNotNone(q1_edge, "api_security_and_rate_limiting:q1 missing in appsec")
+        self.assertIn("reverse proxy", q1_edge.get("text", "").lower())
         self.assertIn("cloudflare", q1_edge.get("text", "").lower())
-        q1_choices = {c["urn"]: c for c in q1_edge.get("choices", [])}
-        self.assertEqual(len(q1_choices), 2)
-        cf_yes = q1_choices["urn:intuitem:risk:req_node:appsec:edge_network_protection:q1:c1"]
-        cf_no = q1_choices["urn:intuitem:risk:req_node:appsec:edge_network_protection:q1:c2"]
-        self.assertEqual(cf_yes["add_score"], 100)
-        self.assertTrue(cf_yes["compute_result"])
-        self.assertEqual(cf_yes["value"], "Yes")
-        self.assertEqual(cf_no["add_score"], 0)
-        self.assertFalse(cf_no["compute_result"])
-        self.assertEqual(cf_no["value"], "No")
 
         # network_exposure is no longer a standalone node
         self.assertNotIn("urn:intuitem:risk:req_node:appsec:network_exposure", appsec_fw["req_nodes"])
 
-        # 4. Total requirement nodes (62) and scenarios (45)
-        self.assertEqual(len(appsec_fw["req_nodes"]), 62)
+        # 4. Total requirement nodes (61) and scenarios (45)
+        self.assertEqual(len(appsec_fw["req_nodes"]), 61)
         self.assertEqual(len(appsec_fw["scenarios"]), 45)
         self.assertEqual(len(appsec_fw["threats"]), 9)
         self.assertEqual(len(appsec_fw["vulns"]), 19)
@@ -2051,11 +2044,20 @@ class TestYamlIntegrity(unittest.TestCase):
             fw = next((f for f in self.frameworks if f["ref_id"] == fw_ref), None)
             self.assertIsNotNone(fw, f"{fw_ref} framework missing")
 
-            # 1. stakeholder_identification scoring weights (30, 30, 25, 15)
+            # 1. stakeholder_identification scoring weights (30, 30, 25, 15) + 3 conditional name text fields
             sh_node = fw["req_nodes"].get(f"urn:intuitem:risk:req_node:{fw_ref}:stakeholder_identification")
             self.assertIsNotNone(sh_node, f"stakeholder_identification missing in {fw_ref}")
             sh_qs = sh_node.get("questions", {})
-            self.assertEqual(len(sh_qs), 4, f"stakeholder_identification must have 4 questions in {fw_ref}")
+            self.assertEqual(len(sh_qs), 7, f"stakeholder_identification must have 7 questions (4 scored + 3 name text fields) in {fw_ref}")
+
+            for idx in (1, 2, 3):
+                parent_q = f"urn:intuitem:risk:req_node:{fw_ref}:stakeholder_identification:q{idx}"
+                name_q_urn = f"{parent_q}_name"
+                self.assertIn(name_q_urn, sh_qs, f"{name_q_urn} missing in {fw_ref}")
+                name_q = sh_qs[name_q_urn]
+                self.assertEqual(name_q.get("type"), "text")
+                self.assertEqual(name_q.get("depends_on", {}).get("question"), parent_q)
+                self.assertEqual(name_q.get("depends_on", {}).get("answers"), [f"{parent_q}:c1"])
 
             expected_weights = {
                 f"urn:intuitem:risk:req_node:{fw_ref}:stakeholder_identification:q1": 30,
@@ -2256,12 +2258,11 @@ class TestYamlIntegrity(unittest.TestCase):
             linked_req_refs = {urn.split(":")[-1] for urn in linked_req_urns if urn}
 
             # Assessable nodes excluding profiling nodes (data_classification, hosting, application_description)
-            # and edge_network_protection (infrastructure reverse proxy control requirement)
             req_nodes = fw["req_nodes"]
             assessable_sec_nodes = {
                 ref_id: rn for urn, rn in req_nodes.items()
                 if rn.get("assessable") and (ref_id := rn.get("ref_id")) not in (
-                    "data_classification", "hosting", "application_description", "edge_network_protection"
+                    "data_classification", "hosting", "application_description"
                 )
             }
 
@@ -2301,16 +2302,30 @@ class TestYamlIntegrity(unittest.TestCase):
 
                 # Question structure assertions
                 questions = node.get("questions", {})
-                self.assertEqual(len(questions), 2, f"application_description must have 2 questions in {fw_ref}")
+                self.assertEqual(len(questions), 3, f"application_description must have 3 questions in {fw_ref}")
 
                 q1_urn = f"urn:intuitem:risk:req_node:{fw_ref}:application_description:q1"
+                q1_other_urn = f"urn:intuitem:risk:req_node:{fw_ref}:application_description:q1_other"
                 q2_urn = f"urn:intuitem:risk:req_node:{fw_ref}:application_description:q2"
                 self.assertIn(q1_urn, questions, f"q1 missing in {fw_ref}")
+                self.assertIn(q1_other_urn, questions, f"q1_other missing in {fw_ref}")
                 self.assertIn(q2_urn, questions, f"q2 missing in {fw_ref}")
 
                 q1 = questions[q1_urn]
+                q1_other = questions[q1_other_urn]
                 q2 = questions[q2_urn]
                 self.assertEqual(q1.get("type"), "unique_choice")
+                self.assertEqual(q1_other.get("type"), "text")
+                self.assertEqual(
+                    q1_other.get("depends_on", {}).get("question"),
+                    q1_urn,
+                    f"q1_other must depend on q1 in {fw_ref}",
+                )
+                self.assertEqual(
+                    q1_other.get("depends_on", {}).get("answers"),
+                    [f"{q1_urn}:c6"],
+                    f"q1_other must trigger on q1:c6 (Other) in {fw_ref}",
+                )
                 self.assertEqual(q2.get("type"), "unique_choice")
                 self.assertGreaterEqual(len(q1.get("choices", [])), 5)
                 self.assertGreaterEqual(len(q2.get("choices", [])), 4)

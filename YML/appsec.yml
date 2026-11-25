@@ -29,7 +29,7 @@ description: >
   Supports both internally managed applications and SaaS solutions whose security controls
   are defined with a contract and certified via third-party audit reports (SOC 2, ISO 27001).
 copyright: DCME Corp
-version: 48
+version: 61
 publication_date: 2026-11-25
 provider: DCME Corp
 packager: DCME Corp
@@ -262,6 +262,16 @@ objects:
               - urn: urn:intuitem:risk:req_node:appsec:application_description:q1:c6
                 value: "Other / Specialized Functional Purpose"
                 color: "#17a2b8"
+          urn:intuitem:risk:req_node:appsec:application_description:q1_other:
+            type: text
+            text: "Please specify the primary functional domain and business purpose of the application:"
+            annotation: "Free-text description of the application's specialized or custom functional domain and business purpose."
+            required: true
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec:application_description:q1
+              answers:
+                - urn:intuitem:risk:req_node:appsec:application_description:q1:c6
+              condition: any
           urn:intuitem:risk:req_node:appsec:application_description:q2:
             type: unique_choice
             text: "Who are the primary intended users or consumers of the application?"
@@ -311,6 +321,16 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:stakeholder_identification:q1_name:
+            type: text
+            text: "Designated business contact (name and/or email address):"
+            annotation: "Name and/or email address of the designated business owner or product sponsor."
+            required: true
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec:stakeholder_identification:q1
+              answers:
+                - urn:intuitem:risk:req_node:appsec:stakeholder_identification:q1:c1
+              condition: any
           urn:intuitem:risk:req_node:appsec:stakeholder_identification:q2:
             type: unique_choice
             text: "Is there a designated IT contact? (Technical lead or engineer responsible for maintenance, infrastructure, deployment, and operational support)"
@@ -325,6 +345,16 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:stakeholder_identification:q2_name:
+            type: text
+            text: "Designated IT contact (name and/or email address):"
+            annotation: "Name and/or email address of the designated technical lead or IT contact."
+            required: true
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec:stakeholder_identification:q2
+              answers:
+                - urn:intuitem:risk:req_node:appsec:stakeholder_identification:q2:c1
+              condition: any
           urn:intuitem:risk:req_node:appsec:stakeholder_identification:q3:
             type: unique_choice
             text: "Is there a designated data owner? (Data steward or governance officer responsible for information classification, access authorization, and regulatory compliance)"
@@ -339,6 +369,16 @@ objects:
                 add_score: 0
                 compute_result: false
                 color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:stakeholder_identification:q3_name:
+            type: text
+            text: "Designated data owner (name and/or email address):"
+            annotation: "Name and/or email address of the designated data owner or data steward."
+            required: true
+            depends_on:
+              question: urn:intuitem:risk:req_node:appsec:stakeholder_identification:q3
+              answers:
+                - urn:intuitem:risk:req_node:appsec:stakeholder_identification:q3:c1
+              condition: any
           urn:intuitem:risk:req_node:appsec:stakeholder_identification:q4:
             type: unique_choice
             text: "Is the information about stakeholders updated in LeanIX / CMDB? (Stakeholder assignments registered and kept current in the enterprise inventory or service catalog)"
@@ -1417,61 +1457,28 @@ objects:
           Edge and gateway protections for web services and APIs aligned with OWASP API Security Top 10.
         implementation_groups: ["internet_facing"]
 
-      # Requirement: Edge Network Protection & Reverse Proxy
-      - urn: urn:intuitem:risk:req_node:appsec:edge_network_protection
-        assessable: true
-        depth: 2
-        parent_urn: urn:intuitem:risk:req_node:appsec:api_chapter
-        ref_id: edge_network_protection
-        name: Edge Network Protection & Inbound Reverse Proxy
-        description: "Ensure inbound HTTP/HTTPS traffic is routed through and protected by edge network protections (e.g. Cloudflare reverse proxy, Web Application Firewall [WAF], and DDoS mitigation)."
-        annotation: >
-          Edge network protection and reverse proxying (e.g. Cloudflare) shields origin servers from direct exposure, absorbs DDoS attacks, and inspects inbound HTTP/HTTPS traffic for malicious payloads.
-          Applicable strictly to self-hosted internet-facing applications (Custom and COTS).
-        typical_evidence: >
-          - Cloudflare DNS proxy configuration / reverse proxy routing rules
-          - Edge WAF and DDoS mitigation configuration
-          - Network perimeter firewall rules restricting inbound origin access to Cloudflare IP ranges
-        implementation_groups: ["internet_facing"]
-        reference_controls:
-          - urn:intuitem:risk:control:appsec:api_security_and_rate_limiting
-        questions:
-          urn:intuitem:risk:req_node:appsec:edge_network_protection:q1:
-            type: unique_choice
-            text: "Is inbound HTTP/HTTPS traffic routed through and protected by Cloudflare (e.g. Cloudflare reverse proxy, Web Application Firewall [WAF], and DDoS mitigation)?"
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec:edge_network_protection:q1:c1
-                value: "Yes"
-                add_score: 100
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:edge_network_protection:q1:c2
-                value: "No"
-                add_score: 0
-                compute_result: false
-                color: "#dc3545"
-
-      # Requirement: API Security & Rate limiting
+      # Requirement: Edge Network Protection, Reverse Proxy, WAF & API Rate Limiting
       - urn: urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:api_chapter
         ref_id: api_security_and_rate_limiting
-        name: API Gateway, Edge WAF, Rate Limiting & Bot Protection
-        description: "Protect exposed web and API endpoints against abusive traffic, automated bots, and volumetric attacks via an edge Web Application Firewall (WAF, e.g., Cloudflare), and automated rate limiting / throttling controls. (Applicable to self-hosted apps; SaaS providers implicitly manage edge and rate limiting protections)."
+        name: Edge Network Protection, Reverse Proxy, WAF & API Rate Limiting
+        description: "Route inbound HTTP/HTTPS traffic through an edge reverse proxy with Edge WAF, anti-DDoS, and bot protection (e.g. Cloudflare, AWS WAF & Shield), and enforce API rate limiting and throttling controls. (Applicable to self-hosted internet-facing apps; SaaS providers implicitly manage edge and rate limiting protections)."
         annotation: >
-          Guards against automated scraping, credential stuffing, bot attacks, and volumetric exhaustion via edge WAFs (e.g. Cloudflare, AWS WAF & Shield, Azure WAF, Cloud Armor) and API gateways.
+          Shields origin servers from direct exposure via edge reverse proxying (e.g. Cloudflare with origin IP restriction), absorbs volumetric DDoS attacks, inspects inbound HTTP/HTTPS payloads via Edge WAF (e.g. Cloudflare, AWS WAF & Shield, Azure WAF, Cloud Armor), and guards against automated scraping, credential stuffing, and bot abuse via API gateway rate limiting.
           Applicable strictly to self-hosted internet-facing applications (Custom and COTS). Excluded from SaaS questionnaires as rate limiting and edge infrastructure protections are implicitly maintained by the SaaS provider to protect their own infrastructure.
         typical_evidence: >
+          - Edge reverse proxy / DNS proxy routing rules and origin firewall rules restricting inbound access to edge IP ranges (e.g. Cloudflare)
           - Edge WAF, anti-DDoS, and bot protection rule configuration (e.g. Cloudflare, AWS WAF & Shield, Google Cloud Armor, Azure WAF)
-          - API gateway rate limiting and throttling policy definition
+          - API gateway rate limiting, throttling, and payload quota policy definition
         implementation_groups: ["internet_facing"]
         reference_controls:
           - urn:intuitem:risk:control:appsec:api_security_and_rate_limiting
         questions:
           urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting:q1:
             type: unique_choice
-            text: "Are internet-facing endpoints fronted by an Edge WAF and anti-DDoS / bot protection (e.g. Cloudflare, AWS WAF)?"
+            text: "Is inbound HTTP/HTTPS traffic routed through an edge reverse proxy with Edge WAF, anti-DDoS, and bot protection (e.g. Cloudflare, AWS WAF & Shield)?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:api_security_and_rate_limiting:q1:c1
                 value: "Yes"
@@ -2295,7 +2302,7 @@ objects:
                 color: "#dc3545"
           urn:intuitem:risk:req_node:appsec:saas_confidentiality_and_data_protection:q2:
             type: unique_choice
-            text: "Does the contract mandate data encryption for all customer data, both in transit (e.g. TLS/HTTPS) and at rest (e.g. AES-256)?"
+            text: "Does the contract mandate data encryption for all customer data, both in transit (TLS 1.2+ / HTTPS) and at rest (e.g. AES-256)?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:saas_confidentiality_and_data_protection:q2:c1
                 value: "Yes"
@@ -2378,7 +2385,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec:saas_iam:q1:
             type: unique_choice
-            text: "Does root, administrative, and break-glass access to the SaaS tenant management console strictly enforce Multi-Factor Authentication (MFA) independently of standard user SSO?"
+            text: "Even when enterprise SSO is enabled, do local root, tenant-admin, and break-glass accounts on the SaaS management console strictly enforce Multi-Factor Authentication (MFA) independently of SSO?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:saas_iam:q1:c1
                 value: "Yes"
@@ -2441,26 +2448,25 @@ objects:
                 compute_result: false
                 color: "#dc3545"
 
-      # Section 6: Logging & Incident Management
+      # Section 6: Security Logging & SIEM Telemetry Export
       - urn: urn:intuitem:risk:req_node:appsec:saas_logging_and_incidents
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_logging_and_incidents
-        name: "Logging & Incident Management"
-        description: "Log user and admin actions, ensure log tamper-resistance, continuously monitor security events, and notify incidents within 48 hours."
+        name: "Security Logging & SIEM Telemetry Export"
+        description: "Log user and admin actions, ensure log tamper-resistance, continuously monitor security events, and export audit telemetry to the client SIEM."
         annotation: >
           Contractual requirements:
           - Clients cannot install internal SIEM agents directly onto SaaS provider infrastructure.
           - Provider commits contractually to log access, logins, logouts, and administrative actions.
           - Protect logs against unauthorized modification or deletion (WORM / immutable storage).
           - Continuously monitor platform security events.
-          - Contractually notify the client of any security incident or anomaly within a maximum of 48 hours of discovery.
           - Provide an audit export API or webhook to stream telemetry into the client enterprise SIEM.
+          - Note: Contractual 24-48h security incident and personal data breach notification SLAs are evaluated centrally under Data Hosting, European Residency & GDPR Compliance (saas_data_hosting_and_residency:q4).
         typical_evidence: >
           - Audit logging configuration and log retention policy (>= 12 months)
           - Tamper-resistance architecture proof (WORM storage / cryptographic sealing)
-          - Contractual 48-hour incident notification SLA clause and incident response plan
           - Streaming audit telemetry / webhook integration configuration into enterprise SIEM (Splunk, Microsoft Sentinel)
         implementation_groups: ["saas_uncertified"]
         reference_controls:
@@ -2473,24 +2479,10 @@ objects:
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:saas_logging_and_incidents:q1:c1
                 value: "Yes"
-                add_score: 50
+                add_score: 100
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec:saas_logging_and_incidents:q1:c2
-                value: "No"
-                add_score: 0
-                compute_result: false
-                color: "#dc3545"
-          urn:intuitem:risk:req_node:appsec:saas_logging_and_incidents:q2:
-            type: unique_choice
-            text: "Does the contract legally bind the provider to notify the client of any security incident or anomaly within a maximum of 48 hours of discovery?"
-            choices:
-              - urn: urn:intuitem:risk:req_node:appsec:saas_logging_and_incidents:q2:c1
-                value: "Yes"
-                add_score: 50
-                compute_result: true
-                color: "#33a745"
-              - urn: urn:intuitem:risk:req_node:appsec:saas_logging_and_incidents:q2:c2
                 value: "No"
                 add_score: 0
                 compute_result: false
@@ -2714,21 +2706,21 @@ objects:
                 color: "#dc3545"
 
 
-      # Section 12: Web Application Security & Pentesting
+      # Section 12: Web Service & Admin Interface Hardening
       - urn: urn:intuitem:risk:req_node:appsec:saas_web_app_security
         assessable: true
         depth: 2
         parent_urn: urn:intuitem:risk:req_node:appsec:saas_chapter
         ref_id: saas_web_app_security
-        name: "Web Application & Transport Security"
-        description: "Enforce TLS 1.2+, network port restrictions, and administrative interface access controls."
+        name: "Web Service & Admin Interface Hardening"
+        description: "Restrict exposed network ports and web services to the strict minimum and enforce strict access controls on administrative interfaces."
         annotation: >
           Contractual requirements:
-          - Enforce TLS 1.2+ minimum encryption with network ports restricted to the strict minimum.
-          - Restrict and control administrative interface access.
-          - Continuous adherence to OWASP application security baselines.
+          - Restrict exposed network ports and web service attack surface to the strict minimum.
+          - Segregate and strictly control administrative interface access (e.g. IP allowlisting, dedicated management plane).
+          - Note: Contractual TLS 1.2+ encryption in transit is evaluated centrally under Confidentiality & Data Protection (saas_confidentiality_and_data_protection:q2).
         typical_evidence: >
-          - TLS 1.2+ configuration report and port exposure audit extract
+          - Port exposure audit extract and attack surface minimization documentation
           - Administrative interface access control policies and IP allowlist configuration
         implementation_groups: ["saas_uncertified"]
         reference_controls:
@@ -2736,7 +2728,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec:saas_web_app_security:q1:
             type: unique_choice
-            text: "Does the contract require web services to be protected with TLS 1.2+ minimum, network ports restricted to the strict minimum, and administrative interfaces strictly controlled?"
+            text: "Does the contract require exposed network ports and web services to be restricted to the strict minimum, with administrative interfaces segregated and strictly access-controlled?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:saas_web_app_security:q1:c1
                 value: "Yes"
@@ -2852,7 +2844,7 @@ objects:
                 color: "#dc3545"
           urn:intuitem:risk:req_node:appsec:saas_data_hosting_and_residency:q4:
             type: unique_choice
-            text: "Does the contract or DPA establish a binding obligation for the vendor to notify the customer without undue delay (within 24 to 48 hours maximum) following the discovery of a suspected or confirmed personal data breach?"
+            text: "Does the contract or DPA establish a binding obligation for the vendor to notify the customer without undue delay (within 24 to 48 hours maximum) following the discovery of any suspected or confirmed security incident or personal data breach?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:saas_data_hosting_and_residency:q4:c1
                 value: "Yes"
@@ -2992,7 +2984,7 @@ objects:
         questions:
           urn:intuitem:risk:req_node:appsec:saas_subcontractor_management:q1:
             type: unique_choice
-            text: "Does the contract require the vendor to vet subcontractors, provide prior notice of new sub-processors with a right to object, and assume full liability for all downstream subcontractors?"
+            text: "Does the contract require the vendor to perform formal security due diligence on subcontractors, enforce back-to-back security clauses, and assume full liability for all downstream subcontractors?"
             choices:
               - urn: urn:intuitem:risk:req_node:appsec:saas_subcontractor_management:q1:c1
                 value: "Yes"
@@ -5031,7 +5023,7 @@ test_metadata:
   expected_threats_count: 9
   expected_vulnerabilities_count: 19
   expected_reference_controls_count: 27
-  expected_requirement_nodes_count: 62
+  expected_requirement_nodes_count: 61
   matrix_dimensions:
     likelihood_levels: 4
     impact_levels: 4

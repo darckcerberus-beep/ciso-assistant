@@ -237,12 +237,6 @@ answers:
     result: "compliant"
     observation: "SaaS platform records immutable tenant audit logs accessible via API."
 
-  - requirement: "saas_logging_and_incidents"
-    question: "Does the contract legally bind the provider to notify the client of any security incident or anomaly within a maximum of 48 hours of discovery?"
-    answer: "No"
-    result: "non_compliant"
-    observation: "Standard incident notification window is 'without undue delay' (72 hours) rather than a strict 48-hour SLA."
-
   - requirement: "saas_workstation_security"
     question: "Does the contract require provider workstations to be protected by session auto-lock after inactivity, active local firewalls, hardened configurations, and updated EDR/antivirus?"
     answer: "Yes"
@@ -597,12 +591,12 @@ expected_risk_scenarios:
   control_priority: 3
 - scenario: Unmonitored SaaS security incidents and delayed breach detection
   likelihood_requirement: saas_logging_and_incidents
-  likelihood_score: 50
-  scaled_likelihood: 3
+  likelihood_score: 100
+  scaled_likelihood: 1
   scaled_impact: 3
-  matrix_risk_id: 2
-  risk_level: 3
-  control_priority: 2
+  matrix_risk_id: 1
+  risk_level: 2
+  control_priority: 3
 - scenario: Unremediated SaaS security non-conformity and contractual remedy gap
   likelihood_requirement: saas_non_conformity_remediation
   likelihood_score: 100
