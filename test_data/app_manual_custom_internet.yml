@@ -10,9 +10,9 @@ application:
   hosting: Custom Web
   compliance_target: 95%
   expected_risk: Low
-  framework_ref: appsec_manual
-  framework_name: Application Security Assessment Framework (AppSec - Manual IG)
-  framework_yaml: YML/appsec_manual.yml
+  framework_ref: appsec
+  framework_name: Application Security Assessment Framework (AppSec)
+  framework_yaml: YML/appsec.yml
   user:
     email: alex.cloud@example-custom.public
     first_name: Alex

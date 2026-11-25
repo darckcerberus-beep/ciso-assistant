@@ -10,9 +10,9 @@ application:
   hosting: SaaS
   compliance_target: 100%
   expected_risk: Low
-  framework_ref: appsec_manual
-  framework_name: Application Security Assessment Framework (AppSec - Manual IG)
-  framework_yaml: YML/appsec_manual.yml
+  framework_ref: appsec
+  framework_name: Application Security Assessment Framework (AppSec)
+  framework_yaml: YML/appsec.yml
   user:
     email: viktor.uncert@example-saasuncert.cloud
     first_name: Viktor
