@@ -29,8 +29,8 @@ description: >
   Supports both internally managed applications and SaaS solutions whose security controls
   are defined with a contract and certified via third-party audit reports (SOC 2, ISO 27001).
 copyright: DCME Corp
-version: 47
-publication_date: 2026-11-16
+version: 48
+publication_date: 2026-11-25
 provider: DCME Corp
 packager: DCME Corp
 
@@ -1800,10 +1800,10 @@ objects:
         depth: 1
         ref_id: resilience_chapter
         name: "Penetration Testing & Resilience"
-        description: "Perform independent penetration testing, enforce patch remediation SLAs, and maintain disaster recovery readiness."
+        description: "Perform independent penetration testing, enforce patch remediation SLAs, manage software patchability and obsolescence, and maintain disaster recovery readiness."
         annotation: >
-          Validates operational defense-in-depth and business continuity across internally hosted applications (Custom and COTS).
-        implementation_groups: ["infra", "cots_app", "internet_facing"]
+          Validates operational defense-in-depth, software lifecycle maintainability, and business continuity across internally hosted applications (Custom and COTS).
+        implementation_groups: ["custom_app", "cots_app", "infra", "internet_facing"]
 
       # Requirement: Penetration testing & vulnerability remediation (Hosted)
       - urn: urn:intuitem:risk:req_node:appsec:penetration_testing_and_vulnerability_management
@@ -2026,6 +2026,86 @@ objects:
                 compute_result: true
                 color: "#33a745"
               - urn: urn:intuitem:risk:req_node:appsec:cots_deployment_hardening:q3:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+
+      # Requirement: Software Patchability, Maintenance Capacity & Obsolescence Management
+      - urn: urn:intuitem:risk:req_node:appsec:software_patchability_and_obsolescence
+        assessable: true
+        depth: 2
+        parent_urn: urn:intuitem:risk:req_node:appsec:resilience_chapter
+        ref_id: software_patchability_and_obsolescence
+        name: "Software Patchability, Maintenance Capacity & Obsolescence Management"
+        description: "Ensure application software components remain actively supported (not End-of-Life / obsolete), technically patchable without prohibitive refactoring, backed by dedicated team capacity to patch within SLAs, and governed by a proactive obsolescence roadmap."
+        annotation: >
+          Addresses technical and organizational blockers that prevent product teams from patching applications (e.g., "we cannot patch" or "we do not have time to patch"):
+          - Active Support & Obsolescence Hygiene: Core application frameworks, language runtimes, libraries, databases, and middleware must remain on actively supported release versions (not End-of-Life / EOL, End-of-Support / EOS, or unmaintained).
+          - Technical Patchability: The application architecture and delivery pipeline must allow security patches and version upgrades to be tested and deployed safely without prohibitive refactoring, blocking custom forks, or unmaintained legacy lock-in.
+          - Dedicated Patching Capacity & Governance: Product owners and engineering teams must allocate dedicated maintenance capacity, budget, and backlog priority to remediate vulnerabilities and apply patches within formal SLAs (Critical <= 14 days, High <= 30 days).
+          - Lifecycle & Obsolescence Roadmap: Component EOL/EOS dates must be tracked proactively with funded upgrade, migration, or decommissioning plans initiated ahead of End-of-Support.
+        typical_evidence: >
+          - Technology stack / software inventory with active support status and vendor/community EOL dates (e.g., LeanIX lifecycle matrix or SBOM lifecycle report)
+          - CI/CD build/deployment pipeline and non-production regression test suite demonstrating repeatable patch deployment
+          - Product backlog / sprint capacity allocation records or maintenance budget confirming dedicated patching bandwidth and SLA adherence
+          - Funded upgrade, migration, or decommissioning roadmap for components approaching End-of-Life (EOL)
+        implementation_groups: ["custom_app", "cots_app"]
+        reference_controls:
+          - urn:intuitem:risk:control:appsec:software_patchability_and_obsolescence
+        questions:
+          urn:intuitem:risk:req_node:appsec:software_patchability_and_obsolescence:q1:
+            type: unique_choice
+            text: "Are all core software components of the application (frameworks, programming language runtimes, libraries, databases, and middleware) on actively supported release versions (not End-of-Life / EOL, End-of-Support / EOS, or unmaintained)?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:software_patchability_and_obsolescence:q1:c1
+                value: "Yes"
+                add_score: 25
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:software_patchability_and_obsolescence:q1:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:software_patchability_and_obsolescence:q2:
+            type: unique_choice
+            text: "Is the software technically patchable and upgradable without prohibitive refactoring or breaking changes? (e.g., repeatable build/deployment pipeline, non-production test environment and regression testing, no blocking custom forks or unmaintained legacy dependencies)"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:software_patchability_and_obsolescence:q2:c1
+                value: "Yes"
+                add_score: 25
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:software_patchability_and_obsolescence:q2:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:software_patchability_and_obsolescence:q3:
+            type: unique_choice
+            text: "Does the product and engineering team have dedicated capacity, budget, and backlog prioritization allocated to apply security patches and dependency upgrades within formal SLAs (Critical <= 14 days, High <= 30 days)?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:software_patchability_and_obsolescence:q3:c1
+                value: "Yes"
+                add_score: 25
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:software_patchability_and_obsolescence:q3:c2
+                value: "No"
+                add_score: 0
+                compute_result: false
+                color: "#dc3545"
+          urn:intuitem:risk:req_node:appsec:software_patchability_and_obsolescence:q4:
+            type: unique_choice
+            text: "Is software obsolescence tracked against vendor or community End-of-Life (EOL) dates with a funded upgrade, migration, or decommissioning roadmap initiated ahead of End-of-Support?"
+            choices:
+              - urn: urn:intuitem:risk:req_node:appsec:software_patchability_and_obsolescence:q4:c1
+                value: "Yes"
+                add_score: 25
+                compute_result: true
+                color: "#33a745"
+              - urn: urn:intuitem:risk:req_node:appsec:software_patchability_and_obsolescence:q4:c2
                 value: "No"
                 add_score: 0
                 compute_result: false
@@ -3898,6 +3978,25 @@ objects:
       reference_controls:
         - urn:intuitem:risk:control:appsec:saas_third_party_assurance
 
+    # 45. Exploitation of obsolete or unpatchable software components (Custom & COTS applications)
+    - urn: urn:intuitem:risk:scenario:appsec:obsolete_or_unpatchable_software_exploitation
+      ref_id: obsolete_or_unpatchable_software_exploitation
+      name: "Exploitation of obsolete or unpatchable software components"
+      description: >
+        Adversaries exploit publicly known vulnerabilities (CVEs) in End-of-Life (EOL) software components
+        or unpatched application stacks that cannot be safely upgraded or remain unpatched due to insufficient
+        product and engineering maintenance capacity.
+      likelihood: urn:intuitem:risk:req_node:appsec:software_patchability_and_obsolescence
+      impact: urn:intuitem:risk:req_node:appsec:data_classification
+      threats:
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+        - urn:intuitem:risk:threat:appsec:service_disruption
+        - urn:intuitem:risk:threat:appsec:supply_chain_tampering
+      vulnerabilities:
+        - urn:intuitem:risk:vulnerability:appsec:software_obsolescence_and_unpatchability
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:software_patchability_and_obsolescence
+
   # ========================================================================
   # RISK MATRIX - 4x4 probability/impact matrix with risk levels
   # ========================================================================
@@ -4266,6 +4365,19 @@ objects:
         - urn:intuitem:risk:threat:appsec:unauthorized_access
         - urn:intuitem:risk:threat:appsec:supply_chain_tampering
         - urn:intuitem:risk:threat:appsec:service_disruption
+
+    - urn: urn:intuitem:risk:vulnerability:appsec:software_obsolescence_and_unpatchability
+      ref_id: software_obsolescence_and_unpatchability
+      name: "Software obsolescence and inability to patch"
+      description: "Use of End-of-Life (EOL) or unmaintained software components, architectural inability to deploy patches safely, or lack of allocated team capacity to remediate known vulnerabilities within SLAs."
+      associated_controls:
+        - urn:intuitem:risk:control:appsec:software_patchability_and_obsolescence
+      reference_controls:
+        - urn:intuitem:risk:control:appsec:software_patchability_and_obsolescence
+      threats:
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+        - urn:intuitem:risk:threat:appsec:service_disruption
+        - urn:intuitem:risk:threat:appsec:supply_chain_tampering
 
   # ========================================================================
   # REFERENCE CONTROLS - Mitigation controls and recurring tasks
@@ -4835,6 +4947,30 @@ objects:
         frequency: "MONTHLY"
         interval: 3
 
+    - urn: urn:intuitem:risk:control:appsec:software_patchability_and_obsolescence
+      ref_id: software_patchability_and_obsolescence
+      name: "Maintain software patchability, patching capacity, and obsolescence lifecycle"
+      description: "Ensure software components remain on actively supported versions, preserve technical patchability via repeatable build/test pipelines, allocate dedicated team capacity for security patching within SLAs, and execute EOL upgrade or decommissioning roadmaps."
+      annotation: >
+        Prevents technical debt and resource constraints from leaving production applications permanently exposed to known CVEs. Enforces active lifecycle tracking, regression-tested upgrade paths, and protected engineering capacity for timely security patching.
+      typical_evidence: >
+        - Application technology stack inventory with vendor/community EOL and EOS tracking dates
+        - CI/CD deployment pipeline and staging regression test suite confirming safe patchability
+        - Sprint capacity allocation, maintenance budget, and patch SLA adherence metrics
+        - Funded upgrade, migration, or decommissioning roadmap for components approaching End-of-Life
+        - For SaaS applications where controls are defined with a contract: SaaS agreement security exhibit committing to active software lifecycle maintenance and timely security patching SLAs
+      threats:
+        - urn:intuitem:risk:threat:appsec:unauthorized_access
+        - urn:intuitem:risk:threat:appsec:service_disruption
+        - urn:intuitem:risk:threat:appsec:supply_chain_tampering
+      is_recurrent: true
+      cadence: quarterly
+      task:
+        name: "Quarterly Software Obsolescence and Patchability Review"
+        description: "Review application software stack EOL/EOS dates, verify dedicated patching capacity and SLA adherence, and track obsolescence remediation or decommissioning milestones."
+        frequency: "MONTHLY"
+        interval: 3
+
 
 audit:
   score_method: sum
@@ -4891,11 +5027,11 @@ criticality_mapping:
 # Defines baseline expectations for automated relational and logic integrity tests.
 # Framework-independent test runners validate framework consistency against these specs.
 test_metadata:
-  expected_risk_scenarios_count: 44
+  expected_risk_scenarios_count: 45
   expected_threats_count: 9
-  expected_vulnerabilities_count: 18
-  expected_reference_controls_count: 26
-  expected_requirement_nodes_count: 61
+  expected_vulnerabilities_count: 19
+  expected_reference_controls_count: 27
+  expected_requirement_nodes_count: 62
   matrix_dimensions:
     likelihood_levels: 4
     impact_levels: 4

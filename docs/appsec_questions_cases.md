@@ -111,6 +111,10 @@ Define or customize your operational situations/cases here for reference:
 | 44 | Penetration Testing & Resilience | `cots_deployment_hardening` | `q1` | Are default vendor credentials changed, sample modules removed, and configuration ... | `cots_app` |  |
 | 45 | Penetration Testing & Resilience | `cots_deployment_hardening` | `q2` | Does the COTS software actively receive security patches and vulnerability updates... | `cots_app` |  |
 | 46 | Penetration Testing & Resilience | `cots_deployment_hardening` | `q3` | Are published vendor security patches, hotfixes, and critical vulnerability update... | `cots_app` |  |
+| 46a | Penetration Testing & Resilience | `software_patchability_and_obsolescence` | `q1` | Are all core software components of the application (frameworks, programming language runtimes, libraries, databases, and middleware) on actively supported release versions (not EOL/EOS)? | `custom_app, cots_app` | Self-Hosted only (Custom & COTS - Software obsolescence / active support, +25 pts) |
+| 46b | Penetration Testing & Resilience | `software_patchability_and_obsolescence` | `q2` | Is the software technically patchable and upgradable without prohibitive refactoring or breaking changes? | `custom_app, cots_app` | Self-Hosted only (Custom & COTS - Technical patchability, +25 pts) |
+| 46c | Penetration Testing & Resilience | `software_patchability_and_obsolescence` | `q3` | Does the product and engineering team have dedicated capacity, budget, and backlog prioritization allocated to apply security patches and dependency upgrades within formal SLAs? | `custom_app, cots_app` | Self-Hosted only (Custom & COTS - Dedicated patching capacity, +25 pts) |
+| 46d | Penetration Testing & Resilience | `software_patchability_and_obsolescence` | `q4` | Is software obsolescence tracked against vendor or community End-of-Life (EOL) dates with a funded upgrade, migration, or decommissioning roadmap initiated ahead of End-of-Support? | `custom_app, cots_app` | Self-Hosted only (Custom & COTS - Obsolescence roadmap, +25 pts) |
 | 47 | SaaS Requirements & Vendor Security Exhibit | `saas_contract_compliance` | `q1` | Is there a signed SaaS contract and binding Security Schedule? (e.g., legally exec... | `saas_app` |  |
 | 47b | SaaS Requirements & Vendor Security Exhibit | `saas_contract_compliance` | `q2` | Is the SaaS vendor certified under ISO/IEC 27001 or SOC 2 Type II? | `saas_app` | SaaS applications (Answering `No` triggers `saas_uncertified` track) |
 | 47c | SaaS Requirements & Vendor Security Exhibit | `saas_contract_compliance` | `q3` | Can you answer the Uncertified SaaS Vendor Track (detailed vendor security assessment: ISMS, workstations, isolation), or does somebody else have to? | `saas_app` | Uncertified SaaS applications (Triggers `saas_uncertified` on `c1`, leaves in orchestrator on `c2`) |
@@ -949,6 +953,50 @@ Action - Ask if non prod environments (if used) are secure identically as prod. 
   - `No` (0 pts)
 - **Applicable Cases / Situations**:
   - [ ] 
+
+#### Node: Software Patchability, Maintenance Capacity & Obsolescence Management (`software_patchability_and_obsolescence`)
+- **Implementation Groups**: `custom_app, cots_app`
+- **Description**: Ensure application software components remain actively supported (not End-of-Life / obsolete), technically patchable without prohibitive refactoring, backed by dedicated team capacity to patch within SLAs, and governed by a proactive obsolescence roadmap.
+
+##### Q46a. `software_patchability_and_obsolescence:q1`
+- **URN**: `urn:intuitem:risk:req_node:appsec:software_patchability_and_obsolescence:q1`
+- **Question**: Are all core software components of the application (frameworks, programming language runtimes, libraries, databases, and middleware) on actively supported release versions (not End-of-Life / EOL, End-of-Support / EOS, or unmaintained)?
+- **Type**: `unique_choice`
+- **Choices & Scoring**:
+  - `Yes` (25 pts, compute_result: true)
+  - `No` (0 pts)
+- **Applicable Cases / Situations**:
+  - [x] Self-Hosted only (Custom & COTS)
+
+##### Q46b. `software_patchability_and_obsolescence:q2`
+- **URN**: `urn:intuitem:risk:req_node:appsec:software_patchability_and_obsolescence:q2`
+- **Question**: Is the software technically patchable and upgradable without prohibitive refactoring or breaking changes? (e.g., repeatable build/deployment pipeline, non-production test environment and regression testing, no blocking custom forks or unmaintained legacy dependencies)
+- **Type**: `unique_choice`
+- **Choices & Scoring**:
+  - `Yes` (25 pts, compute_result: true)
+  - `No` (0 pts)
+- **Applicable Cases / Situations**:
+  - [x] Self-Hosted only (Custom & COTS)
+
+##### Q46c. `software_patchability_and_obsolescence:q3`
+- **URN**: `urn:intuitem:risk:req_node:appsec:software_patchability_and_obsolescence:q3`
+- **Question**: Does the product and engineering team have dedicated capacity, budget, and backlog prioritization allocated to apply security patches and dependency upgrades within formal SLAs (Critical <= 14 days, High <= 30 days)?
+- **Type**: `unique_choice`
+- **Choices & Scoring**:
+  - `Yes` (25 pts, compute_result: true)
+  - `No` (0 pts)
+- **Applicable Cases / Situations**:
+  - [x] Self-Hosted only (Custom & COTS)
+
+##### Q46d. `software_patchability_and_obsolescence:q4`
+- **URN**: `urn:intuitem:risk:req_node:appsec:software_patchability_and_obsolescence:q4`
+- **Question**: Is software obsolescence tracked against vendor or community End-of-Life (EOL) dates with a funded upgrade, migration, or decommissioning roadmap initiated ahead of End-of-Support?
+- **Type**: `unique_choice`
+- **Choices & Scoring**:
+  - `Yes` (25 pts, compute_result: true)
+  - `No` (0 pts)
+- **Applicable Cases / Situations**:
+  - [x] Self-Hosted only (Custom & COTS)
 
 
 <a id="saas_chapter"></a>

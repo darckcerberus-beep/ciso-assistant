@@ -1408,9 +1408,9 @@ class TestYamlIntegrity(unittest.TestCase):
         avail_node = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:availability_classification")
         self.assertIsNone(avail_node, "availability_classification must be removed to focus on confidentiality only")
 
-        # All 44 risk scenarios route impact to data_classification
+        # All 45 risk scenarios route impact to data_classification
         scenarios = {s["ref_id"]: s for s in appsec_fw["scenarios"].values()}
-        self.assertEqual(len(scenarios), 44)
+        self.assertEqual(len(scenarios), 45)
         for sc_ref, sc in scenarios.items():
             self.assertEqual(
                 sc.get("impact"),
@@ -1706,12 +1706,12 @@ class TestYamlIntegrity(unittest.TestCase):
         # network_exposure is no longer a standalone node
         self.assertNotIn("urn:intuitem:risk:req_node:appsec:network_exposure", appsec_fw["req_nodes"])
 
-        # 4. Total requirement nodes (61) and scenarios (44)
-        self.assertEqual(len(appsec_fw["req_nodes"]), 61)
-        self.assertEqual(len(appsec_fw["scenarios"]), 44)
+        # 4. Total requirement nodes (62) and scenarios (45)
+        self.assertEqual(len(appsec_fw["req_nodes"]), 62)
+        self.assertEqual(len(appsec_fw["scenarios"]), 45)
         self.assertEqual(len(appsec_fw["threats"]), 9)
-        self.assertEqual(len(appsec_fw["vulns"]), 18)
-        self.assertEqual(len(appsec_fw["ref_ctrls"]), 26)
+        self.assertEqual(len(appsec_fw["vulns"]), 19)
+        self.assertEqual(len(appsec_fw["ref_ctrls"]), 27)
 
         # 5. Universal IAM nodes are grouped under the 'baseline' track
         for ref_id in ["authentication_and_mfa", "access_control_and_rbac"]:
@@ -2249,7 +2249,7 @@ class TestYamlIntegrity(unittest.TestCase):
             self.assertIsNotNone(fw, f"Framework {fw_ref} missing")
 
             scenarios = fw["scenarios"]
-            self.assertEqual(len(scenarios), 44, f"Framework {fw_ref} must have 44 risk scenarios")
+            self.assertEqual(len(scenarios), 45, f"Framework {fw_ref} must have 45 risk scenarios")
 
             # Collect all likelihood target nodes
             linked_req_urns = {s.get("likelihood") for s in scenarios.values() if s.get("likelihood")}
@@ -2265,7 +2265,7 @@ class TestYamlIntegrity(unittest.TestCase):
                 )
             }
 
-            self.assertEqual(len(assessable_sec_nodes), 44, f"Expected 44 assessable security nodes in {fw_ref}")
+            self.assertEqual(len(assessable_sec_nodes), 45, f"Expected 45 assessable security nodes in {fw_ref}")
 
             unlinked_nodes = [
                 ref_id for ref_id in assessable_sec_nodes
@@ -2320,6 +2320,53 @@ class TestYamlIntegrity(unittest.TestCase):
                 q2_choice_urns = {c["urn"] for c in q2.get("choices", [])}
                 self.assertEqual(len(q1_choice_urns), len(q1.get("choices", [])))
                 self.assertEqual(len(q2_choice_urns), len(q2.get("choices", [])))
+
+    def test_appsec_software_patchability_and_obsolescence(self):
+        """Verify software_patchability_and_obsolescence node, scoring (4x25=100), scoping, and risk linkage."""
+        appsec_fw = next((f for f in self.frameworks if f["ref_id"] == "appsec"), None)
+        self.assertIsNotNone(appsec_fw, "appsec framework missing")
+
+        node_urn = "urn:intuitem:risk:req_node:appsec:software_patchability_and_obsolescence"
+        node = appsec_fw["req_nodes"].get(node_urn)
+        self.assertIsNotNone(node, "software_patchability_and_obsolescence node missing in appsec")
+
+        self.assertTrue(node.get("assessable"))
+        self.assertEqual(node.get("depth"), 2)
+        self.assertEqual(node.get("parent_urn"), "urn:intuitem:risk:req_node:appsec:resilience_chapter")
+        self.assertEqual(node.get("implementation_groups"), ["custom_app", "cots_app"])
+
+        # resilience_chapter must include custom_app so custom software tracks display it
+        resilience_ch = appsec_fw["req_nodes"].get("urn:intuitem:risk:req_node:appsec:resilience_chapter")
+        self.assertIn("custom_app", resilience_ch.get("implementation_groups", []))
+        self.assertIn("cots_app", resilience_ch.get("implementation_groups", []))
+        self.assertNotIn("saas_app", resilience_ch.get("implementation_groups", []))
+
+        # Verify 4 questions totaling 100 points (25 each)
+        questions = node.get("questions", {})
+        self.assertEqual(len(questions), 4)
+        total_score = 0
+        for idx in range(1, 5):
+            q_urn = f"{node_urn}:q{idx}"
+            self.assertIn(q_urn, questions)
+            choices = questions[q_urn].get("choices", [])
+            self.assertEqual(len(choices), 2)
+            self.assertEqual(choices[0]["value"], "Yes")
+            self.assertEqual(choices[0]["add_score"], 25)
+            self.assertTrue(choices[0]["compute_result"])
+            self.assertEqual(choices[1]["value"], "No")
+            self.assertEqual(choices[1]["add_score"], 0)
+            self.assertFalse(choices[1]["compute_result"])
+            total_score += choices[0]["add_score"]
+        self.assertEqual(total_score, 100)
+
+        # Verify linked risk scenario, vulnerability, and reference control
+        sc_urn = "urn:intuitem:risk:scenario:appsec:obsolete_or_unpatchable_software_exploitation"
+        scenario = appsec_fw["scenarios"].get(sc_urn)
+        self.assertIsNotNone(scenario)
+        self.assertEqual(scenario.get("likelihood"), node_urn)
+        self.assertEqual(scenario.get("impact"), "urn:intuitem:risk:req_node:appsec:data_classification")
+        self.assertIn("urn:intuitem:risk:vulnerability:appsec:software_obsolescence_and_unpatchability", scenario.get("vulnerabilities", []))
+        self.assertIn("urn:intuitem:risk:control:appsec:software_patchability_and_obsolescence", scenario.get("reference_controls", []))
 
 if __name__ == "__main__":
     unittest.main()
