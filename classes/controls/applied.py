@@ -636,18 +636,8 @@ class AppliedControlDict:
         task_template_dict=None,
         perimeter_dict=None,
         user_id=None,
-        tier=None,
     ):
-        """Create recurring task templates for recurrent applied controls.
-
-        Scales confirmation task frequencies and template titles according to the application's criticality tier:
-        - Critical: High-frequency verification (Monthly / Quarterly technical audits).
-        - Important: Standard enterprise verification (Quarterly / Biannual).
-        - Standard: Baseline hygiene verification (Semi-Annual / Annual).
-        - Low-Impact: Minimal annual / biennial self-attestation.
-        """
-        from ..audits.implementation_groups import get_tier_control_confirmation_schedule
-
+        """Create recurring task templates for recurrent applied controls."""
         created = []
         if not reference_control_dict:
             return created
@@ -681,16 +671,7 @@ class AppliedControlDict:
 
             ctrl_name = ctrl.get_name()
             scope_suffix = ctrl_name.split(" on ", 1)[-1] if " on " in ctrl_name else ""
-
-            # Calculate tier-modulated confirmation schedule and formatted name
-            schedule_info = get_tier_control_confirmation_schedule(
-                tier=tier,
-                base_frequency=task_cfg.get("frequency", "YEARLY"),
-                base_interval=task_cfg.get("interval", 1),
-                base_task_name=task_cfg.get("name", "Control Confirmation"),
-            )
-            base_formatted = schedule_info["formatted_task_name"]
-            template_name = f"{base_formatted} on {scope_suffix}" if scope_suffix else base_formatted
+            template_name = f"{task_cfg['name']} on {scope_suffix}" if scope_suffix else task_cfg["name"]
 
             if template_name in existing_names:
                 continue
@@ -701,13 +682,10 @@ class AppliedControlDict:
             if not folder_id and perimeter_dict and scope_suffix:
                 folder_id = perimeter_dict.get_folder_uuid_from_perimeter_id(scope_suffix)
 
-            desc = task_cfg.get("description", "")
-            tier_note = f"\n\n[Tier Governance Policy: {schedule_info['tier'].upper()} • Re-confirmation Cadence: {schedule_info['cadence_label']}]"
             payload = {
                 "name": template_name,
-                "description": f"{desc}{tier_note}",
+                "description": task_cfg.get("description", ""),
                 "is_recurrent": True,
-                "schedule": schedule_info["schedule"],
                 "folder": folder_id,
                 "applied_controls": [ctrl.get_id()],
                 "assigned_to": [user_id] if user_id else [],

@@ -627,7 +627,7 @@ class TestExamplesManager(unittest.TestCase):
 
     def test_get_framework_field_visibility_applied_controls_hidden(self):
         """Verify get_framework_field_visibility ensures applied_controls is hidden for respondent."""
-        for ref in ["mls", "vendor-due-diligence", "appsec", None]:
+        for ref in ["mls", "vendor-due-diligence", "appsec", "appsec_manual", None]:
             vis = self.manager.get_framework_field_visibility(ref)
             self.assertIn("applied_controls", vis, f"applied_controls must be in field_visibility for {ref}")
             self.assertEqual(vis["applied_controls"].get("respondent"), "hidden", f"applied_controls respondent visibility must be hidden for {ref}")
@@ -657,8 +657,8 @@ class TestExamplesManager(unittest.TestCase):
 
         mock_fw = MagicMock()
         mock_fw.get_id.return_value = "fw-uuid-appsec"
-        mock_fw.get_name.return_value = "Application Security Assessment Framework (AppSec)"
-        mock_fw.json_object = {"ref_id": "appsec"}
+        mock_fw.get_name.return_value = "Application Security Assessment Framework (AppSec - Manual IG)"
+        mock_fw.json_object = {"ref_id": "appsec_manual"}
 
         mock_ca = MagicMock()
         mock_ca.get_id.return_value = "ca-uuid-demo"
@@ -688,7 +688,7 @@ class TestExamplesManager(unittest.TestCase):
             res = self.manager.create_application_for_audit(
                 app_name="App-Demo",
                 user_email="respondent@example.com",
-                framework_ref_or_name="appsec",
+                framework_ref_or_name="appsec_manual",
             )
 
             ca_post_call = mock_get_return.call_args
@@ -1361,6 +1361,8 @@ class TestFrameworkSelection(unittest.TestCase):
                 self.assertEqual(app["framework_name"], "Vendor Due Diligence (VDD) - simple")
             elif app["framework_ref"] == "appsec":
                 self.assertEqual(app["framework_name"], "Application Security Assessment Framework (AppSec)")
+            elif app["framework_ref"] == "appsec_manual":
+                self.assertEqual(app["framework_name"], "Application Security Assessment Framework (AppSec - Manual IG)")
             else:
                 self.fail(f"Unknown framework_ref: {app['framework_ref']}")
             self.assertTrue(Path(app["framework_yaml"]).exists())
@@ -1373,12 +1375,10 @@ class TestFrameworkSelection(unittest.TestCase):
         for yml_file in test_data_dir.glob("*.yml"):
             with open(yml_file, "r", encoding="utf-8") as f:
                 data = yaml.safe_load(f)
-            if not isinstance(data, dict) or ("objects" in data and "framework" in data.get("objects", {})):
-                continue
             app_block = data.get("application", {})
             self.assertIn("framework_ref", app_block, f"Missing framework_ref in {yml_file.name}")
             self.assertIn("framework_name", app_block, f"Missing framework_name in {yml_file.name}")
-            self.assertIn(app_block["framework_ref"], ["mls", "vendor-due-diligence", "appsec"])
+            self.assertIn(app_block["framework_ref"], ["mls", "vendor-due-diligence", "appsec", "appsec_manual"])
 
     def test_get_available_frameworks_catalog(self):
         """Verify catalog returns both DPP and Vendor Due Diligence frameworks."""
@@ -1605,7 +1605,9 @@ class TestFrameworkSelection(unittest.TestCase):
                 app_id, kwargs = call_args[0][0], call_args[1]
                 if "vendor" in app_id:
                     expected_fw = "vendor-due-diligence"
-                elif "manual" in app_id or "appsec" in app_id:
+                elif "manual" in app_id:
+                    expected_fw = "appsec_manual"
+                elif "appsec" in app_id:
                     expected_fw = "appsec"
                 else:
                     expected_fw = "mls"

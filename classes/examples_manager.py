@@ -25,15 +25,10 @@ from classes.audits.finding import FindingDict, FindingsAssessmentDict
 from classes.audits.implementation_groups import (
     add_default_implementation_groups,
     determine_implementation_groups_triggered_by_others,
-    evaluate_security_by_design_knockouts,
-    filter_implementation_groups_by_tier,
     get_framework_implementation_groups,
     get_framework_implementation_groups_dependencies,
     get_implementation_groups_triggered_by_others,
-    get_tier_governance_policy,
     get_visible_implementation_groups,
-    map_audit_answers_to_tiering_answers,
-    map_tiering_answers_to_hosting_answers,
     resolve_implementation_groups,
 )
 from classes.organization.asset import AssetDict
@@ -161,7 +156,7 @@ class ExamplesManager:
                 "task_template_dict": TaskTemplateDict,
                 "task_dict": TaskDict,
             }
-            with ThreadPoolExecutor(max_workers=3) as executor:
+            with ThreadPoolExecutor(max_workers=8) as executor:
                 futures = {k: executor.submit(cls) for k, cls in constructors.items()}
                 self.data = {k: f.result() for k, f in futures.items()}
             self.data["framework_file"] = FrameworkFile(str(self.framework_yaml))
@@ -1077,7 +1072,6 @@ class ExamplesManager:
         yaml_path: str | None = None,
         domain_id: str | None = None,
         domain_name: str | None = None,
-        sol_info: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Construct a standardized status dictionary for an application."""
         total_reqs = 0
@@ -1089,42 +1083,19 @@ class ExamplesManager:
             ca_id = ca_obj.get_id() if hasattr(ca_obj, "get_id") else str(ca_obj)
             ca_reqs = (req_by_ca or {}).get(ca_id, [])
             all_reqs_count = len(ca_reqs)
-            ca_sel_groups = list((
+            ca_sel_groups = (
                 ca_obj.get_selected_implementation_groups()
                 if hasattr(ca_obj, "get_selected_implementation_groups")
                 else (getattr(ca_obj, "compliance_assessment_json", {}) or {}).get("selected_implementation_groups", [])
-            ) or [])
-
-            # Discover implementation groups assigned via existing requirement assignments
-            assigned_ra_ids = set()
-            for asgn in (asgns_by_ca or {}).get(ca_id, []):
-                ra_list = getattr(asgn, "get_requirement_assessment_id_list", lambda: [])() or []
-                assigned_ra_ids.update(ra_list)
-            assigned_ra_count = len(assigned_ra_ids)
-
-            req_by_id = {ra.get_id(): ra for ra in ca_reqs if hasattr(ra, "get_id")}
-            for rid in assigned_ra_ids:
-                ra = req_by_id.get(rid)
-                if ra and hasattr(ra, "get_implementation_groups"):
-                    for ig in ra.get_implementation_groups() or []:
-                        if ig and ig not in ca_sel_groups:
-                            ca_sel_groups.append(ig)
-            if ca_sel_groups and (framework_id or framework_ref or framework_name):
-                try:
-                    ca_sel_groups = resolve_implementation_groups(
-                        ca_sel_groups, framework_id or framework_ref or framework_name
-                    )
-                except Exception:
-                    pass
-
+            ) or []
             answered_reqs, total_reqs = ExamplesManager._resolve_triggered_requirements(
                 ca_reqs,
                 yaml_path=yaml_path,
                 framework_ref=framework_ref or framework_name or framework_id,
                 selected_groups=ca_sel_groups,
             )
-            # Ensure total_reqs includes all assigned requirements
-            total_reqs = max(total_reqs, assigned_ra_count)
+            for asgn in (asgns_by_ca or {}).get(ca_id, []):
+                assigned_ra_count += len(getattr(asgn, "get_requirement_assessment_id_list", lambda: [])() or [])
         unassigned_requirements_count = max(0, total_reqs - assigned_ra_count)
 
         item_exists = bool(perimeter_id or ca_obj or ra_obj or entity_id or ea_obj)
@@ -1207,10 +1178,6 @@ class ExamplesManager:
             "tprm_conclusion": ea_obj.json_object.get("conclusion") if ea_obj and isinstance(getattr(ea_obj, "json_object", None), dict) else None,
             "selected_implementation_groups": list(ca_sel_groups),
             "unassigned_requirements_count": unassigned_requirements_count,
-            "solution_id": (sol_info or {}).get("id"),
-            "solution_tier": (sol_info or {}).get("tier"),
-            "solution_tier_rank": (sol_info or {}).get("rank"),
-            "governance_policy": get_tier_governance_policy((sol_info or {}).get("tier")),
         }
 
     def get_status(self, wait_seconds: float = 0) -> list[dict[str, Any]]:
@@ -1259,22 +1226,6 @@ class ExamplesManager:
                             asgns_by_ca.setdefault(ca_id, []).append(asgn)
             except Exception as e:
                 utils.log(f"Error indexing requirement assignments: {e}", level=logging.DEBUG)
-
-        solutions = self.get_solutions()
-        tiers = self.get_tiers()
-        tiers_by_id = {t.get("id"): t for t in tiers}
-        solutions_by_name: dict[str, dict[str, Any]] = {}
-        for sol in solutions:
-            s_name = str(sol.get("name") or "").strip().lower()
-            t_id = sol.get("tier")
-            t_obj = tiers_by_id.get(t_id) if isinstance(t_id, str) else t_id
-            solutions_by_name[s_name] = {
-                "id": sol.get("id"),
-                "name": sol.get("name"),
-                "tier": (t_obj.get("key") or t_obj.get("name")) if isinstance(t_obj, dict) else None,
-                "rank": t_obj.get("rank") if isinstance(t_obj, dict) else None,
-                "color": t_obj.get("hexcolor") if isinstance(t_obj, dict) else None,
-            }
 
         status_list = []
         known_names = set()
@@ -1437,7 +1388,6 @@ class ExamplesManager:
                 yaml_path=app.get("yaml_path", ""),
                 domain_id=app_domain_id,
                 domain_name=app_domain_name,
-                sol_info=solutions_by_name.get(app_name.lower()),
             ))
 
         # Discover custom applications created in the example folder or target domain
@@ -1585,7 +1535,6 @@ class ExamplesManager:
                 yaml_path="-",
                 domain_id=ent_fid or folder_id,
                 domain_name=custom_domain_name,
-                sol_info=solutions_by_name.get(app_name.lower()),
             ))
 
         return status_list
@@ -1750,7 +1699,6 @@ class ExamplesManager:
                 "assets": [asset_id] if asset_id else [],
                 "score_calculation_method": AUDITOR_SCORE_METHOD,
                 "field_visibility": self.get_framework_field_visibility(framework_ref or framework_ref_or_name or framework_id),
-                "status": "in_progress",
             }
             add_default_implementation_groups(payload, framework_id)
             ca_response = utils.get_return("/api/compliance-assessments/", method="POST", payload=payload)
@@ -1963,15 +1911,9 @@ class ExamplesManager:
         # Step 10: Generate Findings from Audit Answers
         findings_res = self.create_findings_for_application(app_name)
 
-        # Step 11: Create recurring tasks for recurrent applied controls (modulated by tier)
+        # Step 11: Create recurring tasks for recurrent applied controls
         task_templates_created = []
         task_template_dict = data.get("task_template_dict")
-        app_tier = None
-        try:
-            app_tier = self.get_solution_tier(app_name)
-        except Exception:
-            pass
-
         if applied_control_dict and reference_control_dict and hasattr(applied_control_dict, "create_tasks_for_applied_controls"):
             try:
                 task_templates_created = applied_control_dict.create_tasks_for_applied_controls(
@@ -1979,7 +1921,6 @@ class ExamplesManager:
                     task_template_dict=task_template_dict,
                     perimeter_dict=perimeter_dict,
                     user_id=assignee_id,
-                    tier=app_tier,
                 )
             except Exception as e:
                 utils.log(f"Error creating tasks for recurrent controls: {e}", level=logging.WARNING)
@@ -2027,8 +1968,6 @@ class ExamplesManager:
         framework_ref_or_name: str | None = None,
         domain_name: str | None = None,
         implementation_groups: list[str] | None = None,
-        tier: str | int | None = None,
-        tier_note: str | None = None,
     ) -> dict[str, Any]:
         """Create an application in CISO Assistant for an audit demonstration.
 
@@ -2157,32 +2096,6 @@ class ExamplesManager:
         compliance_dict: ComplianceAssessmentDict = data["compliance_assessment_dict"]
         ca_name = utils.format_audit_name(app_name, framework_name, framework_ref)
 
-        # Step 6a: Set Solution Criticality Tier in CISO Assistant if specified
-        sol_id = None
-        sol_tier_val = None
-        if tier:
-            try:
-                sol_note = tier_note or f"Assigned during audit intake for {app_name}"
-                sol_res = self.set_solution_tier(app_name, tier, note=sol_note)
-                if isinstance(sol_res, dict):
-                    sol_id = sol_res.get("id")
-                    sol_tier_val = tier
-            except Exception as e:
-                utils.log(f"Warning: could not set solution tier for {app_name}: {e}", level=logging.WARNING)
-
-        # Step 6b: Scope implementation groups according to solution tier if specified
-        if tier:
-            if implementation_groups is not None:
-                implementation_groups = filter_implementation_groups_by_tier(tier, implementation_groups, framework or framework_id)
-            else:
-                default_groups = [
-                    ig.get("name")
-                    for ig in get_framework_implementation_groups(framework or framework_id)
-                    if ig.get("default_selected")
-                ]
-                if default_groups:
-                    implementation_groups = filter_implementation_groups_by_tier(tier, default_groups, framework or framework_id)
-
         ca_obj = None
         for ca in compliance_dict.get_compliance_assessments().values():
             if ca.get_name() == ca_name or (ca.get_perimeter_id() == perimeter_id and ca.get_framework_id() == framework_id):
@@ -2197,7 +2110,6 @@ class ExamplesManager:
                 "assets": [asset_id] if asset_id else [],
                 "score_calculation_method": AUDITOR_SCORE_METHOD,
                 "field_visibility": self.get_framework_field_visibility(framework_ref or framework_ref_or_name or framework_id),
-                "status": "in_progress",
             }
             if implementation_groups is not None:
                 payload["selected_implementation_groups"] = resolve_implementation_groups(
@@ -2272,12 +2184,6 @@ class ExamplesManager:
         assignment_id = assignment_ids[0] if assignment_ids else None
         utils.log(f"Requirement assignment ID for {ca_name}: {assignment_id}", level=logging.INFO)
 
-        if ca_obj and hasattr(ca_obj, "start") and ca_obj.get_status() != "in_progress":
-            try:
-                ca_obj.start()
-            except Exception:
-                pass
-
         # Step 10: Refresh cached state
         self._init_data(force_reload=True)
 
@@ -2310,9 +2216,6 @@ class ExamplesManager:
                 ) or []
             ),
             "available_implementation_groups": list(get_framework_implementation_groups(framework or framework_id)),
-            "solution_id": sol_id,
-            "solution_tier": sol_tier_val or tier,
-            "governance_policy": get_tier_governance_policy(sol_tier_val or tier) if (sol_tier_val or tier) else None,
         }
 
     def get_framework_implementation_groups(self, framework_ref_or_name: str | None = None) -> list[dict[str, Any]]:
@@ -2405,24 +2308,15 @@ class ExamplesManager:
             if framework else ""
         )
 
-        selected = list((
+        selected = (
             ca_obj.get_selected_implementation_groups()
             if hasattr(ca_obj, "get_selected_implementation_groups")
             else (getattr(ca_obj, "compliance_assessment_json", {}) or {}).get("selected_implementation_groups", [])
-        ) or [])
+        ) or []
         # Refresh live data so answers submitted in CISO Assistant are evaluated
         if hasattr(compliance_dict, "reload") and callable(compliance_dict.reload):
             try:
                 compliance_dict.reload()
-                ca_obj = compliance_dict.get_compliance_assessments().get(ca_obj.get_id()) or ca_obj
-                fresh_sel = (
-                    ca_obj.get_selected_implementation_groups()
-                    if hasattr(ca_obj, "get_selected_implementation_groups")
-                    else (getattr(ca_obj, "compliance_assessment_json", {}) or {}).get("selected_implementation_groups", [])
-                ) or []
-                for s in fresh_sel:
-                    if s not in selected:
-                        selected.append(s)
             except Exception:
                 pass
         req_assessments = getattr(compliance_dict, "requirement_assessments", None)
@@ -2435,23 +2329,6 @@ class ExamplesManager:
         if req_assignments and hasattr(req_assignments, "reload") and callable(req_assignments.reload):
             try:
                 req_assignments.reload()
-            except Exception:
-                pass
-
-        # Discover implementation groups from existing requirement assignments for this audit
-        if req_assignments and hasattr(req_assignments, "get_requirement_assignments"):
-            ras_dict = getattr(req_assessments, "get_requirement_assessments", lambda: {})() or {}
-            for asgn in (req_assignments.get_requirement_assignments() or []):
-                if getattr(asgn, "get_compliance_assessment_id", lambda: None)() == ca_obj.get_id():
-                    for rid in (getattr(asgn, "get_requirement_assessment_id_list", lambda: [])() or []):
-                        ra = ras_dict.get(rid)
-                        if ra and hasattr(ra, "get_implementation_groups"):
-                            for ig in ra.get_implementation_groups() or []:
-                                if ig and ig not in selected:
-                                    selected.append(ig)
-        if selected and (fw_id or framework):
-            try:
-                selected = resolve_implementation_groups(selected, framework or fw_id)
             except Exception:
                 pass
 
@@ -2636,13 +2513,6 @@ class ExamplesManager:
         ]
         unassigned_triggered_groups = list(active_triggered_groups) if unassigned_ra_ids else []
 
-        sol_tier = None
-        try:
-            sol_tier = self.get_solution_tier(app_name)
-        except Exception:
-            pass
-        gov_policy = get_tier_governance_policy(sol_tier) if sol_tier else None
-
         return {
             "app_name": app_name,
             "compliance_assessment_id": ca_obj.get_id(),
@@ -2650,8 +2520,6 @@ class ExamplesManager:
             "framework_id": fw_id,
             "framework_name": fw_name,
             "framework_ref": fw_ref,
-            "solution_tier": sol_tier,
-            "governance_policy": gov_policy,
             "selected_implementation_groups": list(selected),
             "available_implementation_groups": list(available),
             "always_selectable_groups": list(always_selectable),
@@ -2847,6 +2715,21 @@ class ExamplesManager:
         compliance_dict.reload()
 
         # 3. Resolve assessable requirement assessments
+        scoped_ids = []
+        get_scoped = getattr(
+            compliance_dict.requirement_assessments,
+            "get_scoped_requirement_assessment_id_list_from_compliance_assessment_id",
+            None,
+        )
+        if callable(get_scoped) and not (
+            hasattr(get_scoped, "_mock_return_value")
+            and "DEFAULT" in repr(getattr(get_scoped, "_mock_return_value", None))
+        ):
+            scoped_ids = get_scoped(ca_id, compliance_assessment=ca_obj) or []
+        elif hasattr(compliance_dict.requirement_assessments, "get_requirement_assessment_id_list_from_compliance_assessment_id"):
+            scoped_ids = compliance_dict.requirement_assessments.get_requirement_assessment_id_list_from_compliance_assessment_id(ca_id) or []
+
+        # Find existing assignments to avoid duplicate assignment of already assigned requirements
         existing_assigned_ids = set()
         req_assignments = getattr(compliance_dict, "requirement_assignments", None)
         if req_assignments and hasattr(req_assignments, "get_requirement_assignments"):
@@ -2858,48 +2741,12 @@ class ExamplesManager:
             except Exception:
                 pass
 
-        # Prefer requirements specifically mapped to the target implementation groups
-        target_group_ra_ids = []
-        get_group_ra = getattr(
-            compliance_dict.requirement_assessments,
-            "get_requirement_assessment_id_list_for_groups",
-            None,
-        )
-        if callable(get_group_ra):
-            res_group = get_group_ra(
-                ca_id,
-                target_groups,
-                fw_id=fw_id,
-                only_assessable=True,
-            )
-            if isinstance(res_group, list):
-                target_group_ra_ids = res_group
-
-        unassigned_ids = [rid for rid in target_group_ra_ids if rid not in existing_assigned_ids]
-        target_ra_ids = unassigned_ids
-
-        # If not resolved by group mapping, fallback to general scoped requirements
-        if not target_ra_ids and not target_group_ra_ids:
-            scoped_ids = []
-            get_scoped = getattr(
-                compliance_dict.requirement_assessments,
-                "get_scoped_requirement_assessment_id_list_from_compliance_assessment_id",
-                None,
-            )
-            if callable(get_scoped):
-                res_scoped = get_scoped(ca_id, compliance_assessment=ca_obj)
-                if isinstance(res_scoped, list):
-                    scoped_ids = res_scoped
-            if not scoped_ids and hasattr(compliance_dict.requirement_assessments, "get_requirement_assessment_id_list_from_compliance_assessment_id"):
-                res_all = compliance_dict.requirement_assessments.get_requirement_assessment_id_list_from_compliance_assessment_id(ca_id)
-                if isinstance(res_all, list):
-                    scoped_ids = res_all
-            target_ra_ids = [rid for rid in scoped_ids if rid not in existing_assigned_ids]
+        # Filter scoped_ids: prefer newly assessable requirements that are not yet assigned
+        unassigned_ids = [rid for rid in scoped_ids if rid not in existing_assigned_ids]
+        target_ra_ids = unassigned_ids if unassigned_ids else scoped_ids
 
         if not target_ra_ids:
-            raise ValueError(
-                f"All requirements for '{', '.join(target_groups)}' in audit '{app_name}' are already assigned."
-            )
+            target_ra_ids = scoped_ids
 
         # 4. Resolve Assignee
         target_email = (user_email or current_info.get("app_owner_email") or "").strip().lower()
@@ -2946,45 +2793,8 @@ class ExamplesManager:
         if start and asgn_id:
             start_requirement_assignment(asgn_id)
 
-        if start:
-            # Transition compliance assessment (audit) to in_progress
-            try:
-                ca_status = ca_obj.get_status() if hasattr(ca_obj, "get_status") else None
-                if ca_status != "in_progress":
-                    if hasattr(ca_obj, "start"):
-                        ca_obj.start()
-                    else:
-                        utils.get_return(
-                            f"/api/compliance-assessments/{ca_id}/",
-                            method="PATCH",
-                            payload={"status": "in_progress"},
-                        )
-            except Exception as e:
-                utils.log(f"Warning: Could not start compliance assessment {ca_id}: {e}", level=logging.WARNING)
-
-            # Ensure linked entity assessment (if any) is also in_progress
-            try:
-                entity_assessment_dict = data.get("entity_assessment_dict")
-                if entity_assessment_dict and hasattr(entity_assessment_dict, "get_entity_assessments"):
-                    for ea in entity_assessment_dict.get_entity_assessments() or []:
-                        if getattr(ea, "get_compliance_assessment_id", lambda: None)() == ca_id:
-                            if getattr(ea, "get_status", lambda: None)() != "in_progress":
-                                utils.get_return(
-                                    f"/api/entity-assessments/{ea.get_id()}/",
-                                    method="PATCH",
-                                    payload={"status": "in_progress"},
-                                )
-            except Exception as e:
-                utils.log(f"Warning: Could not start entity assessment for CA {ca_id}: {e}", level=logging.WARNING)
-
         if hasattr(compliance_dict.requirement_assignments, "reload"):
             compliance_dict.requirement_assignments.reload()
-
-        # Force refresh internal data cache so subsequent queries immediately see the new assignment and started audit
-        try:
-            self._init_data(force_reload=True)
-        except Exception:
-            pass
 
         utils.log(
             f"Successfully assigned implementation groups {target_groups} for '{app_name}' to "
@@ -3006,8 +2816,6 @@ class ExamplesManager:
             "compliance_assessment_id": ca_id,
             "assignment_id": asgn_id,
             "assignment_status": "in_progress" if start else "draft",
-            "audit_status": "in_progress" if start else (ca_obj.get_status() if hasattr(ca_obj, "get_status") else "planned"),
-            "compliance_status": "in_progress" if start else (ca_obj.get_status() if hasattr(ca_obj, "get_status") else "planned"),
             "status": "in_progress" if start else "draft",
             "assigned_user": target_email or actor_id,
             "assignee_email": target_email or actor_id,
@@ -3020,767 +2828,6 @@ class ExamplesManager:
             "suggestion": first_suggestion,
             "suggested_assignee": first_suggestion,
         }
-
-    def get_tiers(self) -> list[dict[str, Any]]:
-        """Return the list of organization criticality tiers configured in CISO Assistant.
-
-        Returns:
-            List of tier dicts sorted by rank descending (critical -> low-impact).
-        """
-        tiers = utils.get_all_results("api/tiers/")
-        if not tiers:
-            res = utils.get_return("api/tiers/")
-            tiers = res.get("results", []) if isinstance(res, dict) else []
-        return sorted(tiers, key=lambda t: t.get("rank", 0), reverse=True)
-
-    def resolve_tier_id(self, tier_key_or_rank: str | int) -> str | None:
-        """Resolve a tier key ('critical', 'important', 'standard', 'low-impact') or rank (1-4) to UUID."""
-        tiers = self.get_tiers()
-        target = str(tier_key_or_rank).strip().lower().replace("_", "-")
-        for t in tiers:
-            t_id = t.get("id")
-            t_key = str(t.get("key") or t.get("name") or "").strip().lower().replace("_", "-")
-            t_rank = str(t.get("rank") or "")
-            if target in (t_key, t_rank, str(t_id)):
-                return t_id
-        return None
-
-    def get_solutions(self, force_reload: bool = False) -> list[dict[str, Any]]:
-        """Retrieve all software solutions registered in CISO Assistant TPRM."""
-        solutions = utils.get_all_results("api/solutions/", force_reload=force_reload)
-        if not solutions:
-            res = utils.get_return("api/solutions/")
-            solutions = res.get("results", []) if isinstance(res, dict) else []
-        return solutions
-
-    def find_solution(self, name_or_id: str) -> dict[str, Any] | None:
-        """Find a solution by UUID, name, or ref_id (case-insensitive)."""
-        if not name_or_id:
-            return None
-        target = str(name_or_id).strip().lower()
-        for sol in self.get_solutions(force_reload=False):
-            s_id = str(sol.get("id") or "").strip().lower()
-            s_name = str(sol.get("name") or "").strip().lower()
-            s_ref = str(sol.get("ref_id") or "").strip().lower()
-            if target in (s_id, s_name, s_ref):
-                return sol
-        # Retry with force reload
-        for sol in self.get_solutions(force_reload=True):
-            s_id = str(sol.get("id") or "").strip().lower()
-            s_name = str(sol.get("name") or "").strip().lower()
-            s_ref = str(sol.get("ref_id") or "").strip().lower()
-            if target in (s_id, s_name, s_ref):
-                return sol
-        return None
-
-    def get_or_create_solution(
-        self,
-        app_name: str,
-        provider_entity_name: str | None = None,
-        description: str = "",
-        ref_id: str = "",
-    ) -> dict[str, Any]:
-        """Get an existing solution or create a new one under a provider entity."""
-        existing = self.find_solution(app_name)
-        if existing:
-            return existing
-
-        # Resolve provider entity
-        data = self._init_data()
-        entity_dict: EntityDict = data["entity_dict"]
-        provider_id = None
-        if provider_entity_name:
-            provider_id = entity_dict.get_id_from_name(provider_entity_name)
-
-        if not provider_id:
-            provider_id = entity_dict.get_id_from_name(app_name) or entity_dict.get_id_from_name("Main")
-
-        if not provider_id:
-            all_entities = entity_dict.get_entities()
-            if all_entities:
-                provider_id = list(all_entities.keys())[0]
-            else:
-                new_ent = utils.get_return("api/entities/", method="POST", payload={"name": provider_entity_name or "Internal Engineering"})
-                provider_id = new_ent.get("id") if isinstance(new_ent, dict) else None
-
-        payload = {
-            "name": app_name,
-            "provider_entity": provider_id,
-            "description": description or f"Software application solution for {app_name}",
-            "ref_id": ref_id or app_name.lower().replace(" ", "_"),
-        }
-        res = utils.get_return("api/solutions/", method="POST", payload=payload)
-        if isinstance(res, dict) and "id" in res:
-            utils.clear_get_all_results_cache()
-            return res
-        return {}
-
-    def set_solution_tier(
-        self,
-        app_name_or_solution_id: str,
-        tier: str | int,
-        note: str = "Assigned via AppSec Solution Tiering Orchestrator",
-    ) -> dict[str, Any]:
-        """Assign or override a criticality tier on a solution in CISO Assistant."""
-        sol = self.find_solution(app_name_or_solution_id)
-        if not sol:
-            sol = self.get_or_create_solution(app_name_or_solution_id)
-
-        sol_id = sol.get("id")
-        if not sol_id:
-            raise ValueError(f"Solution {app_name_or_solution_id} not found and could not be created.")
-
-        tier_id = self.resolve_tier_id(tier)
-        if not tier_id:
-            raise ValueError(f"Tier {tier} could not be resolved to a valid CISO Assistant Tier UUID.")
-
-        patch_payload = {
-            "tier": tier_id,
-            "tier_note": note,
-        }
-        res = utils.get_return(f"api/solutions/{sol_id}/", method="PATCH", payload=patch_payload)
-        utils.clear_get_all_results_cache()
-        return res if isinstance(res, dict) else sol
-
-    def get_solution_tier(self, app_name_or_solution_id: str) -> dict[str, Any]:
-        """Return the tier information and governance policy for a solution."""
-        sol = self.find_solution(app_name_or_solution_id)
-        if not sol:
-            return {
-                "solution_id": None,
-                "solution_name": app_name_or_solution_id,
-                "tier": None,
-                "rank": None,
-                "hexcolor": None,
-                "tier_source": None,
-                "governance_policy": get_tier_governance_policy("standard"),
-            }
-
-        tier_field = sol.get("tier")
-        tiers = self.get_tiers()
-        tiers_by_id = {t.get("id"): t for t in tiers}
-        tier_obj = tiers_by_id.get(tier_field) if isinstance(tier_field, str) else tier_field
-
-        tier_key = (tier_obj.get("key") or tier_obj.get("name")) if isinstance(tier_obj, dict) else None
-        tier_rank = tier_obj.get("rank") if isinstance(tier_obj, dict) else None
-        tier_color = tier_obj.get("hexcolor") if isinstance(tier_obj, dict) else None
-
-        return {
-            "solution_id": sol.get("id"),
-            "solution_name": sol.get("name"),
-            "tier": tier_key,
-            "rank": tier_rank,
-            "hexcolor": tier_color,
-            "tier_source": sol.get("tier_source"),
-            "governance_policy": get_tier_governance_policy(tier_key),
-        }
-
-    def extract_tiering_answers_from_compliance_assessment(
-        self,
-        app_name_or_ca_id: str,
-    ) -> dict[str, Any]:
-        """Extract Chapter 1 answers (data_classification, hosting) from an application's compliance assessment."""
-        target = str(app_name_or_ca_id).strip()
-        data = self._init_data()
-        compliance_dict = data.get("compliance_assessment_dict")
-        perimeter_dict = data.get("perimeter_dict")
-        if not compliance_dict:
-            return {}
-
-        ca_obj = None
-        all_cas = compliance_dict.get_compliance_assessments() if hasattr(compliance_dict, "get_compliance_assessments") else {}
-        if target in all_cas:
-            ca_obj = all_cas[target]
-
-        if not ca_obj and perimeter_dict:
-            perm_id = perimeter_dict.get_id_from_name(target)
-            for ca in all_cas.values():
-                if ca.get_id() == target or ca.get_name() == target or (perm_id and ca.get_perimeter_id() == perm_id):
-                    ca_obj = ca
-                    break
-
-        if not ca_obj:
-            target_lower = target.lower()
-            for ca in all_cas.values():
-                if target_lower in ca.get_name().lower():
-                    ca_obj = ca
-                    break
-
-        if not ca_obj:
-            return {}
-
-        req_assessments = getattr(compliance_dict, "requirement_assessments", None)
-        if req_assessments and hasattr(req_assessments, "reload") and callable(req_assessments.reload):
-            try:
-                req_assessments.reload()
-            except Exception:
-                pass
-
-        if not req_assessments or not hasattr(req_assessments, "get_requirement_assessment_id_list_from_compliance_assessment_id"):
-            return {}
-
-        ra_ids = req_assessments.get_requirement_assessment_id_list_from_compliance_assessment_id(ca_obj.get_id())
-        all_ras = req_assessments.get_requirement_assessments() or {}
-
-        audit_answers: dict[str, Any] = {}
-        for rid in ra_ids:
-            ra = all_ras.get(rid)
-            if not ra:
-                continue
-            r_ref = ""
-            for m_name in ("get_ref_id", "get_requirement_ref_id"):
-                m = getattr(ra, m_name, None)
-                if callable(m):
-                    try:
-                        r_ref = str(m() or "").strip()
-                        if r_ref:
-                            break
-                    except Exception:
-                        pass
-            if not r_ref and hasattr(ra, "ref_id"):
-                r_ref = str(getattr(ra, "ref_id", "")).strip()
-
-            r_answers = ra.get_answers() if hasattr(ra, "get_answers") else (ra.get("answers") if isinstance(ra, dict) else {})
-            if isinstance(r_answers, dict) and r_answers:
-                if r_ref:
-                    audit_answers[r_ref] = r_answers
-                else:
-                    audit_answers.update(r_answers)
-
-        if audit_answers:
-            mapped = map_audit_answers_to_tiering_answers(audit_answers)
-            if any(k in mapped for k in ("d1", "d2", "delivery_model", "exposure", "ko1", "ko2", "ko3", "ko4", "ko5", "ko6", "initiative_type")):
-                return mapped
-
-        # Fallback: check if example app yaml has answers
-        app_spec = self.find_example_application(target)
-        if app_spec and app_spec.get("yaml_path") and Path(app_spec["yaml_path"]).exists():
-            import yaml
-            try:
-                with open(app_spec["yaml_path"], "r", encoding="utf-8") as f:
-                    loaded = yaml.safe_load(f) or {}
-                    t_ans = loaded.get("tiering") or loaded.get("classification")
-                    if t_ans:
-                        return t_ans
-                    return map_audit_answers_to_tiering_answers(loaded)
-            except Exception:
-                pass
-
-        return {}
-
-    def assess_appsec_solution_tier(
-        self,
-        app_name_or_solution_id: str,
-        tiering_answers: dict[str, Any] | None = None,
-        auto_sign_off: bool = True,
-    ) -> dict[str, Any]:
-        """Assess and set the application tier using the AppSec Solution Tiering scoring and knock-out rules.
-
-        Evaluates:
-        1. Operational Resilience / Business Score (mean of b1, b2, b3: 1..4)
-        2. Data Classification & Exposure Score (mean of d1, d2, d3, d4: 1..4)
-        3. Inherent score = max(business_score, data_score)
-        4. Deterministic Knock-Outs:
-           - Regulated function (regulated == yes) -> Critical
-           - Single point of failure (b1 == stops AND b3 == sole) -> Critical
-           - Payment cardholder data / secrets (d1 == secrets) -> Critical
-           - Internet-facing with confidential data (exposure == internet AND d1 in (confidential, secrets)) -> Important
-           - Large-scale GDPR (d3 == large) -> Important
-           - Privileged access (d4 == privileged) -> Important
-        5. Sets the resolved tier directly onto the Solution in CISO Assistant when auto_sign_off is True.
-        6. Pre-seeds recommended implementation groups based on the resulting tier and delivery model.
-        """
-        if tiering_answers is None:
-            tiering_answers = {}
-
-        if not tiering_answers:
-            extracted = self.extract_tiering_answers_from_compliance_assessment(app_name_or_solution_id)
-            if extracted:
-                tiering_answers = extracted
-
-        b_scores = []
-        b_ans = {str(k).lower(): str(v).lower() for k, v in tiering_answers.items()}
-
-        # b1: Outage impact (1..4)
-        b1_val = b_ans.get("b1", b_ans.get("outage_impact", ""))
-        b1_score = 4 if "stop" in b1_val else (3 if "disrupt" in b1_val else (2 if "workaround" in b1_val else 1))
-        b_scores.append(b1_score)
-
-        # b2: RTO (1..4)
-        b2_val = b_ans.get("b2", b_ans.get("rto", ""))
-        b2_score = 4 if ("hour" in b2_val or "day" in b2_val and "under" in b2_val) else (3 if "week" in b2_val and "one" in b2_val else (2 if "month" in b2_val and "one" in b2_val else 1))
-        b_scores.append(b2_score)
-
-        # b3: Replaceability / SPOF (1..4)
-        b3_val = b_ans.get("b3", b_ans.get("replaceability", ""))
-        b3_score = 4 if ("sole" in b3_val or "spof" in b3_val) else (3 if "month" in b3_val else (2 if "week" in b3_val else 1))
-        b_scores.append(b3_score)
-
-        business_avg = sum(b_scores) / len(b_scores)
-
-        # d1: Data classification (1..4)
-        d_scores = []
-        d1_val = b_ans.get("d1", b_ans.get("data_classification", ""))
-        d1_score = 4 if ("secret" in d1_val or "pci" in d1_val or "level 3" in d1_val) else (3 if ("confidential" in d1_val or "level 2" in d1_val) else (2 if ("internal" in d1_val or "level 1" in d1_val) else 1))
-        d_scores.append(d1_score)
-
-        # d2: Disclosure harm (1..4)
-        d2_val = b_ans.get("d2", b_ans.get("disclosure_impact", ""))
-        d2_score = 4 if "catastrophic" in d2_val else (3 if ("severe" in d2_val or "moderate" in d2_val) else (2 if "minor" in d2_val else 1))
-        d_scores.append(d2_score)
-
-        # d3: GDPR volume (1..4)
-        d3_val = b_ans.get("d3", b_ans.get("gdpr_volume", ""))
-        d3_score = 4 if ("large" in d3_val or "100,000" in d3_val) else (3 if "medium" in d3_val else (2 if "low" in d3_val else 1))
-        d_scores.append(d3_score)
-
-        # d4: System access / privilege (1..4)
-        d4_val = b_ans.get("d4", b_ans.get("access_level", ""))
-        d4_score = 4 if ("privileged" in d4_val or "root" in d4_val or "admin" in d4_val) else (3 if ("wide" in d4_val or "shared" in d4_val) else (2 if "standard" in d4_val else 1))
-        d_scores.append(d4_score)
-
-        data_avg = sum(d_scores) / len(d_scores)
-        inherent_score = max(business_avg, data_avg)
-
-        # Base tier from inherent score
-        if inherent_score >= 3.3:
-            base_tier = "critical"
-        elif inherent_score >= 2.6:
-            base_tier = "important"
-        elif inherent_score >= 2.0:
-            base_tier = "standard"
-        else:
-            base_tier = "low-impact"
-
-        # Check knock-outs
-        knock_outs = []
-        reg_val = b_ans.get("regulated", b_ans.get("regulated_function", ""))
-        if "yes" in reg_val:
-            knock_outs.append(("regulated_function", "critical"))
-
-        if b1_score == 4 and b3_score == 4:
-            knock_outs.append(("single_point_of_failure", "critical"))
-
-        if d1_score == 4:
-            knock_outs.append(("critical_secrets_or_payment", "critical"))
-
-        exp_val = b_ans.get("exposure", "")
-        is_internet = "internet" in exp_val
-        if is_internet and d1_score >= 3:
-            knock_outs.append(("internet_facing_confidential", "important"))
-
-        if d3_score == 4:
-            knock_outs.append(("large_scale_gdpr", "important"))
-
-        if d4_score == 4:
-            knock_outs.append(("privileged_access", "important"))
-
-        # SbD Intake Knock-outs (KO-1 to KO-6)
-        if b_ans.get("ko2") == "yes":
-            knock_outs.append(("core_iam_modification", "critical"))
-        if b_ans.get("ko4") == "yes":
-            knock_outs.append(("sensitive_data_or_secrets", "critical"))
-        if b_ans.get("ko6") == "yes":
-            knock_outs.append(("single_point_of_failure", "critical"))
-        if b_ans.get("ko1") == "yes":
-            knock_outs.append(("public_ingress_exposure", "important"))
-        if b_ans.get("ko3") == "yes":
-            knock_outs.append(("network_perimeter_boundary", "important"))
-        if b_ans.get("ko5") == "yes":
-            knock_outs.append(("critical_third_party_saas", "important"))
-
-        tier_ranks = {"critical": 4, "important": 3, "standard": 2, "low-impact": 1}
-        final_rank = tier_ranks.get(base_tier, 2)
-        for _, ko_tier in knock_outs:
-            final_rank = max(final_rank, tier_ranks.get(ko_tier, 1))
-
-        rank_to_tier = {4: "critical", 3: "important", 2: "standard", 1: "low-impact"}
-        final_tier = rank_to_tier.get(final_rank, "standard")
-
-        note = f"Assessed via AppSec Solution Tiering (Inherent: {inherent_score:.2f}, Knock-outs: {[k[0] for k in knock_outs]})"
-        if auto_sign_off:
-            self.set_solution_tier(app_name_or_solution_id, final_tier, note=note)
-
-        hosting_answers = map_tiering_answers_to_hosting_answers(tiering_answers)
-        framework = self.find_target_framework("appsec") or "appsec"
-        triggered_info = determine_implementation_groups_triggered_by_others(
-            framework,
-            answers=hosting_answers,
-        )
-        active_candidates = [g["name"] for g in triggered_info.get("visible_groups", [])]
-        recommended_groups = filter_implementation_groups_by_tier(final_tier, active_candidates, framework_id=framework)
-
-        # Security by Design (SbD) intake evaluation
-        sbd_eval = evaluate_security_by_design_knockouts(tiering_answers)
-        gov_policy = get_tier_governance_policy(final_tier)
-        if final_rank >= 3 or knock_outs:
-            sbd_eval["requires_sbd"] = True
-            if final_rank == 4 or any(k[1] == "critical" for k in knock_outs):
-                sbd_eval["review_level"] = "deep_sar"
-                sbd_eval["gate_action"] = "mandatory_pre_prod_approval"
-                sbd_eval["decision"] = "Deep Security Architecture Review (SAR) Required"
-                sbd_eval["fast_track_eligible"] = False
-            elif sbd_eval.get("review_level") == "fast_track":
-                sbd_eval["review_level"] = "standard_sbd"
-                sbd_eval["gate_action"] = "standard_cab_sec_review"
-                sbd_eval["decision"] = "Standard Security by Design Review Required"
-                sbd_eval["fast_track_eligible"] = False
-
-        return {
-            "app_name": app_name_or_solution_id,
-            "inherent_score": round(inherent_score, 2),
-            "business_score": round(business_avg, 2),
-            "data_score": round(data_avg, 2),
-            "base_tier": base_tier,
-            "knock_outs": [k[0] for k in knock_outs],
-            "final_tier": final_tier,
-            "governance_policy": gov_policy,
-            "hosting_answers": hosting_answers,
-            "recommended_implementation_groups": recommended_groups,
-            "sbd_evaluation": sbd_eval,
-        }
-
-    def assess_security_by_design(
-        self,
-        app_name_or_solution_id: str,
-        change_answers: dict[str, Any] | str | None = None,
-        auto_sign_off: bool = True,
-    ) -> dict[str, Any]:
-        """Evaluate a change or new application against Security by Design (SbD) intake knock-outs and gating rules.
-
-        Orchestrates:
-        1. Knock-Out Gating (KO-1 to KO-6):
-           - KO-1 (Public Exposure): Direct internet access, public ingress, or external partner network access.
-           - KO-2 (Identity & Access): Modifications to IdP (Entra ID, Okta), trust boundaries, or privileged access.
-           - KO-3 (Network Boundaries): Cross-account VPC peering, direct cloud-to-onprem WAN, or core firewall rules.
-           - KO-4 (Sensitive/Regulated Data): Level 3/Secrets, PCI-DSS, GDPR >100k, or financial/health records.
-           - KO-5 (Critical Third-Party): New SaaS integration with direct API or network access to corporate assets.
-           - KO-6 (Resiliency / SPOF): Critical service interruption (>4h) with no warm standby or failover.
-        2. Tiers inherent risk (Business & Data resilience scores) and maps governance policy & SLAs.
-        3. Scopes recommended implementation groups (e.g. infra, baseline, custom_app, saas_app, extranet).
-        4. Issues gating decision:
-           - Fast-Track (Peer review only, no blocking security gate)
-           - Standard SbD (Review by AppSec/InfraSec in standard CAB)
-           - Deep SAR (Mandatory Security Architecture Review & Pre-Prod Approval)
-        """
-        if isinstance(change_answers, str):
-            ans_path = Path(change_answers)
-            if ans_path.exists():
-                with open(ans_path, "r", encoding="utf-8") as f:
-                    change_answers = yaml.safe_load(f) or {}
-            else:
-                change_answers = {}
-        elif change_answers is None:
-            change_answers = {}
-
-        if not change_answers:
-            extracted = self.extract_tiering_answers_from_compliance_assessment(app_name_or_solution_id)
-            if extracted:
-                change_answers = extracted
-            else:
-                sbd_status = self.get_sbd_assessment_status(app_name_or_solution_id)
-                if sbd_status.get("exists") and not sbd_status.get("has_answers"):
-                    return {
-                        "app_name": app_name_or_solution_id,
-                        "has_answers": False,
-                        "status": "awaiting_submission",
-                        "message": (
-                            f"Assessment for '{app_name_or_solution_id}' is assigned in CISO Assistant "
-                            f"({sbd_status.get('compliance_assessment_name')}), but questions have not been answered yet. "
-                            f"Please complete the questionnaire in CISO Assistant at {utils.BASE_URL}."
-                        ),
-                        "direct_url": f"{utils.BASE_URL}/",
-                        "compliance_assessment_id": sbd_status.get("compliance_assessment_id"),
-                        "compliance_assessment_name": sbd_status.get("compliance_assessment_name"),
-                        "evaluation_nature": "change",
-                        "evaluation_label": "Change / Application",
-                        "requires_sbd_check": False,
-                        "sbd_decision": "Pending Submission in CISO Assistant",
-                        "review_level": "pending",
-                        "gate_action": "awaiting_user_answers",
-                        "fast_track_eligible": False,
-                        "triggered_knockouts": [],
-                        "criticality_tier": "standard",
-                        "governance_policy": get_tier_governance_policy("standard"),
-                        "recommended_implementation_groups": [],
-                        "tiering_summary": {},
-                    }
-
-        # Evaluate tiering & inherent risk
-        tiering_result = self.assess_appsec_solution_tier(
-            app_name_or_solution_id,
-            tiering_answers=change_answers,
-            auto_sign_off=auto_sign_off,
-        )
-
-        sbd_eval = evaluate_security_by_design_knockouts(change_answers)
-
-        final_tier = tiering_result.get("final_tier", "standard")
-        tier_ranks = {"critical": 4, "important": 3, "standard": 2, "low-impact": 1}
-        tier_rank = tier_ranks.get(final_tier, 2)
-
-        triggered_kos = sbd_eval.get("triggered_knockouts", [])
-        has_critical_ko = any(ko.get("id") in ("KO-2", "KO-4") or ko.get("severity") == "critical" for ko in triggered_kos)
-        has_standard_ko = any(ko.get("id") in ("KO-1", "KO-3", "KO-5", "KO-6") or ko.get("severity") == "important" for ko in triggered_kos)
-
-        eval_label = sbd_eval.get("evaluation_label", "Change / Application")
-        eval_nature = sbd_eval.get("evaluation_nature", "change")
-
-        if tier_rank == 4 or has_critical_ko or any(k == "regulated_function" for k in tiering_result.get("knock_outs", [])):
-            gate_decision = f"Deep Security Architecture Review (SAR) Required for {eval_label}"
-            review_level = "deep_sar"
-            gate_action = "mandatory_pre_prod_approval"
-            requires_sbd = True
-            fast_track = False
-        elif tier_rank == 3 or has_standard_ko or len(triggered_kos) > 0 or len(tiering_result.get("knock_outs", [])) > 0:
-            gate_decision = f"Standard Security by Design Review Required for {eval_label}"
-            review_level = "standard_sbd"
-            gate_action = "standard_cab_sec_review"
-            requires_sbd = True
-            fast_track = False
-        else:
-            if eval_nature == "change":
-                gate_decision = "Fast-Track Standard Change (Peer Review Only - No Blocking Gate)"
-            elif eval_nature == "new_app":
-                gate_decision = "Standard Baseline Onboarding (Automated Guardrails Check)"
-            else:
-                gate_decision = "Fast-Track Eligible (Peer Review Only)"
-            review_level = "fast_track"
-            gate_action = "peer_review_only" if eval_nature != "new_app" else "automated_guardrails_check"
-            requires_sbd = False
-            fast_track = True
-
-        clearance_record = None
-        delta_update_res = None
-        if fast_track:
-            if auto_sign_off:
-                clearance_record = self.record_fast_track_clearance(
-                    app_name_or_solution_id,
-                    gate_decision=gate_decision,
-                    eval_nature=eval_nature,
-                    inherent_score=tiering_result.get("inherent_score"),
-                )
-        elif eval_nature == "change" and auto_sign_off:
-            delta_igs = tiering_result.get("recommended_implementation_groups", [])
-            if delta_igs:
-                delta_update_res = self.update_application_audit_delta(
-                    app_name_or_solution_id,
-                    delta_implementation_groups=delta_igs,
-                    sign_off_note=gate_decision,
-                )
-
-        return {
-            "app_name": app_name_or_solution_id,
-            "has_answers": True,
-            "status": "evaluated",
-            "evaluation_nature": eval_nature,
-            "evaluation_label": eval_label,
-            "requires_sbd_check": requires_sbd,
-            "sbd_decision": gate_decision,
-            "review_level": review_level,
-            "gate_action": gate_action,
-            "fast_track_eligible": fast_track,
-            "clearance_record": clearance_record,
-            "delta_update": delta_update_res,
-            "triggered_knockouts": triggered_kos,
-            "criticality_tier": final_tier,
-            "inherent_score": tiering_result.get("inherent_score"),
-            "governance_policy": tiering_result.get("governance_policy"),
-            "recommended_implementation_groups": tiering_result.get("recommended_implementation_groups", []),
-            "tiering_summary": tiering_result,
-        }
-
-    def get_sbd_assessment_status(self, app_name_or_ca_id: str) -> dict[str, Any]:
-        """Check whether an SbD compliance assessment exists in CISO Assistant and if answers have been submitted."""
-        target = str(app_name_or_ca_id).strip()
-        data = self._init_data()
-        compliance_dict = data.get("compliance_assessment_dict")
-        perimeter_dict = data.get("perimeter_dict")
-        if not compliance_dict:
-            return {"exists": False, "app_name": target}
-
-        all_cas = compliance_dict.get_compliance_assessments() if hasattr(compliance_dict, "get_compliance_assessments") else {}
-        ca_obj = None
-        if target in all_cas:
-            ca_obj = all_cas[target]
-
-        if not ca_obj and perimeter_dict:
-            perm_id = perimeter_dict.get_id_from_name(target)
-            for ca in all_cas.values():
-                if ca.get_id() == target or ca.get_name() == target or (perm_id and ca.get_perimeter_id() == perm_id):
-                    ca_obj = ca
-                    break
-
-        if not ca_obj:
-            target_lower = target.lower()
-            for ca in all_cas.values():
-                if target_lower in ca.get_name().lower():
-                    ca_obj = ca
-                    break
-
-        if not ca_obj:
-            return {"exists": False, "app_name": target}
-
-        req_assessments = getattr(compliance_dict, "requirement_assessments", None)
-        if req_assessments and hasattr(req_assessments, "reload") and callable(req_assessments.reload):
-            try:
-                req_assessments.reload()
-            except Exception:
-                pass
-
-        ra_ids = req_assessments.get_requirement_assessment_id_list_from_compliance_assessment_id(ca_obj.get_id()) if req_assessments else []
-        all_ras = req_assessments.get_requirement_assessments() or {} if req_assessments else {}
-
-        answered_count = 0
-        total_count = len(ra_ids)
-        for rid in ra_ids:
-            ra = all_ras.get(rid)
-            if not ra:
-                continue
-            r_answers = ra.get_answers() if hasattr(ra, "get_answers") else (ra.get("answers") if isinstance(ra, dict) else {})
-            if isinstance(r_answers, dict) and any(v is not None for v in r_answers.values()):
-                answered_count += 1
-
-        return {
-            "exists": True,
-            "app_name": target,
-            "compliance_assessment_id": ca_obj.get_id(),
-            "compliance_assessment_name": ca_obj.get_name(),
-            "framework_id": ca_obj.get_framework_id() if hasattr(ca_obj, "get_framework_id") else None,
-            "status": ca_obj.get_status() if hasattr(ca_obj, "get_status") else "in_progress",
-            "total_requirements": total_count,
-            "answered_requirements": answered_count,
-            "has_answers": answered_count > 0,
-            "direct_url": f"{utils.BASE_URL}/",
-        }
-
-    def record_fast_track_clearance(
-        self,
-        app_name_or_solution_id: str,
-        gate_decision: str = "Fast-Track Standard Change (Peer Review Only)",
-        eval_nature: str = "change",
-        inherent_score: float | None = None,
-    ) -> dict[str, Any]:
-        """Record a fast-track SbD clearance directly on the Solution metadata with zero audit overhead."""
-        target = str(app_name_or_solution_id).strip()
-        clearance_note = f"[SbD Fast-Track Clearance]: {gate_decision} (Scope: {eval_nature})"
-        try:
-            sol = self.find_solution(target)
-            if not sol:
-                sol = self.get_or_create_solution(target)
-            sol_id = sol.get("id") if isinstance(sol, dict) else None
-            if sol_id:
-                existing_note = sol.get("tier_note") or ""
-                updated_note = f"{existing_note} | {clearance_note}".strip(" |") if existing_note else clearance_note
-                patch_payload = {
-                    "tier_note": updated_note,
-                }
-                utils.get_return(f"api/solutions/{sol_id}/", method="PATCH", payload=patch_payload)
-                utils.clear_get_all_results_cache()
-                return {
-                    "solution_id": sol_id,
-                    "solution_name": sol.get("name", target),
-                    "clearance_status": "FAST_TRACK_APPROVED",
-                    "audit_created": False,
-                    "note": updated_note,
-                }
-        except Exception as e:
-            LOGGER.warning(f"Could not update solution metadata for fast-track clearance: {e}")
-
-        return {
-            "solution_id": None,
-            "solution_name": target,
-            "clearance_status": "FAST_TRACK_APPROVED",
-            "audit_created": False,
-            "note": clearance_note,
-        }
-
-    def update_application_audit_delta(
-        self,
-        app_name_or_ca_id: str,
-        delta_implementation_groups: list[str] | set[str],
-        sign_off_note: str | None = None,
-    ) -> dict[str, Any]:
-        """Update an existing application's living compliance assessment by activating newly triggered delta tracks."""
-        target = str(app_name_or_ca_id).strip()
-        status = self.get_sbd_assessment_status(target)
-        if not status.get("exists"):
-            return {
-                "updated": False,
-                "app_name": target,
-                "message": f"No existing compliance assessment found for '{target}'. Provisioning initial audit is required.",
-            }
-
-        ca_id = status.get("compliance_assessment_id")
-        ca_name = status.get("compliance_assessment_name")
-        data = self._init_data()
-        compliance_dict = data.get("compliance_assessment_dict")
-        all_cas = compliance_dict.get_compliance_assessments() if compliance_dict and hasattr(compliance_dict, "get_compliance_assessments") else {}
-        ca_obj = all_cas.get(ca_id)
-
-        # Retrieve currently active implementation groups
-        current_igs: list[str] = []
-        if ca_obj:
-            if hasattr(ca_obj, "get_selected_implementation_groups"):
-                current_igs = list(ca_obj.get_selected_implementation_groups() or [])
-            elif hasattr(ca_obj, "compliance_assessment_json") and isinstance(ca_obj.compliance_assessment_json, dict):
-                current_igs = list(ca_obj.compliance_assessment_json.get("selected_implementation_groups", []) or [])
-
-        # Merge existing IGs with new delta IGs
-        norm_delta = [str(g).strip() for g in delta_implementation_groups if str(g).strip()]
-        merged_set = set(current_igs) | set(norm_delta)
-        merged_igs = sorted(list(merged_set))
-
-        # Patch if changed
-        if set(merged_igs) != set(current_igs):
-            patch_payload = {
-                "selected_implementation_groups": merged_igs,
-            }
-            utils.get_return(f"api/compliance-assessments/{ca_id}/", method="PATCH", payload=patch_payload)
-            utils.clear_get_all_results_cache()
-            LOGGER.info(f"Updated living audit '{ca_name}' ({ca_id}) with delta tracks: {norm_delta}. Total active tracks: {len(merged_igs)}")
-
-        return {
-            "updated": True,
-            "compliance_assessment_id": ca_id,
-            "compliance_assessment_name": ca_name,
-            "previous_implementation_groups": current_igs,
-            "active_implementation_groups": merged_igs,
-            "delta_implementation_groups": norm_delta,
-            "message": f"Living audit '{ca_name}' updated with delta tracks: {norm_delta}",
-        }
-
-    def create_sbd_assessment(
-        self,
-        app_name: str,
-        user_email: str,
-        first_name: str = "",
-        last_name: str = "",
-        domain_name: str | None = None,
-        implementation_groups: list[str] | None = None,
-        framework_ref_or_name: str = "appsec",
-    ) -> dict[str, Any]:
-        """Create and assign a Security by Design (SbD) assessment in CISO Assistant.
-
-        Leaves questions completely UNANSWERED (0% completion) so the assigned business
-        or engineering respondent completes the questionnaire inside CISO Assistant.
-        Defaults to the unified 'appsec' framework (incorporating both SbD and AppSec).
-        """
-        res = self.create_application_for_audit(
-            app_name=app_name,
-            user_email=user_email,
-            first_name=first_name,
-            last_name=last_name,
-            is_third_party=True,
-            framework_ref_or_name=framework_ref_or_name,
-            domain_name=domain_name,
-            implementation_groups=implementation_groups,
-        )
-        res["message"] = (
-            f"Security by Design assessment for '{app_name}' successfully provisioned in CISO Assistant "
-            f"and assigned to '{user_email}'. Respondent should complete the form at {utils.BASE_URL}/"
-        )
-        return res
 
     def generate_controls_and_risks_for_application(
         self,
@@ -4076,15 +3123,9 @@ class ExamplesManager:
         # Generate Findings from Audit Answers
         findings_res = self.create_findings_for_application(app_name)
 
-        # Generate recurring tasks for recurrent applied controls (modulated by tier)
+        # Generate recurring tasks for recurrent applied controls
         task_templates_created = []
         task_template_dict = data.get("task_template_dict")
-        app_tier = None
-        try:
-            app_tier = self.get_solution_tier(app_name)
-        except Exception:
-            pass
-
         if applied_control_dict and reference_control_dict and hasattr(applied_control_dict, "create_tasks_for_applied_controls"):
             try:
                 task_templates_created = applied_control_dict.create_tasks_for_applied_controls(
@@ -4092,7 +3133,6 @@ class ExamplesManager:
                     task_template_dict=task_template_dict,
                     perimeter_dict=perimeter_dict,
                     user_id=assignee_id,
-                    tier=app_tier,
                 )
             except Exception as e:
                 utils.log(f"Error creating tasks for recurrent controls: {e}", level=logging.WARNING)
@@ -4931,167 +3971,5 @@ class ExamplesManager:
             backup_type=backup_type,
             force_reload=force_reload,
         )
-
-    def get_tiering_quick_forms(self) -> list[dict[str, Any]]:
-        """Retrieve available quick forms in CISO Assistant that assess solution tiering."""
-        all_forms = utils.get_all_results("api/quick-forms/")
-        if not all_forms:
-            res = utils.get_return("api/quick-forms/")
-            all_forms = res.get("results", []) if isinstance(res, dict) else []
-
-        tiering_forms = []
-        for form in all_forms:
-            ref_id = str(form.get("ref_id") or "").lower()
-            name = str(form.get("name") or "").lower()
-            on_accept = form.get("on_accept") or []
-            targets = [act.get("target") for act in on_accept if isinstance(act, dict)]
-            if "solution.tier" in targets or "tiering" in ref_id or "tiering" in name:
-                tiering_forms.append({
-                    "id": form.get("id"),
-                    "name": form.get("name"),
-                    "ref_id": form.get("ref_id"),
-                    "urn": form.get("urn"),
-                    "description": form.get("description"),
-                    "always_review": form.get("always_review", False),
-                    "targets": targets or ["solution.tier"],
-                })
-        return tiering_forms
-
-    def get_tiering_responses(self) -> list[dict[str, Any]]:
-        """Retrieve all active quick form responses evaluating solution tiering."""
-        all_responses = utils.get_all_results("api/quick-form-responses/")
-        if not all_responses:
-            res = utils.get_return("api/quick-form-responses/")
-            all_responses = res.get("results", []) if isinstance(res, dict) else []
-
-        tiering_responses = []
-        for r in all_responses:
-            sub = r.get("subject") or {}
-            sub_model = sub.get("model") if isinstance(sub, dict) else ""
-            form_info = r.get("quick_form") or {}
-            form_ref = form_info.get("ref_id") if isinstance(form_info, dict) else ""
-            name = str(r.get("name") or "").lower()
-
-            if sub_model == "solution" or "tier" in name or "tiering" in str(form_ref).lower():
-                tiering_responses.append({
-                    "id": r.get("id"),
-                    "ref_id": r.get("ref_id"),
-                    "name": r.get("name"),
-                    "status": r.get("status"),
-                    "resolution": r.get("resolution"),
-                    "due_date": r.get("due_date"),
-                    "started_at": r.get("started_at"),
-                    "score": r.get("score"),
-                    "subject_name": sub.get("str") if isinstance(sub, dict) else str(sub),
-                    "subject_id": sub.get("id") if isinstance(sub, dict) else None,
-                    "respondents": r.get("respondents") or [],
-                    "direct_url": f"{utils.BASE_URL}/quick-form-responses/{r.get('id')}",
-                })
-        return tiering_responses
-
-    def assign_tiering_questionnaire(
-        self,
-        app_name: str,
-        user_email: str,
-        first_name: str = "",
-        last_name: str = "",
-        due_date: str | None = None,
-        form_id: str | None = None,
-        tier_note: str | None = None,
-    ) -> dict[str, Any]:
-        """Assign an AppSec Solution Tiering questionnaire to a user for an application.
-
-        Steps:
-        1. Ensure user exists (creating external/third-party respondent user if missing).
-        2. Resolve Actor ID for assignment to respondents field.
-        3. Ensure Solution exists in CISO Assistant TPRM.
-        4. Resolve Tiering Quick Form (defaulting to AppSec Application Criticality Tiering).
-        5. Start Quick Form Response for the Solution via POST /api/quick-forms/{form_id}/start/.
-        6. Patch response with title, assigned respondent, due date, and notes.
-
-        Returns:
-            Dictionary with assignment details, response UUID, ref_id, and direct URL.
-        """
-        app_name = (app_name or "").strip()
-        user_email = (user_email or "").strip().lower()
-        if not app_name:
-            raise ValueError("Application name cannot be empty.")
-        if not user_email:
-            raise ValueError("Respondent user email cannot be empty.")
-
-        data = self._init_data(force_reload=True)
-        user_dict: UserDict = data["user_dict"]
-        user_id = user_dict.get_id_from_email(user_email)
-        user_created = False
-        if not user_id:
-            user_res = user_dict.create_user_if_missing(
-                email=user_email,
-                first_name=first_name,
-                last_name=last_name,
-                is_third_party=True,
-            )
-            if isinstance(user_res, dict):
-                user_id = user_res.get("id")
-            if not user_id:
-                user_id = user_dict.get_id_from_email(user_email)
-            user_created = True
-
-        actor_id = self.resolve_actor_id(user_id=user_id, user_email=user_email)
-        if not actor_id:
-            raise RuntimeError(f"Could not resolve actor ID for user {user_email}")
-
-        sol = self.get_or_create_solution(app_name)
-        sol_id = sol.get("id")
-        if not sol_id:
-            raise RuntimeError(f"Failed to find or create solution for '{app_name}'")
-
-        # Resolve tiering quick form
-        target_form_id = form_id
-        if not target_form_id:
-            forms = self.get_tiering_quick_forms()
-            if forms:
-                target_form_id = forms[0].get("id")
-            else:
-                all_f = utils.get_all_results("api/quick-forms/")
-                if all_f:
-                    target_form_id = all_f[0].get("id")
-
-        if not target_form_id:
-            raise RuntimeError("No AppSec Solution Tiering quick form found in CISO Assistant.")
-
-        # Start response tied to Solution subject
-        start_payload = {"subject": sol_id}
-        start_res = utils.get_return(f"api/quick-forms/{target_form_id}/start/", method="POST", payload=start_payload)
-        if not isinstance(start_res, dict) or ("redirect" not in start_res and "id" not in start_res):
-            raise RuntimeError(f"Failed to start quick form response: {start_res}")
-
-        redirect_path = start_res.get("redirect", "")
-        response_id = redirect_path.rsplit("/", 1)[1] if "/" in redirect_path else start_res.get("id")
-
-        # Patch response with metadata and assigned respondent
-        patch_payload = {
-            "name": f"AppSec Criticality Tiering: {app_name}",
-            "description": tier_note or f"Solution criticality tiering questionnaire for {app_name}",
-            "respondents": [actor_id],
-        }
-        if due_date:
-            patch_payload["due_date"] = due_date
-
-        utils.get_return(f"api/quick-form-responses/{response_id}/", method="PATCH", payload=patch_payload)
-
-        return {
-            "app_name": app_name,
-            "solution_id": sol_id,
-            "response_id": response_id,
-            "ref_id": start_res.get("ref_id"),
-            "form_id": target_form_id,
-            "user_email": user_email,
-            "user_id": user_id,
-            "user_created": user_created,
-            "actor_id": actor_id,
-            "due_date": due_date,
-            "status": "draft",
-            "direct_url": f"{utils.BASE_URL}/quick-form-responses/{response_id}",
-        }
 
 

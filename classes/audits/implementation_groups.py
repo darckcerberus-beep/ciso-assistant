@@ -25,18 +25,13 @@ def _match_choice(choice: dict[str, Any], answer_val: Any) -> bool:
 
     if c_urn and norm_ans == c_urn:
         return True
-    if c_urn and norm_ans.startswith("urn:"):
-        # Both choice and answer are full URNs and did not match exactly
-        return False
     if c_ref and norm_ans == c_ref:
         return True
     if c_val and norm_ans == c_val:
         return True
+    if c_ref and norm_ans.endswith(f":{c_ref}"):
+        return True
     if c_val and (norm_ans.startswith(c_val) or c_val.startswith(norm_ans)):
-        return True
-    if c_urn and ":" in norm_ans and c_urn.endswith(f":{norm_ans}"):
-        return True
-    if not c_urn and c_ref and norm_ans.endswith(f":{c_ref}"):
         return True
     return False
 
@@ -46,39 +41,31 @@ def _get_node_choices(node: dict[str, Any], q_key: str | None = None) -> list[di
     if not isinstance(node, dict):
         return []
     questions = node.get("questions", {})
-    if isinstance(questions, dict):
-        q_entries = [(str(k), v) for k, v in questions.items() if isinstance(v, dict)]
-    elif isinstance(questions, list):
-        q_entries = [(str(v.get("urn") or v.get("ref_id") or ""), v) for v in questions if isinstance(v, dict)]
-    else:
-        q_entries = []
+    q_items = questions.values() if isinstance(questions, dict) else (questions if isinstance(questions, list) else [])
 
     if q_key:
         norm_q = str(q_key).strip().lower()
-        for q_dict_key, q in q_entries:
-            q_k_low = q_dict_key.strip().lower()
+        for q in q_items:
+            if not isinstance(q, dict):
+                continue
             q_ref = str(q.get("ref_id", "")).strip().lower()
-            q_urn = str(q.get("urn", "") or (q_dict_key if ":" in q_dict_key else "")).strip().lower()
+            q_urn = str(q.get("urn", "")).strip().lower()
             q_text = str(q.get("text", "")).strip().lower()
             if (
-                (q_k_low and norm_q == q_k_low)
-                or (q_ref and norm_q == q_ref)
-                or (q_urn and norm_q == q_urn)
-                or (q_text and norm_q == q_text)
+                norm_q == q_ref
+                or norm_q == q_urn
+                or norm_q == q_text
                 or (q_ref and norm_q.endswith(f":{q_ref}"))
-                or (q_urn and q_urn.endswith(f":{norm_q}"))
-                or (q_k_low and q_k_low.endswith(f":{norm_q}"))
-                or (q_text and len(norm_q) > 10 and (norm_q in q_text or q_text in norm_q))
+                or (q_ref and norm_q.endswith(q_ref))
+                or (q_urn and norm_q in q_urn)
+                or (q_text and (norm_q in q_text or q_text in norm_q))
             ):
                 return [c for c in q.get("choices", []) if isinstance(c, dict)]
-        # If q_key is a specific question identifier/URN that did not match (e.g. text-only or unknown),
-        # do not bleed choices from unrelated questions in the same node.
-        if ":" in norm_q or re.match(r"^q\d+", norm_q):
-            return []
 
     all_choices: list[dict[str, Any]] = []
-    for _, q in q_entries:
-        all_choices.extend([c for c in q.get("choices", []) if isinstance(c, dict)])
+    for q in q_items:
+        if isinstance(q, dict):
+            all_choices.extend([c for c in q.get("choices", []) if isinstance(c, dict)])
     return all_choices
 
 
@@ -100,50 +87,28 @@ def _check_dep_match(
 
     if matched_choice:
         mc_urn = str(matched_choice.get("urn", "")).strip().lower()
-        if mc_urn:
-            if dep_q_urn and (mc_urn == dep_q_urn or mc_urn.startswith(f"{dep_q_urn}:")):
-                q_matched = True
-            elif dep_q_ref and (
-                f":{dep_q_ref}:" in mc_urn
-                or mc_urn.endswith(f":{dep_q_ref}")
-                or mc_urn.startswith(f"{dep_q_ref}:")
-            ):
-                q_matched = True
-            else:
-                # Matched choice URN authoritatively belongs to a different question
-                return False
+        if dep_q_urn and (mc_urn == dep_q_urn or mc_urn.startswith(f"{dep_q_urn}:")):
+            q_matched = True
+        elif dep_q_ref and (
+            f":{dep_q_ref}:" in mc_urn
+            or mc_urn.endswith(f":{dep_q_ref}")
+            or mc_urn.startswith(f"{dep_q_ref}:")
+        ):
+            q_matched = True
 
     if not q_matched:
-        effective_req = norm_req if (norm_req and norm_req != norm_q) else ""
-        if dep_q_urn and (
-            norm_q == dep_q_urn
-            or norm_q.startswith(f"{dep_q_urn}:")
-            or (norm_q and ":" in norm_q and dep_q_urn.endswith(f":{norm_q}"))
-            or (effective_req and norm_q and (
-                f"{effective_req}:{norm_q}" == dep_q_urn
-                or dep_q_urn.endswith(f":{effective_req}:{norm_q}")
-            ))
-            or (not effective_req and norm_q and ":" not in norm_q and dep_q_urn.endswith(f":{norm_q}"))
-        ):
+        if dep_q_urn and (norm_q == dep_q_urn or norm_q in dep_q_urn or dep_q_urn in norm_q):
             q_matched = True
         elif dep_q_ref and (
             norm_q == dep_q_ref
             or norm_q.endswith(f":{dep_q_ref}")
-            or (effective_req and norm_q and (
-                f"{effective_req}:{norm_q}" == dep_q_ref
-                or f"{effective_req}:{norm_q}".endswith(f":{dep_q_ref}")
-            ))
+            or norm_q.endswith(dep_q_ref)
+            or (norm_req and f"{norm_req}:{norm_q}".endswith(dep_q_ref))
         ):
             q_matched = True
-        elif dep_q_text and norm_q and (
-            norm_q == dep_q_text
-            or (len(norm_q) > 10 and (norm_q in dep_q_text or dep_q_text in norm_q))
-        ):
+        elif dep_q_text and (norm_q == dep_q_text or norm_q in dep_q_text or dep_q_text in norm_q):
             q_matched = True
-        elif not norm_q and dep_q_ref and norm_req and (
-            norm_req == dep_q_ref
-            or dep_q_ref.startswith(f"{norm_req}:")
-        ):
+        elif not q_ident and dep_q_ref and norm_req and (norm_req in dep_q_ref or dep_q_ref in norm_req):
             q_matched = True
 
     if not q_matched:
@@ -156,13 +121,12 @@ def _check_dep_match(
         mc_urn = str(matched_choice.get("urn", "")).strip().lower()
         mc_val = str(matched_choice.get("value", "")).strip().lower()
         mc_ref = str(matched_choice.get("ref_id", "")).strip().lower()
-        if dep_c_urn and mc_urn:
-            return mc_urn == dep_c_urn
+        if dep_c_urn and mc_urn == dep_c_urn:
+            return True
+        if dep_c_val and (mc_val == dep_c_val or dep_c_val in mc_val or mc_val in dep_c_val):
+            return True
         if dep_c_urn and mc_ref and dep_c_urn.endswith(f":{mc_ref}"):
             return True
-        if dep_c_val and mc_val and (mc_val == dep_c_val or dep_c_val in mc_val or mc_val in dep_c_val):
-            return True
-        return False
 
     temp_c = {"urn": dep.get("choice_urn"), "value": dep.get("choice_value"), "ref_id": dep.get("choice_ref_id")}
     return _match_choice(temp_c, ans_val)
@@ -890,8 +854,7 @@ def determine_implementation_groups_triggered_by_others(
         for ra in req_list:
             ra_ref = ""
             if isinstance(ra, dict):
-                req_obj = ra.get("requirement") if isinstance(ra.get("requirement"), dict) else {}
-                ra_ref = str(ra.get("ref_id") or req_obj.get("ref_id") or "").strip().lower()
+                ra_ref = str(ra.get("ref_id") or "").strip().lower()
             else:
                 for method_name in ("get_ref_id", "get_requirement_ref_id"):
                     m = getattr(ra, method_name, None)
@@ -910,8 +873,7 @@ def determine_implementation_groups_triggered_by_others(
 
             ra_urn = ""
             if isinstance(ra, dict):
-                req_obj = ra.get("requirement") if isinstance(ra.get("requirement"), dict) else {}
-                ra_urn = str(ra.get("urn") or req_obj.get("urn") or "").strip().lower()
+                ra_urn = str(ra.get("urn") or "").strip().lower()
             else:
                 m = getattr(ra, "get_urn", None)
                 if callable(m):
@@ -1263,868 +1225,3 @@ def set_implementation_groups(payload: dict[str, Any], framework_id: Any, groups
     else:
         add_default_implementation_groups(payload, framework_id)
     return payload
-
-
-def get_tier_governance_policy(tier: str | int | None) -> dict[str, Any]:
-    """Return the AppSec audit governance expectations and SLAs based on solution tier.
-
-    Tiers:
-    - critical: Comprehensive 82-control AppSec audit, mandatory annual third-party pentest,
-      blocking CI/CD SAST/SCA security gates, 7-day critical finding SLA, 12-month re-assessment.
-    - important: Core AppSec audit (IAM, APIs, Crypto, Data, SDLC, Logging), automated DAST/SCA,
-      blocking CI/CD gates, 14-day critical finding SLA, 24-month re-assessment.
-    - standard: Baseline security hygiene (SSO, admin MFA, TLS, OS patching, backups),
-      30-day critical finding SLA, 36-month re-assessment.
-    - low-impact: Minimal hygiene self-attestation, risk acceptance on advanced controls.
-    """
-    if isinstance(tier, int) or (isinstance(tier, str) and tier.strip().isdigit()):
-        rank_to_tier = {4: "critical", 3: "important", 2: "standard", 1: "low-impact"}
-        norm_tier = rank_to_tier.get(int(tier), "standard")
-    else:
-        norm_tier = str(tier or "standard").strip().lower().replace("_", "-")
-        if norm_tier not in ("critical", "important", "standard", "low-impact"):
-            norm_tier = "standard"
-
-    if norm_tier == "critical":
-        return {
-            "tier": "critical",
-            "audit_depth": "comprehensive",
-            "pentest_required": True,
-            "threat_modeling_required": True,
-            "ci_cd_blocking_gates": True,
-            "cicd_blocking_threshold": "high",
-            "critical_finding_sla_days": 7,
-            "remediation_sla_critical_days": 7,
-            "high_finding_sla_days": 14,
-            "remediation_sla_high_days": 14,
-            "remediation_sla_medium_days": 30,
-            "reassessment_interval_months": 12,
-            "reassessment_frequency_months": 12,
-            "requires_deep_technical_tracks": True,
-            "control_confirmation_cadence": "monthly",
-            "control_confirmation_label": "High-Frequency (Monthly / Quarterly)",
-            "sbd_review_level": "deep_sar",
-            "sbd_gate_action": "mandatory_pre_prod_approval",
-            "sbd_fast_track_eligible": False,
-            "sbd_decision": "Deep Security Architecture Review Required",
-        }
-    elif norm_tier == "important":
-        return {
-            "tier": "important",
-            "audit_depth": "standard",
-            "pentest_required": True,
-            "threat_modeling_required": False,
-            "ci_cd_blocking_gates": True,
-            "cicd_blocking_threshold": "critical",
-            "critical_finding_sla_days": 14,
-            "remediation_sla_critical_days": 14,
-            "high_finding_sla_days": 30,
-            "remediation_sla_high_days": 30,
-            "remediation_sla_medium_days": 60,
-            "reassessment_interval_months": 24,
-            "reassessment_frequency_months": 24,
-            "requires_deep_technical_tracks": True,
-            "control_confirmation_cadence": "quarterly",
-            "control_confirmation_label": "Standard Enterprise (Quarterly / Biannual)",
-            "sbd_review_level": "standard_sbd",
-            "sbd_gate_action": "standard_cab_sec_review",
-            "sbd_fast_track_eligible": False,
-            "sbd_decision": "Standard Security by Design Review Required",
-        }
-    elif norm_tier == "standard":
-        return {
-            "tier": "standard",
-            "audit_depth": "targeted",
-            "pentest_required": False,
-            "threat_modeling_required": False,
-            "ci_cd_blocking_gates": False,
-            "cicd_blocking_threshold": "none",
-            "critical_finding_sla_days": 30,
-            "remediation_sla_critical_days": 30,
-            "high_finding_sla_days": 60,
-            "remediation_sla_high_days": 60,
-            "remediation_sla_medium_days": 90,
-            "reassessment_interval_months": 36,
-            "reassessment_frequency_months": 36,
-            "requires_deep_technical_tracks": False,
-            "control_confirmation_cadence": "annual",
-            "control_confirmation_label": "Baseline Hygiene (Semi-Annual / Annual)",
-            "sbd_review_level": "automated_guardrails",
-            "sbd_gate_action": "automated_guardrails_check",
-            "sbd_fast_track_eligible": True,
-            "sbd_decision": "Automated / Lightweight Review",
-        }
-    else:  # low-impact
-        return {
-            "tier": "low-impact",
-            "audit_depth": "lightweight",
-            "pentest_required": False,
-            "threat_modeling_required": False,
-            "ci_cd_blocking_gates": False,
-            "cicd_blocking_threshold": "none",
-            "critical_finding_sla_days": 30,
-            "remediation_sla_critical_days": 30,
-            "high_finding_sla_days": 90,
-            "remediation_sla_high_days": 90,
-            "remediation_sla_medium_days": 120,
-            "reassessment_interval_months": 36,
-            "reassessment_frequency_months": 36,
-            "requires_deep_technical_tracks": False,
-            "control_confirmation_cadence": "biennial",
-            "control_confirmation_label": "Minimal Self-Attestation (Annual / Biennial)",
-            "sbd_review_level": "fast_track",
-            "sbd_gate_action": "peer_review_only",
-            "sbd_fast_track_eligible": True,
-            "sbd_decision": "Fast-Track / Peer Review Eligible",
-        }
-
-
-def get_tier_control_confirmation_schedule(
-    tier: str | int | None,
-    base_frequency: str = "YEARLY",
-    base_interval: int = 1,
-    base_task_name: str = "",
-) -> dict[str, Any]:
-    """Calculate the recurring confirmation task schedule and title based on solution tier.
-
-    Scales control confirmation cadences:
-    - Critical (Rank 4): High-frequency verification (Monthly / Quarterly technical audits).
-    - Important (Rank 3): Standard enterprise verification (Quarterly / Biannual).
-    - Standard (Rank 2): Relaxed baseline hygiene verification (Semi-Annual / Annual).
-    - Low-Impact (Rank 1): Minimal annual or biennial self-attestation.
-    """
-    if isinstance(tier, int) or (isinstance(tier, str) and str(tier).strip().isdigit()):
-        rank_to_tier = {4: "critical", 3: "important", 2: "standard", 1: "low-impact"}
-        norm_tier = rank_to_tier.get(int(tier), "standard")
-    else:
-        norm_tier = str(tier or "standard").strip().lower().replace("_", "-")
-        if norm_tier not in ("critical", "important", "standard", "low-impact"):
-            norm_tier = "standard"
-
-    base_freq_upper = str(base_frequency or "YEARLY").strip().upper()
-    try:
-        base_int = max(1, int(base_interval or 1))
-    except (TypeError, ValueError):
-        base_int = 1
-
-    # Clean the base task name (strip existing cadence prefixes)
-    clean_name = str(base_task_name or "").strip()
-    for prefix in (
-        "Annual Review of ", "Annual ", "Quarterly ", "Biannual ", "Monthly ",
-        "Annual Application ", "Quarterly Application ", "Biannual Application ",
-    ):
-        if clean_name.lower().startswith(prefix.lower()):
-            clean_name = clean_name[len(prefix):]
-            break
-
-    if norm_tier == "critical":
-        if base_freq_upper == "YEARLY":
-            if any(k in base_task_name.lower() for k in ("penetration", "disaster", "backup")):
-                freq = "YEARLY"
-                interval = 1
-                cadence_label = "Annual"
-            else:
-                freq = "MONTHLY"
-                interval = 6
-                cadence_label = "Semi-Annual"
-        else:  # MONTHLY
-            if base_int >= 6:
-                freq = "MONTHLY"
-                interval = 3
-                cadence_label = "Quarterly"
-            elif base_int >= 2:
-                freq = "MONTHLY"
-                interval = 1
-                cadence_label = "Monthly"
-            else:
-                freq = "MONTHLY"
-                interval = 1
-                cadence_label = "Monthly"
-
-    elif norm_tier == "important":
-        freq = base_freq_upper
-        interval = base_int
-        if freq == "YEARLY":
-            cadence_label = f"Every {interval}y" if interval > 1 else "Annual"
-        else:
-            if interval == 1:
-                cadence_label = "Monthly"
-            elif interval == 3:
-                cadence_label = "Quarterly"
-            elif interval == 6:
-                cadence_label = "Biannual"
-            else:
-                cadence_label = f"Every {interval}m"
-
-    elif norm_tier == "standard":
-        if base_freq_upper == "YEARLY":
-            freq = "YEARLY"
-            interval = 1
-            cadence_label = "Annual"
-        else:  # MONTHLY
-            if base_int == 1:
-                freq = "MONTHLY"
-                interval = 3
-                cadence_label = "Quarterly"
-            elif base_int <= 3:
-                freq = "MONTHLY"
-                interval = 6
-                cadence_label = "Semi-Annual"
-            else:
-                freq = "YEARLY"
-                interval = 1
-                cadence_label = "Annual"
-
-    else:  # low-impact
-        freq = "YEARLY"
-        interval = 1 if any(k in base_task_name.lower() for k in ("classification", "stakeholder", "backup")) else 2
-        cadence_label = "Annual" if interval == 1 else "Biennial"
-
-    tier_display_names = {
-        "critical": "Critical",
-        "important": "Important",
-        "standard": "Standard",
-        "low-impact": "Low-Impact",
-    }
-    tier_label = tier_display_names.get(norm_tier, "Standard")
-    formatted_name = f"[{tier_label} • {cadence_label}] {clean_name}" if clean_name else f"[{tier_label} • {cadence_label}] Control Confirmation"
-
-    return {
-        "tier": norm_tier,
-        "frequency": freq,
-        "interval": interval,
-        "cadence_label": cadence_label,
-        "schedule": {"frequency": freq, "interval": interval},
-        "formatted_task_name": formatted_name,
-    }
-
-
-def filter_implementation_groups_by_tier(
-    tier: str | int | None,
-    active_groups: list[str],
-    framework_id: Any = None,
-) -> list[str]:
-    """Filter or scope active implementation groups according to the application's tier.
-
-    For high-criticality applications (Critical / Important):
-    Preserves all architecturally triggered tracks (e.g. custom_app, internet_facing, infra, saas_app).
-
-    For lower-criticality applications (Standard / Low-impact):
-    Restricts mandatory audit scope to baseline hygiene tracks (info, baseline, infra)
-    and prunes intensive code/perimeter engineering tracks (custom_app, internet_facing, saas_uncertified)
-    to prevent assessment fatigue on non-critical software.
-    """
-    if not active_groups:
-        return []
-
-    policy = get_tier_governance_policy(tier)
-
-    # Critical and Important tiers keep all architecturally triggered groups
-    if policy["requires_deep_technical_tracks"]:
-        return list(active_groups)
-
-    # Standard prunes custom engineering and uncertified saas; Low-impact also prunes internet_facing
-    if policy["tier"] == "standard":
-        pruned_tracks = {"custom_app", "saas_uncertified"}
-    else:  # low-impact
-        pruned_tracks = {"custom_app", "internet_facing", "saas_uncertified"}
-
-    scoped: list[str] = []
-    for g in active_groups:
-        norm_g = str(g).strip().lower()
-        if norm_g not in pruned_tracks:
-            scoped.append(g)
-
-    # Ensure baseline and info are present if available
-    for mandatory in ("info", "baseline"):
-        if mandatory not in [s.lower() for s in scoped]:
-            resolved = resolve_implementation_groups([mandatory], framework_id, target_key="ref_id")
-            if resolved:
-                scoped.append(resolved[0])
-
-    return scoped
-
-
-def map_tiering_answers_to_audit_answers(tiering_answers: dict[str, Any]) -> dict[str, Any]:
-    """Map AppSec Solution Tiering Quick Form answers to Chapter 1 questions in appsec.yml / appsec_manual.yml.
-
-    Translates:
-    - Delivery model (context:question:delivery_model):
-        choice:custom -> hosting:q1:c1 (Custom software)
-        choice:cots / onprem -> hosting:q1:c2 (Bought software)
-        choice:saas -> hosting:q1:c3 (SaaS)
-    - Network exposure (context:question:exposure):
-        choice:internal -> hosting:q2:c1 (Internal / Restricted)
-        choice:internet -> hosting:q2:c2 (Internet-facing)
-    - Data classification (data:question:d1):
-        choice:public -> data_classification:q1:c1 (Public storefront & marketing)
-        choice:internal -> data_classification:q1:c2 (Internal retail ops & logistics)
-        choice:confidential -> data_classification:q1:c3 (Confidential commercial/customer)
-        choice:secrets -> data_classification:q1:c4 (Critical financial assets, secrets & anti-fraud)
-    - Adverse breach impact (data:question:d2):
-        choice:negligible -> data_classification:q2:c1 (Negligible / Zero impact)
-        choice:minor -> data_classification:q2:c2 (Minor operational friction)
-        choice:severe -> data_classification:q2:c3 (Moderate to severe harm)
-        choice:catastrophic -> data_classification:q2:c4 (Catastrophic or existential impact)
-    - Personal data scope & GDPR volume (data:question:d3):
-        choice:none -> data_classification:q3:c1 (No personal data)
-        choice:low -> data_classification:q3:c2 (Contact data of employees) + data_classification:q4:c1 (Low volume < 1k)
-        choice:medium -> data_classification:q3:c3 (Customer details) + data_classification:q4:c2 (Medium volume 1k - 100k)
-        choice:large -> data_classification:q3:c4 (HR/financial/payment) + data_classification:q4:c3 (High volume > 100k)
-
-    Returns a normalized answers dict with both full URNs and short keys,
-    compatible with determine_implementation_groups_triggered_by_others and audit answer pre-population.
-    """
-    answers: dict[str, Any] = {}
-    if not tiering_answers or not isinstance(tiering_answers, dict):
-        return answers
-
-    for key, val in tiering_answers.items():
-        val_str = str(val).lower()
-        key_str = str(key).lower()
-
-        # 0. Initiative Type / Evaluation Nature (Stage 1 Scope)
-        if "initiative_type" in key_str or "evaluation_type" in key_str or ":q0" in key_str or key_str.endswith("q0"):
-            if "new" in val_str or ":c1" in val_str:
-                choice_ref = "c1"
-            elif "change" in val_str or "mod" in val_str or ":c2" in val_str:
-                choice_ref = "c2"
-            elif "exist" in val_str or ":c3" in val_str:
-                choice_ref = "c3"
-            else:
-                choice_ref = None
-
-            if choice_ref:
-                answers["urn:intuitem:risk:req_node:appsec:business_project_scope:q0"] = f"urn:intuitem:risk:req_node:appsec:business_project_scope:q0:{choice_ref}"
-                answers["urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q0"] = f"urn:intuitem:risk:req_node:infra-sbd:business_project_scope:q0:{choice_ref}"
-                answers["business_project_scope:q0"] = choice_ref
-                answers["initiative_type"] = choice_ref
-
-        # 1. Delivery model
-        if "delivery_model" in key_str or "delivery" in key_str:
-            if "custom" in val_str or ":c1" in val_str:
-                choice_ref = "c1"
-            elif "cots" in val_str or "onprem" in val_str or ":c2" in val_str:
-                choice_ref = "c2"
-            elif "saas" in val_str or ":c3" in val_str:
-                choice_ref = "c3"
-            elif "extranet" in val_str or ":c4" in val_str:
-                choice_ref = "c4"
-            elif "infra" in val_str or "platform" in val_str or "cloud_infra" in val_str:
-                choice_ref = "c2"
-                answers["urn:intuitem:risk:req_node:appsec:hosting:q7"] = "urn:intuitem:risk:req_node:appsec:hosting:q7:c1"
-                answers["urn:intuitem:risk:req_node:appsec_manual:hosting:q7"] = "urn:intuitem:risk:req_node:appsec_manual:hosting:q7:c1"
-                answers["hosting:q7"] = "c1"
-            else:
-                choice_ref = None
-
-            if choice_ref:
-                answers["urn:intuitem:risk:req_node:appsec:hosting:q1"] = f"urn:intuitem:risk:req_node:appsec:hosting:q1:{choice_ref}"
-                answers["urn:intuitem:risk:req_node:appsec_manual:hosting:q1"] = f"urn:intuitem:risk:req_node:appsec_manual:hosting:q1:{choice_ref}"
-                answers["hosting:q1"] = choice_ref
-
-        # 2. Network exposure
-        if "exposure" in key_str:
-            if "internal" in val_str or ":c1" in val_str or val_str == "no":
-                choice_ref = "c1"
-            elif "internet" in val_str or ":c2" in val_str or val_str == "yes":
-                choice_ref = "c2"
-            else:
-                choice_ref = None
-
-            if choice_ref:
-                answers["urn:intuitem:risk:req_node:appsec:hosting:q2"] = f"urn:intuitem:risk:req_node:appsec:hosting:q2:{choice_ref}"
-                answers["urn:intuitem:risk:req_node:appsec_manual:hosting:q2"] = f"urn:intuitem:risk:req_node:appsec_manual:hosting:q2:{choice_ref}"
-                answers["hosting:q2"] = choice_ref
-
-        # 3. Data classification: primary retail/commercial category (d1)
-        if ":d1" in key_str or "data_category" in key_str or key_str.endswith("d1") or "highest_data" in key_str:
-            if "public" in val_str or ":c1" in val_str:
-                choice_ref = "c1"
-            elif "internal" in val_str or ":c2" in val_str:
-                choice_ref = "c2"
-            elif "confidential" in val_str or ":c3" in val_str:
-                choice_ref = "c3"
-            elif "secret" in val_str or "pci" in val_str or ":c4" in val_str:
-                choice_ref = "c4"
-            else:
-                choice_ref = None
-
-            if choice_ref:
-                answers["urn:intuitem:risk:req_node:appsec:data_classification:q1"] = f"urn:intuitem:risk:req_node:appsec:data_classification:q1:{choice_ref}"
-                answers["urn:intuitem:risk:req_node:appsec_manual:data_classification:q1"] = f"urn:intuitem:risk:req_node:appsec_manual:data_classification:q1:{choice_ref}"
-                answers["data_classification:q1"] = choice_ref
-
-        # 4. Data classification: adverse disclosure impact (d2)
-        if ":d2" in key_str or "adverse_impact" in key_str or "breach_impact" in key_str or key_str.endswith("d2"):
-            if "negligible" in val_str or ":c1" in val_str:
-                choice_ref = "c1"
-            elif "minor" in val_str or ":c2" in val_str:
-                choice_ref = "c2"
-            elif "severe" in val_str or "moderate" in val_str or ":c3" in val_str:
-                choice_ref = "c3"
-            elif "catastrophic" in val_str or "existential" in val_str or ":c4" in val_str:
-                choice_ref = "c4"
-            else:
-                choice_ref = None
-
-            if choice_ref:
-                answers["urn:intuitem:risk:req_node:appsec:data_classification:q2"] = f"urn:intuitem:risk:req_node:appsec:data_classification:q2:{choice_ref}"
-                answers["urn:intuitem:risk:req_node:appsec_manual:data_classification:q2"] = f"urn:intuitem:risk:req_node:appsec_manual:data_classification:q2:{choice_ref}"
-                answers["data_classification:q2"] = choice_ref
-
-        # 5. Data classification: GDPR personal data scope & volume (d3)
-        if ":d3" in key_str or "personal_data" in key_str or "gdpr" in key_str or key_str.endswith("d3"):
-            if "none" in val_str or ":c1" in val_str:
-                q3_ref = "c1"
-                q4_ref = None
-            elif "low" in val_str or ":c2" in val_str:
-                q3_ref = "c2"
-                q4_ref = "c1"
-            elif "medium" in val_str or ":c3" in val_str:
-                q3_ref = "c3"
-                q4_ref = "c2"
-            elif "large" in val_str or ":c4" in val_str:
-                q3_ref = "c4"
-                q4_ref = "c3"
-            else:
-                q3_ref = None
-                q4_ref = None
-
-            if q3_ref:
-                answers["urn:intuitem:risk:req_node:appsec:data_classification:q3"] = f"urn:intuitem:risk:req_node:appsec:data_classification:q3:{q3_ref}"
-                answers["urn:intuitem:risk:req_node:appsec_manual:data_classification:q3"] = f"urn:intuitem:risk:req_node:appsec_manual:data_classification:q3:{q3_ref}"
-                answers["data_classification:q3"] = q3_ref
-
-            if q4_ref:
-                answers["urn:intuitem:risk:req_node:appsec:data_classification:q4"] = f"urn:intuitem:risk:req_node:appsec:data_classification:q4:{q4_ref}"
-                answers["urn:intuitem:risk:req_node:appsec_manual:data_classification:q4"] = f"urn:intuitem:risk:req_node:appsec_manual:data_classification:q4:{q4_ref}"
-                answers["data_classification:q4"] = q4_ref
-
-        # 6. Readiness & Delegation (who can answer what)
-        # Baseline track (q4)
-        if "baseline_readiness" in key_str or ("baseline" in key_str and ("ready" in key_str or "answer" in key_str)):
-            c_ref = "c1" if ("self" in val_str or ":c1" in val_str or "i can" in val_str) else "c2"
-            answers["urn:intuitem:risk:req_node:appsec:hosting:q4"] = f"urn:intuitem:risk:req_node:appsec:hosting:q4:{c_ref}"
-            answers["urn:intuitem:risk:req_node:appsec_manual:hosting:q4"] = f"urn:intuitem:risk:req_node:appsec_manual:hosting:q4:{c_ref}"
-            answers["hosting:q4"] = c_ref
-        elif "baseline_delegate" in key_str and val:
-            answers["urn:intuitem:risk:req_node:appsec:hosting:q4_delegate"] = str(val).strip()
-            answers["urn:intuitem:risk:req_node:appsec_manual:hosting:q4_delegate"] = str(val).strip()
-            answers["hosting:q4_delegate"] = str(val).strip()
-
-        # Custom Software track (q5)
-        if "custom_readiness" in key_str or ("custom" in key_str and ("ready" in key_str or "answer" in key_str)):
-            c_ref = "c1" if ("self" in val_str or ":c1" in val_str or "i can" in val_str) else "c2"
-            answers["urn:intuitem:risk:req_node:appsec:hosting:q5"] = f"urn:intuitem:risk:req_node:appsec:hosting:q5:{c_ref}"
-            answers["urn:intuitem:risk:req_node:appsec_manual:hosting:q5"] = f"urn:intuitem:risk:req_node:appsec_manual:hosting:q5:{c_ref}"
-            answers["hosting:q5"] = c_ref
-        elif "custom_delegate" in key_str and val:
-            answers["urn:intuitem:risk:req_node:appsec:hosting:q5_delegate"] = str(val).strip()
-            answers["urn:intuitem:risk:req_node:appsec_manual:hosting:q5_delegate"] = str(val).strip()
-            answers["hosting:q5_delegate"] = str(val).strip()
-
-        # Bought Software track / COTS (q6)
-        if "cots_readiness" in key_str or ("cots" in key_str and ("ready" in key_str or "answer" in key_str)):
-            c_ref = "c1" if ("self" in val_str or ":c1" in val_str or "i can" in val_str) else "c2"
-            answers["urn:intuitem:risk:req_node:appsec:hosting:q6"] = f"urn:intuitem:risk:req_node:appsec:hosting:q6:{c_ref}"
-            answers["urn:intuitem:risk:req_node:appsec_manual:hosting:q6"] = f"urn:intuitem:risk:req_node:appsec_manual:hosting:q6:{c_ref}"
-            answers["hosting:q6"] = c_ref
-        elif "cots_delegate" in key_str and val:
-            answers["urn:intuitem:risk:req_node:appsec:hosting:q6_delegate"] = str(val).strip()
-            answers["urn:intuitem:risk:req_node:appsec_manual:hosting:q6_delegate"] = str(val).strip()
-            answers["hosting:q6_delegate"] = str(val).strip()
-
-        # Infrastructure track (q7)
-        if "infra_readiness" in key_str or ("infra" in key_str and ("ready" in key_str or "answer" in key_str)):
-            c_ref = "c1" if ("self" in val_str or ":c1" in val_str or "i can" in val_str) else "c2"
-            answers["urn:intuitem:risk:req_node:appsec:hosting:q7"] = f"urn:intuitem:risk:req_node:appsec:hosting:q7:{c_ref}"
-            answers["urn:intuitem:risk:req_node:appsec_manual:hosting:q7"] = f"urn:intuitem:risk:req_node:appsec_manual:hosting:q7:{c_ref}"
-            answers["hosting:q7"] = c_ref
-        elif "infra_delegate" in key_str and val:
-            answers["urn:intuitem:risk:req_node:appsec:hosting:q7_delegate"] = str(val).strip()
-            answers["urn:intuitem:risk:req_node:appsec_manual:hosting:q7_delegate"] = str(val).strip()
-            answers["hosting:q7_delegate"] = str(val).strip()
-
-        # Internet-facing track (q8)
-        if "internet_facing_readiness" in key_str or ("internet" in key_str and ("ready" in key_str or "answer" in key_str)):
-            c_ref = "c1" if ("self" in val_str or ":c1" in val_str or "i can" in val_str) else "c2"
-            answers["urn:intuitem:risk:req_node:appsec:hosting:q8"] = f"urn:intuitem:risk:req_node:appsec:hosting:q8:{c_ref}"
-            answers["urn:intuitem:risk:req_node:appsec_manual:hosting:q8"] = f"urn:intuitem:risk:req_node:appsec_manual:hosting:q8:{c_ref}"
-            answers["hosting:q8"] = c_ref
-        elif "internet_facing_delegate" in key_str and val:
-            answers["urn:intuitem:risk:req_node:appsec:hosting:q8_delegate"] = str(val).strip()
-            answers["urn:intuitem:risk:req_node:appsec_manual:hosting:q8_delegate"] = str(val).strip()
-            answers["hosting:q8_delegate"] = str(val).strip()
-
-        # SaaS track (q9)
-        if "saas_readiness" in key_str or ("saas" in key_str and ("ready" in key_str or "answer" in key_str)):
-            c_ref = "c1" if ("self" in val_str or ":c1" in val_str or "i can" in val_str) else "c2"
-            answers["urn:intuitem:risk:req_node:appsec:hosting:q9"] = f"urn:intuitem:risk:req_node:appsec:hosting:q9:{c_ref}"
-            answers["urn:intuitem:risk:req_node:appsec_manual:hosting:q9"] = f"urn:intuitem:risk:req_node:appsec_manual:hosting:q9:{c_ref}"
-            answers["hosting:q9"] = c_ref
-        elif "saas_delegate" in key_str and val:
-            answers["urn:intuitem:risk:req_node:appsec:hosting:q9_delegate"] = str(val).strip()
-            answers["urn:intuitem:risk:req_node:appsec_manual:hosting:q9_delegate"] = str(val).strip()
-            answers["hosting:q9_delegate"] = str(val).strip()
-
-        # Extranet track (q10)
-        if "extranet_readiness" in key_str or ("extranet" in key_str and ("ready" in key_str or "answer" in key_str)):
-            c_ref = "c1" if ("self" in val_str or ":c1" in val_str or "i can" in val_str) else "c2"
-            answers["urn:intuitem:risk:req_node:appsec:hosting:q10"] = f"urn:intuitem:risk:req_node:appsec:hosting:q10:{c_ref}"
-            answers["urn:intuitem:risk:req_node:appsec_manual:hosting:q10"] = f"urn:intuitem:risk:req_node:appsec_manual:hosting:q10:{c_ref}"
-            answers["hosting:q10"] = c_ref
-        elif "extranet_delegate" in key_str and val:
-            answers["urn:intuitem:risk:req_node:appsec:hosting:q10_delegate"] = str(val).strip()
-            answers["urn:intuitem:risk:req_node:appsec_manual:hosting:q10_delegate"] = str(val).strip()
-            answers["hosting:q10_delegate"] = str(val).strip()
-
-        # 7. Security by Design Knock-Out pre-population
-        # KO-1: Public Exposure / Ingress
-        if "ko1" in key_str or "public_exposure" in key_str or "ingress" in key_str:
-            if any(match in val_str for match in ("yes", "internet", "true", ":c2", "1")):
-                answers["urn:intuitem:risk:req_node:appsec:hosting:q2"] = "urn:intuitem:risk:req_node:appsec:hosting:q2:c2"
-                answers["urn:intuitem:risk:req_node:appsec_manual:hosting:q2"] = "urn:intuitem:risk:req_node:appsec_manual:hosting:q2:c2"
-                answers["hosting:q2"] = "c2"
-                answers["urn:intuitem:risk:req_node:appsec:hosting:q8"] = "urn:intuitem:risk:req_node:appsec:hosting:q8:c1"
-                answers["urn:intuitem:risk:req_node:appsec_manual:hosting:q8"] = "urn:intuitem:risk:req_node:appsec_manual:hosting:q8:c1"
-                answers["hosting:q8"] = "c1"
-
-        # KO-4: Sensitive & Regulated Data
-        if "ko4" in key_str or "regulated_data" in key_str or "pci" in key_str:
-            if any(match in val_str for match in ("yes", "true", "pci", "secrets", ":c4")):
-                answers["urn:intuitem:risk:req_node:appsec:data_classification:q1"] = "urn:intuitem:risk:req_node:appsec:data_classification:q1:c4"
-                answers["urn:intuitem:risk:req_node:appsec_manual:data_classification:q1"] = "urn:intuitem:risk:req_node:appsec_manual:data_classification:q1:c4"
-                answers["data_classification:q1"] = "c4"
-
-    return answers
-
-
-def evaluate_security_by_design_knockouts(answers: dict[str, Any] | None) -> dict[str, Any]:
-    """Evaluate Security by Design (SbD) intake knock-outs (KO-1 to KO-6).
-
-    Knock-out Gates:
-    - KO-1 (Public Exposure / New Ingress): Exposure to the public internet or external partner networks without reverse-proxy/WAF/DDoS.
-    - KO-2 (Identity & Access / Core IAM): Modifications to IdP (Entra ID, Okta), trust boundaries, federated identity, or domain admin privileges.
-    - KO-3 (Network Boundaries & Perimeters): New cross-account VPC peering, direct cloud-to-onprem WAN/DirectConnect, VPNs, or core firewall rule modifications.
-    - KO-4 (Sensitive & Regulated Data): Processing Level 3 / Secrets, PCI-DSS cardholder data, large-scale GDPR (>100k records), or sensitive personal/health data.
-    - KO-5 (Critical Third-Party / SaaS): New external SaaS/vendor integration with direct API access, service accounts into internal networks, or third-party agent installation.
-    - KO-6 (Single Point of Failure / Resiliency): Critical service interruption causing operational disruption > 4 hours with no warm standby or documented failover.
-
-    Returns:
-        Dict with keys:
-        - requires_sbd (bool)
-        - review_level ("deep_sar" | "standard_sbd" | "fast_track")
-        - gate_action (str)
-        - decision (str)
-        - triggered_knockouts (list[dict[str, str]])
-        - fast_track_eligible (bool)
-    """
-    if not answers or not isinstance(answers, dict):
-        answers = {}
-
-    norm = {str(k).strip().lower(): str(v).strip().lower() for k, v in answers.items()}
-
-    def _is_truthy(key_patterns: list[str]) -> bool:
-        for k, v in norm.items():
-            if any(kp in k for kp in key_patterns):
-                if any(t in v for t in ("yes", "true", "1", "critical", "severe", "catastrophic", "stops", "sole", "secrets", "privileged", "large", "internet")):
-                    return True
-        return False
-
-    triggered: list[dict[str, str]] = []
-
-    # KO-1: Public Exposure
-    if _is_truthy(["ko1", "ko_1", "public_exposure", "exposure_internet", "ingress", "internet_facing"]) or norm.get("exposure") == "internet":
-        triggered.append({
-            "id": "KO-1",
-            "name": "Public Exposure / New Ingress",
-            "severity": "important",
-            "description": "Internet-facing entry point, public DNS, or external partner access without standard API Gateway / WAF.",
-        })
-
-    # KO-2: Identity & Access
-    if _is_truthy(["ko2", "ko_2", "core_iam", "iam_federation", "idp", "identity_access", "privileged_access", "domain_admin"]):
-        triggered.append({
-            "id": "KO-2",
-            "name": "Identity & Access / Core IAM",
-            "severity": "critical",
-            "description": "Modifications to IdP (Entra ID, Okta), IAM trust boundaries, federated identity, or privileged account models.",
-        })
-
-    # KO-3: Network Boundaries
-    if _is_truthy(["ko3", "ko_3", "network_boundary", "cross_zone", "vpc_peering", "direct_connect", "wan", "firewall_core"]):
-        triggered.append({
-            "id": "KO-3",
-            "name": "Network Boundaries & Perimeters",
-            "severity": "important",
-            "description": "New cross-account VPC peering, direct cloud-to-onprem WAN/DirectConnect, VPN, or core firewall rule modifications.",
-        })
-
-    # KO-4: Sensitive & Regulated Data
-    if (
-        _is_truthy(["ko4", "ko_4", "regulated_data", "sensitive_data", "pci_dss", "secrets", "pci"])
-        or norm.get("d1") in ("secrets", "pci")
-        or norm.get("d2") in ("catastrophic", "severe")
-        or norm.get("d3") in ("large",)
-    ):
-        triggered.append({
-            "id": "KO-4",
-            "name": "Sensitive & Regulated Data",
-            "severity": "critical",
-            "description": "Processes Level 3 / Secrets, PCI-DSS cardholder data, large-scale GDPR (>100k), or financial/health records.",
-        })
-
-    # KO-5: Critical Third-Party / SaaS
-    if _is_truthy(["ko5", "ko_5", "third_party", "critical_supplier", "saas_integration", "vendor_api", "external_integration"]):
-        triggered.append({
-            "id": "KO-5",
-            "name": "Critical Third-Party / SaaS",
-            "severity": "important",
-            "description": "External SaaS or supplier integration with direct API access, service accounts into internal networks, or third-party agent installation.",
-        })
-
-    # KO-6: Single Point of Failure / Resiliency
-    if (
-        _is_truthy(["ko6", "ko_6", "spof", "resilience_failure", "single_point_of_failure"])
-        or (("stop" in norm.get("b1", "")) and ("sole" in norm.get("b3", "") or "spof" in norm.get("b3", "")))
-    ):
-        triggered.append({
-            "id": "KO-6",
-            "name": "Single Point of Failure / Resiliency",
-            "severity": "important",
-            "description": "Critical service interruption causing operational disruption > 4 hours with no warm standby or failover mechanism.",
-        })
-
-    # Evaluation nature: change vs new_app vs existing_app
-    eval_val = str(norm.get("initiative_type", norm.get("evaluation_type", norm.get("target_type", norm.get("q0", ""))))).strip().lower()
-    if any(m in eval_val for m in ("change", "modification", "patch", "update", ":c2")):
-        evaluation_nature = "change"
-        eval_label = "Infrastructure / Application Change"
-    elif any(m in eval_val for m in ("new", "new_app", "onboarding", ":c1")):
-        evaluation_nature = "new_app"
-        eval_label = "New Application / Service Onboarding"
-    elif any(m in eval_val for m in ("exist", "periodic", "production", ":c3")):
-        evaluation_nature = "existing_app"
-        eval_label = "Existing Production Application"
-    else:
-        evaluation_nature = "unspecified"
-        eval_label = "Change / Application Evaluation"
-
-    has_critical = any(t["severity"] == "critical" for t in triggered)
-    has_important = any(t["severity"] == "important" for t in triggered)
-
-    if has_critical:
-        review_level = "deep_sar"
-        gate_action = "mandatory_pre_prod_approval"
-        decision = f"Deep Security Architecture Review (SAR) Required for {eval_label}"
-        requires_sbd = True
-        fast_track = False
-    elif has_important or len(triggered) > 0:
-        review_level = "standard_sbd"
-        gate_action = "standard_cab_sec_review"
-        decision = f"Standard Security by Design Review Required for {eval_label}"
-        requires_sbd = True
-        fast_track = False
-    else:
-        if evaluation_nature == "change":
-            review_level = "fast_track"
-            gate_action = "peer_review_only"
-            decision = "Fast-Track Standard Change (Peer Review Only - No Blocking Gate)"
-            requires_sbd = False
-            fast_track = True
-        elif evaluation_nature == "new_app":
-            review_level = "fast_track"
-            gate_action = "automated_guardrails_check"
-            decision = "Standard Baseline Onboarding (Automated Guardrails Check)"
-            requires_sbd = False
-            fast_track = True
-        else:
-            review_level = "fast_track"
-            gate_action = "peer_review_only"
-            decision = "Fast-Track Eligible (Peer Review Only)"
-            requires_sbd = False
-            fast_track = True
-
-    return {
-        "evaluation_nature": evaluation_nature,
-        "evaluation_label": eval_label,
-        "requires_sbd": requires_sbd,
-        "review_level": review_level,
-        "gate_action": gate_action,
-        "decision": decision,
-        "triggered_knockouts": triggered,
-        "fast_track_eligible": fast_track,
-    }
-
-
-def map_audit_answers_to_tiering_answers(audit_answers: dict[str, Any] | list[Any]) -> dict[str, Any]:
-    """Map AppSec Chapter 1 answers (data_classification, hosting) back to tiering inputs.
-
-    Translates answers from live requirement assessments or YAML files into normalized
-    tiering scoring inputs (d1, d2, d3, d4, delivery_model, exposure, b1, b2, b3).
-    """
-    flat: dict[str, Any] = {}
-    if not audit_answers:
-        return {}
-
-    if isinstance(audit_answers, list):
-        for item in audit_answers:
-            if isinstance(item, dict):
-                req = str(item.get("requirement") or "").strip().lower()
-                ans_list = item.get("answers")
-                if isinstance(ans_list, list):
-                    for sub in ans_list:
-                        if isinstance(sub, dict):
-                            q_k = str(sub.get("question") or "").strip().lower()
-                            a_v = sub.get("answer") if sub.get("answer") is not None else sub.get("choices", sub.get("text"))
-                            flat[f"{req}:{q_k}"] = a_v
-                else:
-                    q_k = str(item.get("question") or "").strip().lower()
-                    a_v = item.get("answer") if item.get("answer") is not None else item.get("choices", item.get("text"))
-                    flat[f"{req}:{q_k}" if req and q_k else (req or q_k)] = a_v
-    elif isinstance(audit_answers, dict):
-        for k, v in audit_answers.items():
-            k_str = str(k).strip().lower()
-            if isinstance(v, dict):
-                for sub_k, sub_v in v.items():
-                    flat[f"{k_str}:{str(sub_k).strip().lower()}"] = sub_v
-            else:
-                flat[k_str] = v
-
-    tiering: dict[str, Any] = {
-        "b1": "workaround",
-        "b2": "week",
-        "b3": "weeks",
-        "d4": "standard",
-    }
-
-    for k, v in flat.items():
-        if v is None:
-            continue
-        v_str = str(v).lower()
-        k_str = str(k).lower()
-
-        # 0. Initiative Type / Evaluation Nature
-        if "initiative_type" in k_str or "evaluation_type" in k_str or ":q0" in k_str or k_str.endswith("q0") or "business_project_scope:q0" in k_str:
-            if "new" in v_str or ":c1" in v_str or v_str == "c1":
-                tiering["initiative_type"] = "new_app"
-            elif "change" in v_str or "mod" in v_str or ":c2" in v_str or v_str == "c2":
-                tiering["initiative_type"] = "change"
-            elif "exist" in v_str or ":c3" in v_str or v_str == "c3":
-                tiering["initiative_type"] = "existing_app"
-
-        # 0b. KO-1 to KO-6 Knock-Out triggers
-        for i in range(1, 7):
-            ko_key = f"ko{i}"
-            if ko_key in k_str or f"knockout_assessment:q{i}" in k_str or f":knockout_assessment:q{i}" in k_str:
-                if ":c1" in v_str or v_str in ("yes", "y", "true", "1", "c1"):
-                    tiering[ko_key] = "yes"
-                elif ":c2" in v_str or v_str in ("no", "n", "false", "0", "c2"):
-                    tiering[ko_key] = "no"
-
-        # 1. Delivery model (hosting:q1 or business_project_scope:q3)
-        if "hosting:q1" in k_str or "delivery_model" in k_str or ("hosting" in k_str and "q1" in k_str) or "business_project_scope:q3" in k_str:
-            if ":c1" in v_str or "custom" in v_str or v_str == "c1":
-                tiering["delivery_model"] = "custom"
-            elif ":c2" in v_str or "cots" in v_str or "onprem" in v_str or "bought" in v_str or v_str == "c2":
-                tiering["delivery_model"] = "cots"
-            elif ":c3" in v_str or "saas" in v_str or "cloud" in v_str or v_str == "c3":
-                tiering["delivery_model"] = "saas"
-            elif ":c4" in v_str or "extranet" in v_str or v_str == "c4":
-                tiering["delivery_model"] = "extranet"
-
-        # 2. Exposure (hosting:q2 or knockout_assessment:q1)
-        if "hosting:q2" in k_str or "exposure" in k_str or ("hosting" in k_str and "q2" in k_str):
-            if ":c2" in v_str or "internet" in v_str or v_str == "c2" or v_str == "yes":
-                tiering["exposure"] = "internet"
-            elif ":c1" in v_str or "internal" in v_str or v_str == "c1" or v_str == "no":
-                tiering["exposure"] = "internal"
-
-        # 3. Data classification (data_classification:q1 or data_classification_profiling:q1)
-        if "data_classification:q1" in k_str or "data_classification_profiling:q1" in k_str or "d1" in k_str or ("data_classification" in k_str and "q1" in k_str):
-            if ":c4" in v_str or "secret" in v_str or "pci" in v_str or "anti-fraud" in v_str or v_str == "c4":
-                tiering["d1"] = "secrets"
-            elif ":c3" in v_str or "confidential" in v_str or "customer" in v_str or v_str == "c3":
-                tiering["d1"] = "confidential"
-            elif ":c2" in v_str or "internal" in v_str or "ops" in v_str or v_str == "c2":
-                tiering["d1"] = "internal"
-            elif ":c1" in v_str or "public" in v_str or "marketing" in v_str or v_str == "c1":
-                tiering["d1"] = "public"
-
-        # 4. Disclosure harm (data_classification:q2)
-        if ("data_classification:q2" in k_str or "d2" in k_str or ("data_classification" in k_str and "q2" in k_str)) and "profiling" not in k_str:
-            if ":c4" in v_str or "catastrophic" in v_str or "existential" in v_str or v_str == "c4":
-                tiering["d2"] = "catastrophic"
-            elif ":c3" in v_str or "severe" in v_str or "moderate" in v_str or v_str == "c3":
-                tiering["d2"] = "severe"
-            elif ":c2" in v_str or "minor" in v_str or "friction" in v_str or v_str == "c2":
-                tiering["d2"] = "minor"
-            elif ":c1" in v_str or "negligible" in v_str or "zero" in v_str or v_str == "c1":
-                tiering["d2"] = "negligible"
-
-        # 5. GDPR personal data volume (data_classification:q3 / q4 or data_classification_profiling:q2)
-        if "data_classification_profiling:q2" in k_str:
-            if ":c1" in v_str or "large" in v_str or v_str == "c1":
-                tiering["d3"] = "large"
-            elif ":c2" in v_str or "limited" in v_str or v_str == "c2":
-                tiering["d3"] = "medium"
-            elif ":c3" in v_str or "no" in v_str or v_str == "c3":
-                tiering["d3"] = "low"
-        elif "data_classification:q4" in k_str or "data_classification:q3" in k_str or "d3" in k_str or "gdpr" in k_str:
-            if ":c3" in v_str or ":c4" in v_str or v_str in ("c3", "c4") or "large" in v_str or "100,000" in v_str or "100k" in v_str:
-                tiering["d3"] = "large"
-            elif ":c2" in v_str or v_str == "c2" or "medium" in v_str or "customer" in v_str or "limited" in v_str:
-                if tiering.get("d3") != "large":
-                    tiering["d3"] = "medium"
-            elif ":c1" in v_str or v_str == "c1" or "low" in v_str or "contact" in v_str or "no" in v_str:
-                if "d3" not in tiering:
-                    tiering["d3"] = "low"
-
-        # 6. Operational resilience / downtime tolerance (operational_criticality_intake:q1)
-        if "operational_criticality_intake:q1" in k_str or "criticality_intake:q1" in k_str:
-            if ":c1" in v_str or "mission" in v_str or "< 2" in v_str or v_str == "c1":
-                tiering["b1"] = "stops"
-                tiering["b2"] = "hour"
-                tiering["b3"] = "sole"
-            elif ":c2" in v_str or "important" in v_str or "8 hours" in v_str or v_str == "c2":
-                tiering["b1"] = "disrupt"
-                tiering["b2"] = "day"
-                tiering["b3"] = "weeks"
-            elif ":c3" in v_str or "standard" in v_str or "24" in v_str or v_str == "c3":
-                tiering["b1"] = "workaround"
-                tiering["b2"] = "week"
-                tiering["b3"] = "months"
-
-        # 7. Operational resilience overrides if present
-        if "b1" in k_str or "outage" in k_str:
-            tiering["b1"] = v_str
-        if "b2" in k_str or "rto" in k_str:
-            tiering["b2"] = v_str
-        if "b3" in k_str or "spof" in k_str or "replaceability" in k_str:
-            tiering["b3"] = v_str
-        if "d4" in k_str or "access_level" in k_str or "privileged" in k_str:
-            tiering["d4"] = v_str
-        if "regulated" in k_str:
-            tiering["regulated"] = v_str
-
-    # Knock-out implications
-    if tiering.get("ko1") == "yes":
-        tiering["exposure"] = "internet"
-    if tiering.get("ko4") == "yes" and tiering.get("d1") not in ("secrets",):
-        tiering["d1"] = "secrets"
-    if tiering.get("ko6") == "yes":
-        tiering["b1"] = "stops"
-        tiering["b3"] = "sole"
-
-    # Sensible operational defaults if data classification is high
-    if tiering.get("d1") == "secrets":
-        tiering.setdefault("b1", "disrupt")
-        tiering.setdefault("b2", "week")
-        tiering.setdefault("b3", "sole")
-
-    return tiering
-
-
-# Backward-compatible alias
-map_tiering_answers_to_hosting_answers = map_tiering_answers_to_audit_answers

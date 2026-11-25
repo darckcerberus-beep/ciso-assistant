@@ -1,13 +1,12 @@
 # Application Security Assessment (appsec.yml) — Questions & Applicability Cases
-> **Purpose**: This file catalogs all 91 questions defined in `YML/appsec.yml`.
+> **Purpose**: This file catalogs all 82 questions defined in `YML/appsec.yml`.
 > You can use this document to specify which requirements and questions apply to which situations/cases.
 > Below is both a **Quick Reference Table** and a **Detailed Breakdown** by Chapter and Requirement Node.
 
 ## Table of Contents
-- [1. AppSec Assurance Pipeline & Solution Tiering Integration](#1-appsec-assurance-pipeline--solution-tiering-integration)
-- [2. Situations & Cases Definitions](#2-situations--cases-definitions)
-- [3. Quick Reference Matrix (All 91 Questions)](#3-quick-reference-matrix)
-- [4. Detailed Questions by Chapter](#4-detailed-questions-by-chapter)
+- [1. Situations & Cases Definitions](#1-situations--cases-definitions)
+- [2. Quick Reference Matrix (All 82 Questions)](#2-quick-reference-matrix)
+- [3. Detailed Questions by Chapter](#3-detailed-questions-by-chapter)
   - [Application Information & Governance](#info)
   - [Identity, Authentication & Access Control](#iam_chapter)
   - [Application Vulnerability Defense & Code Hygiene](#app_defenses_chapter)
@@ -21,56 +20,7 @@
 
 ---
 
-## 1. AppSec Assurance Pipeline & Solution Tiering Integration
-
-When treating all applications as third-party software solutions, AppSec governance is managed through a **Two-Stage Assurance Pipeline** directly integrated into CISO Assistant:
-
-```
-[Application Intake / Inventory]
-               │
-               ▼
-┌────────────────────────────────────────────────────────┐
-│ Stage 1: AppSec Solution Tiering (Quick Form)          │
-│ • Evaluates Operational Resilience (RTO, SPOF)         │
-│ • Evaluates Data Classification (Retail CIA, GDPR)     │
-│ • Evaluates Delivery Model & Network Exposure          │
-│ • Deterministic knock-outs (PCI, Secrets, SPOF)        │
-└───────────────────────────┬────────────────────────────┘
-                            │ Writes to solution.tier
-                            ▼
-               ┌────────────────────────┐
-               │    Assigned Tier?      │
-               └────────────┬───────────┘
-                            │
-       ┌────────────────────┼────────────────────┐
-       ▼                    ▼                    ▼
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│   CRITICAL   │     │  IMPORTANT   │     │ STANDARD/LOW │
-│   (Tier 1)   │     │   (Tier 2)   │     │  (Tier 3-4)  │
-└──────┬───────┘     └──────┬───────┘     └──────┬───────┘
-       │                    │                    │
-       ▼                    ▼                    ▼
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│ Full AppSec  │     │ Targeted     │     │ Baseline     │
-│ Assessment   │     │ AppSec Check │     │ Hygiene      │
-│ (All 82 Qs   │     │ (Core IAM,   │     │ (SSO, MFA,   │
-│ + Pentest +  │     │  Crypto, API,│     │  TLS, Patch, │
-│ Threat Model)│     │  SDLC & Logs)│     │  Backups)    │
-└──────────────┘     └──────────────┘     └──────────────┘
-```
-
-### Tier-Driven Assessment Scoping Matrix
-
-| Solution Tier | Triggering Criteria (Quick Form / Knock-Outs) | Assessment Scope & Governance Gates | Re-Assessment Cadence |
-| :--- | :--- | :--- | :--- |
-| **Critical** | Inherent score $\ge 3.3$, or knock-outs: PCI cardholder data, root secrets, SPOF, or regulated critical function | **Comprehensive AppSec Review**: All 82 controls across applicable delivery tracks (`custom_app`, `cots_app`, or `saas_app`), mandatory annual penetration test, formal threat model, blocking CI/CD SAST/SCA gates. | Annual (or upon major architectural release) |
-| **Important** | Inherent score $\ge 2.6$, or knock-outs: Internet-facing confidential data, large-scale GDPR (>100k subjects), or privileged system access | **Targeted AppSec Review**: Core IAM, Session Management, API security, Data Lifecycle, and automated DAST/SCA scans. | Every 18–24 months |
-| **Standard** | Inherent score $\ge 2.0$ | **Baseline Hygiene**: SSO integration, administrative MFA, TLS enforcement, OS patching, and automated backups. | On major version upgrade |
-| **Low impact** | Inherent score $< 2.0$ (internal, public data, high redundancy) | **Lightweight Verification**: Self-attestation of core hygiene; risk accepted for advanced controls. | As needed |
-
----
-
-## 2. Situations & Cases Definitions
+## 1. Situations & Cases Definitions
 
 Define or customize your operational situations/cases here for reference:
 
@@ -82,7 +32,7 @@ Define or customize your operational situations/cases here for reference:
 | **Case 4** | *Internet-Facing Applications* | Exposed directly to public internet without VPN | Customer portals, public APIs, e-commerce |
 | **Case 5** | *Internal-Only Applications* | Restricted strictly to internal private network / VPN | Internal admin portals, intranet, batch processors |
 | **Case 6** | *High Sensitivity (Confidential / Secret)* | Processes PII, financial data, credentials, or trade secrets | Payment processing, HR systems, core DBs |
-| **Case 7** | *Extranet & Carrier Platforms* | Third-party collaborative web platforms & carrier extranets where platform tenant segregation is impossible by design | Carrier portals, DHL/FedEx, freight forwarders, vendor extranets |
+| **Case 7** | *Custom Case (Specify)* | *Describe situation...* | *...* |
 
 ---
 
@@ -114,22 +64,12 @@ Define or customize your operational situations/cases here for reference:
 | 7l | Application Information & Governance | `hosting` | `q8_delegate` | Internet-Facing track: specify who can answer (name, email address, or team) | `info` | Free text delegate field (depends on `hosting:q8 == c2`) |
 | 7m | Application Information & Governance | `hosting` | `q9` | Can you answer the SaaS Application Track (MSA, confidentiality, tenant admin MFA, EU data residency, audit rights), or does somebody else have to? | `info` | SaaS applications (Triggers `saas_app` on `c1`, leaves in orchestrator on `c2`) |
 | 7n | Application Information & Governance | `hosting` | `q9_delegate` | SaaS track: specify who can answer (name, email address, or team) | `info` | Free text delegate field (depends on `hosting:q9 == c2`) |
-| 7o | Application Information & Governance | `hosting` | `q10` | Can you answer the External Provider Extranet Track (architecture compartmentalization, public tracking masking, SSO, MFA, SCIM, single-admin PAM, and separation of duties), or does somebody else have to? | `info` | Extranet platforms (Triggers `extranet` on `c1`, leaves in orchestrator on `c2`) |
-| 7p | Application Information & Governance | `hosting` | `q10_delegate` | Extranet track: specify who can answer (name, email address, or team) | `info` | Free text delegate field (depends on `hosting:q10 == c2`) |
-| 8 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q1` | How do users authenticate to the application? (Exclusive SSO [+100], Hybrid [+40], Direct [+0], M2M API [+100]) | `baseline` | Cases 1, 2, 3 (Custom, COTS, SaaS) - Mandatory SSO / Hybrid |
-| 9 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q2` | If direct or hybrid authentication is used, are strong password policies and brute-force lockout protections implemented for local accounts? | `baseline` | Cases 1, 2, 3 (Custom, COTS, SaaS) (If direct or hybrid auth used - Password policy, +30 pts) |
-| 10 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q3` | If direct or hybrid authentication is used, is Multi-Factor Authentication (MFA) enforced for all administrative, privileged, and break-glass access? | `baseline` | Cases 1, 2, 3 (Custom, COTS, SaaS) (If direct or hybrid auth used - Admin MFA, +30 pts) |
-| 11 | Identity, Authentication & Access Control | `access_control_and_rbac` | `q1` | Have you defined roles and permissions for the application? (Is access controlled ... | `baseline, extranet` | Cases 1, 2, 3 (Custom, COTS, SaaS) & Case 7 (Extranet) (RBAC least privilege) |
-| 12 | Identity, Authentication & Access Control | `access_control_and_rbac` | `q2` | Is the application integrated with the enterprise Identity Governance and Administ... | `baseline, extranet` | Cases 1, 2, 3 (Custom, COTS, SaaS) & Case 7 (Extranet) (SailPoint IGA integration) |
-| 13 | Identity, Authentication & Access Control | `access_control_and_rbac` | `q3` | Are user entitlements and privileged permissions reviewed and recertified on a per... | `baseline, extranet` | Cases 1, 2, 3 (Custom, COTS, SaaS) & Case 7 (Extranet) (Periodic SailPoint recertifications) |
-| 13a | Identity, Authentication & Access Control | `external_provider_extranets` | `q1` | Given that tenant segregation is impossible by design, does the architecture enforce account-level compartmentalization, data minimization, and tracking masking? | `extranet` | Case 7 only (Extranet & Carrier Platforms - Architecture, data minimization & compartmentalization, +15 pts) |
-| 13b | Identity, Authentication & Access Control | `external_provider_extranets` | `q2` | Does the provider extranet support enterprise IdP federation via Microsoft Entra ID (SSO, MFA by design, and auto-deprovisioning of leavers)? | `extranet` | Case 7 only (Extranet & Carrier Platforms - Entra ID SSO federation, MFA by design, and auto-deprovisioning of leavers, +40 pts) |
-| 13c | Identity, Authentication & Access Control | `external_provider_extranets` | `q3` | When Entra ID SSO is not supported, is Multi-Factor Authentication (MFA) strictly enforced on the provider platform? | `extranet` | Case 7 only (Compensating control: depends on `q2 == c2`, provider-enforced MFA, +15 pts) |
-| 13d | Identity, Authentication & Access Control | `external_provider_extranets` | `q4` | When Entra ID SSO is not supported, how is user access deprovisioned when an employee leaves (SCIM or SailPoint disconnected app)? | `extranet` | Case 7 only (Compensating control: depends on `q2 == c2`, automated SCIM [+10 pts] or SailPoint disconnected app [+5 pts]) |
-| 13e | Identity, Authentication & Access Control | `external_provider_extranets` | `q5` | Are individual named user accounts strictly required and enforced, with prohibition of shared/generic team logins? | `extranet` | Case 7 only (Extranet & Carrier Platforms - Individual attribution & no shared accounts, +15 pts) |
-| 13f | Identity, Authentication & Access Control | `external_provider_extranets` | `q6` | Does the provider extranet enforce granular Role-Based Access Control (RBAC) to restrict user permissions to least privilege? | `extranet` | Case 7 only (Extranet & Carrier Platforms - Granular RBAC least privilege, +10 pts) |
-| 13g | Identity, Authentication & Access Control | `external_provider_extranets` | `q7` | How is admin access governed, and how are single-admin / SPOF risks mitigated on platforms allowing only one master admin? | `extranet` | Case 7 only (Extranet & Carrier Platforms - Admin account governance, single-admin PAM vaulting & break-glass, +10 pts) |
-| 13h | Identity, Authentication & Access Control | `external_provider_extranets` | `q8` | Are administrative privileges strictly separated from routine operational tasks (booking, label generation, tracking)? | `extranet` | Case 7 only (Extranet & Carrier Platforms - Separation of administrative and operational duties, +10 pts) |
+| 8 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q1` | How do users authenticate to the application? (Exclusive SSO [+100], Hybrid [+40], Direct [+0], M2M API [+100]) | `baseline` | **All applications** (Custom, COTS, SaaS) - Mandatory SSO / Hybrid |
+| 9 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q2` | If direct or hybrid authentication is used, are strong password policies and brute-force lockout protections implemented for local accounts? | `baseline` | All applications (If direct or hybrid auth used - Password policy, +30 pts) |
+| 10 | Identity, Authentication & Access Control | `authentication_and_mfa` | `q3` | If direct or hybrid authentication is used, is Multi-Factor Authentication (MFA) enforced for all administrative, privileged, and break-glass access? | `baseline` | All applications (If direct or hybrid auth used - Admin MFA, +30 pts) |
+| 11 | Identity, Authentication & Access Control | `access_control_and_rbac` | `q1` | Have you defined roles and permissions for the application? (Is access controlled ... | `baseline` | **All applications** (Baseline - RBAC least privilege) |
+| 12 | Identity, Authentication & Access Control | `access_control_and_rbac` | `q2` | Is the application integrated with the enterprise Identity Governance and Administ... | `baseline` | **All applications** (Baseline - SailPoint IGA integration) |
+| 13 | Identity, Authentication & Access Control | `access_control_and_rbac` | `q3` | Are user entitlements and privileged permissions reviewed and recertified on a per... | `baseline` | **All applications** (Baseline - Periodic recertifications) |
 | 14 | Identity, Authentication & Access Control | `session_management` | `q1` | Are session identifiers and API bearer tokens cryptographically secure, protected in transit/storage, and invalidated upon logout, expiration, or inactivity? | `custom_app` | Custom applications and APIs (+100 pts) |
 | 15 | Application Vulnerability Defense & Code Hygiene | `owasp_top_10_defenses` | `q1` | Are server-side input validation and parameterized queries/ORMs enforced to prevent injection flaws (SQLi, command injection, SSRF)? | `custom_app` | Custom applications (+50 pts) |
 | 15b | Application Vulnerability Defense & Code Hygiene | `owasp_top_10_defenses` | `q2` | Are context-aware output encoding, security headers (CSP), and generic production error handlers enforced to prevent XSS and stack-trace leakage? | `custom_app` | Custom applications (+50 pts) |
@@ -362,7 +302,6 @@ Action - None
   - `Custom software created and deployed by my teams (In-house development)`
   - `Bought software deployed by my teams (COTS / Vendor package)`
   - `SaaS (Third-party software hosted and operated by a vendor)`
-  - `Extranet (External provider or carrier platform hosted by a partner/vendor)`
 - **Applicable Cases / Situations**:
   - [x] All applications (Info profiling - Hosting model)
 
@@ -375,7 +314,7 @@ Action - None
   - `Internal / Restricted Network only` (100 pts, compute_result: true)
   - `Internet-facing (Public Web / Mobile API)` (100 pts, compute_result: true)
 - **Applicable Cases / Situations**:
-  - [x] Self-Hosted only (Custom & COTS; hidden for SaaS and Extranet)
+  - [x] Self-Hosted only (Custom & COTS; hidden for SaaS)
 
 
 <a id="iam_chapter"></a>
@@ -423,8 +362,8 @@ Action - All apps must use SSO so ask for all apps
   - [x] All applications (If direct or hybrid auth used - Admin & Break-Glass MFA)
 
 #### Node: Authorization, RBAC, IGA & Access Recertifications (`access_control_and_rbac`)
-Action - All apps must use RBAC and IGA for my employees, ask for all apps (Put in baseline and extranet for all apps)
-- **Implementation Groups**: `baseline, extranet`
+Action - All apps must use RBAC and IGA for my employees, ask for all apps (Put in baseline for all apps)
+- **Implementation Groups**: `baseline`
 - **Description**: Enforce least privilege via granular RBAC/ABAC, integrate with enterprise Identity Governance & Administration (SailPoint), and perform periodic access recertifications.
 
 ##### Q11. `access_control_and_rbac:q1`
@@ -435,7 +374,7 @@ Action - All apps must use RBAC and IGA for my employees, ask for all apps (Put 
   - `Yes` (50 pts, compute_result: true)
   - `No` (0 pts)
 - **Applicable Cases / Situations**:
-  - [x] **All applications** (Baseline & Extranet - RBAC least privilege)
+  - [x] **All applications** (Baseline - RBAC least privilege)
 
 ##### Q12. `access_control_and_rbac:q2`
 - **URN**: `urn:intuitem:risk:req_node:appsec:access_control_and_rbac:q2`
@@ -445,7 +384,7 @@ Action - All apps must use RBAC and IGA for my employees, ask for all apps (Put 
   - `Yes` (25 pts, compute_result: true)
   - `No` (0 pts)
 - **Applicable Cases / Situations**:
-  - [x] **All applications** (Baseline & Extranet - SailPoint IGA integration)
+  - [x] **All applications** (Baseline - SailPoint IGA integration)
 
 ##### Q13. `access_control_and_rbac:q3`
 - **URN**: `urn:intuitem:risk:req_node:appsec:access_control_and_rbac:q3`
@@ -455,95 +394,7 @@ Action - All apps must use RBAC and IGA for my employees, ask for all apps (Put 
   - `Yes` (25 pts, compute_result: true)
   - `No` (0 pts)
 - **Applicable Cases / Situations**:
-  - [x] **All applications** (Baseline & Extranet - Periodic SailPoint recertifications)
-
-#### Node: External Provider & Carrier Extranets Architecture & IAM (`external_provider_extranets`)
-- **Implementation Groups**: `extranet`
-- **Description**: Dedicated evaluation track for external provider extranets (such as carrier portals like MondialRelay, DHL, FedEx, freight/logistics platforms, or vendor web applications) where platform tenant segregation is impossible by design, focusing on architecture compartmentalization, public tracking data masking, data minimization, Microsoft Entra ID enterprise SSO federation, mandatory MFA, automated SCIM / SailPoint disconnected application user lifecycle deprovisioning, named individual attribution, granular RBAC, single-admin platform PAM vaulting / break-glass governance, and separation of administrative duties from daily operational shipping.
-
-##### Q13a. `external_provider_extranets:q1`
-- **URN**: `urn:intuitem:risk:req_node:appsec:external_provider_extranets:q1`
-- **Question**: Given that platform-wide tenant segregation is impossible by design in shared carrier networks, does the extranet architecture enforce account-level compartmentalization, public tracking data masking, and strict data minimization (prohibiting storage of sensitive PII, trade secrets, or payment data) alongside TLS 1.2+ encrypted transport?
-- **Type**: `unique_choice`
-- **Choices & Scoring**:
-  - `Yes - Account-level authorization protects corporate records/invoices, strict data minimization is enforced (no PII/secrets submitted), public tracking lookups mask recipient/commercial details, and transport is encrypted via TLS 1.2+` (15 pts, compute_result: true)
-  - `No - Sensitive PII or commercial secrets are submitted to the shared extranet, public tracking exposes unmasked recipient/invoice details, or account authorization boundaries are unverified` (0 pts)
-- **Applicable Cases / Situations**:
-  - [x] **Case 7: Extranet & Carrier Platforms** (hosting:q1 == c4 - Architecture, Data Minimization & Compartmentalization)
-
-##### Q13b. `external_provider_extranets:q2`
-- **URN**: `urn:intuitem:risk:req_node:appsec:external_provider_extranets:q2`
-- **Question**: Does the provider extranet support enterprise Identity Provider (IdP) federation via Microsoft Entra ID (Azure AD SAML 2.0 or OIDC), enabling Single Sign-On (SSO) with corporate credentials for internal personnel (inherently enforcing Multi-Factor Authentication by design and auto-deprovisioning of leavers upon corporate account deactivation)?
-- **Type**: `unique_choice`
-- **Choices & Scoring**:
-  - `Yes - Full enterprise IdP federation via Microsoft Entra ID (SAML 2.0 / OIDC SSO), inherently enforcing MFA by design via Conditional Access and auto-deprovisioning leavers upon corporate account deactivation` (40 pts, compute_result: true)
-  - `No - Provider extranet does not support enterprise SSO; internal personnel must maintain separate portal credentials directly on the partner platform (triggers requirement for partner-level MFA and manual/SailPoint deprovisioning governance)` (0 pts)
-- **Applicable Cases / Situations**:
-  - [x] **Case 7: Extranet & Carrier Platforms** (hosting:q1 == c4 - Microsoft Entra ID SSO Federation, MFA by design & Auto-deprovisioning of leavers)
-
-##### Q13c. `external_provider_extranets:q3`
-- **URN**: `urn:intuitem:risk:req_node:appsec:external_provider_extranets:q3`
-- **Question**: When Microsoft Entra ID SSO is not supported, is Multi-Factor Authentication (MFA) strictly enforced on the provider extranet (via provider-mandated TOTP authenticator apps, FIDO2/WebAuthn, or push notifications) for all user and administrative access?
-- **Depends On**: `urn:intuitem:risk:req_node:appsec:external_provider_extranets:q2 == c2` (Condition: any)
-- **Type**: `unique_choice`
-- **Choices & Scoring**:
-  - `Yes - Mandatory MFA is strictly enforced on the provider platform for all user and admin accounts (via provider-mandated TOTP / FIDO2 / WebAuthn / push)` (15 pts, compute_result: true)
-  - `No - Single-factor (password-only) login is permitted or MFA is optional/unsupported on the partner platform` (0 pts)
-- **Applicable Cases / Situations**:
-  - [x] **Case 7: Extranet & Carrier Platforms** (Compensating control when SSO is not supported - Provider MFA)
-
-##### Q13d. `external_provider_extranets:q4`
-- **URN**: `urn:intuitem:risk:req_node:appsec:external_provider_extranets:q4`
-- **Question**: When Microsoft Entra ID SSO is not supported, how is user access deprovisioned when an employee or contractor leaves the organization or changes role to prevent orphaned accounts on the partner platform?
-- **Depends On**: `urn:intuitem:risk:req_node:appsec:external_provider_extranets:q2 == c2` (Condition: any)
-- **Type**: `unique_choice`
-- **Choices & Scoring**:
-  - `Automated: Deprovisioning is automated via partner SCIM 2.0 or user lifecycle API connector (departing personnel immediately lose access)` (10 pts, compute_result: true)
-  - `Partially managed: SailPoint disconnected application workflow or manual offboarding ticket process with documented periodic access reviews and account reconciliations` (5 pts, compute_result: true)
-  - `Unmanaged: Accounts remain active indefinitely until manually noticed, with no systematic offboarding or access reviews (high orphan account risk)` (0 pts)
-- **Applicable Cases / Situations**:
-  - [x] **Case 7: Extranet & Carrier Platforms** (Compensating control when SSO is not supported - SailPoint disconnected application workflow / SCIM)
-
-##### Q13e. `external_provider_extranets:q5`
-- **URN**: `urn:intuitem:risk:req_node:appsec:external_provider_extranets:q5`
-- **Question**: Are individual named user accounts strictly required and enforced for all personnel accessing the extranet, with explicit prohibition and technical prevention of shared or generic team logins (e.g., 'shipping@company.com' or 'logistics-ops')?
-- **Type**: `unique_choice`
-- **Choices & Scoring**:
-  - `Yes - Every user has an individually assigned named account with individual attribution in audit trails; shared team accounts are strictly prohibited` (15 pts, compute_result: true)
-  - `No - Team members share common credentials or generic accounts to log into the provider extranet` (0 pts)
-- **Applicable Cases / Situations**:
-  - [x] **Case 7: Extranet & Carrier Platforms** (hosting:q1 == c4 - Individual Named Accounts & Prohibit Shared Credentials)
-
-##### Q13f. `external_provider_extranets:q6`
-- **URN**: `urn:intuitem:risk:req_node:appsec:external_provider_extranets:q6`
-- **Question**: Does the provider extranet enforce granular Role-Based Access Control (RBAC) to restrict user permissions to the minimum necessary for their business function (e.g., separating shipping booking, tracking, financial/invoicing data, and administrative configuration)?
-- **Type**: `unique_choice`
-- **Choices & Scoring**:
-  - `Yes - Granular RBAC profiles restrict user permissions by role (e.g. shipping dispatcher, billing analyst, read-only viewer, administrator)` (10 pts, compute_result: true)
-  - `No - All users share broad, all-inclusive permissions or have administrative privileges by default` (0 pts)
-- **Applicable Cases / Situations**:
-  - [x] **Case 7: Extranet & Carrier Platforms** (hosting:q1 == c4 - Granular RBAC Least Privilege)
-
-##### Q13g. `external_provider_extranets:q7`
-- **URN**: `urn:intuitem:risk:req_node:appsec:external_provider_extranets:q7`
-- **Question**: How is administrative access governed on the provider extranet, and how does the organization mitigate single point of failure (SPOF) and credential-sharing risks—particularly on platforms that permit only a single master administrator account?
-- **Type**: `unique_choice`
-- **Choices & Scoring**:
-  - `Enterprise PAM vaulting or named redundancy: Where multiple admins are supported, at least two designated named administrators exist without credential sharing; where the platform allows only one admin account, credentials and MFA seeds (TOTP/hardware key) are secured in an enterprise Privileged Access Management (PAM) vault with auditable break-glass emergency recovery procedures` (10 pts, compute_result: true)
-  - `Designated admin with documented backup: A primary administrator is designated with an identified operational backup and documented recovery process, but credentials/MFA are stored in standard password managers without formalized PAM vaulting or dual-custody break-glass controls` (5 pts, compute_result: true)
-  - `Unmanaged / Insecure sharing: The single admin account is informally shared across multiple staff, or tied exclusively to a single individual's personal device/email without backup access or emergency handover procedures (severe lockout and accountability risk)` (0 pts)
-- **Applicable Cases / Situations**:
-  - [x] **Case 7: Extranet & Carrier Platforms** (hosting:q1 == c4 - Admin Account Governance, Single-Admin PAM Vaulting & Break-Glass)
-
-##### Q13h. `external_provider_extranets:q8`
-- **URN**: `urn:intuitem:risk:req_node:appsec:external_provider_extranets:q8`
-- **Question**: Are administrative privileges strictly separated from routine operational tasks, ensuring master administrator credentials are reserved for governance and configuration rather than daily shipment booking or tracking?
-- **Type**: `unique_choice`
-- **Choices & Scoring**:
-  - `Yes - Strict separation of duties: Master admin accounts are used solely for account governance, user lifecycle management, billing setup, and security configuration; daily operational shipping, tracking, and label generation are performed using separate standard user accounts` (10 pts, compute_result: true)
-  - `No - Administrative accounts are routinely used for daily operational shipping tasks, or administrative privileges are granted broadly to day-to-day dispatch operators` (0 pts)
-- **Applicable Cases / Situations**:
-  - [x] **Case 7: Extranet & Carrier Platforms** (hosting:q1 == c4 - Separation of Administrative and Operational Duties)
+  - [x] **All applications** (Baseline - Periodic recertifications)
 
 #### Node: Secure Session Management (`session_management`)
 - **Implementation Groups**: `custom_app`

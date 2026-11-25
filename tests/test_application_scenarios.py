@@ -968,7 +968,7 @@ class TestApplicationProfileScenarioConsistency(unittest.TestCase):
 
     def test_gdpr_quantity_multiplier_elevates_impact(self):
         """Verify that GDPR personal data quantity acts as an impact multiplier."""
-        for fw_path in ["YML/appsec.yml"]:
+        for fw_path in ["YML/appsec.yml", "YML/appsec_manual.yml"]:
             with self.subTest(framework=fw_path):
                 sim = ApplicationRiskSimulator(fw_path)
 

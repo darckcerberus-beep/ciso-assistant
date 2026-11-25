@@ -190,16 +190,12 @@ def log(message: str, level: int = logging.INFO) -> None:
     LOGGER.log(level, message)
 
 
-DEFAULT_REQUEST_TIMEOUT = float(os.getenv("CISO_REQUEST_TIMEOUT", "30.0"))
-
-
 def get_return(
     endpoint: str,
     method: str = "GET",
     payload: dict[str, Any] | None = None,
     params: dict[str, Any] | None = None,
     log_errors: bool = True,
-    timeout: float | tuple[float, float] | None = None,
 ) -> Any:
     """Execute an API request and return the JSON payload.
     
@@ -231,7 +227,6 @@ def get_return(
             params=params,
             headers=HEADERS,
             verify=False,
-            timeout=timeout or DEFAULT_REQUEST_TIMEOUT,
         )
 
         if response.status_code == 400:
@@ -311,7 +306,6 @@ def download_file(endpoint: str, target_path: str | Path, params: dict[str, Any]
             headers=HEADERS,
             verify=False,
             stream=True,
-            timeout=(5.0, 60.0),
         )
         response.raise_for_status()
         with open(target_path, "wb") as f:
@@ -361,7 +355,6 @@ def upload_file(
                 data=extra_data,
                 headers=upload_headers,
                 verify=False,
-                timeout=(10.0, 120.0),
             )
 
         if response.status_code == 400:

@@ -503,35 +503,16 @@ class FrameworkLoader:
         stored_id = res_json.get("id")
 
         if warning == "libraryStoredForUpdate" and stored_id:
-            LOGGER.info(f"Library stored as update. Triggering update on loaded library...")
-            updated = False
-            # 1. Attempt update via loaded-libraries endpoint
-            loaded_libs = utils.get_all_results("/api/loaded-libraries/", force_reload=True)
-            for ll in loaded_libs:
-                ll_ref = str(ll.get("ref_id", "")).lower()
-                ll_urn = str(ll.get("urn", "")).lower()
-                if (fw_ref and ll_ref == fw_ref.lower()) or (fw_urn and ll_urn == fw_urn.lower()):
-                    ll_id = ll.get("id")
-                    update_url = f"{BASE_URL.rstrip('/')}/api/loaded-libraries/{ll_id}/update/"
-                    LOGGER.info(f"Activating framework update via {update_url}...")
-                    u_res = requests.get(update_url, headers={"Authorization": f"Token {API_TOKEN}"}, verify=False)
-                    if u_res.status_code in (200, 201):
-                        LOGGER.info(f"Successfully applied update to loaded library '{fw_name}'.")
-                        updated = True
-                        break
-                    else:
-                        LOGGER.warning(f"Update via loaded-libraries endpoint returned {u_res.status_code}: {u_res.text}")
-
-            if not updated:
-                # Fallback: unload prior version if force_reload, then import
-                if force_reload and existing_status.get("stored_id"):
-                    self.unload_framework(existing_status["stored_id"], backup_first=False)
-                import_url = f"{BASE_URL.rstrip('/')}/api/stored-libraries/{stored_id}/import/"
-                i_res = requests.post(import_url, headers={"Authorization": f"Token {API_TOKEN}"}, verify=False)
-                if i_res.status_code in (200, 201):
-                    LOGGER.info(f"Successfully imported updated framework {fw_name}.")
-                else:
-                    LOGGER.error(f"Failed to import updated framework {fw_name}: {i_res.text}")
+            LOGGER.info(f"Library stored as update. Triggering import on stored library {stored_id}...")
+            # If force_reload or update, unload existing and trigger import
+            if force_reload and existing_status.get("stored_id"):
+                self.unload_framework(existing_status["stored_id"], backup_first=False)
+            import_url = f"{BASE_URL.rstrip('/')}/api/stored-libraries/{stored_id}/import/"
+            i_res = requests.post(import_url, headers={"Authorization": f"Token {API_TOKEN}"}, verify=False)
+            if i_res.status_code in (200, 201):
+                LOGGER.info(f"Successfully imported updated framework {fw_name}.")
+            else:
+                LOGGER.error(f"Failed to import updated framework {fw_name}: {i_res.text}")
         elif stored_id and not res_json.get("is_loaded"):
             LOGGER.info(f"Library uploaded into catalog. Triggering import on stored library {stored_id}...")
             import_url = f"{BASE_URL.rstrip('/')}/api/stored-libraries/{stored_id}/import/"

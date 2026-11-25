@@ -161,25 +161,6 @@ class ComplianceAssessment:
         combined = list(dict.fromkeys(list(current) + list(groups or [])))
         return self.set_selected_implementation_groups(combined)
 
-    def set_status(self, status: str) -> dict:
-        """Update the status of the compliance assessment via API PATCH."""
-        res = utils.get_return(
-            f"/api/compliance-assessments/{self.get_id()}/",
-            method="PATCH",
-            payload={"status": status},
-        )
-        if isinstance(res, dict) and not res.get("error"):
-            self.compliance_assessment_json["status"] = status
-        elif isinstance(res, dict) and res.get("id"):
-            self.compliance_assessment_json["status"] = status
-        else:
-            self.compliance_assessment_json["status"] = status
-        return res
-
-    def start(self) -> dict:
-        """Start the compliance assessment (set status to in_progress)."""
-        return self.set_status("in_progress")
-
 
 def derive_confidentiality_impact(answers, conf_map, qty_map):
     """Derive confidentiality score (0-3) and impact level (1-4) from assessment answers.

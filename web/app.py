@@ -51,7 +51,6 @@ except ImportError:
     HAS_FLASK = False
 
 from classes import utils
-from classes.audits.implementation_groups import get_tier_governance_policy
 from classes.examples_manager import (
     EXAMPLE_FOLDER_NAME,
     FRAMEWORK_CATALOG,
@@ -407,9 +406,8 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
     # Status & Inventory Endpoints
     # -----------------------------------------------------------------------
 
-    _status_cache: dict[str, Any] = {"time": 0.0, "data": None, "refreshing": False}
+    _status_cache: dict[str, Any] = {"time": 0.0, "data": None}
     _status_lock = threading.Lock()
-    _status_cv = threading.Condition(_status_lock)
 
     def invalidate_status_cache():
         with _status_lock:
@@ -425,129 +423,97 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
 
         now = time.time()
         with _status_lock:
-            # 1. Return cached data immediately if fresh (TTL: 30s) and not forced
-            if not force and wait_sec == 0 and _status_cache["data"] and (now - _status_cache["time"] < 30.0):
+            if not force and wait_sec == 0 and _status_cache["data"] and (now - _status_cache["time"] < 4.0):
                 return jsonify(_status_cache["data"])
 
-            # 2. If another thread is actively refreshing:
-            # Return current cached data if available rather than blocking the worker
-            if _status_cache.get("refreshing"):
-                if _status_cache["data"]:
-                    return jsonify(_status_cache["data"])
-                _status_cv.wait(timeout=15.0)
-                if _status_cache["data"]:
-                    return jsonify(_status_cache["data"])
-
-            # 3. Mark refreshing so parallel requests don't duplicate remote calls
-            _status_cache["refreshing"] = True
-
-        try:
-            connected, conn_msg = manager.test_connection()
-            if not connected:
-                fail_payload = {
-                    "connected": False,
-                    "message": conn_msg,
-                    "base_url": utils.BASE_URL,
-                    "folder_name": target_folder,
-                    "applications": [],
-                    "installed_frameworks": [],
-                    "available_frameworks": manager.get_available_frameworks(installed_only=False),
-                    "catalog_frameworks": FRAMEWORK_CATALOG,
-                    "catalog": manager.get_example_applications(),
-                    "domains": [],
-                    "summary": {
-                        "total_catalog": len(manager.get_example_applications()),
-                        "total_domains": 0,
-                        "deployed": 0,
-                        "completed_audits": 0,
-                        "total_risks": 0,
-                        "total_controls": 0,
-                        "total_findings": 0,
-                    },
-                }
-                with _status_lock:
-                    _status_cache["time"] = time.time()
-                    _status_cache["data"] = fail_payload
-                return jsonify(fail_payload)
-
-            if wait_sec > 0:
-                time.sleep(wait_sec)
-
-            try:
-                status_list = manager.get_status(wait_seconds=0)
-            except Exception as e:
-                LOGGER.error(f"Error querying status: {e}")
-                status_list = []
-
-            try:
-                installed_fws = manager.get_installed_frameworks()
-            except Exception as e:
-                LOGGER.error(f"Error querying frameworks: {e}")
-                installed_fws = []
-
-            catalog_apps = manager.get_example_applications()
-
-            # Query all organizational domains in CISO Assistant
-            domains_list = []
-            try:
-                raw_domains = manager.get_domains()
-                domains_list = [
-                    {
-                        "id": d.get_id(),
-                        "name": d.get_name(),
-                        "description": getattr(d, "get_description", lambda: "")(),
-                        "parent_folder": getattr(d, "get_parent_folder", lambda: None)(),
-                    }
-                    for d in raw_domains
-                ]
-            except Exception as e:
-                LOGGER.warning(f"Error querying domains: {e}")
-
-            # Compute aggregate metrics
-            deployed_apps = [s for s in status_list if s.get("exists")]
-            completed_audits = sum(
-                1 for s in deployed_apps
-                if s.get("audit_answered")
-                and (s.get("audit_completion_pct", 0) >= 100 or s.get("compliance_status") == "completed")
-            )
-            partial_audits = sum(
-                1 for s in deployed_apps
-                if s.get("answered_requirements_count", 0) > 0 and s.get("audit_completion_pct", 0) < 100
-            )
-            total_risks = sum(s.get("risk_scenarios_count", 0) for s in deployed_apps)
-            total_controls = sum(s.get("applied_controls_count", 0) for s in deployed_apps)
-            total_findings = sum(s.get("findings_count", 0) for s in deployed_apps)
-
-            payload = {
-                "connected": True,
+        connected, conn_msg = manager.test_connection()
+        if not connected:
+            return jsonify({
+                "connected": False,
                 "message": conn_msg,
                 "base_url": utils.BASE_URL,
                 "folder_name": target_folder,
-                "applications": status_list,
-                "installed_frameworks": installed_fws,
+                "applications": [],
+                "installed_frameworks": [],
                 "available_frameworks": manager.get_available_frameworks(installed_only=False),
                 "catalog_frameworks": FRAMEWORK_CATALOG,
-                "catalog": catalog_apps,
-                "domains": domains_list,
+                "catalog": manager.get_example_applications(),
+                "domains": [],
                 "summary": {
-                    "total_catalog": len(catalog_apps),
-                    "total_domains": len(domains_list),
-                    "deployed": len(deployed_apps),
-                    "completed_audits": completed_audits,
-                    "partial_audits": partial_audits,
-                    "total_risks": total_risks,
-                    "total_controls": total_controls,
-                    "total_findings": total_findings,
+                    "total_catalog": len(manager.get_example_applications()),
+                    "total_domains": 0,
+                    "deployed": 0,
+                    "completed_audits": 0,
+                    "total_risks": 0,
+                    "total_controls": 0,
+                    "total_findings": 0,
                 },
-            }
-            with _status_lock:
-                _status_cache["time"] = time.time()
-                _status_cache["data"] = payload
-            return jsonify(payload)
-        finally:
-            with _status_lock:
-                _status_cache["refreshing"] = False
-                _status_cv.notify_all()
+            })
+
+        if wait_sec > 0:
+            time.sleep(wait_sec)
+
+        status_list = manager.get_status(wait_seconds=0)
+        installed_fws = manager.get_installed_frameworks()
+        catalog_apps = manager.get_example_applications()
+
+        # Query all organizational domains in CISO Assistant
+        domains_list = []
+        try:
+            raw_domains = manager.get_domains()
+            domains_list = [
+                {
+                    "id": d.get_id(),
+                    "name": d.get_name(),
+                    "description": getattr(d, "get_description", lambda: "")(),
+                    "parent_folder": getattr(d, "get_parent_folder", lambda: None)(),
+                }
+                for d in raw_domains
+            ]
+        except Exception as e:
+            LOGGER.warning(f"Error querying domains: {e}")
+
+        # Compute aggregate metrics
+        deployed_apps = [s for s in status_list if s.get("exists")]
+        completed_audits = sum(
+            1 for s in deployed_apps
+            if s.get("audit_answered")
+            and (s.get("audit_completion_pct", 0) >= 100 or s.get("compliance_status") == "completed")
+        )
+        partial_audits = sum(
+            1 for s in deployed_apps
+            if s.get("answered_requirements_count", 0) > 0 and s.get("audit_completion_pct", 0) < 100
+        )
+        total_risks = sum(s.get("risk_scenarios_count", 0) for s in deployed_apps)
+        total_controls = sum(s.get("applied_controls_count", 0) for s in deployed_apps)
+        total_findings = sum(s.get("findings_count", 0) for s in deployed_apps)
+
+        payload = {
+            "connected": True,
+            "message": conn_msg,
+            "base_url": utils.BASE_URL,
+            "folder_name": target_folder,
+            "applications": status_list,
+            "installed_frameworks": installed_fws,
+            "available_frameworks": manager.get_available_frameworks(installed_only=False),
+            "catalog_frameworks": FRAMEWORK_CATALOG,
+            "catalog": catalog_apps,
+            "domains": domains_list,
+            "summary": {
+                "total_catalog": len(catalog_apps),
+                "total_domains": len(domains_list),
+                "deployed": len(deployed_apps),
+                "completed_audits": completed_audits,
+                "partial_audits": partial_audits,
+                "total_risks": total_risks,
+                "total_controls": total_controls,
+                "total_findings": total_findings,
+            },
+        }
+        with _status_lock:
+            _status_cache["time"] = time.time()
+            _status_cache["data"] = payload
+        return jsonify(payload)
 
     @app.route("/api/domains", methods=["GET", "POST"])
     def api_domains():
@@ -851,8 +817,6 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
         is_third_party = bool(payload.get("is_third_party", True))
         framework = payload.get("framework", "").strip()
         target_domain = payload.get("domain")
-        tier = payload.get("tier")
-        tier_note = payload.get("tier_note")
 
         if not user_email or "@" not in user_email:
             return jsonify({"error": "A valid 'user_email' is required."}), 400
@@ -898,14 +862,8 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
                 framework_ref_or_name=target_fw_ref,
                 domain_name=target_domain,
                 implementation_groups=implementation_groups,
-                tier=tier,
-                tier_note=tier_note,
             )
             print(f"     [OK] Application: {res.get('app_name')}")
-            if res.get("solution_tier"):
-                gov = res.get("governance_policy") or {}
-                sla = gov.get("remediation_sla_critical_days")
-                print(f"     [OK] Solution Tier: {res['solution_tier'].upper()} (Critical SLA: {sla}d)")
             print(f"     [OK] Domain: {res.get('domain_name')}")
             print(f"     [OK] Assigned User: {res.get('user_email')} (User Created: {res.get('user_created')})")
             print(f"     [OK] Perimeter: {res.get('perimeter_id')}")
@@ -939,9 +897,6 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
         """Inspect or update implementation groups for an audit."""
         if request.method == "GET":
             try:
-                force = request.args.get("refresh", "").lower() in ("1", "true")
-                if force:
-                    manager._init_data(force_reload=True)
                 info = manager.get_audit_implementation_groups(app_name)
                 return jsonify(info)
             except ValueError as e:
@@ -1049,246 +1004,6 @@ def create_app(test_config: dict[str, Any] | None = None, manager: ExamplesManag
             return jsonify({"error": str(e)}), 400
         except Exception as e:
             LOGGER.error(f"Error assigning implementation groups: {e}")
-            return jsonify({"error": str(e)}), 500
-
-    # -----------------------------------------------------------------------
-    # Solution Criticality Tiering Endpoints
-    # -----------------------------------------------------------------------
-
-    @app.route("/api/solutions/tiers", methods=["GET"])
-    def api_get_tiers():
-        """List all available solution tiers and governance policies."""
-        try:
-            tiers = manager.get_tiers()
-            for t in tiers:
-                key = t.get("key") or t.get("name")
-                t["governance_policy"] = get_tier_governance_policy(key)
-            return jsonify({"success": True, "tiers": tiers})
-        except Exception as e:
-            LOGGER.error(f"Error fetching tiers: {e}")
-            return jsonify({"error": str(e)}), 500
-
-    @app.route("/api/solutions/<path:app_name>/tier", methods=["GET", "POST"])
-    def api_manage_solution_tier(app_name: str):
-        """Get or update/assess the solution tier for an application."""
-        if request.method == "GET":
-            try:
-                tier = manager.get_solution_tier(app_name)
-                gov = get_tier_governance_policy(tier)
-                return jsonify({
-                    "success": True,
-                    "app_name": app_name,
-                    "tier": tier,
-                    "governance_policy": gov,
-                })
-            except Exception as e:
-                return jsonify({"error": str(e)}), 500
-
-        # POST
-        payload = request.get_json(silent=True) or {}
-        tier = payload.get("tier")
-        answers = payload.get("answers") or payload.get("tiering_answers")
-
-        try:
-            if answers:
-                # Run assessment
-                res = manager.assess_appsec_solution_tier(
-                    app_name,
-                    tiering_answers=answers,
-                    auto_sign_off=payload.get("auto_sign_off", True),
-                )
-                invalidate_status_cache()
-                return jsonify({
-                    "success": True,
-                    "message": f"Successfully assessed solution tier: {res['final_tier'].upper()}",
-                    "data": res,
-                })
-            elif tier:
-                # Direct tier assignment
-                res = manager.set_solution_tier(app_name, tier, note=payload.get("note", "Assigned via API"))
-                invalidate_status_cache()
-                return jsonify({
-                    "success": True,
-                    "message": f"Successfully updated solution tier to {tier.upper()}",
-                    "data": res,
-                })
-            else:
-                return jsonify({"error": "Either 'tier' or 'answers' must be provided in request body."}), 400
-        except ValueError as e:
-            return jsonify({"error": str(e)}), 400
-        except Exception as e:
-            LOGGER.error(f"Error updating tier for {app_name}: {e}")
-            return jsonify({"error": str(e)}), 500
-
-    @app.route("/api/sbd/assign", methods=["POST"])
-    def api_assign_sbd():
-        """Create and assign a Security by Design (SbD) intake assessment inside CISO Assistant."""
-        payload = request.get_json(silent=True) or {}
-        app_name = payload.get("app_name")
-        user_email = payload.get("user_email")
-        if not app_name:
-            return jsonify({"error": "'app_name' is required in request body."}), 400
-        if not user_email:
-            return jsonify({"error": "'user_email' is required in request body."}), 400
-
-        domain_name = payload.get("domain_name")
-        first_name = payload.get("first_name", "")
-        last_name = payload.get("last_name", "")
-        groups = payload.get("implementation_groups")
-
-        try:
-            res = manager.create_sbd_assessment(
-                app_name=app_name,
-                user_email=user_email,
-                first_name=first_name,
-                last_name=last_name,
-                domain_name=domain_name,
-                implementation_groups=groups,
-            )
-            invalidate_status_cache()
-            return jsonify({
-                "success": True,
-                "message": f"SbD Assessment for '{app_name}' created in CISO Assistant and assigned to '{user_email}'.",
-                "data": res,
-            })
-        except Exception as e:
-            LOGGER.error(f"Error assigning SbD assessment for {app_name}: {e}")
-            return jsonify({"error": str(e)}), 500
-
-    @app.route("/api/sbd/status/<path:app_name>", methods=["GET"])
-    def api_sbd_status(app_name: str):
-        """Check live SbD assessment status in CISO Assistant."""
-        try:
-            res = manager.get_sbd_assessment_status(app_name)
-            return jsonify({"success": True, "data": res})
-        except Exception as e:
-            LOGGER.error(f"Error checking SbD status for {app_name}: {e}")
-            return jsonify({"error": str(e)}), 500
-
-    @app.route("/api/sbd/evaluate", methods=["POST"])
-    @app.route("/api/sbd/assess", methods=["POST"])
-    def api_assess_sbd():
-        """Run Security by Design (SbD) intake and gating triage evaluation."""
-        payload = request.get_json(silent=True) or {}
-        app_name = payload.get("app_name")
-        if not app_name:
-            return jsonify({"error": "'app_name' is required in request body."}), 400
-
-        answers = payload.get("answers") or payload.get("change_answers") or None
-        auto_sign_off = payload.get("auto_sign_off", True)
-
-        try:
-            res = manager.assess_security_by_design(
-                app_name,
-                change_answers=answers,
-                auto_sign_off=auto_sign_off,
-            )
-            invalidate_status_cache()
-            return jsonify({
-                "success": True,
-                "message": f"SbD Evaluation Complete: {res.get('sbd_decision', 'Evaluated')}",
-                "data": res,
-            })
-        except Exception as e:
-            LOGGER.error(f"Error evaluating Security by Design for {app_name}: {e}")
-            return jsonify({"error": str(e)}), 500
-
-    @app.route("/api/solutions/<path:app_name>/sbd", methods=["GET", "POST"])
-    def api_solution_sbd(app_name: str):
-        """Get or evaluate Security by Design gating policy for an application/change."""
-        if request.method == "GET":
-            try:
-                tier = manager.get_solution_tier(app_name)
-                gov = get_tier_governance_policy(tier)
-                return jsonify({
-                    "success": True,
-                    "app_name": app_name,
-                    "tier": tier,
-                    "governance_policy": gov,
-                })
-            except Exception as e:
-                return jsonify({"error": str(e)}), 500
-
-        payload = request.get_json(silent=True) or {}
-        answers = payload.get("answers") or payload.get("change_answers") or {}
-        auto_sign_off = payload.get("auto_sign_off", True)
-
-        try:
-            res = manager.assess_security_by_design(
-                app_name,
-                change_answers=answers,
-                auto_sign_off=auto_sign_off,
-            )
-            invalidate_status_cache()
-            return jsonify({
-                "success": True,
-                "message": f"SbD Evaluation Complete: {res['sbd_decision']}",
-                "data": res,
-            })
-        except Exception as e:
-            LOGGER.error(f"Error evaluating Security by Design for {app_name}: {e}")
-            return jsonify({"error": str(e)}), 500
-
-    # -----------------------------------------------------------------------
-    # Solution Tiering Intake & Questionnaire Assignment Endpoints
-    # -----------------------------------------------------------------------
-
-    @app.route("/api/tiering/forms", methods=["GET"])
-    def api_get_tiering_forms():
-        """Get available solution tiering quick forms."""
-        try:
-            forms = manager.get_tiering_quick_forms()
-            return jsonify({"success": True, "forms": forms})
-        except Exception as e:
-            LOGGER.error(f"Error fetching tiering quick forms: {e}")
-            return jsonify({"error": str(e)}), 500
-
-    @app.route("/api/tiering/responses", methods=["GET"])
-    def api_get_tiering_responses():
-        """List active and historical solution tiering questionnaire responses."""
-        try:
-            responses = manager.get_tiering_responses()
-            return jsonify({"success": True, "responses": responses})
-        except Exception as e:
-            LOGGER.error(f"Error fetching tiering responses: {e}")
-            return jsonify({"error": str(e)}), 500
-
-    @app.route("/api/tiering/assign", methods=["POST"])
-    def api_assign_tiering():
-        """Assign an AppSec Solution Tiering questionnaire to a solution & respondent user."""
-        payload = request.get_json() or {}
-        app_name = payload.get("app_name", "").strip()
-        user_email = payload.get("user_email", "").strip().lower()
-        first_name = payload.get("first_name", "").strip()
-        last_name = payload.get("last_name", "").strip()
-        due_date = payload.get("due_date")
-        form_id = payload.get("form_id")
-        tier_note = payload.get("tier_note")
-
-        if not app_name:
-            return jsonify({"error": "Missing required field: 'app_name'"}), 400
-        if not user_email:
-            return jsonify({"error": "Missing required field: 'user_email'"}), 400
-
-        try:
-            res = manager.assign_tiering_questionnaire(
-                app_name=app_name,
-                user_email=user_email,
-                first_name=first_name,
-                last_name=last_name,
-                due_date=due_date,
-                form_id=form_id,
-                tier_note=tier_note,
-            )
-            return jsonify({
-                "success": True,
-                "message": f"Successfully assigned tiering questionnaire to {user_email} for '{app_name}'",
-                "assignment": res,
-            })
-        except ValueError as e:
-            return jsonify({"error": str(e)}), 400
-        except Exception as e:
-            LOGGER.error(f"Error assigning tiering questionnaire for {app_name}: {e}")
             return jsonify({"error": str(e)}), 500
 
     # -----------------------------------------------------------------------

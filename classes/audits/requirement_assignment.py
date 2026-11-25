@@ -10,11 +10,6 @@ def start_requirement_assignment(assignment_id: str) -> bool:
     if not assignment_id:
         return False
 
-    # Check if the assignment is already in_progress (e.g. started at creation)
-    assignment = utils.get_return(f'/api/requirement-assignments/{assignment_id}/', log_errors=False)
-    if isinstance(assignment, dict) and assignment.get('status') == 'in_progress':
-        return True
-
     response = utils.get_return(
         f'/api/requirement-assignments/{assignment_id}/set_status/',
         method='POST',

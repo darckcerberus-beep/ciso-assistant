@@ -171,7 +171,7 @@ The platform includes 12 ready-to-deploy application and vendor profiles demonst
 ### 11. Multi-Source Framework Loading & Automated Pre-Operation Backup
 - **Automated Pre-Operation Backup Safeguards:** Automatically captures a full JSON workspace snapshot or database dump before any framework modification (loading, uploading, force-reloading, or unloading), preventing data loss and configuration corruption.
 - **Built-in Stored Library Catalog Management:** Direct integration with CISO Assistant's stored library catalog (375+ pre-packaged frameworks including ISO 27001:2022, NIS-1 FR, Controlli-Minimi-AGID) via `/api/stored-libraries/` and `/api/stored-libraries/{id}/import/`.
-- **Custom Local Framework Ingestion:** Supports single and multi-file YAML definitions with `!include` tags, modular framework component structures, Excel `.xlsx` matrices, and cross-framework dependency resolution.
+- **Custom Local Framework Ingestion:** Supports single and multi-file YAML definitions with `!include` tags, split modular architectures (e.g. `appsec_objects.yml`), Excel `.xlsx` matrices, and cross-framework dependency resolution.
 - **Safe Lifecycle & Hot-Reloading:** Enables force-reloading for framework updates and non-destructive unloading (`/api/stored-libraries/{id}/unload/`) with automated status tracking.
 - **Unified Multi-Interface Access:** Available via Python API (`FrameworkLoader`, `ExamplesManager`), Interactive Menu (Option 15), CLI flags (`--load-framework`, `--unload-framework`, `--list-stored-libraries`), and Web UI REST endpoints (`/api/frameworks/stored`, `/api/frameworks/load`, `/api/frameworks/unload`).
 

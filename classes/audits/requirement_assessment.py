@@ -427,49 +427,6 @@ class RequirementAssessmentDict:
         # 3. Fallback to all requirements belonging to this CA
         return self.get_requirement_assessment_id_list_from_compliance_assessment_id(compliance_assessment_id)
 
-    def get_requirement_assessment_id_list_for_groups(
-        self,
-        compliance_assessment_id: str,
-        groups: list[str],
-        fw_id: str | None = None,
-        only_assessable: bool = True,
-    ) -> list[str]:
-        """Return assessable requirement assessment IDs belonging to specific implementation groups."""
-        if not groups:
-            return []
-        from .implementation_groups import get_framework_implementation_groups
-        target_keys = set()
-        for g in groups:
-            if g:
-                target_keys.add(str(g).strip().lower())
-        if fw_id:
-            try:
-                for ig in get_framework_implementation_groups(fw_id) or []:
-                    if isinstance(ig, dict):
-                        ig_name = str(ig.get("name") or "").strip().lower()
-                        ig_ref = str(ig.get("ref_id") or "").strip().lower()
-                        ig_urn = str(ig.get("urn") or "").strip().lower()
-                        if any(k in (ig_name, ig_ref, ig_urn) for k in list(target_keys)):
-                            if ig_name:
-                                target_keys.add(ig_name)
-                            if ig_ref:
-                                target_keys.add(ig_ref)
-                            if ig_urn:
-                                target_keys.add(ig_urn)
-            except Exception:
-                pass
-
-        matched_ids = []
-        for ra in self.requirement_assessments.values():
-            if ra.get_compliance_assessment_id() != compliance_assessment_id:
-                continue
-            if only_assessable and not ra.is_assessable():
-                continue
-            req_igs = [str(ig).strip().lower() for ig in (ra.get_implementation_groups() or []) if ig]
-            if any(k in target_keys for k in req_igs):
-                matched_ids.append(ra.get_id())
-        return matched_ids
-
     def has_answers_for_compliance_assessment(self, compliance_assessment_id) -> bool:
         """Return True when at least one requirement assessment in the compliance assessment has an answer.
 
